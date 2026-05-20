@@ -55,8 +55,6 @@ Proiectul este împărțit în trei module mari interconectate:
 
 ## 🚀 Cum rulezi proiectul local
 
-## 🚀 Cum rulezi proiectul local
-
 ```bash
 git clone [https://github.com/alexurrc18/InsideUGAL](https://github.com/alexurrc18/InsideUGAL)
 cd InsideUGAL
