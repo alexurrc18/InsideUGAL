@@ -200,6 +200,7 @@ git checkout -b infra/initial-setup
 git add .
 git commit -m "chore: setup initial directory structure and supabase"
 git push -u origin infra/initial-setup
+```
 
 PASUL 3: Integrarea Continuă - GitHub Actions CI (Raul)
 Se testează automat codul. Creați fișierul .github/workflows/ci.yml:
