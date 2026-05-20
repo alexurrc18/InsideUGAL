@@ -77,4 +77,15 @@ Pentru întrebări sau sugestii, deschide un Issue pe GitHub sau contactează ec
 
 ---
 
+
+## 🍕 API Endpoints (Exemplu Cantină)
+
+Dacă vrei să integrezi meniul cantinei în alte aplicații, poți folosi următoarele rute:
+
+*Va fi completat ulterior*
+
+
+- `GET /api/cantina/menu` - Returnează preparatele din ziua curentă.
+- `GET /api/cantina/traffic` - Returnează nivelul de aglomerație (Low/Medium/High).
+
 *Proiect dezvoltat în cadrul Universității "Dunărea de Jos" din Galați 🇷🇴*
