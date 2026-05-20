@@ -7,8 +7,8 @@ Acesta este nucleul aplicației **InsideUGAL**, responsabil de logica de busines
 ## 🛠️ Stack Tehnologic
 - **Runtime:** Node.js
 - **Framework:** Express.js
-- **Bază de Date:** [Completează: ex. Oracle / PostgreSQL]
-- **Conectivitate:** JDBC / Sequelize / Prisma [Alege ce folosiți]
+- **Bază de Date:** PostgreSQL
+- **Conectivitate:** Prisma
 
 ---
 
