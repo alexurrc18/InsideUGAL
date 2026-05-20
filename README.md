@@ -1,7 +1,10 @@
-
 # 🎓 InsideUGAL
 
 > Platforma internă de colaborare și coordonare pentru studenții și coordonatorii Universității "Dunărea de Jos" din Galați.
+
+<a href="#">
+  <img src="./assets/universitate.jpg" alt="thumbnail">
+</a>
 
 ---
 
@@ -25,41 +28,35 @@ Proiectul centralizează activitățile academice, simplifică fluxul de lucru �
 
 ## ⚙️ Funcționalități
 
-### 👨‍🎓 Pentru Studenți
-- 📋 Orar personalizat
-- 📊 Note și examene în timp real
-- 💬 Chat cu colegi și coordonatori
-- 📢 Anunțuri și notificări
-- 🤖 Asistent AI
-
-### 👨‍🏫 Pentru Coordonatori
-- 📁 Gestionare cursuri și materiale
-- 👥 Catalog studenți și prezențe
-- 📊 Analiză AI
-- 📢 Sistem de anunțuri
-
----
-
-## 🛠️ Tehnologii Folosite
-
-- **Frontend:** React, TailwindCSS
-- **Backend:** Node.js, Express, Socket.io
-- **AI:** Python, FastAPI, LangChain, GPT-4, ChromaDB
-- **Baze de date:** PostgreSQL, Redis
-- **DevOps:** Git, GitHub, Docker
+- 📋 Gestionarea activităților și sarcinilor
+- 👥 Colaborare în timp real între membri
+- 📁 Partajarea resurselor și documentelor
+- 📢 Sistem de anunțuri și notificări
+- 🔐 Autentificare și roluri (student / coordonator)
 
 ---
 
 ## 🚀 Cum rulezi proiectul local
 
-```bash
+\\\bash
 git clone https://github.com/alexurrc18/InsideUGAL
 cd InsideUGAL
 npm install
 npm start
-```
+\\\
 
 ---
 
-> Proiect dezvoltat în cadrul Universității "Dunărea de Jos" din Galați 🇷🇴
-> Realizat în cadrul programului de practică @ Thecon Galați
+## 🛠️ Tehnologii folosite
+
+- Git & GitHub — version control și colaborare
+
+---
+
+## 📬 Contact
+
+Pentru întrebări sau sugestii, deschide un Issue pe GitHub sau contactează echipa direct prin platformă.
+
+---
+
+_Proiect dezvoltat în cadrul Universității "Dunărea de Jos" din Galați 🇷🇴_
