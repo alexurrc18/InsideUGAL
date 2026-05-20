@@ -3,7 +3,7 @@
 > Platforma internă de colaborare și coordonare pentru studenții și coordonatorii Universității "Dunărea de Jos" din Galați.
 
 <a href="#">
-  <img src="https://en.ugal.ro/images/slideview/s3.jpg" alt="thumbnail">
+  <img src="./assets/universitate.jpg" alt="thumbnail">
 </a>
 
 ---
