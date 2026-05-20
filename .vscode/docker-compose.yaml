@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+  web:
+    build: .
+    ports:
+      - "8080:3000" # Mapează portul 3000 din container la portul 8080 pe laptopul tău
+    environment:
+      - NODE_ENV=production
+    restart: always
