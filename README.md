@@ -29,6 +29,24 @@ Proiectul a fost dezvoltat cu scopul de a centraliza activitățile academice, d
 - 📢 Sistem de anunțuri și notificări
 - 🔐 Autentificare și roluri (student / coordonator)
 
+## 🗂️ Structura Arhitecturală a Platformei
+
+Proiectul este împărțit în trei module mari interconectate:
+
+### 1. Modulul Student (Portal Academic)
+* **Dashboard Personalizat:** Vizualizarea sarcinilor curente, termenelor limită și anunțurilor din facultate.
+* **Management de Proiect:** Spațiu virtual pentru lucrul în echipă la proiectele de semestru.
+* **Repository de Resurse:** Acces rapid la materiale de curs și documente partajate de coordonatori.
+
+### 2. Modulul Cantină UGAL (Servicii Campus)
+* **Live Menu:** Afișarea listei de preparate actualizată zilnic de către personalul bucătăriei.
+* **Smart Filter & Alergeni:** Filtrarea mâncărurilor după ingrediente, calorii sau regim alimentar (vegetarian/de post).
+* **Traffic Indicator:** Monitorizarea vizuală a fluxului de studenți pentru evitarea orelor de vârf.
+
+### 3. Modulul Coordonator & Admin (Panou de Control)
+* **Gestiune Utilizatori:** Validarea conturilor și alocarea drepturilor (student/profesor).
+* **Content Manager:** Publicarea anunțurilor globale și administrarea listei de prețuri a cantinei.
+
 ---
 
 ## 🚀 Cum rulezi proiectul local
