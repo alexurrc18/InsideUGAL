@@ -51,13 +51,14 @@ Proiectul este împărțit în trei module mari interconectate:
 
 ## 🚀 Cum rulezi proiectul local
 
-\\\bash
-git clone https://github.com/alexurrc18/InsideUGAL
+## 🚀 Cum rulezi proiectul local
+
+```bash
+git clone [https://github.com/alexurrc18/InsideUGAL](https://github.com/alexurrc18/InsideUGAL)
 cd InsideUGAL
 npm install
 npm start
-\\\
-
+```
 ---
 
 ## 🛠️ Tehnologii folosite
