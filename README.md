@@ -31,15 +31,6 @@ Proiectul a fost dezvoltat cu scopul de a centraliza activitățile academice, d
 
 ---
 
-## 👨‍💻 Echipa
-
-| Rol | Utilizator |
-|-----|-----------|
-| Owner / Developer | [@alexurrc18](https://github.com/alexurrc18) |
-| Co-coordonator | [@Raul21000](https://github.com/Raul21000) |
-
----
-
 ## 🚀 Cum rulezi proiectul local
 
 \\\ash
