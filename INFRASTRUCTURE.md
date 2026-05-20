@@ -8,17 +8,19 @@ Universitatea „Dunărea de Jos” din Galați
 InsideUGAL este o aplicație dedicată studenților, concepută pentru a centraliza și simplifica viața în campus.
 
 Funcționalități principale:
-* Meniu zilnic la cantină (inclusiv valori nutriționale).
-* Hartă interactivă a campusului universitar.
-* Informații despre căminele studențești și notificări/sisteme de plată.
-* Informații despre facultăți.
-* Alte utilități destinate studenților.
+
+- Meniu zilnic la cantină (inclusiv valori nutriționale).
+- Hartă interactivă a campusului universitar.
+- Informații despre căminele studențești și notificări/sisteme de plată.
+- Informații despre facultăți.
+- Alte utilități destinate studenților.
 
 Structura echipelor:
-* Frontend (FE)
-* Backend (BE)
-* Funcționalități (Features)
-* Infrastructură: 3 persoane (Robert, Ion, Raul)
+
+- Frontend (FE)
+- Backend (BE)
+- Funcționalități (Features)
+- Infrastructură: 3 persoane (Robert, Ion, Raul)
 
 ---
 
@@ -27,29 +29,34 @@ Structura echipelor:
 Aceasta este lista exhaustivă a tehnologiilor, uneltelor și platformelor utilizate pentru dezvoltarea, operarea și monitorizarea proiectului:
 
 Mediu de Dezvoltare Local:
-* Sistem de operare: Windows 11 cu WSL 2 (Windows Subsystem for Linux - Ubuntu).
-* IDE: Visual Studio Code (cu extensia Remote - WSL).
-* Containere: Docker Desktop (rutat prin WSL).
-* CLI Tools: Git, GitHub CLI (gh), Gemini CLI, Supabase CLI (pentru rularea mediului local de baze de date).
+
+- Sistem de operare: Windows 11 cu WSL 2 (Windows Subsystem for Linux - Ubuntu).
+- IDE: Visual Studio Code (cu extensia Remote - WSL).
+- Containere: Docker Desktop (rutat prin WSL).
+- CLI Tools: Git, GitHub CLI (gh), Gemini CLI, Supabase CLI (pentru rularea mediului local de baze de date).
 
 Hosting, Arhitectură și Deployment (Self-Hosted):
-* Server/Platformă: Coolify 4.0.0 (Self-hosted pe IP local).
-* Reverse Proxy / Ingress: Traefik (inclus implicit în Coolify).
-* Build System: Nixpacks (integrat în Coolify pentru a construi imaginile direct din cod, fără Dockerfile manual).
-* DNS Local: AdGuard Home (rulat în Docker pe porturile 3000/5353) pentru rezolvarea domeniilor .local.
+
+- Server/Platformă: Coolify 4.0.0 (Self-hosted pe IP local).
+- Reverse Proxy / Ingress: Traefik (inclus implicit în Coolify).
+- Build System: Nixpacks (integrat în Coolify pentru a construi imaginile direct din cod, fără Dockerfile manual).
+- DNS Local: AdGuard Home (rulat în Docker pe porturile 3000/5353) pentru rezolvarea domeniilor .local.
 
 Baze de Date și Backend-as-a-Service:
-* Platformă: Supabase (Self-hosted prin Coolify sau gestionat via Supabase CLI pentru local). Include baza de date PostgreSQL, API-uri REST/GraphQL generate automat și sistem de Autentificare.
-* Extensie Spațială: PostGIS (crucial pentru harta interactivă a campusului, suportat nativ de Supabase).
+
+- Platformă: Supabase (Self-hosted prin Coolify sau gestionat via Supabase CLI pentru local). Include baza de date PostgreSQL, API-uri REST/GraphQL generate automat și sistem de Autentificare.
+- Extensie Spațială: PostGIS (crucial pentru harta interactivă a campusului, suportat nativ de Supabase).
 
 CI/CD și Versionare:
-* Controlul Versiunilor: Git & GitHub.
-* Continuous Integration (CI): GitHub Actions (pentru testare și linting).
-* Continuous Deployment (CD): Coolify (prin webhook-uri setate către GitHub).
+
+- Controlul Versiunilor: Git & GitHub.
+- Continuous Integration (CI): GitHub Actions (pentru testare și linting).
+- Continuous Deployment (CD): Coolify (prin webhook-uri setate către GitHub).
 
 Monitorizare și Observabilitate:
-* Uptime Monitoring: Uptime Kuma (găzduit prin Coolify).
-* Jurnale (Logs): Agregatorul implicit din Coolify.
+
+- Uptime Monitoring: Uptime Kuma (găzduit prin Coolify).
+- Jurnale (Logs): Agregatorul implicit din Coolify.
 
 ---
 
@@ -57,11 +64,11 @@ Monitorizare și Observabilitate:
 
 Pentru a evita suprapunerile de cod și acțiuni, sarcinile sunt împărțite clar, pe domenii specifice.
 
-| Membru Echipă | Rol în Proiect | Responsabilități Principale |
-| :--- | :--- | :--- |
-| Robert | Responsabil Deploy & Rețea | Administrează instanța Coolify, conectează repository-ul GitHub, configurează webhook-urile, setează regulile DNS (AdGuard Home) și supervizează arhitectura la nivel înalt. |
-| Ion | Responsabil Date & Baze de Date | Gestionează instanța Supabase, proiectează structura tabelelor/schemele în PostgreSQL, setează regulile de securitate (RLS - Row Level Security) și configurează modulul de autentificare Supabase Auth. |
-| Raul | Responsabil Mediu Local & CI/CD | Creează fișierele docker-compose.yml pentru mediul local, scrie pipeline-ul GitHub Actions (CI) pentru testarea automată și setează uneltele de monitorizare (Uptime Kuma, log-uri). |
+| Membru Echipă | Rol în Proiect                  | Responsabilități Principale                                                                                                                                                                              |
+| :------------ | :------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Robert        | Responsabil Deploy & Rețea      | Administrează instanța Coolify, conectează repository-ul GitHub, configurează webhook-urile, setează regulile DNS (AdGuard Home) și supervizează arhitectura la nivel înalt.                             |
+| Ion           | Responsabil Date & Baze de Date | Gestionează instanța Supabase, proiectează structura tabelelor/schemele în PostgreSQL, setează regulile de securitate (RLS - Row Level Security) și configurează modulul de autentificare Supabase Auth. |
+| Raul          | Responsabil Mediu Local & CI/CD | Creează fișierele docker-compose.yml pentru mediul local, scrie pipeline-ul GitHub Actions (CI) pentru testarea automată și setează uneltele de monitorizare (Uptime Kuma, log-uri).                     |
 
 ---
 
@@ -95,11 +102,12 @@ Tabele Core (Recomandare Structură)
 
 Pentru a asigura stabilitatea aplicației când 4 echipe diferite lucrează simultan.
 
-* main — Conține doar cod de producție. Nu se face commit direct niciodată. Orice merge aici se implementează automat (deploy) pe aplicația live via Coolify.
-* develop — Ramura principală de integrare (Staging). Toate funcționalitățile noi ajung întâi aici.
-* infra/, feat/, fix/* — Ramuri temporare create de dezvoltatori pentru lucrul activ (ex: infra/setup-coolify sau feat/campus-map).
+- main — Conține doar cod de producție. Nu se face commit direct niciodată. Orice merge aici se implementează automat (deploy) pe aplicația live via Coolify.
+- develop — Ramura principală de integrare (Staging). Toate funcționalitățile noi ajung întâi aici.
+- infra/, feat/, fix/\* — Ramuri temporare create de dezvoltatori pentru lucrul activ (ex: infra/setup-coolify sau feat/campus-map).
 
 Procesul de Pull Request (PR):
+
 1. Se creează o ramură nouă din develop: git checkout -b infra/nume-task.
 2. Se finalizează munca, se dă commit și push.
 3. Se deschide un PR pe GitHub către ramura develop.
@@ -113,7 +121,7 @@ Procesul de Pull Request (PR):
 Acest fișier docker-compose.yml trebuie plasat de Raul în directorul principal al proiectului (root). Deoarece folosiți Supabase, dezvoltatorii vor folosi Supabase CLI pentru a rula baza de date local (prin comanda supabase start), așa că fișierul de mai jos se concentrează pe ridicarea rapidă a codului scris de echipele FE și BE.
 
 ```yaml
-version: '3.8'
+version: "3.8"
 services:
   backend:
     build:
@@ -125,7 +133,7 @@ services:
       SUPABASE_URL: ${SUPABASE_URL:-[http://host.docker.internal:54321](http://host.docker.internal:54321)}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-your_local_anon_key}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-your_local_service_key}
-  
+
   frontend:
     build:
       context: ./frontend
@@ -136,23 +144,24 @@ services:
     environment:
       NEXT_PUBLIC_SUPABASE_URL: ${SUPABASE_URL:-http://localhost:54321}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-your_local_anon_key}
+```
 
 ---
 
 ## 8. Securitate și Gestiunea Secretelor
 
-1. Regula de Aur: Fișierul .env nu se încarcă niciodată pe GitHub. Se adaugă *.env în .gitignore de la primul commit.
+1. Regula de Aur: Fișierul .env nu se încarcă niciodată pe GitHub. Se adaugă \*.env în .gitignore de la primul commit.
 2. Secretele Supabase: Supabase folosește un ANON_KEY (sigur pentru a fi expus în Frontend) și un SERVICE_ROLE_KEY (care oferă drepturi de admin și trebuie ținut strict în Backend).
-3. Variabilele în Producție: Secretele sunt gestionate exclusiv prin interfața Coolify -> Secțiunea Environment Variables a fiecărei aplicații. 
+3. Variabilele în Producție: Secretele sunt gestionate exclusiv prin interfața Coolify -> Secțiunea Environment Variables a fiecărei aplicații.
 
 ---
 
 ## 9. Monitorizare și Observabilitate
 
-* Jurnale Aplicații: Se verifică direct în interfața web Coolify, navigând la fiecare serviciu/aplicație.
-* Monitorizare Uptime: Uptime Kuma va fi instalat tot ca serviciu prin Coolify.
-  * Se configurează monitoare de tip HTTP(s) către: http://app.insideugal.local și http://api.insideugal.local/health (un endpoint special creat de echipa BE).
-  * Notificările în caz de downtime vor fi trimise automat prin Webhook pe un canal de Discord sau grup de Telegram al echipei.
+- Jurnale Aplicații: Se verifică direct în interfața web Coolify, navigând la fiecare serviciu/aplicație.
+- Monitorizare Uptime: Uptime Kuma va fi instalat tot ca serviciu prin Coolify.
+  - Se configurează monitoare de tip HTTP(s) către: http://app.insideugal.local și http://api.insideugal.local/health (un endpoint special creat de echipa BE).
+  - Notificările în caz de downtime vor fi trimise automat prin Webhook pe un canal de Discord sau grup de Telegram al echipei.
 
 ---
 
@@ -162,14 +171,16 @@ Această ordine trebuie respectată strict. Rulați comenzile prezentate direct 
 
 PASUL 1: Configurarea DNS-ului Local (Robert)
 Pentru ca proiectul să poată fi accesat prin nume de domenii locale.
+
 1. Deschide interfața AdGuard Home (port 3000 sau 5353).
 2. Mergi la Filters -> DNS rewrites.
 3. Adaugă:
-   * Domain: *.insideugal.local
-   * IP Address: IP-ul IPv4 local al PC-ului pe care rulează Coolify (ex: 192.168.x.x).
+   - Domain: \*.insideugal.local
+   - IP Address: IP-ul IPv4 local al PC-ului pe care rulează Coolify (ex: 192.168.x.x).
 4. Conectează device-urile la IP-ul de AdGuard Home ca server DNS.
 
 PASUL 2: Inițializarea Proiectului și Mediului Local (Raul)
+
 ```bash
 # Se navighează în folderul de proiect
 cd ~/InsideUGAL
@@ -244,3 +255,4 @@ sudo apt-get update
 
 # Instalare Supabase CLI (necesar pentru dezvoltarea locală a bazei de date)
 brew install supabase/tap/supabase
+```
