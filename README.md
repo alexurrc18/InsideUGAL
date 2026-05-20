@@ -33,13 +33,14 @@ Proiectul a fost dezvoltat cu scopul de a centraliza activitățile academice, d
 
 ## 🚀 Cum rulezi proiectul local
 
-\\\bash
-git clone https://github.com/alexurrc18/InsideUGAL
+## 🚀 Cum rulezi proiectul local
+
+```bash
+git clone [https://github.com/alexurrc18/InsideUGAL](https://github.com/alexurrc18/InsideUGAL)
 cd InsideUGAL
 npm install
 npm start
-\\\
-
+```
 ---
 
 ## 🛠️ Tehnologii folosite
