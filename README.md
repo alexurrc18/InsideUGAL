@@ -33,7 +33,7 @@ Proiectul a fost dezvoltat cu scopul de a centraliza activitățile academice, d
 
 ## 🚀 Cum rulezi proiectul local
 
-\\\ash
+\\\bash
 git clone https://github.com/alexurrc18/InsideUGAL
 cd InsideUGAL
 npm install
