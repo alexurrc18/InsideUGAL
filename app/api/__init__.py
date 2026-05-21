@@ -1,3 +1,7 @@
-from app.api import announcements, courses, faculties, users
+from fastapi import APIRouter
 
-__all__ = ["announcements", "courses", "faculties", "users"]
+api_router = APIRouter()
+
+@api_router.get("/status")
+def status():
+    return {"status": "API OK"}
