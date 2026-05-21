@@ -5,82 +5,48 @@ Acesta este nucleul aplicației **InsideUGAL**, responsabil de logica de busines
 ---
 
 ## 🛠️ Stack Tehnologic
-- **Runtime:** Node.js
-- **Framework:** Express.js
-- **Bază de Date:** PostgreSQL
-- **Conectivitate:** Prisma
+- **Runtime:** Python 3.10+
+- **Framework:** FastAPI
+- **Bază de Date:** SQLite (pentru dezvoltare) / PostgreSQL (pentru producție)
+- **ORM:** SQLAlchemy
+- **Validare:** Pydantic
 
 ---
 
 ## 🚀 Instalare și Configurare
 
 ### 1. Cerințe preliminare
-- Node.js (versiune LTS recomandată)
+- Python 3.10+
 - Git instalat
-- Baza de date configurată local
 
 ### 2. Pași pentru rulare
 ```bash
-# 1. Clonează repository-ul (dacă nu ai făcut-o deja)
-git clone [https://github.com/alexurrc18/InsideUGAL.git](https://github.com/alexurrc18/InsideUGAL.git)
+# 1. Navighează în folderul proiectului
+cd InsideUGAL
 
-# 2. Navighează în folderul de backend
-cd backend
+# 2. Instalează dependențele
+pip install -r backend/requirements.txt
 
-# 3. Instalează dependențele
-npm install
+# 3. Pornește serverul
+uvicorn app.main:app --reload --port 8000
+```
 
-# 4. Configurează variabilele de mediu
-# Copiază fișierul exemplu pentru a crea setările proprii
-cp .env.example .env
-
-# 5. Pornește serverul
-npm run dev
+### 3. Verificare
+```bash
+curl http://localhost:8000/health
+# Response: {"status": "healthy"}
+```
 
 ---
 
- Ce trebuie facut concret pe backend:
+## 📊 Structura Bazei de Date
 
-  1. Alegerea stack-ului
-     Acum README-ul si structura proiectului nu se potrivesc. Trebuie ales clar: Express sau FastAPI.
-  2. Pornirea serverului
-     Endpoint minim:
-      - GET / sau GET /health
-      - raspuns: backend-ul ruleaza.
-  3. Configurarea bazei de date
-     Trebuie decis ce baza folositi:
-      - SQLite pentru demo/proiect simplu
-      - PostgreSQL/MySQL pentru ceva mai serios
-  4. Modele principale
-     Probabil pentru InsideUGAL:
-      - User
-      - Student
-      - Professor
-      - Faculty
-      - Course
-      - Announcement / Event
-      - eventual Role
-  5. Autentificare
-      - register
-      - login
-      - parole hash-uite
-      - JWT/session
-      - middleware pentru rute protejate
-  6. Endpoint-uri API
-     Exemple:
-      - POST /auth/register
-      - POST /auth/login
-      - GET /users/me
-      - GET /courses
-      - GET /announcements
-      - POST /announcements pentru admin/profesor
-  7. Validare si erori
-      - verificare date primite
-      🗄️ Baza de Date: PostgreSQL
-Pentru dezvoltarea sistemului InsideUGAL, am ales PostgreSQL din următoarele motive:
-
-Versatilitate: Suportă atât date structurate (orar, conturi), cât și date semi-structurate prin tipul JSONB, ideal pentru modulele dinamice precum Cantină.
-
-Integrare AI (pgvector): Extensia pgvector ne permite să transformăm baza de date într-un motor de căutare semantică, esențial pentru funcționarea Agentului Autonom de Evaluare și Risc (tehnologie RAG).
-
-Integritate ACID: Garantează consistența și siguranța datelor în timpul tranzacțiilor critice (notări, plăți, rezervări).
+| Tabel | Descriere |
+|-------|-----------|
+| users | Utilizatori (studenți, profesori, admini) |
+| students | Profiluri studenți cu legătură la user |
+| professors | Profiluri profesori cu legătură la user |
+| faculties | Facultăți/universități |
+| courses | Cursuri cu profesor și facultate |
+| enrollments | Legătură M:N studenți-cursuri cu note |
+| announcements | Anunțuri cu suport pin și expirare |

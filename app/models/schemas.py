@@ -16,6 +16,8 @@ class UserInDB(UserBase):
     id: int
     is_active: bool
     is_admin: bool
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
@@ -32,15 +34,20 @@ class TokenData(BaseModel):
 
 class StudentBase(BaseModel):
     year: Optional[int] = None
+    student_id: Optional[str] = None
 
 
 class StudentCreate(StudentBase):
-    pass
+    user_id: int
+    faculty_id: Optional[int] = None
 
 
 class StudentInDB(StudentBase):
     id: int
     user_id: int
+    faculty_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
@@ -51,12 +58,16 @@ class ProfessorBase(BaseModel):
 
 
 class ProfessorCreate(ProfessorBase):
-    pass
+    user_id: int
+    faculty_id: Optional[int] = None
 
 
 class ProfessorInDB(ProfessorBase):
     id: int
     user_id: int
+    faculty_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
@@ -65,6 +76,7 @@ class ProfessorInDB(ProfessorBase):
 class FacultyBase(BaseModel):
     name: str
     abbreviation: str
+    description: Optional[str] = None
 
 
 class FacultyCreate(FacultyBase):
@@ -73,6 +85,8 @@ class FacultyCreate(FacultyBase):
 
 class FacultyInDB(FacultyBase):
     id: int
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
@@ -82,15 +96,22 @@ class CourseBase(BaseModel):
     name: str
     code: str
     description: Optional[str] = None
+    credits: int = 3
+    semester: Optional[int] = None
+    year: Optional[int] = None
 
 
 class CourseCreate(CourseBase):
-    faculty_id: Optional[int] = None
+    faculty_id: int
+    professor_id: Optional[int] = None
 
 
 class CourseInDB(CourseBase):
     id: int
-    faculty_id: Optional[int] = None
+    faculty_id: int
+    professor_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
@@ -99,6 +120,8 @@ class CourseInDB(CourseBase):
 class AnnouncementBase(BaseModel):
     title: str
     content: str
+    is_pinned: bool = False
+    expires_at: Optional[datetime] = None
 
 
 class AnnouncementCreate(AnnouncementBase):
@@ -109,6 +132,28 @@ class AnnouncementInDB(AnnouncementBase):
     id: int
     created_by: int
     created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class EnrollmentBase(BaseModel):
+    grade: Optional[str] = None
+
+
+class EnrollmentCreate(BaseModel):
+    student_id: int
+    course_id: int
+
+
+class EnrollmentInDB(EnrollmentBase):
+    id: int
+    student_id: int
+    course_id: int
+    enrolled_at: datetime
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
