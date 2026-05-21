@@ -1,10 +1,36 @@
+version: '3.8'
+
 services:
-  web:
-    build: .
-    ports:
-      - "8080:3000"
+  # Backend - Echipa Python FastAPI + LLM Gemini
+  backend:
+    build:
+      context: ./backend
     volumes:
-      - .:/app
-      - /app/node_modules
+      - ./backend:/app
+    ports:
+      - "8000:8000"
     environment:
-      - NODE_ENV=development
+      # Fortam auto-reload pentru uvicorn
+      - WATCHFILES_FORCE_POLLING=true
+      # Conexiunea la Supabase local
+      - SUPABASE_URL=${SUPABASE_URL:-http://host.docker.internal:54321}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-cheie_anonima_local}
+      # Cheia de la echipa LLM (se va citi dintr-un fisier .env local, NU va fi scrisa aici direct)
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+
+  # Frontend - Echipa React (dashboard)
+  frontend:
+    build:
+      context: ./frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      # Frontend-ul React comunica cu Backend-ul Python si cu Supabase direct
+      - VITE_API_URL=http://localhost:8000
+      - VITE_SUPABASE_URL=http://localhost:54321
+      - VITE_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-cheie_anonima_local}
+    depends_on:
+      - backend
