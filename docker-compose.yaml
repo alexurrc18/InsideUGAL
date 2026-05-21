@@ -4,4 +4,4 @@ services:
       context: ./Frontend/Dashboard/dashboard-insideugal
       dockerfile: Dockerfile
     ports:
-      - "8090:3000"
+      - "8091:3000"
