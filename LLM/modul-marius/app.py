@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from flask import Flask, request, jsonify, send_from_directory
 from functions.llm_functions import load_pdf_into_rag, generate_summary, generate_quiz, answer_question
 
-app = Flask(__name__, static_folder="static")
+app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), "static"))
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -14,7 +14,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route("/")
 def index():
-    return send_from_directory("static", "index.html")
+    return send_from_directory(os.path.join(os.path.dirname(__file__), "static"), "index.html")
 
 
 @app.route("/upload", methods=["POST"])
