@@ -2,6 +2,10 @@
 
 > Platforma internă de colaborare și coordonare pentru studenții și coordonatorii Universității "Dunărea de Jos" din Galați.
 
+<a href="#">
+  <img src="./assets/universitate.jpg" alt="thumbnail">
+</a>
+
 ---
 
 ## 📌 Despre Proiect
@@ -28,26 +32,34 @@ Proiectul a fost dezvoltat cu scopul de a centraliza activitățile academice, d
 - 📁 Partajarea resurselor și documentelor
 - 📢 Sistem de anunțuri și notificări
 - 🔐 Autentificare și roluri (student / coordonator)
-- 🗂️ Organizarea proiectelor pe categorii și echipe
-- 📨 Notificări automate pentru activități importante
 
----
+## 🗂️ Structura Arhitecturală a Platformei
 
-## 🔄 Funcționalități planificate
+Proiectul este împărțit în trei module mari interconectate:
 
-- 📅 Integrare calendar academic
-- 💬 Sistem de mesagerie privată între utilizatori
-- 📊 Dashboard administrativ pentru coordonatori
-- 📱 Optimizare completă pentru dispozitive mobile
-- ☁️ Integrare cu servicii cloud pentru stocarea fișierelor
-- 🎓 Integrare cu platformele universitare existente
+### 1. Modulul Student (Portal Academic)
+
+- **Dashboard Personalizat:** Vizualizarea sarcinilor curente, termenelor limită și anunțurilor din facultate.
+- **Management de Proiect:** Spațiu virtual pentru lucrul în echipă la proiectele de semestru.
+- **Repository de Resurse:** Acces rapid la materiale de curs și documente partajate de coordonatori.
+
+### 2. Modulul Cantină UGAL (Servicii Campus)
+
+- **Live Menu:** Afișarea listei de preparate actualizată zilnic de către personalul bucătăriei.
+- **Smart Filter & Alergeni:** Filtrarea mâncărurilor după ingrediente, calorii sau regim alimentar (vegetarian/de post).
+- **Traffic Indicator:** Monitorizarea vizuală a fluxului de studenți pentru evitarea orelor de vârf.
+
+### 3. Modulul Coordonator & Admin (Panou de Control)
+
+- **Gestiune Utilizatori:** Validarea conturilor și alocarea drepturilor (student/profesor).
+- **Content Manager:** Publicarea anunțurilor globale și administrarea listei de prețuri a cantinei.
 
 ---
 
 ## 🚀 Cum rulezi proiectul local
 
 ```bash
-git clone https://github.com/alexurrc18/InsideUGAL
+git clone [https://github.com/alexurrc18/InsideUGAL](https://github.com/alexurrc18/InsideUGAL)
 cd InsideUGAL
 npm install
 npm start
@@ -58,59 +70,6 @@ npm start
 ## 🛠️ Tehnologii folosite
 
 - Git & GitHub — version control și colaborare
-- Node.js — runtime JavaScript
-- npm — gestionarea pachetelor și dependențelor
-- React — interfață modernă și dinamică pentru utilizatori
-- CSS / TailwindCSS — stilizare și design responsive
-
----
-
-## 📂 Structura Proiectului
-
-```text
-InsideUGAL/
-│
-├── public/          # Fișiere publice și resurse statice
-├── src/             # Codul sursă principal
-│   ├── components/  # Componente reutilizabile
-│   ├── pages/       # Pagini și rute
-│   ├── services/    # Servicii și logică aplicație
-│   └── assets/      # Imagini și fișiere statice
-│
-├── package.json
-└── README.md
-```
-
----
-
-## 🤝 Contribuții
-
-Contribuțiile sunt binevenite și ajută la dezvoltarea platformei.
-
-Pași pentru contribuție:
-
-```bash
-# Fork repository
-# Creează un branch nou
-git checkout -b feature/nume-functionalitate
-
-# Commit modificări
-git commit -m "Adaugă funcționalitate"
-
-# Push către repository
-git push origin feature/nume-functionalitate
-```
-
-După finalizarea modificărilor, deschide un Pull Request pe GitHub.
-
----
-
-## 📈 Obiective pe termen lung
-
-- Digitalizarea activităților academice din cadrul UGAL
-- Automatizarea comunicării între studenți și coordonatori
-- Extinderea platformei pentru mai multe facultăți
-- Dezvoltarea unui ecosistem educațional modern și accesibil
 
 ---
 
@@ -120,10 +79,13 @@ Pentru întrebări sau sugestii, deschide un Issue pe GitHub sau contactează ec
 
 ---
 
-## 📄 Licență
+## 🍕 API Endpoints (Exemplu Cantină)
 
-Acest proiect este realizat în scop educațional și academic.
+Dacă vrei să integrezi meniul cantinei în alte aplicații, poți folosi următoarele rute:
 
----
+_Va fi completat ulterior_
+
+- `GET /api/cantina/menu` - Returnează preparatele din ziua curentă.
+- `GET /api/cantina/traffic` - Returnează nivelul de aglomerație (Low/Medium/High).
 
 _Proiect dezvoltat în cadrul Universității "Dunărea de Jos" din Galați 🇷🇴_
