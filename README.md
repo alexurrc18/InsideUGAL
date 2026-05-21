@@ -76,3 +76,11 @@ npm run dev
       - POST /announcements pentru admin/profesor
   7. Validare si erori
       - verificare date primite
+      🗄️ Baza de Date: PostgreSQL
+Pentru dezvoltarea sistemului InsideUGAL, am ales PostgreSQL din următoarele motive:
+
+Versatilitate: Suportă atât date structurate (orar, conturi), cât și date semi-structurate prin tipul JSONB, ideal pentru modulele dinamice precum Cantină.
+
+Integrare AI (pgvector): Extensia pgvector ne permite să transformăm baza de date într-un motor de căutare semantică, esențial pentru funcționarea Agentului Autonom de Evaluare și Risc (tehnologie RAG).
+
+Integritate ACID: Garantează consistența și siguranța datelor în timpul tranzacțiilor critice (notări, plăți, rezervări).
