@@ -5,11 +5,10 @@ Acesta este nucleul aplicației **InsideUGAL**, responsabil de logica de busines
 ---
 
 ## 🛠️ Stack Tehnologic
-- **Runtime:** Python 3.10+
-- **Framework:** FastAPI
-- **Bază de Date:** SQLite (pentru dezvoltare) / PostgreSQL (pentru producție)
-- **ORM:** SQLAlchemy
-- **Validare:** Pydantic
+- **Runtime:** Node.js
+- **Framework:** Express.js
+- **Bază de Date:** PostgreSQL
+- **Conectivitate:** Prisma
 
 ---
 
@@ -21,32 +20,58 @@ Acesta este nucleul aplicației **InsideUGAL**, responsabil de logica de busines
 
 ### 2. Pași pentru rulare
 ```bash
-# 1. Navighează în folderul proiectului
-cd InsideUGAL
+# 1. Clonează repository-ul (dacă nu ai făcut-o deja)
+git clone [https://github.com/alexurrc18/InsideUGAL.git](https://github.com/alexurrc18/InsideUGAL.git)
 
-# 2. Instalează dependențele
-pip install -r backend/requirements.txt
+# 2. Navighează în folderul de backend
+cd backend
 
-# 3. Pornește serverul
-uvicorn app.main:app --reload --port 8000
-```
+# 3. Instalează dependențele
+npm install
 
-### 3. Verificare
-```bash
-curl http://localhost:8000/health
-# Response: {"status": "healthy"}
-```
+# 4. Configurează variabilele de mediu
+# Copiază fișierul exemplu pentru a crea setările proprii
+cp .env.example .env
+
+# 5. Pornește serverul
+npm run dev
 
 ---
 
-## 📊 Structura Bazei de Date
+ Ce trebuie facut concret pe backend:
 
-| Tabel | Descriere |
-|-------|-----------|
-| users | Utilizatori (studenți, profesori, admini) |
-| students | Profiluri studenți cu legătură la user |
-| professors | Profiluri profesori cu legătură la user |
-| faculties | Facultăți/universități |
-| courses | Cursuri cu profesor și facultate |
-| enrollments | Legătură M:N studenți-cursuri cu note |
-| announcements | Anunțuri cu suport pin și expirare |
+  1. Alegerea stack-ului
+     Acum README-ul si structura proiectului nu se potrivesc. Trebuie ales clar: Express sau FastAPI.
+  2. Pornirea serverului
+     Endpoint minim:
+      - GET / sau GET /health
+      - raspuns: backend-ul ruleaza.
+  3. Configurarea bazei de date
+     Trebuie decis ce baza folositi:
+      - SQLite pentru demo/proiect simplu
+      - PostgreSQL/MySQL pentru ceva mai serios
+  4. Modele principale
+     Probabil pentru InsideUGAL:
+      - User
+      - Student
+      - Professor
+      - Faculty
+      - Course
+      - Announcement / Event
+      - eventual Role
+  5. Autentificare
+      - register
+      - login
+      - parole hash-uite
+      - JWT/session
+      - middleware pentru rute protejate
+  6. Endpoint-uri API
+     Exemple:
+      - POST /auth/register
+      - POST /auth/login
+      - GET /users/me
+      - GET /courses
+      - GET /announcements
+      - POST /announcements pentru admin/profesor
+  7. Validare si erori
+      - verificare date primite
