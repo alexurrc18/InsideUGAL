@@ -1,17 +1,17 @@
 # InsideUGAL - Backend API
 
-Acesta este nucleul aplicatiei **InsideUGAL**, responsabil de logica de business,
-gestionarea datelor si autentificarea utilizatorilor in cadrul platformei academice.
+Acesta este nucleul aplicatiei **InsideUGAL**, responsabil de logica de business, gestionarea datelor si expunerea API-urilor pentru aplicatia mobila a studentilor.
 
 ## Stack Tehnologic
 
 - **Limbaj:** Python 3.10+
 - **Framework API:** FastAPI
 - **Server ASGI:** Uvicorn
-- **Baza de date:** PostgreSQL
-- **ORM / Conectivitate:** SQLAlchemy
+- **Baza de date:** PostgreSQL (gazduit via Supabase)
+- **Extensii DB:** PostGIS (pentru geolocatii si harta)
+- **ORM / Conectivitate:** SQLAlchemy + geoalchemy2 + psycopg2-binary
 - **Validare date:** Pydantic
-- **Autentificare:** JWT + parole hash-uite
+- **Autentificare:** Gestionata nativ via Supabase Auth / JWT
 
 ## Instalare si Configurare
 
@@ -19,224 +19,92 @@ gestionarea datelor si autentificarea utilizatorilor in cadrul platformei academ
 
 - Python 3.10+
 - Git instalat
-- PostgreSQL instalat si pornit local sau disponibil printr-un serviciu extern
-- Un client PostgreSQL, de exemplu `psql` sau pgAdmin
+- Credentialele Supabase (DATABASE_URL) primite de la echipa de Infrastructura
 
-### 2. Cloneaza repository-ul
-
-```bash
-git clone https://github.com/alexurrc18/InsideUGAL.git
-cd InsideUGAL
-```
-
-### 3. Creeaza si activeaza mediul virtual
+### 2. Cloneaza repository-ul si navigheaza in backend
 
 ```bash
+git clone [https://github.com/alexurrc18/InsideUGAL.git](https://github.com/alexurrc18/InsideUGAL.git)
+cd InsideUGAL/backend
+3. Creeaza si activeaza mediul virtual
+Windows PowerShell:
+
+Bash
 python -m venv .venv
-
-# Windows PowerShell
 .\.venv\Scripts\Activate.ps1
+Linux / macOS:
 
-# Linux / macOS
+Bash
+python -m venv .venv
 source .venv/bin/activate
-```
-
-### 4. Instaleaza dependintele
-
-Daca exista un fisier `requirements.txt`:
-
-```bash
+4. Instaleaza dependintele
+Bash
 pip install -r requirements.txt
-```
+5. Configureaza conexiunea la Supabase
+Nu crea baza de date manual! Echipa de Infrastructura gestioneaza schemele si tabelele.
+Creeaza un fisier .env in folderul backend/ si adauga URL-ul primit de la ei:
 
-Daca proiectul nu are inca `requirements.txt`, dependintele minime sunt:
-
-```bash
-pip install fastapi uvicorn sqlalchemy psycopg2-binary pydantic python-dotenv passlib[bcrypt] python-jose[cryptography]
-```
-
-### 5. Configureaza baza de date PostgreSQL
-
-Creeaza o baza de date pentru aplicatie:
-
-```sql
-CREATE DATABASE insideugal;
-```
-
-Creeaza fisierul `.env` in radacina proiectului:
-
-```env
-DATABASE_URL=postgresql://postgres:parola_ta@localhost:5432/insideugal
-SECRET_KEY=schimba_aceasta_cheie
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-```
-
-Nota: in codul actual conexiunea la baza de date poate fi inca setata pe SQLite in
-`app/db/database.py`. Pentru PostgreSQL, configurarea trebuie citita din
-`DATABASE_URL`.
-
-### 6. Porneste serverul
-
-```bash
+Fragment de cod
+DATABASE_URL="postgresql://postgres:parola_secreta@adresa_supabase:5432/postgres"
+6. Porneste serverul
+Bash
 uvicorn app.main:app --reload
-```
+API-ul va fi disponibil local la:
 
-API-ul va fi disponibil la:
+URL Baza: http://127.0.0.1:8000
 
-- `http://127.0.0.1:8000`
-- documentatie Swagger: `http://127.0.0.1:8000/docs`
-- documentatie ReDoc: `http://127.0.0.1:8000/redoc`
+Documentatie Swagger UI (pentru testare API): http://127.0.0.1:8000/docs
 
-## Endpoint minim
+Endpoint-uri API Principale (CRUD)
+Pe langa modulele standard (Users, Faculties, Courses), API-ul acopera functionalitatile cerute de Frontend:
 
-Serverul trebuie sa expuna cel putin unul dintre urmatoarele endpoint-uri:
+Noutati si Evenimente
+GET /api/announcements - Lista noutati
 
-```http
-GET /
-GET /health
-```
+POST /api/announcements - Creare noutate (Admin/Profesor)
 
-Raspuns asteptat:
+GET /api/events - Lista evenimente din campus
 
-```json
-{
-  "message": "backend-ul ruleaza"
-}
-```
+Cantina (Meniu si Produse)
+GET /api/cafeteria/products - Nomenclatorul de preparate
 
-sau:
+GET /api/cafeteria/menu - Meniul structurat pe zilele saptamanii
 
-```json
-{
-  "status": "ok"
-}
-```
+Harta Campusului (Necesita PostGIS)
+GET /api/locations - Returneaza cladirile si coordonatele GPS (Lat/Long)
 
-## Modele principale
+Sesizari (Ticketing)
+GET /api/issues - Lista sesizarilor active
 
-Modelele recomandate pentru InsideUGAL sunt:
+POST /api/issues - Deschidere sesizare noua
 
-- **User** - contul principal al utilizatorului
-- **Role** - roluri precum admin, student, profesor
-- **Student** - profil academic pentru studenti
-- **Professor** - profil academic pentru profesori
-- **Faculty** - facultati din cadrul universitatii
-- **Course** - cursuri asociate facultatilor si profesorilor
-- **Announcement / Event** - anunturi si evenimente academice
+PUT /api/issues/{id}/status - Modificare status (Nou -> In lucru -> Rezolvat)
 
-## Autentificare si autorizare
-
-Functionalitatile de autentificare trebuie sa includa:
-
-- inregistrare utilizator
-- autentificare utilizator
-- parole hash-uite, nu salvate in clar
-- generare token JWT
-- middleware / dependency pentru rute protejate
-- verificare rol pentru actiuni de admin sau profesor
-
-## Endpoint-uri API propuse
-
-### Endpoint-uri autentificare
-
-```http
-POST /auth/register
-POST /auth/login
-GET /users/me
-```
-
-### Utilizatori
-
-```http
-GET /users
-GET /users/{user_id}
-PUT /users/{user_id}
-DELETE /users/{user_id}
-```
-
-### Facultati
-
-```http
-GET /faculties
-POST /faculties
-GET /faculties/{faculty_id}
-PUT /faculties/{faculty_id}
-DELETE /faculties/{faculty_id}
-```
-
-### Cursuri
-
-```http
-GET /courses
-POST /courses
-GET /courses/{course_id}
-PUT /courses/{course_id}
-DELETE /courses/{course_id}
-```
-
-### Anunturi si evenimente
-
-```http
-GET /announcements
-POST /announcements
-GET /announcements/{announcement_id}
-PUT /announcements/{announcement_id}
-DELETE /announcements/{announcement_id}
-```
-
-`POST`, `PUT` si `DELETE` pentru anunturi ar trebui permise doar pentru admini sau
-profesori.
-
-## Validare si erori
-
-API-ul trebuie sa valideze datele primite prin scheme Pydantic:
-
-- email valid pentru utilizatori
-- parola cu lungime minima
-- campuri obligatorii verificate
-- roluri acceptate controlat
-- ID-uri existente in baza de date
-
-Erorile trebuie returnate clar, cu status code potrivit:
-
-- `400 Bad Request` pentru date invalide
-- `401 Unauthorized` pentru lipsa autentificarii
-- `403 Forbidden` pentru lipsa permisiunilor
-- `404 Not Found` pentru resurse inexistente
-- `409 Conflict` pentru duplicate, de exemplu email deja folosit
-
-## Structura proiectului
-
-```text
+Structura proiectului
+Plaintext
 InsideUGAL/
-+-- app/
-|   +-- api/
-|   |   +-- announcements.py
-|   |   +-- courses.py
-|   |   +-- faculties.py
-|   |   +-- users.py
-|   +-- db/
-|   |   +-- database.py
-|   +-- models/
-|   |   +-- models.py
-|   |   +-- schemas.py
-|   +-- main.py
-+-- .env
-+-- requirements.txt
-+-- README.md
-```
++-- backend/
+|   +-- .env (ignorat de git)
+|   +-- requirements.txt
+|   +-- README.md
+|   +-- app/
+|       +-- api/ (Rutele FastAPI)
+|       +-- db/ (Conexiunea Supabase)
+|       +-- models/ (Modele SQLAlchemy si Scheme Pydantic)
+|       +-- main.py (Punctul de intrare)
++-- frontend/
++-- infra/
+Status implementare Backend
+[x] Aplicatie FastAPI configurata
 
-## Status backend
+[x] Mutare cod in folderul /backend
 
-Implementat / necesar pentru un backend minim:
+[x] Endpoint GET /health si setari CORS
 
-- [x] Aplicatie FastAPI
-- [x] Endpoint `GET /`
-- [x] Endpoint `GET /health`
-- [x] Rute pentru utilizatori, facultati, cursuri si anunturi
-- [ ] Conectare PostgreSQL prin `DATABASE_URL`
-- [ ] Autentificare completa cu register/login
-- [ ] Hash parole
-- [ ] JWT pentru rute protejate
-- [ ] Validari si erori standardizate
+[x] Modele de baza pentru baza de date
+
+[ ] Conectare completa PostgreSQL prin Supabase
+
+[ ] Rute CRUD complete pentru Cantina, Harta si Sesizari
+
+[ ] Integrare validari Role-Based Access Control (RBAC)
