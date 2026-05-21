@@ -194,3 +194,103 @@ Un task se închide când:
 - Observability: logs structurate + Uptime Kuma (Raul + Robert M.)
 
 ---
+
+## 💬 Cum colaborezi pe acest TODO (GitHub 101)
+
+Tot dialogul pe lista asta se duce pe **GitHub**, nu pe WhatsApp/Discord/grup. Motivul: peste 2 luni nimeni nu mai știe ce s-a decis pe chat, dar pe GitHub rămâne istoricul complet, căutabil, atașat de cod.
+
+### 1. Vrei să-ți asumi un task → deschide Issue
+
+În tab-ul **Issues** → `New Issue` → titlu cu prefix de echipă, body cu task-ul exact din `todo.md`.
+
+**Exemplu titlu bun:** `[Backend] Auth middleware cu JWT Supabase`
+**Exemplu titlu rău:** `auth`
+
+În body:
+- Link înapoi la `todo.md` (linia/secțiunea ta)
+- Ce abordare propui (1-3 rânduri)
+- Estimare timp (ore sau zile)
+- Assignează-te (`Assignees → tu`)
+- Pune label (`backend`, `frontend`, `infra`, `llm`)
+
+### 2. Vrei să comentezi pe `todo.md` direct → 3 opțiuni
+
+**a) Comentariu general pe PR-ul de TODO** ([#3](https://github.com/alexurrc18/InsideUGAL/pull/3))
+Mergi la PR → scroll jos → câmp `Leave a comment`. Util pentru discuții generale ("propun să schimbăm ordinea săptămânii").
+
+**b) Comentariu pe o linie anume**
+PR → tab `Files changed` → hover pe numărul liniei → click pe iconul `+` albastru → scrii comentariu → `Add single comment`. Util pentru: "task-ul ăsta nu-l pot face în 2 zile, e mai mare".
+
+**c) Suggested change** (modificare propusă direct în diff)
+Pe linia respectivă, în loc de text simplu scrii:
+````markdown
+```suggestion
+- [ ] **Task nou reformulat** cu textul exact pe care îl propui
+```
+````
+Owner-ul (Alexandru) apasă `Commit suggestion` → modificarea ta intră în repo fără să mai facă el manual.
+
+### 3. Răspunzi la un comentariu existent → Reply
+
+Sub orice comentariu există `Reply...`. **Folosește-l**, nu deschide thread nou. Discuțiile rămân grupate.
+
+Când problema e rezolvată, apasă `Resolve conversation` — thread-ul se colapsează și se marchează ca închis.
+
+### 4. Cheamă pe cineva → `@username`
+
+Scrii `@RobyGabriel` într-un comentariu → primește notificare pe mail și în inbox-ul GitHub. Folosește pentru: cer review, cer ajutor, blocat de altcineva.
+
+**GitHub usernames pe care le folosim** (atenție, sunt case-sensitive):
+- `@alexurrc18` (Alexandru — owner)
+- `@RobyGabriel` (Robert Manea — tech lead)
+- `@ionradu010` (Radu Ion — DB)
+- `@Raul21000` (Raul — CI/CD)
+- `@HincuVivianStefan` (Vivian — integrator)
+- `@CosminG1412` (Cosmin — LLM)
+- `@Robert028` (Robert Râmniceanu — backend)
+- `@TB0gdan` (Bogdan — docs)
+- `@ClaudiaRaileanu` (Claudia — docs)
+
+> Cei fără cont public listat aici (Andreea, Renta Marius, Andrei Petrea, Dinu, Radu Ion-secundar) — întrebați-vă reciproc și completați lista.
+
+### 5. Reactions (vot tăcut)
+
+În colțul oricărui comentariu există `+ Smiley` → 👍 = de acord / 👎 = împotrivă / 🚀 = mă apuc / 👀 = mă uit / ❤️ = mulțumesc.
+
+Folosiți-le în loc de `+1`, `merci`, `ok` ca răspunsuri. Scapă inbox-ul de spam.
+
+### 6. Legături `#`-style între issues și PR-uri
+
+În orice comentariu/PR/issue body scrii:
+- `#15` → link automat la Issue/PR 15
+- `closes #15` în descrierea unui PR → la merge, issue-ul 15 se închide automat
+- `fixes #15`, `resolves #15` — la fel
+
+**Exemplu:**
+```
+fix: add RLS policy pe profiles
+
+closes #12
+```
+Când se face merge → Issue #12 dispare singur din lista de Todo.
+
+### 7. Cum primești notificările
+
+GitHub te notifică automat pentru:
+- Issue/PR în care ești assignee sau author
+- Comentarii pe thread-urile la care ai participat
+- Mențiuni `@tine`
+- Review requests
+
+Mergi la **github.com/notifications** sau setează mail (Settings → Notifications). **Verifică zilnic, minimum.**
+
+### 8. Pentru Marius (PM extern / observator)
+
+Voi mă găsiți pe `@pytho25`. Eu nu sunt în echipa de dev — sunt observator tehnic. Țineți-mă în loop **doar la decizii importante** (alegere stack, schimbare arhitectură, blockere de >2 zile). Toate task-urile mici se rezolvă între voi.
+
+Pentru status update săptămânal, deschideți un Issue cu label `weekly-status` și completați:
+- Ce am livrat săptămâna asta
+- Ce blockere am
+- Ce livrăm săptămâna viitoare
+
+---
