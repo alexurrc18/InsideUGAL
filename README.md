@@ -38,22 +38,23 @@ Proiectul a fost dezvoltat cu scopul de a centraliza activitățile academice, d
 Proiectul este împărțit în trei module mari interconectate:
 
 ### 1. Modulul Student (Portal Academic)
-* **Dashboard Personalizat:** Vizualizarea sarcinilor curente, termenelor limită și anunțurilor din facultate.
-* **Management de Proiect:** Spațiu virtual pentru lucrul în echipă la proiectele de semestru.
-* **Repository de Resurse:** Acces rapid la materiale de curs și documente partajate de coordonatori.
+
+- **Dashboard Personalizat:** Vizualizarea sarcinilor curente, termenelor limită și anunțurilor din facultate.
+- **Management de Proiect:** Spațiu virtual pentru lucrul în echipă la proiectele de semestru.
+- **Repository de Resurse:** Acces rapid la materiale de curs și documente partajate de coordonatori.
 
 ### 2. Modulul Cantină UGAL (Servicii Campus)
-* **Live Menu:** Afișarea listei de preparate actualizată zilnic de către personalul bucătăriei.
-* **Smart Filter & Alergeni:** Filtrarea mâncărurilor după ingrediente, calorii sau regim alimentar (vegetarian/de post).
-* **Traffic Indicator:** Monitorizarea vizuală a fluxului de studenți pentru evitarea orelor de vârf.
+
+- **Live Menu:** Afișarea listei de preparate actualizată zilnic de către personalul bucătăriei.
+- **Smart Filter & Alergeni:** Filtrarea mâncărurilor după ingrediente, calorii sau regim alimentar (vegetarian/de post).
+- **Traffic Indicator:** Monitorizarea vizuală a fluxului de studenți pentru evitarea orelor de vârf.
 
 ### 3. Modulul Coordonator & Admin (Panou de Control)
-* **Gestiune Utilizatori:** Validarea conturilor și alocarea drepturilor (student/profesor).
-* **Content Manager:** Publicarea anunțurilor globale și administrarea listei de prețuri a cantinei.
+
+- **Gestiune Utilizatori:** Validarea conturilor și alocarea drepturilor (student/profesor).
+- **Content Manager:** Publicarea anunțurilor globale și administrarea listei de prețuri a cantinei.
 
 ---
-
-## 🚀 Cum rulezi proiectul local
 
 ## 🚀 Cum rulezi proiectul local
 
@@ -63,6 +64,7 @@ cd InsideUGAL
 npm install
 npm start
 ```
+
 ---
 
 ## 🛠️ Tehnologii folosite
@@ -77,15 +79,13 @@ Pentru întrebări sau sugestii, deschide un Issue pe GitHub sau contactează ec
 
 ---
 
-
 ## 🍕 API Endpoints (Exemplu Cantină)
 
 Dacă vrei să integrezi meniul cantinei în alte aplicații, poți folosi următoarele rute:
 
-*Va fi completat ulterior*
-
+_Va fi completat ulterior_
 
 - `GET /api/cantina/menu` - Returnează preparatele din ziua curentă.
 - `GET /api/cantina/traffic` - Returnează nivelul de aglomerație (Low/Medium/High).
 
-*Proiect dezvoltat în cadrul Universității "Dunărea de Jos" din Galați 🇷🇴*
+_Proiect dezvoltat în cadrul Universității "Dunărea de Jos" din Galați 🇷🇴_
