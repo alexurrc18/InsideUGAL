@@ -1,8 +1,8 @@
-import sys
-sys.path.append("functions")
-from llm_functions import extract_text_from_pdf, generate_summary, generate_quiz
+from LLM.functions.llm_functions import extract_text_from_pdf, generate_summary, generate_quiz
 
-text = extract_text_from_pdf("pdfs/PAW_curs_1.pdf")
+pdf_path = "test.pdf"
+
+text = extract_text_from_pdf("PAW_curs_1.pdf")
 print("=== TEXT EXTRAS ===")
 print(text[:500])
 
