@@ -7,8 +7,8 @@ Acesta este nucleul aplicației **InsideUGAL**, responsabil de logica de busines
 ## 🛠️ Stack Tehnologic
 - **Runtime:** Node.js
 - **Framework:** Express.js
-- **Bază de Date:** PostgreSQL
-- **Conectivitate:** Prisma
+- **Bază de Date:** [Completează: ex. Oracle / PostgreSQL]
+- **Conectivitate:** JDBC / Sequelize / Prisma [Alege ce folosiți]
 
 ---
 
@@ -36,43 +36,3 @@ cp .env.example .env
 
 # 5. Pornește serverul
 npm run dev
-
----
-
- Ce trebuie facut concret pe backend:
-
-  1. Alegerea stack-ului
-     Acum README-ul si structura proiectului nu se potrivesc. Trebuie ales clar: Express sau FastAPI.
-  2. Pornirea serverului
-     Endpoint minim:
-      - GET / sau GET /health
-      - raspuns: backend-ul ruleaza.
-  3. Configurarea bazei de date
-     Trebuie decis ce baza folositi:
-      - SQLite pentru demo/proiect simplu
-      - PostgreSQL/MySQL pentru ceva mai serios
-  4. Modele principale
-     Probabil pentru InsideUGAL:
-      - User
-      - Student
-      - Professor
-      - Faculty
-      - Course
-      - Announcement / Event
-      - eventual Role
-  5. Autentificare
-      - register
-      - login
-      - parole hash-uite
-      - JWT/session
-      - middleware pentru rute protejate
-  6. Endpoint-uri API
-     Exemple:
-      - POST /auth/register
-      - POST /auth/login
-      - GET /users/me
-      - GET /courses
-      - GET /announcements
-      - POST /announcements pentru admin/profesor
-  7. Validare si erori
-      - verificare date primite
