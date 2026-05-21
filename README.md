@@ -1,242 +1,52 @@
-# InsideUGAL - Backend API
+A.
 
-Acesta este nucleul aplicatiei **InsideUGAL**, responsabil de logica de business,
-gestionarea datelor si autentificarea utilizatorilor in cadrul platformei academice.
+1. faci un repsitory nou pe git
+2. deschizi folderul unde vrei sa salvezi proiectul
+3. deschizi git bash / cmd / windows power shell
+4. 'git clone <repository link>'
+5. copiezi folderele proiectului tau in locatia unde ai dat git clone
+6. deschizi proiectul din locatie unde le-ai copiat anterior
+7. deschizi un terminal
+8. 'git status' - pt a vedea fisierele noi (cele cu rosu nu sunt incarcate in git)
+9. 'git add .' (pentru a incarca toate fisierele noi)
+10. (optional) apelezi iar "git status" pt a verifica daca fiserele au fost incarcate (momentan ele sunt incarcate in folderul git-ului de pe pc dar nu si pe net)
+11. 'git commit -m "aici adaugi o descriere scurta"
+12. 'git push origin main' - asta va trimite modificarile catre git hub
+13. (optional) 'git status' - pt a verifica daca toate fisierele au fost trimise
 
-## Stack Tehnologic
+B.
 
-- **Limbaj:** Python 3.10+
-- **Framework API:** FastAPI
-- **Server ASGI:** Uvicorn
-- **Baza de date:** PostgreSQL
-- **ORM / Conectivitate:** SQLAlchemy
-- **Validare date:** Pydantic
-- **Autentificare:** JWT + parole hash-uite
+1. 'git checkout -b <feature_data_numeutilizator>' - face un branch nou, copiaza branch-ul main si te muta in noul branch
+   ---------dupa ce ai terminat modificarile - user1 (cel care face primul push cu modificari pe branch-ul main)
+   1a. 'git status'
+   2a. 'git add .'
+   3a. 'git commit -m "aici adaugi o descriere scurta"
+   4a. 'git push'
+   5a. copiezi si rulezi mesajul primit: 'git push --set-upstream origin <feature_data_numeutilizator>'
+   6a. mergi pe git hub si apesi pe 'Compare & pull request' apoi check si merge
+   7a. in terminal - te muti pe branch-ul main cu 'git checkout main'
+   8a. 'git pull' - pentru a face update la branch-ul main cu modificarile de pe git hub
+   9a. pentru a face noi modificari revii la pasul 1 folosind un nume nou de feature branch
+   ---------dupa ce ai terminat modificarile - user2 (cel care nu face primul push cu modificari pe branch-ul main)
+   1b. - 'git status'
+   2b. - 'git add .'
+   3b. - 'git commit -m "aici adaugi o descriere scurta"'
+   4b. - te muti pe branch-ul main pentru a face update cu modificarile daugate de user-ul 1 - 'git checkout main'
+   5b. - 'git pull' - pentru a face update la main
+   6b. - 'git checkout' <numele branch-ului tau>
+   7b. - 'git rebase main'
+   8b. - rezolvi conflictele
+   9b. - dai 'git add .' ("add ." adauga toate fisierele proiectului, daca vrei sa modifici doar un fisier, in loc de punct scrii numele fisierului)
+   10b - 'git rebase --continue'
+   11b. - poti sa adaugi detalii la fisierul notpad deschis sau doar in inchizi
+   12b. - 'git push'
+   13b. - copiezi si rulezi mesajul primit : 'git push --set-upstream origin <feature_data_numeutilizator>'
+   14b. - mergi pe git hub si apesi pe 'Compare & pull request' apoi check si merge
+   15a. - in terminal - te muti pe branch-ul main cu 'git checkout main'
+   16a. - 'git pull' - pentru a face update la branch-ul main cu modificarile de pe git hub
+   17b. - pentru a face noi modificari revii la pasul 1 folosind un nume nou de feature branch
 
-## Instalare si Configurare
+!!!!! daca realizezi ca ai inceput modificarile direct in branch-ul MAIN
 
-### 1. Cerinte preliminare
-
-- Python 3.10+
-- Git instalat
-- PostgreSQL instalat si pornit local sau disponibil printr-un serviciu extern
-- Un client PostgreSQL, de exemplu `psql` sau pgAdmin
-
-### 2. Cloneaza repository-ul
-
-```bash
-git clone https://github.com/alexurrc18/InsideUGAL.git
-cd InsideUGAL
-```
-
-### 3. Creeaza si activeaza mediul virtual
-
-```bash
-python -m venv .venv
-
-# Windows PowerShell
-.\.venv\Scripts\Activate.ps1
-
-# Linux / macOS
-source .venv/bin/activate
-```
-
-### 4. Instaleaza dependintele
-
-Daca exista un fisier `requirements.txt`:
-
-```bash
-pip install -r requirements.txt
-```
-
-Daca proiectul nu are inca `requirements.txt`, dependintele minime sunt:
-
-```bash
-pip install fastapi uvicorn sqlalchemy psycopg2-binary pydantic python-dotenv passlib[bcrypt] python-jose[cryptography]
-```
-
-### 5. Configureaza baza de date PostgreSQL
-
-Creeaza o baza de date pentru aplicatie:
-
-```sql
-CREATE DATABASE insideugal;
-```
-
-Creeaza fisierul `.env` in radacina proiectului:
-
-```env
-DATABASE_URL=postgresql://postgres:parola_ta@localhost:5432/insideugal
-SECRET_KEY=schimba_aceasta_cheie
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-```
-
-Nota: in codul actual conexiunea la baza de date poate fi inca setata pe SQLite in
-`app/db/database.py`. Pentru PostgreSQL, configurarea trebuie citita din
-`DATABASE_URL`.
-
-### 6. Porneste serverul
-
-```bash
-uvicorn app.main:app --reload
-```
-
-API-ul va fi disponibil la:
-
-- `http://127.0.0.1:8000`
-- documentatie Swagger: `http://127.0.0.1:8000/docs`
-- documentatie ReDoc: `http://127.0.0.1:8000/redoc`
-
-## Endpoint minim
-
-Serverul trebuie sa expuna cel putin unul dintre urmatoarele endpoint-uri:
-
-```http
-GET /
-GET /health
-```
-
-Raspuns asteptat:
-
-```json
-{
-  "message": "backend-ul ruleaza"
-}
-```
-
-sau:
-
-```json
-{
-  "status": "ok"
-}
-```
-
-## Modele principale
-
-Modelele recomandate pentru InsideUGAL sunt:
-
-- **User** - contul principal al utilizatorului
-- **Role** - roluri precum admin, student, profesor
-- **Student** - profil academic pentru studenti
-- **Professor** - profil academic pentru profesori
-- **Faculty** - facultati din cadrul universitatii
-- **Course** - cursuri asociate facultatilor si profesorilor
-- **Announcement / Event** - anunturi si evenimente academice
-
-## Autentificare
-
-Functionalitatile de autentificare trebuie sa includa:
-
-- inregistrare utilizator
-- autentificare utilizator
-- parole hash-uite, nu salvate in clar
-- generare token JWT
-- middleware / dependency pentru rute protejate
-- verificare rol pentru actiuni de admin sau profesor
-
-## Endpoint-uri API propuse
-
-### Autentificare
-
-```http
-POST /auth/register
-POST /auth/login
-GET /users/me
-```
-
-### Utilizatori
-
-```http
-GET /users
-GET /users/{user_id}
-PUT /users/{user_id}
-DELETE /users/{user_id}
-```
-
-### Facultati
-
-```http
-GET /faculties
-POST /faculties
-GET /faculties/{faculty_id}
-PUT /faculties/{faculty_id}
-DELETE /faculties/{faculty_id}
-```
-
-### Cursuri
-
-```http
-GET /courses
-POST /courses
-GET /courses/{course_id}
-PUT /courses/{course_id}
-DELETE /courses/{course_id}
-```
-
-### Anunturi si evenimente
-
-```http
-GET /announcements
-POST /announcements
-GET /announcements/{announcement_id}
-PUT /announcements/{announcement_id}
-DELETE /announcements/{announcement_id}
-```
-
-`POST`, `PUT` si `DELETE` pentru anunturi ar trebui permise doar pentru admini sau
-profesori.
-
-## Validare si erori
-
-API-ul trebuie sa valideze datele primite prin scheme Pydantic:
-
-- email valid pentru utilizatori
-- parola cu lungime minima
-- campuri obligatorii verificate
-- roluri acceptate controlat
-- ID-uri existente in baza de date
-
-Erorile trebuie returnate clar, cu status code potrivit:
-
-- `400 Bad Request` pentru date invalide
-- `401 Unauthorized` pentru lipsa autentificarii
-- `403 Forbidden` pentru lipsa permisiunilor
-- `404 Not Found` pentru resurse inexistente
-- `409 Conflict` pentru duplicate, de exemplu email deja folosit
-
-## Structura proiectului
-
-```text
-InsideUGAL/
-+-- app/
-|   +-- api/
-|   |   +-- announcements.py
-|   |   +-- courses.py
-|   |   +-- faculties.py
-|   |   +-- users.py
-|   +-- db/
-|   |   +-- database.py
-|   +-- models/
-|   |   +-- models.py
-|   |   +-- schemas.py
-|   +-- main.py
-+-- .env
-+-- requirements.txt
-+-- README.md
-```
-
-## Status backend
-
-Implementat / necesar pentru un backend minim:
-
-- [x] Aplicatie FastAPI
-- [x] Endpoint `GET /`
-- [x] Endpoint `GET /health`
-- [x] Rute pentru utilizatori, facultati, cursuri si anunturi
-- [ ] Conectare PostgreSQL prin `DATABASE_URL`
-- [ ] Autentificare completa cu register/login
-- [ ] Hash parole
-- [ ] JWT pentru rute protejate
-- [ ] Validari si erori standardizate
+1. 'git status'
+2. 'git restore .'
