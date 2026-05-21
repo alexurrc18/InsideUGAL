@@ -1,16 +1,20 @@
-from LLM.functions.llm_functions import extract_text_from_pdf, generate_summary, generate_quiz
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from functions.llm_functions import load_pdf_into_rag, generate_summary, generate_quiz
 
-pdf_path = "test.pdf"
+pdf_path = os.path.join(os.path.dirname(__file__), "..", "pdfs", "PAW_curs_1.pdf")
+pdf_id = "PAW_curs_1"
 
-text = extract_text_from_pdf("PAW_curs_1.pdf")
-print("=== TEXT EXTRAS ===")
-print(text[:500])
+print("=== INCARCARE PDF IN RAG ===")
+chunks = load_pdf_into_rag(pdf_path, pdf_id)
+print(f"PDF impartit in {len(chunks)} chunk-uri si stocat in vector DB.")
 
 print("\n=== REZUMAT ===")
-print(generate_summary(text))
+print(generate_summary(pdf_id))
 
 print("\n=== QUIZ ===")
-quiz = generate_quiz(text)
+quiz = generate_quiz(pdf_id)
 score = 0
 for i, q in enumerate(quiz):
     print(f"\nIntrebarea {i+1}: {q['intrebare']}")
