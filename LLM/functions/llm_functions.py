@@ -2,12 +2,13 @@ import json
 import os
 import pdfplumber
 import chromadb
+from google import genai
 from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
-from groq import Groq
 
 load_dotenv()
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+GEMINI_MODEL = "gemini-2.5-flash"
 
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 chroma_client = chromadb.Client()
@@ -21,7 +22,7 @@ def extract_text_from_pdf(pdf_path):
     return text
 
 
-def chunk_text(text, chunk_size=500, overlap=50):
+def chunk_text(text, chunk_size=200, overlap=30):
     words = text.split()
     chunks = []
     i = 0
@@ -57,17 +58,30 @@ def load_pdf_into_rag(pdf_path, pdf_id):
     return chunks
 
 
+def answer_question(question, pdf_id):
+    chunks = query_relevant_chunks(question, pdf_id, n_results=8)
+    context = "\n\n".join(chunks)
+    prompt = f"""Esti un asistent care raspunde EXCLUSIV pe baza materialului furnizat mai jos.
+Reguli stricte:
+- Foloseste DOAR informatiile din materialul de mai jos.
+- Nu folosi cunostinte proprii sau informatii externe.
+- Daca intrebarea nu are raspuns in material, raspunde exact: "Aceasta informatie nu se regaseste in materialul furnizat."
+- Nu inventa, nu completa, nu presupune nimic in afara materialului.
+
+Material:
+{context}
+
+Intrebare: {question}"""
+    response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+    return response.text or ""
+
+
 def generate_summary(pdf_id):
     chunks = query_relevant_chunks("rezumat general curs introducere concepte principale", pdf_id, n_results=8)
     context = "\n\n".join(chunks)
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{
-            "role": "user",
-            "content": f"Fa un rezumat clar si concis al urmatorului material de curs, in romana:\n\n{context}"
-        }]
-    )
-    return response.choices[0].message.content
+    prompt = f"Fa un rezumat clar si concis al urmatorului material de curs, in romana:\n\n{context}"
+    response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+    return response.text or ""
 
 
 def generate_quiz(pdf_id):
@@ -81,18 +95,20 @@ Returneaza DOAR un JSON valid, fara alt text, in acest format exact:
     "intrebare": "...",
     "variante": {{"A": "...", "B": "...", "C": "...", "D": "..."}},
     "raspuns_corect": "A",
-    "explicatie": "Explicatie de ce raspunsul corect este corect."
+    "explicatii": {{
+      "A": "De ce varianta A este corecta sau gresita.",
+      "B": "De ce varianta B este corecta sau gresita.",
+      "C": "De ce varianta C este corecta sau gresita.",
+      "D": "De ce varianta D este corecta sau gresita."
+    }}
   }}
 ]
 
 Material:
 {context}
 """
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    raw = response.choices[0].message.content.strip()
+    response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+    raw = response.text.strip()
     if raw.startswith("```"):
         raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
     return json.loads(raw)

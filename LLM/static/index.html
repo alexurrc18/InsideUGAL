@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>InsideUGAL - LLM</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f4f6f9; color: #333; }
+
+    header {
+      background: #1a73e8;
+      color: white;
+      padding: 20px 40px;
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .container { max-width: 800px; margin: 40px auto; padding: 0 20px; }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+
+    h2 { margin-bottom: 15px; color: #1a73e8; }
+
+    .upload-area {
+      border: 2px dashed #1a73e8;
+      border-radius: 8px;
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .upload-area:hover { background: #e8f0fe; }
+    .upload-area input { display: none; }
+    .upload-area p { color: #666; margin-top: 10px; }
+
+    button {
+      background: #1a73e8;
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 15px;
+      width: 100%;
+    }
+    button:hover { background: #1558b0; }
+    button:disabled { background: #aaa; cursor: not-allowed; }
+
+    #loading { text-align: center; color: #1a73e8; display: none; margin-top: 15px; }
+
+    #summary-section, #quiz-section { display: none; }
+
+    #summary-text {
+      background: #f9f9f9;
+      border-left: 4px solid #1a73e8;
+      padding: 15px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+
+    .question-card {
+      background: #f9f9f9;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .question-card p { font-weight: bold; margin-bottom: 12px; }
+
+    .option {
+      display: block;
+      padding: 10px 15px;
+      margin: 6px 0;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 2px solid #ddd;
+      transition: all 0.2s;
+    }
+    .option:hover { border-color: #1a73e8; background: #e8f0fe; }
+    .option.correct { background: #d4edda; border-color: #28a745; color: #155724; }
+    .option.wrong { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+    .option.disabled { cursor: not-allowed; opacity: 0.7; }
+
+    .explicatie {
+      margin-top: 10px;
+      padding: 10px;
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      border-radius: 4px;
+      display: none;
+      font-size: 14px;
+    }
+
+    .mesaj { padding: 10px 14px; border-radius: 8px; margin-bottom: 10px; max-width: 85%; line-height: 1.5; }
+    .mesaj.user { background: #1a73e8; color: white; margin-left: auto; }
+    .mesaj.ai { background: #f0f0f0; color: #333; }
+    .mesaj.loading { color: #999; font-style: italic; }
+
+    #scor {
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+      color: #1a73e8;
+      display: none;
+      margin-top: 20px;
+    }
+
+    #filename { margin-top: 10px; font-size: 14px; color: #555; }
+  </style>
+</head>
+<body>
+
+<header>InsideUGAL — Generator Rezumat & Quiz din PDF</header>
+
+<div class="container">
+
+  <div class="card">
+    <h2>Incarca un PDF</h2>
+    <div class="upload-area" onclick="document.getElementById('pdf-input').click()">
+      <svg width="48" height="48" fill="#1a73e8" viewBox="0 0 24 24">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/>
+      </svg>
+      <p id="filename">Click pentru a selecta un fisier PDF</p>
+      <input type="file" id="pdf-input" accept=".pdf" onchange="fisierSelectat(this)"/>
+    </div>
+    <button id="btn-upload" onclick="upload()" disabled>Genereaza Rezumat & Quiz</button>
+    <div id="loading">⏳ Se proceseaza PDF-ul... (poate dura 30-60 secunde)</div>
+  </div>
+
+  <div class="card" id="summary-section">
+    <h2>Rezumat</h2>
+    <div id="summary-text"></div>
+  </div>
+
+  <div class="card" id="chat-section" style="display:none">
+    <h2>Intreaba despre PDF</h2>
+    <div id="chat-messages" style="max-height:400px; overflow-y:auto; margin-bottom:15px;"></div>
+    <div style="display:flex; gap:10px;">
+      <input id="chat-input" type="text" placeholder="Scrie o intrebare despre PDF..."
+        style="flex:1; padding:12px; border-radius:6px; border:2px solid #ddd; font-size:15px;"
+        onkeydown="if(event.key==='Enter') trimiteMesaj()"/>
+      <button onclick="trimiteMesaj()" style="width:auto; margin:0; padding:12px 20px;">Trimite</button>
+    </div>
+  </div>
+
+  <div class="card" id="quiz-section">
+    <h2>Quiz</h2>
+    <div id="quiz-container"></div>
+    <div id="scor"></div>
+  </div>
+
+</div>
+
+<script>
+  let fisier = null;
+  let currentPdfId = null;
+  let raspunsuriDate = 0;
+  let scorCorect = 0;
+  let totalIntrebari = 0;
+
+  function fisierSelectat(input) {
+    if (input.files.length > 0) {
+      fisier = input.files[0];
+      document.getElementById("filename").textContent = "Fisier selectat: " + fisier.name;
+      document.getElementById("btn-upload").disabled = false;
+    }
+  }
+
+  async function upload() {
+    if (!fisier) return;
+
+    document.getElementById("btn-upload").disabled = true;
+    document.getElementById("loading").style.display = "block";
+    document.getElementById("summary-section").style.display = "none";
+    document.getElementById("quiz-section").style.display = "none";
+    document.getElementById("scor").style.display = "none";
+
+    const formData = new FormData();
+    formData.append("pdf", fisier);
+
+    try {
+      const resp = await fetch("/upload", { method: "POST", body: formData });
+      const data = await resp.json();
+
+      if (data.error) {
+        alert("Eroare: " + data.error);
+        return;
+      }
+
+      currentPdfId = data.pdf_id;
+      afiseazaRezumat(data.summary);
+      afiseazaQuiz(data.quiz);
+      document.getElementById("chat-section").style.display = "block";
+    } catch (e) {
+      alert("Eroare de retea: " + e.message);
+    } finally {
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("btn-upload").disabled = false;
+    }
+  }
+
+  function afiseazaRezumat(summary) {
+    document.getElementById("summary-text").textContent = summary;
+    document.getElementById("summary-section").style.display = "block";
+  }
+
+  function afiseazaQuiz(quiz) {
+    totalIntrebari = quiz.length;
+    raspunsuriDate = 0;
+    scorCorect = 0;
+
+    const container = document.getElementById("quiz-container");
+    container.innerHTML = "";
+
+    quiz.forEach((q, i) => {
+      const card = document.createElement("div");
+      card.className = "question-card";
+      card.innerHTML = `<p>Intrebarea ${i + 1}: ${q.intrebare}</p>`;
+
+      Object.entries(q.variante).forEach(([litera, text]) => {
+        const opt = document.createElement("div");
+        opt.className = "option";
+        opt.textContent = `${litera}) ${text}`;
+        opt.onclick = () => raspunde(opt, litera, q.raspuns_corect, q.explicatie, card, i);
+        card.appendChild(opt);
+      });
+
+      const exp = document.createElement("div");
+      exp.className = "explicatie";
+      exp.id = `explicatie-${i}`;
+      const explicatii = q.explicatii || {};
+      exp.innerHTML = Object.entries(explicatii).map(([lit, text]) =>
+        `<b>${lit})</b> ${text}`
+      ).join("<br><br>");
+      card.appendChild(exp);
+
+      container.appendChild(card);
+    });
+
+    document.getElementById("quiz-section").style.display = "block";
+  }
+
+  async function trimiteMesaj() {
+    const input = document.getElementById("chat-input");
+    const question = input.value.trim();
+    if (!question || !currentPdfId) return;
+
+    const messages = document.getElementById("chat-messages");
+
+    const userMsg = document.createElement("div");
+    userMsg.className = "mesaj user";
+    userMsg.textContent = question;
+    messages.appendChild(userMsg);
+
+    const loading = document.createElement("div");
+    loading.className = "mesaj ai loading";
+    loading.textContent = "Se gandeste...";
+    messages.appendChild(loading);
+    messages.scrollTop = messages.scrollHeight;
+    input.value = "";
+
+    try {
+      const resp = await fetch("/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, pdf_id: currentPdfId })
+      });
+      const data = await resp.json();
+      loading.className = "mesaj ai";
+      loading.textContent = data.error ? "Eroare: " + data.error : data.answer;
+    } catch (e) {
+      loading.className = "mesaj ai";
+      loading.textContent = "Eroare de retea.";
+    }
+
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function raspunde(optEl, litera, corect, explicatie, card, idx) {
+    const optiuni = card.querySelectorAll(".option");
+    optiuni.forEach(o => { o.classList.add("disabled"); o.onclick = null; });
+
+    if (litera === corect) {
+      optEl.classList.add("correct");
+      scorCorect++;
+    } else {
+      optEl.classList.add("wrong");
+      optiuni.forEach(o => {
+        if (o.textContent.startsWith(corect + ")")) o.classList.add("correct");
+      });
+    }
+
+    document.getElementById(`explicatie-${idx}`).style.display = "block";
+
+    raspunsuriDate++;
+    if (raspunsuriDate === totalIntrebari) {
+      const scor = document.getElementById("scor");
+      scor.textContent = `Scor final: ${scorCorect}/${totalIntrebari}`;
+      scor.style.display = "block";
+    }
+  }
+</script>
+
+</body>
+</html>

@@ -1,10 +1,11 @@
 import json
 import os
 from dotenv import load_dotenv
-from groq import Groq
+from google import genai
 
 load_dotenv()
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+GEMINI_MODEL = "gemini-2.5-flash"
 
 course_material = """
 Fotosinteza este procesul prin care plantele folosesc lumina solara, apa si dioxidul de carbon
@@ -28,12 +29,9 @@ Material:
 {course_material}
 """
 
-response = client.chat.completions.create(
-    model="llama-3.3-70b-versatile",
-    messages=[{"role": "user", "content": prompt}]
-)
+response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
 
-raw = response.choices[0].message.content.strip()
+raw = response.text.strip()
 if raw.startswith("```"):
     raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
 
