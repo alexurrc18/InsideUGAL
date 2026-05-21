@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # backend:
@@ -30,5 +30,5 @@ services:
       - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
       - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-http://localhost:54321}
       - VITE_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-cheie_anonima_local}
-    depends_on:
-      - backend
+  #  depends_on:
+  #    - backend
