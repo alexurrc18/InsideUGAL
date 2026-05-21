@@ -5,7 +5,6 @@ gestionarea datelor si autentificarea utilizatorilor in cadrul platformei academ
 
 ## Stack Tehnologic
 
-<<<<<<< HEAD
 - **Limbaj:** Python 3.10+
 - **Framework API:** FastAPI
 - **Server ASGI:** Uvicorn
@@ -13,30 +12,17 @@ gestionarea datelor si autentificarea utilizatorilor in cadrul platformei academ
 - **ORM / Conectivitate:** SQLAlchemy
 - **Validare date:** Pydantic
 - **Autentificare:** JWT + parole hash-uite
-=======
-## 🛠️ Stack Tehnologic
-- **Runtime:** Node.js
-- **Framework:** Express.js
-- **Bază de Date:** PostgreSQL
-- **Conectivitate:** Prisma
->>>>>>> 66428cde90bfb3de442b3c1a96acde825910a054
 
 ## Instalare si Configurare
 
 ### 1. Cerinte preliminare
 
-<<<<<<< HEAD
 - Python 3.10+
 - Git instalat
 - PostgreSQL instalat si pornit local sau disponibil printr-un serviciu extern
 - Un client PostgreSQL, de exemplu `psql` sau pgAdmin
 
 ### 2. Cloneaza repository-ul
-=======
-### 1. Cerințe preliminare
-- Python 3.10+
-- Git instalat
->>>>>>> 66428cde90bfb3de442b3c1a96acde825910a054
 
 ```bash
 git clone https://github.com/alexurrc18/InsideUGAL.git
@@ -51,7 +37,6 @@ python -m venv .venv
 # Windows PowerShell
 .\.venv\Scripts\Activate.ps1
 
-<<<<<<< HEAD
 # Linux / macOS
 source .venv/bin/activate
 ```
@@ -64,7 +49,7 @@ Daca exista un fisier `requirements.txt`:
 pip install -r requirements.txt
 ```
 
-Daca proiectul nu are inca `requirements.txt`, dependintele minime pentru acest stack sunt:
+Daca proiectul nu are inca `requirements.txt`, dependintele minime sunt:
 
 ```bash
 pip install fastapi uvicorn sqlalchemy psycopg2-binary pydantic python-dotenv passlib[bcrypt] python-jose[cryptography]
@@ -255,47 +240,3 @@ Implementat / necesar pentru un backend minim:
 - [ ] Hash parole
 - [ ] JWT pentru rute protejate
 - [ ] Validari si erori standardizate
-=======
-# 5. Pornește serverul
-npm run dev
-
----
-
- Ce trebuie facut concret pe backend:
-
-  1. Alegerea stack-ului
-     Acum README-ul si structura proiectului nu se potrivesc. Trebuie ales clar: Express sau FastAPI.
-  2. Pornirea serverului
-     Endpoint minim:
-      - GET / sau GET /health
-      - raspuns: backend-ul ruleaza.
-  3. Configurarea bazei de date
-     Trebuie decis ce baza folositi:
-      - SQLite pentru demo/proiect simplu
-      - PostgreSQL/MySQL pentru ceva mai serios
-  4. Modele principale
-     Probabil pentru InsideUGAL:
-      - User
-      - Student
-      - Professor
-      - Faculty
-      - Course
-      - Announcement / Event
-      - eventual Role
-  5. Autentificare
-      - register
-      - login
-      - parole hash-uite
-      - JWT/session
-      - middleware pentru rute protejate
-  6. Endpoint-uri API
-     Exemple:
-      - POST /auth/register
-      - POST /auth/login
-      - GET /users/me
-      - GET /courses
-      - GET /announcements
-      - POST /announcements pentru admin/profesor
-  7. Validare si erori
-      - verificare date primite
->>>>>>> 66428cde90bfb3de442b3c1a96acde825910a054
