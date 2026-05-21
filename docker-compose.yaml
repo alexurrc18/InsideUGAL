@@ -1,5 +1,7 @@
 services:
   web:
-    build: .
+    build:
+      context: ./Frontend/Dashboard/dashboard-insideugal
+      dockerfile: Dockerfile
     ports:
-      - "8080:80"
+      - "8090:3000"
