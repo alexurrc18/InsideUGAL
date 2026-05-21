@@ -2,6 +2,7 @@ import os
 import json
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from dotenv import load_dotenv
@@ -11,11 +12,20 @@ from google.genai import types
 # ---------------------------------------------------------
 # 1. INITIALIZARE SI CONFIGURARE
 # ---------------------------------------------------------
-load_dotenv()
+# Obtinem calea absoluta catre fisierul .env din acelasi director cu main.py
+current_dir = os.path.dirname(os.path.abspath(__file__))
+env_path = os.path.join(current_dir, ".env")
+
+# Incarcam variabilele de mediu, fortand suprascrierea celor existente (override=True)
+print(f"📂 Incarcare configuratie din: {env_path}")
+load_dotenv(dotenv_path=env_path, override=True)
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 if not API_KEY:
-    raise ValueError("GEMINI_API_KEY lipseste din fisierul .env!")
+    raise ValueError(f"GEMINI_API_KEY lipseste din fisierul .env la calea: {env_path}!")
+
+# Curatam eventuale spatii sau ghilimele accidentale
+API_KEY = API_KEY.strip().strip("'").strip('"')
 
 client = genai.Client(api_key=API_KEY)
 
@@ -28,8 +38,17 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="InsideUGAL - Smart Task Extractor API",
     description="Microserviciu LLM pentru extragerea datelor structurate din anunturi academice.",
-    version="1.0.0",
+    version="1.1.0",
     lifespan=lifespan
+)
+
+# --- ADAUGARE NOUA: Configurare CORS ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Permite oricarei aplicatii de frontend sa comunice cu acest API
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ---------------------------------------------------------
@@ -50,16 +69,11 @@ class ExtractedTaskResponse(BaseModel):
 # ---------------------------------------------------------
 @app.get("/")
 def health_check():
-    return {"status": "ok", "service": "Smart Task Extractor v1"}
+    return {"status": "ok", "service": "Smart Task Extractor v1.1", "cors": "enabled"}
 
 @app.post("/api/v1/extract-tasks", response_model=ExtractedTaskResponse)
 def extract_tasks(request: AnnouncementRequest):
-    """
-    Primeste un text brut si foloseste Gemini 2.0 Flash pentru a returna
-    un obiect JSON perfect structurat cu deadline-uri si task-uri.
-    """
     try:
-        # Schema strictă transmisă modelului
         schema = {
             "type": "OBJECT",
             "properties": {
@@ -72,32 +86,38 @@ def extract_tasks(request: AnnouncementRequest):
             "required": ["materie", "taskuri_extrase"]
         }
 
+        # --- ADAUGARE NOUA: Prompt imbunatatit pentru UGAL ---
         prompt_system = (
-            "Esti un asistent analitic strict. Rolul tau este sa analizezi anunturile academice "
-            "si sa extragi informatiile fix in formatul cerut, fara text suplimentar."
+            "Esti un asistent analitic strict pentru studentii unei facultati de inginerie. "
+            "Rolul tau este sa analizezi anunturile academice. Fii atent la termeni precum: "
+            "'colocviu', 'partial', 'laborator', 'proiect'. Extrage informatiile in formatul cerut, "
+            "fara niciun text suplimentar."
         )
 
+        # Am actualizat modelul la gemini-2.5-flash deoarece versiunile 1.5 au fost deprecate in API-ul nou
         response = client.models.generate_content(
-            model='gemini-1.5-flash', # <-- Aici am modificat
+            model='gemini-2.5-flash', 
             contents=f"{prompt_system}\n\nAnalizeaza urmatorul anunt:\n{request.text}",
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=schema,
-                temperature=0.1
+                temperature=0.1 
             ),
         )
 
-        # Gemini returnează JSON sub formă de text, pe care îl parsam înapoi în dicționar
-        result_dict = json.loads(response.text)
-        
-        # FastAPI și Pydantic se vor asigura că dict-ul respectă clasa ExtractedTaskResponse
+        # Curatam raspunsul de eventuale blocuri markdown daca apar accidental
+        raw_text = response.text.strip()
+        if raw_text.startswith("```json"):
+            raw_text = raw_text.split("```json")[1].split("```")[0].strip()
+        elif raw_text.startswith("```"):
+            raw_text = raw_text.split("```")[1].split("```")[0].strip()
+
+        result_dict = json.loads(raw_text)
         return result_dict
 
     except Exception as e:
-        # Capturăm orice eroare (ex: timeout la API) pentru a nu pica serverul
         raise HTTPException(status_code=500, detail=f"Eroare la procesarea LLM: {str(e)}")
 
-# Pentru pornire rapida in mod dezvoltare
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
