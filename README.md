@@ -125,7 +125,7 @@ Modelele recomandate pentru InsideUGAL sunt:
 - **Course** - cursuri asociate facultatilor si profesorilor
 - **Announcement / Event** - anunturi si evenimente academice
 
-## Autentificare
+## Autentificare si autorizare
 
 Functionalitatile de autentificare trebuie sa includa:
 
@@ -138,7 +138,7 @@ Functionalitatile de autentificare trebuie sa includa:
 
 ## Endpoint-uri API propuse
 
-### Autentificare
+### Endpoint-uri autentificare
 
 ```http
 POST /auth/register
