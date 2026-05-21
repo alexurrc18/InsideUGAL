@@ -8,20 +8,7 @@ services:
     volumes:
       - ./backend:/app
     ports:
-      - "8000:8000"
-    environment:
-      # Fortam auto-reload pentru uvicorn
-      - WATCHFILES_FORCE_POLLING=true
-      # Conexiunea la Supabase local
-      - SUPABASE_URL=${SUPABASE_URL:-http://host.docker.internal:54321}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-cheie_anonima_local}
-      # Cheia de la echipa LLM (se va citi dintr-un fisier .env local, NU va fi scrisa aici direct)
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-
-  # Frontend - Echipa React (dashboard)
-  frontend:
-    build:
-      context: ./frontend
+      - "8080:3000"
     volumes:
       - ./frontend:/app
       - /app/node_modules
