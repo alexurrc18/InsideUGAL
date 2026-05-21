@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # 1. Backend - Echipa Python FastAPI + LLM Gemini (Nevoia ta locală + Producție)
   backend:
     build:
       context: ./backend
@@ -8,13 +9,14 @@ services:
     volumes:
       - ./backend:/app
     ports:
-      - "8000:8000"
+      - "8000:8000" # Portul local pentru echipa de Backend
     environment:
       - WATCHFILES_FORCE_POLLING=true
       - SUPABASE_URL=${SUPABASE_URL:-http://host.docker.internal:54321}
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-cheie_anonima_local}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
 
+  # 2. Frontend / Web - Echipa React Dashboard (Combină nevoile tale cu ale lui Robert)     
   frontend:
     build:
       context: ./Frontend/Dashboard/dashboard-insideugal
@@ -23,8 +25,8 @@ services:
       - ./frontend:/app
       - /app/node_modules
     ports:
-      - "5173:5173"
-      - "8080:80"
+      - "5173:5173"    # Nevoia TA: Portul local pentru React cu Vite (Hot Reload)
+      - "8080:80"      # Nevoia lui ROBERT: Portul folosit de Coolify în producție (Nginx)  
       - "8091:3000"
     environment:
       - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
