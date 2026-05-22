@@ -22,7 +22,7 @@
 Tu ai cheile. Folosește-le pe partea de proces, nu de cod.
 
 - [ ] **Branch protection pe `main`**: required reviews ≥ 1, dismiss stale reviews on push, require status checks (CI), require linear history. Settings → Branches.
-- [ ] **CODEOWNERS** (`.github/CODEOWNERS`): mapează fiecare director la echipa responsabilă (ex. `/Frontend/ @Andreea`, `/app/ @PetreaAndrei`, `/LLM/ @RentaMarius @CosminG1412`, `/supabase/ @ionradu010`, `/.github/ @RobyGabriel`). PR-urile pe acele path-uri cer automat reviewer-ul corect.
+- [ ] **CODEOWNERS** (`.github/CODEOWNERS`): mapează fiecare director la echipa responsabilă (ex. `/Frontend/ @Andreea`, `/app/ @andreip19`, `/LLM/ @RentaMarius @CosminG1412`, `/supabase/ @ionradu010`, `/.github/ @RobyGabriel`). PR-urile pe acele path-uri cer automat reviewer-ul corect.
 - [ ] **PR template** (`.github/PULL_REQUEST_TEMPLATE.md`): What/Why/How tested/Screenshots/Linked issue. 8 rânduri, nu mai mult.
 - [ ] **Issue templates** pentru bug, feature, infra (`.github/ISSUE_TEMPLATE/*.yml`).
 - [ ] **LICENSE** + **CONTRIBUTING.md** (cum se setează local, cum se dă PR, cum se rulează testele).
@@ -107,7 +107,7 @@ Ai branch propriu. Asta e ok dacă demonstrezi că e mai bun, nu doar dacă e di
 
 ## ⚙️ Echipa Backend
 
-### Andrei Petrea (`Petrea Andrei`) — Backend Lead
+### Andrei Petrea (`andreip19`) — Backend Lead
 
 Ești bus factor 1 acum. Scrie cod de care altcineva să se atingă fără frică.
 
@@ -250,8 +250,9 @@ Scrii `@RobyGabriel` într-un comentariu → primește notificare pe mail și î
 - `@Robert028` (Robert Râmniceanu — backend)
 - `@TB0gdan` (Bogdan — docs)
 - `@ClaudiaRaileanu` (Claudia — docs)
+- @andreip19 (Andrei Petrea — Backend Lead)
 
-> Cei fără cont public listat aici (Andreea, Renta Marius, Andrei Petrea, Dinu, Radu Ion-secundar) — întrebați-vă reciproc și completați lista.
+> Cei fără cont public listat aici (Andreea, Renta Marius,  Dinu, Radu Ion-secundar) — întrebați-vă reciproc și completați lista.
 
 ### 5. Reactions (vot tăcut)
 
