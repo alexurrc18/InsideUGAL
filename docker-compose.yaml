@@ -1,34 +1,29 @@
 version: "3.8"
 
 services:
-  # backend:
-  #   build:
-  #     context: ./backend
-  #     dockerfile: Dockerfile
-  #   volumes:
-  #     - ./backend:/app
-  #   ports:
-  #     - "8000:8000"
-  #   environment:
-  #     - WATCHFILES_FORCE_POLLING=true
-  #     - SUPABASE_URL=${SUPABASE_URL:-http://host.docker.internal:54321}
-  #     - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-cheie_anonima_local}
-  #     - GEMINI_API_KEY=${GEMINI_API_KEY}
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - WATCHFILES_FORCE_POLLING=true
 
   frontend:
     build:
       context: ./Frontend/Dashboard/dashboard-insideugal
       dockerfile: Dockerfile
     volumes:
-      - ./frontend:/app
+      - ./Frontend/Dashboard/dashboard-insideugal:/app
       - /app/node_modules
     ports:
-      - "5173:5173"
-      - "8080:80"
       - "8091:3000"
     environment:
-      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
-      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-http://localhost:54321}
-      - VITE_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-cheie_anonima_local}
-  #  depends_on:
-  #    - backend
+      - VITE_API_URL=http://localhost:8000
+      - NODE_ENV=development
+    depends_on:
+      - backend
