@@ -111,7 +111,7 @@ class TestOutputValidationWithRetry:
     def test_answer_question_retries_once_on_empty_output(self):
         call_count = 0
 
-        def fake_call(prompt):
+        def fake_call(prompt, **kwargs):
             nonlocal call_count
             call_count += 1
             return ""  # output invalid — gol
@@ -126,7 +126,7 @@ class TestOutputValidationWithRetry:
     def test_generate_quiz_retries_once_on_invalid_json(self):
         call_count = 0
 
-        def fake_call(prompt):
+        def fake_call(prompt, **kwargs):
             nonlocal call_count
             call_count += 1
             return "asta nu e json valid {{{{"
@@ -142,7 +142,7 @@ class TestOutputValidationWithRetry:
         """Prima încercare întoarce output gol, a doua e validă."""
         call_count = 0
 
-        def fake_call(prompt):
+        def fake_call(prompt, **kwargs):
             nonlocal call_count
             call_count += 1
             return "" if call_count == 1 else "Fotosinteza este un proces biochimic."
