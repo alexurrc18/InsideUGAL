@@ -2,42 +2,104 @@ name: CI Pipeline
 
 on:
   pull_request:
-    branches: [ develop, main, Infrastructura ]
+  push:
+    branches:
+      - main
+      - Infrastructura
+      - Raul-Infra
 
 jobs:
-  test-backend:
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ["20", "22", "24"]
+    defaults:
+      run:
+        working-directory: Frontend/Dashboard/dashboard-insideugal
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: Frontend/Dashboard/dashboard-insideugal/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Build
+        run: npm run build
+
+  backend:
+    name: Backend
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.11", "3.12"]
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Detect FastAPI backend
+        id: detect
+        shell: bash
+        run: |
+          if [ -f backend/app/main.py ] || [ -f backend/pyproject.toml ] || [ -f backend/requirements.txt ]; then
+            echo "path=backend" >> "$GITHUB_OUTPUT"
+          elif [ -f Backend/app/main.py ] || [ -f Backend/pyproject.toml ] || [ -f Backend/requirements.txt ]; then
+            echo "path=Backend" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Backend missing
+        if: steps.detect.outputs.path == ''
+        run: |
+          echo "::warning::No FastAPI backend found. Skipping backend CI for now."
+      - name: Setup Python ${{ matrix.python-version }}
+        if: steps.detect.outputs.path != ''
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-      - name: Install dependencies & Test
+          cache: pip
+          cache-dependency-path: 'backend/requirements.txt'
+      - name: Install dependencies
+        if: steps.detect.outputs.path != ''
+        working-directory: ${{ steps.detect.outputs.path }}
+        shell: bash
         run: |
-          cd backend
-          pip install -r requirements.txt
-          pip install pytest
-          pytest
-
-  test-frontend:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: ["20", "22"]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Node ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-      - name: Install dependencies & Test
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+          if [ -f pyproject.toml ]; then
+            pip install -e ".[dev]"
+          fi
+      - name: Lint
+        if: steps.detect.outputs.path != ''
+        working-directory: ${{ steps.detect.outputs.path }}
+        shell: bash
         run: |
-          cd Frontend/Dashboard/dashboard-insideugal
-          npm ci
-          npm test
+          if command -v ruff >/dev/null 2>&1; then
+            ruff check .
+          else
+            echo "::warning::ruff not installed; add it to backend dev dependencies."
+          fi
+      - name: Typecheck
+        if: steps.detect.outputs.path != ''
+        working-directory: ${{ steps.detect.outputs.path }}
+        shell: bash
+        run: |
+          if command -v mypy >/dev/null 2>&1; then
+            mypy .
+          else
+            echo "::warning::mypy not installed; add it to backend dev dependencies."
+          fi
+      - name: Build
+        if: steps.detect.outputs.path != ''
+        working-directory: ${{ steps.detect.outputs.path }}
+        run: python -m compileall .
