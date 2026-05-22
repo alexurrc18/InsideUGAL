@@ -1,4 +1,4 @@
-﻿# 🎓 InsideUGAL
+# 🎓 InsideUGAL
 
 > Platforma internă de colaborare și coordonare pentru studenții și coordonatorii Universității "Dunărea de Jos" din Galați.
 
