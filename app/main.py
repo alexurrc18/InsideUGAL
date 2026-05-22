@@ -1,11 +1,8 @@
 from fastapi import FastAPI
 
 from app.api import announcements, courses, faculties, users
-from app.db.database import Base, engine
 from app.models import models
 
-
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="InsideUGAL API",

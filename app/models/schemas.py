@@ -125,7 +125,14 @@ class AnnouncementBase(BaseModel):
 
 
 class AnnouncementCreate(AnnouncementBase):
-    pass
+    created_by: int
+
+
+class AnnouncementUpdate(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    is_pinned: Optional[bool] = None
+    expires_at: Optional[datetime] = None
 
 
 class AnnouncementInDB(AnnouncementBase):
