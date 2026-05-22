@@ -250,6 +250,7 @@ Scrii `@RobyGabriel` într-un comentariu → primește notificare pe mail și î
 - `@Robert028` (Robert Râmniceanu — backend)
 - `@TB0gdan` (Bogdan — docs)
 - `@ClaudiaRaileanu` (Claudia — docs)
+-`@andreip19` (Andrei Petrea — Backend Lead)
 - @andreip19 (Andrei Petrea — Backend Lead)
 - `@andreeac25` (Andreea Costin - Frontend Lead)
 
