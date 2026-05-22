@@ -243,7 +243,7 @@ Scrii `@RobyGabriel` într-un comentariu → primește notificare pe mail și î
 **GitHub usernames pe care le folosim** (atenție, sunt case-sensitive):
 - `@alexurrc18` (Alexandru — owner)
 - `@RobyGabriel` (Robert Manea — tech lead)
-- `@ionradu010` (Radu Ion — DB)
+- `@ionas22` (Radu Ion — DB)
 - `@Raul21000` (Raul — CI/CD)
 - `@HincuVivianStefan` (Vivian — integrator)
 - `@CosminG1412` (Cosmin — LLM)
