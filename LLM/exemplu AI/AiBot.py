@@ -30,12 +30,12 @@ if not api_key:
     sys.exit(1)
 
 genai.configure(api_key=api_key)
-MODEL        = "gemini-2.5-flash"  
+MODEL        = "gemini-2.5-flash"
 HISTORY_FILE = "chat_history.json"
 AVATAR_PATH  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot_avatar.png")
 
 # ── Culori ───────────────────────────────────────────────
-BG           = "#0E1930"
+BG           = "#111318"
 BG_HEADER    = "#1c1f2b"
 BG_INPUT_BAR = "#1c1f2b"
 BG_INPUT     = "#2a2d3e"
