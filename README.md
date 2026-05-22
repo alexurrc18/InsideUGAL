@@ -10,7 +10,7 @@
 
 ## 📌 Despre Proiect
 
-**InsideUGAL** este o platformă digitală creată pentru a facilita comunicarea și colaborarea între studenți și coordonatori în cadrul Universității "Dunărea de Jos" din Galați (UGAL).
+**🏛️ InsideUGAL - Platformă Universitară** este o platformă digitală creată pentru a facilita comunicarea și colaborarea între studenți și coordonatori în cadrul Universității "Dunărea de Jos" din Galați (UGAL).
 
 Proiectul a fost dezvoltat cu scopul de a centraliza activitățile academice, de a simplifica fluxul de lucru și de a crea un spațiu comun unde informațiile ajung rapid la toți cei implicați.
 
@@ -54,9 +54,10 @@ Proiectul este împărțit în trei module mari interconectate:
 - **Gestiune Utilizatori:** Validarea conturilor și alocarea drepturilor (student/profesor).
 - **Content Manager:** Publicarea anunțurilor globale și administrarea listei de prețuri a cantinei.
 
----
 
-## 🚀 Cum rulezi proiectul local
+📂 Documentație Module
+
+🎨 Frontend -> Frontend/Dashboard/dashboard-insideugal/README.md
 
 ```bash
 git clone [https://github.com/alexurrc18/InsideUGAL](https://github.com/alexurrc18/InsideUGAL)
@@ -66,8 +67,9 @@ npm start
 ```
 
 ---
+Interfața de administrare construită cu Next.js și Tailwind CSS.
 
-## 🛠️ Tehnologii folosite
+⚙️ Backend -> app/README.md
 
 - Git & GitHub — version control și colaborare
 
@@ -87,5 +89,16 @@ _Va fi completat ulterior_
 
 - `GET /api/cantina/menu` - Returnează preparatele din ziua curentă.
 - `GET /api/cantina/traffic` - Returnează nivelul de aglomerație (Low/Medium/High).
+Logica de business și punctele de acces API dezvoltate în FastAPI.
 
-_Proiect dezvoltat în cadrul Universității "Dunărea de Jos" din Galați 🇷🇴_
+🤖 LLM -> LLM/README.md
+
+Modulul dedicat integrării inteligenței artificiale și a ChatBot-ului.
+
+🗄️ Database -> supabase/migrations/README.md
+
+Schema bazei de date (PostgreSQL) și politicile de securitate RLS.
+
+🎯 User Stories -> docs/STORIES.md
+
+Cerințele funcționale, fluxurile de lucru și ierarhia rolurilor.ărea de Jos" din Galați 🇷🇴_
