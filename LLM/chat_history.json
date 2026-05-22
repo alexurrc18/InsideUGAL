@@ -113,5 +113,35 @@
     "role": "user",
     "text": "salut, poti sa mi faci aici o pisica din linii , adica ,,-,,",
     "timestamp": "2026-05-21T10:34:56.803462"
+  },
+  {
+    "role": "user",
+    "text": "salut",
+    "timestamp": "2026-05-22T10:00:53.011244"
+  },
+  {
+    "role": "model",
+    "text": "Salut! Sigur că pot încerca să fac o pisică din linii și alte caractere ASCII. Nu e ușor să desenez chiar doar cu `-`, dar iată o variantă clasică, sper să-ți placă:\n\n```\n /\\_/\\\n( o.o )\n > ^ <\n```\n\nȘi salutul tău: \"salut\"\n\nDacă vrei, pot să mai încerc și alte variante!",
+    "timestamp": "2026-05-22T10:00:53.011250"
+  },
+  {
+    "role": "user",
+    "text": "ce faci?",
+    "timestamp": "2026-05-22T10:01:25.335811"
+  },
+  {
+    "role": "model",
+    "text": "Acum, în momentul în care îmi pui această întrebare, procesez mesajul tău și generez acest răspuns. Practic, sunt \"gata de acțiune\" și aștept să văd cu ce te mai pot ajuta.\n\nTu ce faci?",
+    "timestamp": "2026-05-22T10:01:25.335818"
+  },
+  {
+    "role": "user",
+    "text": "scrie mi ceva de 10 randuri",
+    "timestamp": "2026-05-22T10:07:07.198003"
+  },
+  {
+    "role": "model",
+    "text": "Soarele de dimineață își face simțită prezența,\nStrecurându-se timid printre perdelele subțiri,\nȘi pictând cu auriu pereții camerei.\nO nouă zi începe, plină de promisiuni nescrise,\nCu aerul proaspăt purtând parfumul ierbii ude.\nPăsările cântă vesel în cor, trezind întreaga lume,\nInvitând la o cafea caldă și la planuri mărețe.\nFiecare clipă e o șansă de a învăța ceva nou,\nDe a zâmbi, de a visa, de a fi pur și simplu.\nO zi minunată se așterne în fața noastră.",
+    "timestamp": "2026-05-22T10:07:07.198010"
   }
 ]

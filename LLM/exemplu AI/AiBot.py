@@ -32,13 +32,14 @@ if not api_key:
     print("❌ Nu am găsit GEMINI_API_KEY în .env")
     sys.exit(1)
 
+genai.configure(api_key=api_key)
 MODEL        = "gemini-2.5-flash"
 HISTORY_FILE = "chat_history.json"
 AVATAR_PATH  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot_avatar.png")
 GENERATION_CONFIG = {"temperature": 0.9, "max_output_tokens": 2048}
 
 # ── Culori ───────────────────────────────────────────────
-BG           = "#0E1930"
+BG           = "#111318"
 BG_HEADER    = "#1c1f2b"
 BG_INPUT_BAR = "#1c1f2b"
 BG_INPUT     = "#2a2d3e"
@@ -409,12 +410,21 @@ class ChatApp:
         lbl.configure(state="disabled")   # readonly dar selectabil
         lbl.pack(fill="x", expand=True)
 
-        # Înălțime automată după conținut
-        def _fit_text(widget=lbl):
+        # Înălțime automată după conținut real (cu wrap)
+        def _fit_text(widget=lbl, event=None):
             widget.update_idletasks()
-            lines = int(widget.index("end-1c").split(".")[0])
-            widget.configure(height=lines)
-        lbl.bind("<Configure>", lambda e, w=lbl: _fit_text(w))
+            # count display lines (inclusiv wrap)
+            try:
+                dlines = int(widget.count("1.0", "end", "displaylines")[0])
+                widget.configure(height=max(1, dlines))
+            except Exception:
+                lines = int(widget.index("end-1c").split(".")[0])
+                widget.configure(height=max(1, lines))
+            # forțăm recalcularea scroll-ului
+            widget.after(10, lambda: self._on_frame_cfg())
+        lbl.bind("<Configure>", _fit_text)
+        # apelăm și după ce e randat prima dată
+        lbl.after(50, _fit_text)
 
         tk.Label(col, text=ts, font=("Segoe UI", 8), fg=TEXT_TIME,
                  bg=BG, anchor="w").pack(anchor="w")
