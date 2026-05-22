@@ -17,10 +17,13 @@ install_if_missing("google.generativeai", "google-generativeai")
 install_if_missing("PIL", "pillow")
 
 from dotenv import load_dotenv
-import google.generativeai as genai
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk, ImageDraw
+
+from llm_client import LLMClient
+from prompt_builder import PromptBuilder
+from output_parser import OutputParser
 
 # ── Config ───────────────────────────────────────────────
 load_dotenv()
@@ -29,10 +32,10 @@ if not api_key:
     print("❌ Nu am găsit GEMINI_API_KEY în .env")
     sys.exit(1)
 
-genai.configure(api_key=api_key)
-MODEL        = "gemini-2.5-flash"  
+MODEL        = "gemini-2.5-flash"
 HISTORY_FILE = "chat_history.json"
 AVATAR_PATH  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot_avatar.png")
+GENERATION_CONFIG = {"temperature": 0.9, "max_output_tokens": 2048}
 
 # ── Culori ───────────────────────────────────────────────
 BG           = "#0E1930"
@@ -58,23 +61,6 @@ def load_history():
 def save_history(history):
     with open(HISTORY_FILE, "w", encoding="utf-8") as f:
         json.dump(history, f, ensure_ascii=False, indent=2)
-
-def history_to_gemini(history):
-    return [{"role": h["role"], "parts": [h["text"]]} for h in history]
-
-# ── Model ────────────────────────────────────────────────
-generation_config  = {"temperature": 0.9, "max_output_tokens": 2048}
-system_instruction = """Ești un asistent AI inteligent și prietenos care vorbește în română.
-Ai memorie completă a tuturor conversațiilor anterioare cu utilizatorul.
-Dacă utilizatorul menționează ceva ce a spus înainte (ex: meniul cantinei, preferințe,
-informații personale), folosești acea informație.
-Răspunzi la orice întrebare sincer și complet."""
-
-model = genai.GenerativeModel(
-    model_name=MODEL,
-    generation_config=generation_config,
-    system_instruction=system_instruction
-)
 
 # ── Avatar ───────────────────────────────────────────────
 def make_circle_image(path, size):
@@ -243,8 +229,16 @@ class ChatApp:
         self.root.minsize(360, 500)
         self.root.configure(bg=BG)
 
+        self._prompt_builder = PromptBuilder()
+        self._output_parser  = OutputParser()
+        self._client = LLMClient(
+            api_key=api_key,
+            model_name=MODEL,
+            system_instruction=self._prompt_builder.build(),
+            generation_config=GENERATION_CONFIG,
+        )
         self.saved_history = load_history()
-        self.chat = model.start_chat(history=history_to_gemini(self.saved_history))
+        self._client.reset(self._prompt_builder.format_history(self.saved_history))
         self.is_thinking   = False
         self.thinking_row  = None
         self._avatar_refs  = []
@@ -462,11 +456,12 @@ class ChatApp:
 
     def _call_api(self, text):
         try:
-            reply = self.chat.send_message(text).text
+            raw   = self._client.send(text)
+            reply = self._output_parser.parse(raw)
             err   = None
         except Exception as e:
             reply = None; err = str(e)
-            self.chat = model.start_chat(history=history_to_gemini(self.saved_history))
+            self._client.reset(self._prompt_builder.format_history(self.saved_history))
 
         def update():
             self._set_thinking(False)
@@ -486,7 +481,7 @@ class ChatApp:
         if not messagebox.askyesno("Confirmare", "Ștergi toată memoria?"): return
         if os.path.exists(HISTORY_FILE): os.remove(HISTORY_FILE)
         self.saved_history = []
-        self.chat = model.start_chat(history=[])
+        self._client.reset([])
         for w in self.msg_frame.winfo_children(): w.destroy()
         self._message_rows.clear(); self._avatar_refs.clear()
 
