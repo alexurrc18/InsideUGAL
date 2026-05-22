@@ -1,5 +1,9 @@
 services:
-  web:
-    build: .
+  frontend:
+    build:
+      context: ./Frontend/Dashboard/dashboard-insideugal
+      dockerfile: Dockerfile
     ports:
-      - "8080:80"
+      - "8091:3000"
+    environment:
+      - NODE_ENV=production
