@@ -72,7 +72,7 @@ def health_check():
     return {"status": "ok", "service": "Smart Task Extractor v1.1", "cors": "enabled"}
 
 @app.post("/api/v1/extract-tasks", response_model=ExtractedTaskResponse)
-def extract_tasks(request: AnnouncementRequest):
+async def extract_tasks(request: AnnouncementRequest):
     try:
         schema = {
             "type": "OBJECT",
@@ -86,7 +86,6 @@ def extract_tasks(request: AnnouncementRequest):
             "required": ["materie", "taskuri_extrase"]
         }
 
-        # --- ADAUGARE NOUA: Prompt imbunatatit pentru UGAL ---
         prompt_system = (
             "Esti un asistent analitic strict pentru studentii unei facultati de inginerie. "
             "Rolul tau este sa analizezi anunturile academice. Fii atent la termeni precum: "
@@ -94,8 +93,8 @@ def extract_tasks(request: AnnouncementRequest):
             "fara niciun text suplimentar."
         )
 
-        # Am actualizat modelul la gemini-2.5-flash deoarece versiunile 1.5 au fost deprecate in API-ul nou
-        response = client.models.generate_content(
+        # Modificarea principala: folosim 'await' si clientul asincron 'client.aio'
+        response = await client.aio.models.generate_content(
             model='gemini-2.5-flash', 
             contents=f"{prompt_system}\n\nAnalizeaza urmatorul anunt:\n{request.text}",
             config=types.GenerateContentConfig(
@@ -105,7 +104,6 @@ def extract_tasks(request: AnnouncementRequest):
             ),
         )
 
-        # Curatam raspunsul de eventuale blocuri markdown daca apar accidental
         raw_text = response.text.strip()
         if raw_text.startswith("```json"):
             raw_text = raw_text.split("```json")[1].split("```")[0].strip()
