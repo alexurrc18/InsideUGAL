@@ -15,13 +15,13 @@ def pytest_configure(config):
 
 
 def pytest_runtest_call(item):
-    """Dacă Gemini returnează 429 (rate limit), skip-uim testul în loc să-l crăpăm."""
-    import sys
+    """Skip la rate limit sau circuit breaker deschis — nu fail."""
     try:
         item.runtest()
     except Exception as e:
-        if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-            pytest.skip(f"Gemini rate limit atins — încearcă mâine sau upgrade plan: {e}")
+        err = str(e)
+        if any(x in err for x in ("429", "RESOURCE_EXHAUSTED", "CircuitBreakerError", "RetryError")):
+            pytest.skip(f"Gemini indisponibil (rate limit sau circuit breaker): {type(e).__name__}")
         raise
 
 
@@ -31,5 +31,10 @@ def load_pdf():
         pytest.skip("GEMINI_API_KEY lipsește — evals necesită API key real")
     if not os.path.exists(PDF_PATH):
         pytest.skip(f"PDF lipsește: {PDF_PATH}")
+
+    # Resetăm circuit breaker-ul — starea din sesiuni anterioare nu e relevantă
+    from functions import llm_functions as llm
+    llm._breaker.close()
+
     load_pdf_into_rag(PDF_PATH, PDF_ID)
     return PDF_ID
