@@ -1,7 +1,9 @@
 import json
 import os
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+from typing import Dict, Optional, Tuple
 
 import chromadb
 import pdfplumber
@@ -20,6 +22,7 @@ from tenacity import (
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import cache as llm_cache
+import supabase_logger
 from schemas import (
     AnswerQuestionInput,
     AnswerQuestionOutput,
@@ -46,9 +49,16 @@ _breaker = pybreaker.CircuitBreaker(fail_max=5, reset_timeout=60)
 # ── LLM call cu timeout + circuit breaker + retry ────────
 
 @_breaker
-def _raw_gemini(prompt: str) -> str:
+def _raw_gemini(prompt: str) -> Tuple[str, Dict[str, int]]:
     resp = _client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
-    return resp.text or ""
+    usage: Dict[str, int] = {}
+    if hasattr(resp, "usage_metadata") and resp.usage_metadata:
+        usage = {
+            "prompt_tokens": resp.usage_metadata.prompt_token_count or 0,
+            "response_tokens": resp.usage_metadata.candidates_token_count or 0,
+            "total_tokens": resp.usage_metadata.total_token_count or 0,
+        }
+    return resp.text or "", usage
 
 
 @retry(
@@ -56,21 +66,40 @@ def _raw_gemini(prompt: str) -> str:
     wait=wait_exponential(multiplier=1, min=2, max=10),
     retry=retry_if_exception_type((TimeoutError, pybreaker.CircuitBreakerError, OSError, genai_errors.ServerError)),
 )
-def _call(prompt: str) -> str:
-    """Apel Gemini cu cache, timeout 30s, max 2 retry-uri, circuit breaker."""
+def _call(prompt: str, function_name: str = "unknown") -> str:
+    """Apel Gemini cu cache, timeout 30s, max 2 retry-uri, circuit breaker și logging Supabase."""
     key = llm_cache.make_key(prompt, GEMINI_MODEL, TEMPERATURE)
     cached = llm_cache.get(key)
     if cached is not None:
+        supabase_logger.log_llm_call(
+            function_name=function_name,
+            model=GEMINI_MODEL,
+            prompt_tokens=0,
+            response_tokens=0,
+            total_tokens=0,
+            cached=True,
+        )
         return cached
 
+    start = time.time()
     with ThreadPoolExecutor(max_workers=1) as pool:
         future = pool.submit(_raw_gemini, prompt)
         try:
-            result = future.result(timeout=TIMEOUT_S)
+            result, usage = future.result(timeout=TIMEOUT_S)
         except FutureTimeout:
             raise TimeoutError(f"Gemini nu a răspuns în {TIMEOUT_S}s")
+    duration_ms = int((time.time() - start) * 1000)
 
     llm_cache.set(key, result, GEMINI_MODEL)
+    supabase_logger.log_llm_call(
+        function_name=function_name,
+        model=GEMINI_MODEL,
+        prompt_tokens=usage.get("prompt_tokens", 0),
+        response_tokens=usage.get("response_tokens", 0),
+        total_tokens=usage.get("total_tokens", 0),
+        cached=False,
+        duration_ms=duration_ms,
+    )
     return result
 
 
@@ -84,7 +113,7 @@ def extract_text_from_pdf(pdf_path: str) -> str:
     return text
 
 
-def chunk_text(text: str, chunk_size: int = 200, overlap: int = 30) -> list[str]:
+def chunk_text(text: str, chunk_size: int = 200, overlap: int = 30) -> list:
     words = text.split()
     chunks = []
     i = 0
@@ -94,7 +123,7 @@ def chunk_text(text: str, chunk_size: int = 200, overlap: int = 30) -> list[str]
     return chunks
 
 
-def store_in_vector_db(chunks: list[str], pdf_id: str):
+def store_in_vector_db(chunks: list, pdf_id: str):
     collection = _chroma.get_or_create_collection(name=pdf_id)
     embeddings = _embedding_model.encode(chunks).tolist()
     collection.add(
@@ -105,14 +134,14 @@ def store_in_vector_db(chunks: list[str], pdf_id: str):
     return collection
 
 
-def query_relevant_chunks(query: str, pdf_id: str, n_results: int = 5) -> list[str]:
+def query_relevant_chunks(query: str, pdf_id: str, n_results: int = 5) -> list:
     collection = _chroma.get_or_create_collection(name=pdf_id)
     query_embedding = _embedding_model.encode([query]).tolist()
     results = collection.query(query_embeddings=query_embedding, n_results=n_results)
     return results["documents"][0]
 
 
-def load_pdf_into_rag(pdf_path: str, pdf_id: str) -> list[str]:
+def load_pdf_into_rag(pdf_path: str, pdf_id: str) -> list:
     text = extract_text_from_pdf(pdf_path)
     chunks = chunk_text(text)
     store_in_vector_db(chunks, pdf_id)
@@ -137,7 +166,7 @@ def answer_question(question: str, pdf_id: str) -> str:
     )
 
     for attempt in range(2):
-        raw = _call(prompt)
+        raw = _call(prompt, function_name="answer_question")
         try:
             return AnswerQuestionOutput(answer=raw).answer
         except ValidationError as exc:
@@ -157,7 +186,7 @@ def generate_summary(pdf_id: str) -> str:
     prompt = f"Fa un rezumat clar si concis al urmatorului material de curs, in romana:\n\n{context}"
 
     for attempt in range(2):
-        raw = _call(prompt)
+        raw = _call(prompt, function_name="generate_summary")
         try:
             return GenerateSummaryOutput(summary=raw).summary
         except ValidationError as exc:
@@ -167,7 +196,7 @@ def generate_summary(pdf_id: str) -> str:
     raise RuntimeError("unreachable")
 
 
-def generate_quiz(pdf_id: str) -> list[dict]:
+def generate_quiz(pdf_id: str) -> list:
     inp = GenerateQuizInput(pdf_id=pdf_id)
 
     chunks = query_relevant_chunks(
@@ -195,7 +224,7 @@ def generate_quiz(pdf_id: str) -> list[dict]:
     )
 
     for attempt in range(2):
-        raw = _call(prompt)
+        raw = _call(prompt, function_name="generate_quiz")
         try:
             cleaned = raw.strip()
             if cleaned.startswith("```"):
