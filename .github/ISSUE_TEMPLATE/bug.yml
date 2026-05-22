@@ -1,0 +1,15 @@
+name: "🐛 Bug Report"
+description: Raportează o problemă tehnică sau un comportament neașteptat.
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Descrierea bug-ului
+      placeholder: Ce s-a întâmplat greșit?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pași pentru reproducere
+      placeholder: 1. Mergi la... 2. Click pe...
