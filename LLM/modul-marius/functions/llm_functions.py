@@ -1,20 +1,81 @@
 import json
 import os
-import pdfplumber
+import sys
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+
 import chromadb
-from google import genai
-from sentence_transformers import SentenceTransformer
+import pdfplumber
+import pybreaker
 from dotenv import load_dotenv
+from google import genai
+from pydantic import ValidationError
+from sentence_transformers import SentenceTransformer
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+import cache as llm_cache
+from schemas import (
+    AnswerQuestionInput,
+    AnswerQuestionOutput,
+    GenerateQuizInput,
+    GenerateQuizOutput,
+    GenerateSummaryInput,
+    GenerateSummaryOutput,
+)
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
 GEMINI_MODEL = "gemini-2.5-flash"
+TEMPERATURE = 0.7
+TIMEOUT_S = 30
 
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-chroma_client = chromadb.Client()
+_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+_embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+_chroma = chromadb.Client()
+
+# Se închide după 5 erori consecutive, se resetează după 60s
+_breaker = pybreaker.CircuitBreaker(fail_max=5, reset_timeout=60)
 
 
-def extract_text_from_pdf(pdf_path):
+# ── LLM call cu timeout + circuit breaker + retry ────────
+
+@_breaker
+def _raw_gemini(prompt: str) -> str:
+    resp = _client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+    return resp.text or ""
+
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type((TimeoutError, pybreaker.CircuitBreakerError, OSError)),
+)
+def _call(prompt: str) -> str:
+    """Apel Gemini cu cache, timeout 30s, max 2 retry-uri, circuit breaker."""
+    key = llm_cache.make_key(prompt, GEMINI_MODEL, TEMPERATURE)
+    cached = llm_cache.get(key)
+    if cached is not None:
+        return cached
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(_raw_gemini, prompt)
+        try:
+            result = future.result(timeout=TIMEOUT_S)
+        except FutureTimeout:
+            raise TimeoutError(f"Gemini nu a răspuns în {TIMEOUT_S}s")
+
+    llm_cache.set(key, result, GEMINI_MODEL)
+    return result
+
+
+# ── PDF / vector DB helpers ───────────────────────────────
+
+def extract_text_from_pdf(pdf_path: str) -> str:
     text = ""
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
@@ -22,93 +83,127 @@ def extract_text_from_pdf(pdf_path):
     return text
 
 
-def chunk_text(text, chunk_size=200, overlap=30):
+def chunk_text(text: str, chunk_size: int = 200, overlap: int = 30) -> list[str]:
     words = text.split()
     chunks = []
     i = 0
     while i < len(words):
-        chunk = " ".join(words[i:i + chunk_size])
-        chunks.append(chunk)
+        chunks.append(" ".join(words[i : i + chunk_size]))
         i += chunk_size - overlap
     return chunks
 
 
-def store_in_vector_db(chunks, pdf_id):
-    collection = chroma_client.get_or_create_collection(name=pdf_id)
-    embeddings = embedding_model.encode(chunks).tolist()
+def store_in_vector_db(chunks: list[str], pdf_id: str):
+    collection = _chroma.get_or_create_collection(name=pdf_id)
+    embeddings = _embedding_model.encode(chunks).tolist()
     collection.add(
         documents=chunks,
         embeddings=embeddings,
-        ids=[f"{pdf_id}_chunk_{i}" for i in range(len(chunks))]
+        ids=[f"{pdf_id}_chunk_{i}" for i in range(len(chunks))],
     )
     return collection
 
 
-def query_relevant_chunks(query, pdf_id, n_results=5):
-    collection = chroma_client.get_or_create_collection(name=pdf_id)
-    query_embedding = embedding_model.encode([query]).tolist()
+def query_relevant_chunks(query: str, pdf_id: str, n_results: int = 5) -> list[str]:
+    collection = _chroma.get_or_create_collection(name=pdf_id)
+    query_embedding = _embedding_model.encode([query]).tolist()
     results = collection.query(query_embeddings=query_embedding, n_results=n_results)
     return results["documents"][0]
 
 
-def load_pdf_into_rag(pdf_path, pdf_id):
+def load_pdf_into_rag(pdf_path: str, pdf_id: str) -> list[str]:
     text = extract_text_from_pdf(pdf_path)
     chunks = chunk_text(text)
     store_in_vector_db(chunks, pdf_id)
     return chunks
 
 
-def answer_question(question, pdf_id):
-    chunks = query_relevant_chunks(question, pdf_id, n_results=8)
+# ── Funcții publice cu contract Pydantic ──────────────────
+
+def answer_question(question: str, pdf_id: str) -> str:
+    inp = AnswerQuestionInput(question=question, pdf_id=pdf_id)
+
+    chunks = query_relevant_chunks(inp.question, inp.pdf_id, n_results=8)
     context = "\n\n".join(chunks)
-    prompt = f"""Esti un asistent care raspunde EXCLUSIV pe baza materialului furnizat mai jos.
-Reguli stricte:
-- Foloseste DOAR informatiile din materialul de mai jos.
-- Nu folosi cunostinte proprii sau informatii externe.
-- Daca intrebarea nu are raspuns in material, raspunde exact: "Aceasta informatie nu se regaseste in materialul furnizat."
-- Nu inventa, nu completa, nu presupune nimic in afara materialului.
+    prompt = (
+        "Esti un asistent care raspunde EXCLUSIV pe baza materialului furnizat mai jos.\n"
+        "Reguli stricte:\n"
+        "- Foloseste DOAR informatiile din materialul de mai jos.\n"
+        "- Daca intrebarea nu are raspuns in material, raspunde exact: "
+        "'Aceasta informatie nu se regaseste in materialul furnizat.'\n"
+        "- Nu inventa, nu completa, nu presupune nimic in afara materialului.\n\n"
+        f"Material:\n{context}\n\nIntrebare: {inp.question}"
+    )
 
-Material:
-{context}
+    for attempt in range(2):
+        raw = _call(prompt)
+        try:
+            return AnswerQuestionOutput(answer=raw).answer
+        except ValidationError as exc:
+            if attempt == 1:
+                raise ValueError(f"Output LLM invalid după retry: {exc}") from exc
 
-Intrebare: {question}"""
-    response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
-    return response.text or ""
+    raise RuntimeError("unreachable")
 
 
-def generate_summary(pdf_id):
-    chunks = query_relevant_chunks("rezumat general curs introducere concepte principale", pdf_id, n_results=8)
+def generate_summary(pdf_id: str) -> str:
+    inp = GenerateSummaryInput(pdf_id=pdf_id)
+
+    chunks = query_relevant_chunks(
+        "rezumat general curs introducere concepte principale", inp.pdf_id, n_results=8
+    )
     context = "\n\n".join(chunks)
     prompt = f"Fa un rezumat clar si concis al urmatorului material de curs, in romana:\n\n{context}"
-    response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
-    return response.text or ""
+
+    for attempt in range(2):
+        raw = _call(prompt)
+        try:
+            return GenerateSummaryOutput(summary=raw).summary
+        except ValidationError as exc:
+            if attempt == 1:
+                raise ValueError(f"Rezumat invalid după retry: {exc}") from exc
+
+    raise RuntimeError("unreachable")
 
 
-def generate_quiz(pdf_id):
-    chunks = query_relevant_chunks("concepte importante definitii exemple", pdf_id, n_results=10)
+def generate_quiz(pdf_id: str) -> list[dict]:
+    inp = GenerateQuizInput(pdf_id=pdf_id)
+
+    chunks = query_relevant_chunks(
+        "concepte importante definitii exemple", inp.pdf_id, n_results=10
+    )
     context = "\n\n".join(chunks)
     nr_intrebari = min(10, max(5, len(chunks)))
-    prompt = f"""Genereaza {nr_intrebari} intrebari quiz bazate pe materialul de mai jos.
-Returneaza DOAR un JSON valid, fara alt text, in acest format exact:
-[
-  {{
-    "intrebare": "...",
-    "variante": {{"A": "...", "B": "...", "C": "...", "D": "..."}},
-    "raspuns_corect": "A",
-    "explicatii": {{
-      "A": "De ce varianta A este corecta sau gresita.",
-      "B": "De ce varianta B este corecta sau gresita.",
-      "C": "De ce varianta C este corecta sau gresita.",
-      "D": "De ce varianta D este corecta sau gresita."
-    }}
-  }}
-]
+    prompt = (
+        f"Genereaza {nr_intrebari} intrebari quiz bazate pe materialul de mai jos.\n"
+        "Returneaza DOAR un JSON valid, fara alt text, in acest format exact:\n"
+        "[\n"
+        "  {\n"
+        '    "intrebare": "...",\n'
+        '    "variante": {"A": "...", "B": "...", "C": "...", "D": "..."},\n'
+        '    "raspuns_corect": "A",\n'
+        '    "explicatii": {\n'
+        '      "A": "De ce varianta A este corecta sau gresita.",\n'
+        '      "B": "De ce varianta B este corecta sau gresita.",\n'
+        '      "C": "De ce varianta C este corecta sau gresita.",\n'
+        '      "D": "De ce varianta D este corecta sau gresita."\n'
+        "    }\n"
+        "  }\n"
+        "]\n\n"
+        f"Material:\n{context}"
+    )
 
-Material:
-{context}
-"""
-    response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
-    raw = response.text.strip()
-    if raw.startswith("```"):
-        raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
-    return json.loads(raw)
+    for attempt in range(2):
+        raw = _call(prompt)
+        try:
+            cleaned = raw.strip()
+            if cleaned.startswith("```"):
+                cleaned = cleaned.split("\n", 1)[1].rsplit("```", 1)[0]
+            parsed = json.loads(cleaned)
+            output = GenerateQuizOutput(questions=parsed)
+            return [q.model_dump(exclude_none=True) for q in output.questions]
+        except (json.JSONDecodeError, ValidationError, ValueError) as exc:
+            if attempt == 1:
+                raise ValueError(f"Quiz invalid după retry: {exc}") from exc
+
+    raise RuntimeError("unreachable")
