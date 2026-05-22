@@ -251,6 +251,7 @@ Scrii `@RobyGabriel` într-un comentariu → primește notificare pe mail și î
 - `@TB0gdan` (Bogdan — docs)
 - `@ClaudiaRaileanu` (Claudia — docs)
 - @andreip19 (Andrei Petrea — Backend Lead)
+- `@andreeac25` (Andreea Costin - Frontend Lead)
 
 > Cei fără cont public listat aici (Andreea, Renta Marius,  Dinu, Radu Ion-secundar) — întrebați-vă reciproc și completați lista.
 
