@@ -8,6 +8,7 @@ import pdfplumber
 import pybreaker
 from dotenv import load_dotenv
 from google import genai
+from google.genai import errors as genai_errors
 from pydantic import ValidationError
 from sentence_transformers import SentenceTransformer
 from tenacity import (
@@ -53,7 +54,7 @@ def _raw_gemini(prompt: str) -> str:
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=2, max=10),
-    retry=retry_if_exception_type((TimeoutError, pybreaker.CircuitBreakerError, OSError)),
+    retry=retry_if_exception_type((TimeoutError, pybreaker.CircuitBreakerError, OSError, genai_errors.ServerError)),
 )
 def _call(prompt: str) -> str:
     """Apel Gemini cu cache, timeout 30s, max 2 retry-uri, circuit breaker."""
