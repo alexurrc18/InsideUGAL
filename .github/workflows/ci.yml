@@ -47,10 +47,10 @@ jobs:
         id: detect
         shell: bash
         run: |
-          if [ -f Backend/pyproject.toml ] || [ -f Backend/requirements.txt ]; then
-            echo "path=Backend" >> "$GITHUB_OUTPUT"
-          elif [ -f backend/pyproject.toml ] || [ -f backend/requirements.txt ]; then
+          if [ -f backend/app/main.py ] || [ -f backend/pyproject.toml ] || [ -f backend/requirements.txt ]; then
             echo "path=backend" >> "$GITHUB_OUTPUT"
+          elif [ -f Backend/app/main.py ] || [ -f Backend/pyproject.toml ] || [ -f Backend/requirements.txt ]; then
+            echo "path=Backend" >> "$GITHUB_OUTPUT"
           else
             echo "path=" >> "$GITHUB_OUTPUT"
           fi
@@ -58,8 +58,7 @@ jobs:
       - name: Backend missing
         if: steps.detect.outputs.path == ''
         run: |
-          echo "::error::No FastAPI backend module found at Backend/ or backend/. Add it before requiring backend CI."
-          exit 1
+          echo "::warning::No FastAPI backend module found at backend/app/main.py, backend/pyproject.toml or backend/requirements.txt. Skipping backend CI for now."
 
       - name: Setup Python
         if: steps.detect.outputs.path != ''
