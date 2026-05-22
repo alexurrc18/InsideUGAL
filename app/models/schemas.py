@@ -1,166 +1,187 @@
-from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Annotated, Optional
+
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
 
 
-class UserBase(BaseModel):
-    email: str
-    full_name: str
+EmailString = Annotated[
+    StrictStr,
+    Field(min_length=3, max_length=255, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$"),
+]
+NameString = Annotated[StrictStr, Field(min_length=1, max_length=255)]
+PasswordString = Annotated[StrictStr, Field(min_length=8, max_length=128)]
+
+
+class StrictSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+
+class ORMStrictSchema(StrictSchema):
+    model_config = ConfigDict(
+        extra="forbid",
+        str_strip_whitespace=True,
+        from_attributes=True,
+    )
+
+
+class UserBase(StrictSchema):
+    email: EmailString
+    full_name: NameString
 
 
 class UserCreate(UserBase):
-    password: str
+    password: PasswordString
 
 
-class UserInDB(UserBase):
-    id: int
-    is_active: bool
-    is_admin: bool
+class UserResponse(ORMStrictSchema):
+    id: StrictInt
+    email: EmailString
+    full_name: NameString
+    is_active: StrictBool
+    is_admin: StrictBool
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+
+UserInDB = UserResponse
 
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str
+class Token(StrictSchema):
+    access_token: StrictStr
+    token_type: StrictStr
 
 
-class TokenData(BaseModel):
-    user_id: Optional[int] = None
+class TokenData(StrictSchema):
+    user_id: Optional[StrictInt] = None
 
 
-class StudentBase(BaseModel):
-    year: Optional[int] = None
-    student_id: Optional[str] = None
+class StudentBase(StrictSchema):
+    year: Optional[StrictInt] = None
+    student_id: Optional[StrictStr] = None
 
 
 class StudentCreate(StudentBase):
-    user_id: int
-    faculty_id: Optional[int] = None
+    user_id: StrictInt
+    faculty_id: Optional[StrictInt] = None
 
 
-class StudentInDB(StudentBase):
-    id: int
-    user_id: int
-    faculty_id: Optional[int] = None
+class StudentInDB(ORMStrictSchema):
+    id: StrictInt
+    user_id: StrictInt
+    faculty_id: Optional[StrictInt] = None
+    year: Optional[StrictInt] = None
+    student_id: Optional[StrictStr] = None
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
 
-
-class ProfessorBase(BaseModel):
+class ProfessorBase(StrictSchema):
     pass
 
 
 class ProfessorCreate(ProfessorBase):
-    user_id: int
-    faculty_id: Optional[int] = None
+    user_id: StrictInt
+    faculty_id: Optional[StrictInt] = None
 
 
-class ProfessorInDB(ProfessorBase):
-    id: int
-    user_id: int
-    faculty_id: Optional[int] = None
+class ProfessorInDB(ORMStrictSchema):
+    id: StrictInt
+    user_id: StrictInt
+    faculty_id: Optional[StrictInt] = None
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
 
-
-class FacultyBase(BaseModel):
-    name: str
-    abbreviation: str
-    description: Optional[str] = None
+class FacultyBase(StrictSchema):
+    name: Annotated[StrictStr, Field(min_length=1, max_length=255)]
+    abbreviation: Annotated[StrictStr, Field(min_length=1, max_length=50)]
+    description: Optional[StrictStr] = None
 
 
 class FacultyCreate(FacultyBase):
     pass
 
 
-class FacultyInDB(FacultyBase):
-    id: int
+class FacultyInDB(ORMStrictSchema):
+    id: StrictInt
+    name: StrictStr
+    abbreviation: StrictStr
+    description: Optional[StrictStr] = None
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
 
-
-class CourseBase(BaseModel):
-    name: str
-    code: str
-    description: Optional[str] = None
-    credits: int = 3
-    semester: Optional[int] = None
-    year: Optional[int] = None
+class CourseBase(StrictSchema):
+    name: Annotated[StrictStr, Field(min_length=1, max_length=255)]
+    code: Annotated[StrictStr, Field(min_length=1, max_length=50)]
+    description: Optional[StrictStr] = None
+    credits: StrictInt = 3
+    semester: Optional[StrictInt] = None
+    year: Optional[StrictInt] = None
 
 
 class CourseCreate(CourseBase):
-    faculty_id: int
-    professor_id: Optional[int] = None
+    faculty_id: StrictInt
+    professor_id: Optional[StrictInt] = None
 
 
-class CourseInDB(CourseBase):
-    id: int
-    faculty_id: int
-    professor_id: Optional[int] = None
+class CourseInDB(ORMStrictSchema):
+    id: StrictInt
+    name: StrictStr
+    code: StrictStr
+    description: Optional[StrictStr] = None
+    faculty_id: StrictInt
+    professor_id: Optional[StrictInt] = None
+    credits: StrictInt
+    semester: Optional[StrictInt] = None
+    year: Optional[StrictInt] = None
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
 
-
-class AnnouncementBase(BaseModel):
-    title: str
-    content: str
-    is_pinned: bool = False
+class AnnouncementBase(StrictSchema):
+    title: Annotated[StrictStr, Field(min_length=1, max_length=255)]
+    content: Annotated[StrictStr, Field(min_length=1)]
+    is_pinned: StrictBool = False
     expires_at: Optional[datetime] = None
 
 
 class AnnouncementCreate(AnnouncementBase):
-    created_by: int
+    created_by: StrictInt
 
 
-class AnnouncementUpdate(BaseModel):
-    title: Optional[str] = None
-    content: Optional[str] = None
-    is_pinned: Optional[bool] = None
+class AnnouncementUpdate(StrictSchema):
+    title: Optional[Annotated[StrictStr, Field(min_length=1, max_length=255)]] = None
+    content: Optional[Annotated[StrictStr, Field(min_length=1)]] = None
+    is_pinned: Optional[StrictBool] = None
     expires_at: Optional[datetime] = None
 
 
-class AnnouncementInDB(AnnouncementBase):
-    id: int
-    created_by: int
+class AnnouncementInDB(ORMStrictSchema):
+    id: StrictInt
+    title: StrictStr
+    content: StrictStr
+    created_by: StrictInt
+    is_pinned: StrictBool
+    expires_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+
+class EnrollmentBase(StrictSchema):
+    grade: Optional[StrictStr] = None
 
 
-class EnrollmentBase(BaseModel):
-    grade: Optional[str] = None
+class EnrollmentCreate(StrictSchema):
+    student_id: StrictInt
+    course_id: StrictInt
 
 
-class EnrollmentCreate(BaseModel):
-    student_id: int
-    course_id: int
-
-
-class EnrollmentInDB(EnrollmentBase):
-    id: int
-    student_id: int
-    course_id: int
+class EnrollmentInDB(ORMStrictSchema):
+    id: StrictInt
+    student_id: StrictInt
+    course_id: StrictInt
+    grade: Optional[StrictStr] = None
     enrolled_at: datetime
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
