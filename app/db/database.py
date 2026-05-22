@@ -1,21 +1,33 @@
 import os
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from collections.abc import AsyncGenerator
 
-SQLALCHEMY_DATABASE_URL = os.getenv(
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "sqlite:///./app/db/insideugal.db"
+    "postgresql+asyncpg://user:pass@localhost:5432/insideugal",
 )
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    future=True,
+)
+
+AsyncSessionLocal = async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
 
 
-def get_db():
-    db = SessionLocal()
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    session = AsyncSessionLocal()
+
     try:
-        yield db
+        yield session
+    except Exception:
+        await session.rollback()
+        raise
     finally:
-        db.close()
+        await session.close()
