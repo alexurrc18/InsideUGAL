@@ -1,0 +1,41 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [ Raul-Infra, Infrastructura ]
+  schedule:
+    - cron: '0 9 * * 1'
+
+jobs:
+  audit-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pip-audit
+        run: pip install pip-audit
+      - name: Run pip-audit
+        run: |
+          cd backend
+          pip-audit -r requirements.txt
+
+  audit-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: |
+          cd Frontend/Dashboard/dashboard-insideugal
+          npm ci
+      - name: Run npm audit
+        run: |
+          cd Frontend/Dashboard/dashboard-insideugal
+          npm audit --audit-level=high
