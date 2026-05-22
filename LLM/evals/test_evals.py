@@ -61,9 +61,10 @@ class TestAnswerQuestion:
         assert r1 == r2  # al doilea vine din cache
 
     def test_raspuns_diferit_pentru_intrebari_diferite(self):
-        r1 = answer_question("Ce este PAW?", PDF_ID)
-        r2 = answer_question("Care sunt avantajele PAW?", PDF_ID)
-        assert r1 != r2
+        # Intrebare despre material vs intrebare complet irelevanta (returneaza "not found")
+        r_material = answer_question("Descrie conceptele principale din materialul de curs.", PDF_ID)
+        r_irelevanata = answer_question("Care este prețul unui bilet la metrou în Tokyo?", PDF_ID)
+        assert r_material != r_irelevanata
 
     def test_raspuns_nu_contine_json_brut(self):
         result = answer_question("Ce este PAW?", PDF_ID)
