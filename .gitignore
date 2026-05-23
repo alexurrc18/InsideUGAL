@@ -21,3 +21,10 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# IDE-uri
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.iml
+.DS_Store
