@@ -28,5 +28,90 @@
     "role": "model",
     "text": "Este o întrebare tehnică interesantă!\n\nCând vorbim despre \"token-uri\" în contextul modelelor de limbaj precum eu, ne referim la unități de text – care pot fi cuvinte întregi, părți de cuvinte, semne de punctuație sau chiar spații. Modelele de limbaj procesează informația în aceste token-uri.\n\nCapacitatea mea de a \"ține minte\" o conversație este legată de ceea ce se numește \"fereastra de context\" (context window). Practic, fiecare interacțiune nouă include nu doar mesajul tău curent, ci și o parte din conversația anterioară (mesajele tale și răspunsurile mele). Toate acestea sunt transformate în token-uri și procesate împreună.\n\nEu, ca model avansat, am o **fereastră de context foarte generoasă**, care îmi permite să procesez și să rețin o cantitate considerabilă de informație din conversația noastră. Acest lucru înseamnă că pot urmări discuții lungi, pot reține detalii specifice pe care le-ai menționat anterior (cum ar fi preferințele tale, informații despre meniul cantinei, sau alte detalii pe care le-am discutat) și le pot folosi în răspunsurile ulterioare, așa cum ai observat.\n\nNu există o limită \"vizibilă\" pentru tine în timpul unei conversații normale. Pot gestiona discuții extinse și complexe fără să uit contextul recent. Obiectivul meu este să ofer o experiență de conversație cât mai fluidă și coerentă, indiferent de lungimea ei.\n\nDeci, nu trebuie să-ți faci griji că \"duc token-urile\" mele prea repede; sunt conceput să rețin și să utilizez informațiile din conversație pe termen lung.",
     "timestamp": "2026-05-21T09:21:19.014003"
+  },
+  {
+    "role": "user",
+    "text": "SALUT",
+    "timestamp": "2026-05-21T10:17:51.010147"
+  },
+  {
+    "role": "model",
+    "text": "Salut! Mă bucur să te aud din nou. Cu ce te pot ajuta astăzi?",
+    "timestamp": "2026-05-21T10:17:51.010157"
+  },
+  {
+    "role": "user",
+    "text": "salut",
+    "timestamp": "2026-05-21T10:32:06.503310"
+  },
+  {
+    "role": "model",
+    "text": "Salut! Mă bucur să te aud. Cu ce te pot ajuta acum?",
+    "timestamp": "2026-05-21T10:32:06.503322"
+  },
+  {
+    "role": "user",
+    "text": "pune mi 5 intrebari scurte despre ce vrei tu si eu o sa ti dau raspunsul, iar tu imi zici daca e corect",
+    "timestamp": "2026-05-21T10:32:27.235127"
+  },
+  {
+    "role": "model",
+    "text": "Super! Îmi place jocul ăsta. Am înțeles, îți voi pune 5 întrebări scurte, iar după fiecare răspuns îți voi spune dacă este corect.\n\nEști gata? Iată prima întrebare:\n\n**1. Care este cel mai mare ocean de pe Pământ?**",
+    "timestamp": "2026-05-21T10:32:27.235139"
+  },
+  {
+    "role": "user",
+    "text": "Pacific",
+    "timestamp": "2026-05-21T10:32:48.664956"
+  },
+  {
+    "role": "model",
+    "text": "Corect! Oceanul Pacific este, într-adevăr, cel mai mare ocean de pe Pământ.\n\nExcelent! Iată a doua întrebare:\n\n**2. Câte planete sunt în sistemul nostru solar, conform definiției actuale a unei planete?**",
+    "timestamp": "2026-05-21T10:32:48.664965"
+  },
+  {
+    "role": "user",
+    "text": "8",
+    "timestamp": "2026-05-21T10:33:17.896382"
+  },
+  {
+    "role": "model",
+    "text": "Corect! Există 8 planete în sistemul nostru solar (Mercur, Venus, Pământ, Marte, Jupiter, Saturn, Uranus și Neptun).\n\nFoarte bine! Iată a treia întrebare:\n\n**3. Cine a pictat \"Mona Lisa\"?**",
+    "timestamp": "2026-05-21T10:33:17.896391"
+  },
+  {
+    "role": "user",
+    "text": "marius renta",
+    "timestamp": "2026-05-21T10:33:45.367197"
+  },
+  {
+    "role": "model",
+    "text": "Hmm, răspunsul tău este **incorect**.\n\nPictura \"Mona Lisa\" a fost realizată de **Leonardo da Vinci**.\n\nDar e în regulă! Ai avut două răspunsuri corecte până acum. Iată a patra întrebare:\n\n**4. Care este capitala Franței?**",
+    "timestamp": "2026-05-21T10:33:45.367205"
+  },
+  {
+    "role": "user",
+    "text": "paris",
+    "timestamp": "2026-05-21T10:34:00.541685"
+  },
+  {
+    "role": "model",
+    "text": "Corect! Paris este, într-adevăr, capitala Franței.\n\nExcelent! Mai avem o singură întrebare.\n\nIată a cincea întrebare:\n\n**5. Care este elementul chimic cu simbolul \"O\" în tabelul periodic?**",
+    "timestamp": "2026-05-21T10:34:00.541696"
+  },
+  {
+    "role": "user",
+    "text": "oxigen",
+    "timestamp": "2026-05-21T10:34:21.922399"
+  },
+  {
+    "role": "model",
+    "text": "Corect! Elementul chimic cu simbolul \"O\" este **Oxigenul**.\n\nFelicitări! Ai răspuns corect la 4 din cele 5 întrebări. A fost un joc distractiv!",
+    "timestamp": "2026-05-21T10:34:21.922409"
+  },
+  {
+    "role": "user",
+    "text": "salut, poti sa mi faci aici o pisica din linii , adica ,,-,,",
+    "timestamp": "2026-05-21T10:34:56.803462"
   }
 ]
