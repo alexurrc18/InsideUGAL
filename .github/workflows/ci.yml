@@ -47,7 +47,9 @@ jobs:
         id: detect
         shell: bash
         run: |
-          if [ -f backend/app/main.py ] || [ -f backend/pyproject.toml ] || [ -f backend/requirements.txt ]; then
+          if [ -f app/main.py ] || [ -f app/pyproject.toml ] || [ -f app/requirements.txt ]; then
+            echo "path=app" >> "$GITHUB_OUTPUT"
+          elif [ -f backend/app/main.py ] || [ -f backend/pyproject.toml ] || [ -f backend/requirements.txt ]; then
             echo "path=backend" >> "$GITHUB_OUTPUT"
           elif [ -f Backend/app/main.py ] || [ -f Backend/pyproject.toml ] || [ -f Backend/requirements.txt ]; then
             echo "path=Backend" >> "$GITHUB_OUTPUT"
@@ -58,7 +60,7 @@ jobs:
       - name: Backend missing
         if: steps.detect.outputs.path == ''
         run: |
-          echo "::warning::No FastAPI backend module found at backend/app/main.py, backend/pyproject.toml or backend/requirements.txt. Skipping backend CI for now."
+          echo "::warning::No FastAPI backend module found at app/main.py, app/pyproject.toml, app/requirements.txt, backend/app/main.py, backend/pyproject.toml or backend/requirements.txt. Skipping backend CI until the backend team ships runnable code."
 
       - name: Setup Python
         if: steps.detect.outputs.path != ''
@@ -73,34 +75,28 @@ jobs:
         shell: bash
         run: |
           python -m pip install --upgrade pip
+
           if [ -f requirements.txt ]; then
             pip install -r requirements.txt
           fi
+
           if [ -f pyproject.toml ]; then
-            pip install -e ".[dev]"
+            pip install -e ".[dev]" || pip install -e .
           fi
+
+          pip install ruff mypy
 
       - name: Lint
         if: steps.detect.outputs.path != ''
         working-directory: ${{ steps.detect.outputs.path }}
         shell: bash
-        run: |
-          if command -v ruff >/dev/null 2>&1; then
-            ruff check .
-          else
-            echo "::warning::ruff is not installed; add it to backend dev dependencies."
-          fi
+        run: ruff check .
 
       - name: Typecheck
         if: steps.detect.outputs.path != ''
         working-directory: ${{ steps.detect.outputs.path }}
         shell: bash
-        run: |
-          if command -v mypy >/dev/null 2>&1; then
-            mypy .
-          else
-            echo "::warning::mypy is not installed; add it to backend dev dependencies."
-          fi
+        run: mypy .
 
       - name: Build
         if: steps.detect.outputs.path != ''
