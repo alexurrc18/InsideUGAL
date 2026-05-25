@@ -6,7 +6,6 @@ from sqlalchemy import (
     CheckConstraint,
     Column,
     DateTime,
-    Enum,
     ForeignKey,
     Index,
     Integer,
@@ -15,12 +14,26 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID, ENUM as PG_ENUM
 from sqlalchemy.orm import relationship
 
 from app.db.database import Base
 
 
+# ==============================================================================
+# 0. PLACEHOLDER PENTRU SCHEMA DE AUTENTIFICARE SUPABASE
+# ==============================================================================
+class AuthUser(Base):
+    """Clasă dummy necesară pentru a valida constrângerile FK către auth.users."""
+    __tablename__ = "users"
+    __table_args__ = {"schema": "auth"}
+
+    id = Column(PG_UUID(as_uuid=True), primary_key=True)
+
+
+# ==============================================================================
+# 1. ENUMS (Optimizate pentru driverul AsyncPG)
+# ==============================================================================
 class UserRole(str, enum.Enum):
     STUDENT = "STUDENT"
     REPREZENTANT = "REPREZENTANT"
@@ -36,14 +49,15 @@ class ComplaintStatus(str, enum.Enum):
     RESOLVED = "RESOLVED"
 
 
-user_role_enum = Enum(
+# Folosim PG_ENUM din dialectul de Postgres pentru a asigura o mapare asincronă corectă
+user_role_enum = PG_ENUM(
     UserRole,
     name="user_role",
     schema="public",
     create_type=False,
 )
 
-complaint_status_enum = Enum(
+complaint_status_enum = PG_ENUM(
     ComplaintStatus,
     name="complaint_status",
     schema="public",
@@ -51,6 +65,9 @@ complaint_status_enum = Enum(
 )
 
 
+# ==============================================================================
+# 2. MIXINS & MODELS
+# ==============================================================================
 class TimestampMixin:
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -63,10 +80,10 @@ class Profile(Base, TimestampMixin):
         {"schema": "public"},
     )
 
-    id = Column(UUID(as_uuid=True), ForeignKey("auth.users.id", ondelete="CASCADE"), primary_key=True)
+    id = Column(PG_UUID(as_uuid=True), ForeignKey("auth.users.id", ondelete="CASCADE"), primary_key=True)
     email = Column(String(255), unique=True, nullable=False)
     full_name = Column(String(255), nullable=False)
-    role = Column(user_role_enum, nullable=False, server_default=UserRole.STUDENT.value)
+    role = Column(user_role_enum, nullable=False, server_default="STUDENT")
     is_active = Column(Boolean, default=True, server_default="true")
 
     complaints = relationship("Complaint", back_populates="user")
@@ -135,11 +152,11 @@ class Complaint(Base, TimestampMixin):
     __table_args__ = {"schema": "public"}
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(PG_UUID(as_uuid=True), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
     location_id = Column(Integer, ForeignKey("public.locations.id", ondelete="SET NULL"))
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=False)
-    status = Column(complaint_status_enum, nullable=False, server_default=ComplaintStatus.NEW.value)
+    status = Column(complaint_status_enum, nullable=False, server_default="NEW")
 
     user = relationship("Profile", back_populates="complaints")
     location = relationship("Location", back_populates="complaints")
@@ -153,7 +170,7 @@ class Payment(Base, TimestampMixin):
     )
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(PG_UUID(as_uuid=True), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
     description = Column(String(255), nullable=False)
     status = Column(String(50), server_default="PENDING")
@@ -169,6 +186,6 @@ class Announcement(Base, TimestampMixin):
     title = Column(String(255), nullable=False)
     content = Column(Text, nullable=False)
     event_date = Column(DateTime(timezone=True))
-    created_by = Column(UUID(as_uuid=True), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
+    created_by = Column(PG_UUID(as_uuid=True), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
 
     creator = relationship("Profile", back_populates="announcements")
