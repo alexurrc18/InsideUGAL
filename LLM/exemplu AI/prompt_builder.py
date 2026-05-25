@@ -1,19 +1,14 @@
-from typing import List, Dict
-
-SYSTEM_INSTRUCTION = """Ești un asistent AI inteligent și prietenos care vorbește în română.
-Ai memorie completă a tuturor conversațiilor anterioare cu utilizatorul.
-Dacă utilizatorul menționează ceva ce a spus înainte (ex: meniul cantinei, preferințe,
-informații personale), folosești acea informație.
-Răspunzi la orice întrebare sincer și complet."""
-
-
 class PromptBuilder:
-    def __init__(self, system_instruction: str = SYSTEM_INSTRUCTION):
-        self._instruction = system_instruction
-
     def build(self) -> str:
-        return self._instruction
+        return "Ești un asistent AI util și prietenos. Răspunde clar și concis în limba română."
 
-    def format_history(self, history: List[Dict]) -> List[Dict]:
-        """Convertește istoricul salvat {role, text} → {role, parts: [text]} pentru Gemini."""
-        return [{"role": h["role"], "parts": [h["text"]]} for h in history]
+    def format_history(self, saved_history: list) -> list:
+        result = []
+        for entry in saved_history:
+            role = entry.get("role", "user")
+            text = entry.get("text", "")
+            # Ollama folosește "assistant" în loc de "model"
+            if role == "model":
+                role = "assistant"
+            result.append({"role": role, "content": text})
+        return result

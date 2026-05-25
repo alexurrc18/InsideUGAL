@@ -1,0 +1,17 @@
+{
+  "id": "20260525_095920",
+  "title": "salut",
+  "messages": [
+    {
+      "role": "user",
+      "text": "salut",
+      "timestamp": "2026-05-25T09:59:31.807447"
+    },
+    {
+      "role": "model",
+      "text": "Bine ati venit! Sunt un asistent AI creat pentru a ajuta și sa-mi placa pe utilizatorii mei cu raspunsuri clare, concise și prietenoase în limba română. Cum puteți observa, am reușit să faci acest lucru. De ce nu va fi bine să te întrebuințez de mine pentru a-ți rezolva unii dintre problemele tale?",
+      "timestamp": "2026-05-25T09:59:31.807452"
+    }
+  ],
+  "created": "2026-05-25T09:59:20.873285"
+}
