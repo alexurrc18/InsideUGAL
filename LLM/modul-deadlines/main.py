@@ -1,5 +1,6 @@
 import os
 import json
+import uuid
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +9,7 @@ from typing import List, Optional
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from datetime import datetime
 
 
 # ---------------------------------------------------------
@@ -52,6 +54,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- LOGICA DE BAZA DE DATE LOCALA ---
+DEADLINES_STORAGE_PATH = os.path.join(current_dir, "extracted_deadlines.json")
+
+def save_deadline_to_local_storage(deadline_data: dict):
+    deadlines = []
+    if os.path.exists(DEADLINES_STORAGE_PATH):
+        try:
+            with open(DEADLINES_STORAGE_PATH, "r", encoding="utf-8") as f:
+                deadlines = json.load(f)
+        except Exception:
+            deadlines = []
+            
+    deadlines.append(deadline_data)
+    with open(DEADLINES_STORAGE_PATH, "w", encoding="utf-8") as f:
+        json.dump(deadlines, f, indent=4, ensure_ascii=False)
+
 # ---------------------------------------------------------
 # 2. SCHEME PYDANTIC (Pentru Request si Response)
 # ---------------------------------------------------------
@@ -59,6 +77,8 @@ class AnnouncementRequest(BaseModel):
     text: str = Field(..., description="Textul brut al anuntului postat de profesor")
 
 class ExtractedTaskResponse(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="ID unic generat automat")
+    data_generare: str = Field(default_factory=lambda: datetime.now().isoformat(), description="Data si ora cand a fost extras")
     materie: str = Field(description="Numele materiei la care se face referire")
     deadline_absolut: Optional[str] = Field(None, description="Data si ora limita (ex: YYYY-MM-DD HH:MM)")
     dimensiune_echipa: Optional[int] = Field(None, description="Numarul maxim de membri permisi")
@@ -111,11 +131,57 @@ async def extract_tasks(request: AnnouncementRequest):
         elif raw_text.startswith("```"):
             raw_text = raw_text.split("```")[1].split("```")[0].strip()
 
-        result_dict = json.loads(raw_text)
-        return result_dict
+        result_dict = json.loads(raw_text, strict=False)
+        
+        # --- MODIFICARE AICI ---
+        # Validam si injectam UUID-ul si Timestamp-ul trecand prin Pydantic
+        task_complet = ExtractedTaskResponse(**result_dict)
+        final_dict = task_complet.model_dump()
+        
+        # Salvam pe disc
+        save_deadline_to_local_storage(final_dict)
+        
+        return final_dict
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Eroare la procesarea LLM: {str(e)}")
+
+# --- ENDPOINT PENTRU FRONTEND: CITIREA CARDURILOR ---
+@app.get("/api/v1/deadlines", response_model=List[ExtractedTaskResponse])
+def get_all_extracted_deadlines():
+    """Returneaza toate cardurile salvate"""
+    if os.path.exists(DEADLINES_STORAGE_PATH):
+        try:
+            with open(DEADLINES_STORAGE_PATH, "r", encoding="utf-8") as f:
+                deadlines = json.load(f)
+                deadlines.sort(key=lambda x: x.get("data_generare", ""), reverse=True)
+                return deadlines
+        except Exception:
+            return []
+    return []
+
+# --- ENDPOINT PENTRU FRONTEND: STERGEREA UNUI CARD ---
+@app.delete("/api/v1/deadlines/{task_id}")
+def delete_deadline(task_id: str):
+    """Sterge un card pe baza ID-ului"""
+    if not os.path.exists(DEADLINES_STORAGE_PATH):
+        raise HTTPException(status_code=404, detail="Nu exista niciun card salvat.")
+        
+    try:
+        with open(DEADLINES_STORAGE_PATH, "r", encoding="utf-8") as f:
+            deadlines = json.load(f)
+            
+        new_deadlines = [task for task in deadlines if task.get("id") != task_id]
+        
+        if len(deadlines) == len(new_deadlines):
+            raise HTTPException(status_code=404, detail="Task-ul nu a fost gasit.")
+            
+        with open(DEADLINES_STORAGE_PATH, "w", encoding="utf-8") as f:
+            json.dump(new_deadlines, f, indent=4, ensure_ascii=False)
+            
+        return {"status": "success", "message": f"Task-ul {task_id} a fost sters."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
