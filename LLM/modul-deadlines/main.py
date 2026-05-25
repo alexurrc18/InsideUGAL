@@ -132,7 +132,16 @@ async def extract_tasks(request: AnnouncementRequest):
             raw_text = raw_text.split("```")[1].split("```")[0].strip()
 
         result_dict = json.loads(raw_text)
-        return result_dict
+        
+        # --- MODIFICARE AICI ---
+        # Validam si injectam UUID-ul si Timestamp-ul trecand prin Pydantic
+        task_complet = ExtractedTaskResponse(**result_dict)
+        final_dict = task_complet.model_dump()
+        
+        # Salvam pe disc
+        save_deadline_to_local_storage(final_dict)
+        
+        return final_dict
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Eroare la procesarea LLM: {str(e)}")
