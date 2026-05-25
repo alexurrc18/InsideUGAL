@@ -40,7 +40,8 @@ TIMEOUT_S = 30
 
 _client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 _embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-_chroma = chromadb.Client()
+_chroma_path = os.path.join(os.path.dirname(__file__), "..", "chroma_db")
+_chroma = chromadb.PersistentClient(path=_chroma_path)
 
 # Se închide după 5 erori consecutive, se resetează după 60s
 _breaker = pybreaker.CircuitBreaker(fail_max=5, reset_timeout=60)
