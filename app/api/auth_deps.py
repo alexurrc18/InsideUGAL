@@ -3,7 +3,14 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
-SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "super-secret-jwt-token")
+SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET")
+if not SUPABASE_JWT_SECRET:
+    raise RuntimeError(
+        "SUPABASE_JWT_SECRET nu este setat. Definiți-l în .env "
+        "(local) sau în Coolify Environment (deploy). Aplicația "
+        "nu pornește fără secret real."
+    )
+
 JWT_ALGORITHM = "HS256"
 security = HTTPBearer()
 
@@ -17,13 +24,16 @@ async def get_current_user(
             algorithms=[JWT_ALGORITHM],
         )
         user_id = payload.get("sub")
+        
         if not user_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authentication credentials.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+            
         return user_id
+        
     except JWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
