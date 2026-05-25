@@ -36,7 +36,6 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
 
-    # Validarea scoasă în afara blocului try, exact cum a cerut Roby
     user_id = payload.get("sub")
     if not user_id:
         raise HTTPException(

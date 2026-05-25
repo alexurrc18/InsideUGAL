@@ -1,17 +1,18 @@
-from hashlib import sha256
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from passlib.context import CryptContext
 
+from app.api.auth_deps import get_current_user
 from app.db.database import get_db
 from app.models import models, schemas
 
 router = APIRouter(prefix="/users", tags=["users"])
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def _hash_password(password: str) -> str:
-    return sha256(password.encode("utf-8")).hexdigest()
+    return pwd_context.hash(password)
 
 
 @router.post("/", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
@@ -43,7 +44,25 @@ async def list_users(skip: int = 0, limit: int = 100, db: AsyncSession = Depends
 
 
 @router.get("/{user_id}", response_model=schemas.UserResponse)
-async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
+async def get_user(
+<<<<<<< Updated upstream
+    user_id: int,
+    current_user_id: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if str(user_id) != current_user_id:
+=======
+    user_id: str,
+    current_user_id: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if user_id != current_user_id:
+>>>>>>> Stashed changes
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access other user's data.",
+        )
+
     result = await db.execute(select(models.User).filter(models.User.id == user_id))
     db_user = result.scalars().first()
     
