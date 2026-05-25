@@ -1,7 +1,9 @@
+from typing import TypeVar, Generic, Type, List, Optional
 from sqlalchemy.orm import Session
-from typing import TypeVar, Type, Generic, List, Optional
+from app.database import Base
 
-T = TypeVar("T")
+# T este un tip generic pentru modelul tău (User, Student, etc.)
+T = TypeVar("T", bound=Base)
 
 class BaseRepository(Generic[T]):
     def __init__(self, model: Type[T], db: Session):
@@ -11,25 +13,15 @@ class BaseRepository(Generic[T]):
     def get_by_id(self, id: int) -> Optional[T]:
         return self.db.query(self.model).filter(self.model.id == id).first()
 
-    def list(self) -> List[T]:
+    def get_all(self) -> List[T]:
         return self.db.query(self.model).all()
 
-    def create(self, obj_in) -> T:
-        db_obj = self.model(**obj_in.dict())
+    def create(self, obj_in: dict) -> T:
+        db_obj = self.model(**obj_in)
         self.db.add(db_obj)
         self.db.commit()
         self.db.refresh(db_obj)
         return db_obj
-
-    def update(self, id: int, obj_in) -> Optional[T]:
-        obj = self.get_by_id(id)
-        if obj:
-            for key, value in obj_in.dict().items():
-                setattr(obj, key, value)
-            self.db.commit()
-            self.db.refresh(obj)
-            return obj
-        return None
 
     def delete(self, id: int) -> bool:
         obj = self.get_by_id(id)
