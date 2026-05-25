@@ -146,6 +146,43 @@ async def extract_tasks(request: AnnouncementRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Eroare la procesarea LLM: {str(e)}")
 
+# --- ENDPOINT PENTRU FRONTEND: CITIREA CARDURILOR ---
+@app.get("/api/v1/deadlines", response_model=List[ExtractedTaskResponse])
+def get_all_extracted_deadlines():
+    """Returneaza toate cardurile salvate"""
+    if os.path.exists(DEADLINES_STORAGE_PATH):
+        try:
+            with open(DEADLINES_STORAGE_PATH, "r", encoding="utf-8") as f:
+                deadlines = json.load(f)
+                deadlines.sort(key=lambda x: x.get("data_generare", ""), reverse=True)
+                return deadlines
+        except Exception:
+            return []
+    return []
+
+# --- ENDPOINT PENTRU FRONTEND: STERGEREA UNUI CARD ---
+@app.delete("/api/v1/deadlines/{task_id}")
+def delete_deadline(task_id: str):
+    """Sterge un card pe baza ID-ului"""
+    if not os.path.exists(DEADLINES_STORAGE_PATH):
+        raise HTTPException(status_code=404, detail="Nu exista niciun card salvat.")
+        
+    try:
+        with open(DEADLINES_STORAGE_PATH, "r", encoding="utf-8") as f:
+            deadlines = json.load(f)
+            
+        new_deadlines = [task for task in deadlines if task.get("id") != task_id]
+        
+        if len(deadlines) == len(new_deadlines):
+            raise HTTPException(status_code=404, detail="Task-ul nu a fost gasit.")
+            
+        with open(DEADLINES_STORAGE_PATH, "w", encoding="utf-8") as f:
+            json.dump(new_deadlines, f, indent=4, ensure_ascii=False)
+            
+        return {"status": "success", "message": f"Task-ul {task_id} a fost sters."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
