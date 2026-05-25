@@ -62,7 +62,7 @@ jobs:
           echo "::warning::No FastAPI backend module found. Skipping backend CI until the backend team ships runnable code."
       - name: Setup Python
         if: steps.detect.outputs.path != ''
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip

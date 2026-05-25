@@ -24,7 +24,7 @@ jobs:
         run: echo "::warning::No backend/requirements.txt found. Skipping audit."
       - name: Setup Python
         if: steps.check.outputs.exists == 'true'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Run pip-audit
