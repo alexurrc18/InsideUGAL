@@ -23,17 +23,6 @@ async def get_current_user(
             SUPABASE_JWT_SECRET,
             algorithms=[JWT_ALGORITHM],
         )
-        user_id = payload.get("sub")
-
-        if not user_id:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid authentication credentials.",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-        return user_id
-
     except ExpiredSignatureError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -46,3 +35,14 @@ async def get_current_user(
             detail="Invalid or expired authentication token.",
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
+
+    # Validarea scoasă în afara blocului try
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return user_id
