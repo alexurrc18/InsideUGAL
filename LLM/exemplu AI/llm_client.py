@@ -1,29 +1,36 @@
-from typing import Dict, List
-import google.generativeai as genai
+import requests
+import json
 
+OLLAMA_URL = "http://localhost:11434/api/chat"
 
 class LLMClient:
-    def __init__(
-        self,
-        api_key: str,
-        model_name: str,
-        system_instruction: str,
-        generation_config: Dict,
-    ):
-        genai.configure(api_key=api_key)
-        self._model = genai.GenerativeModel(
-            model_name=model_name,
-            generation_config=generation_config,
-            system_instruction=system_instruction,
-        )
-        self._chat = self._model.start_chat(history=[])
+    def __init__(self, api_key=None, model_name="mistral:7b",
+                 system_instruction="", generation_config=None):
+        self.model = model_name
+        self.system_instruction = system_instruction
+        self.history = []
 
-    def send(self, message: str) -> str:
-        """Trimite un mesaj și returnează răspunsul text."""
-        if not message or not message.strip():
-            raise ValueError("Mesajul nu poate fi gol")
-        return self._chat.send_message(message).text or ""
+    def reset(self, formatted_history=None):
+        self.history = formatted_history or []
 
-    def reset(self, history: List[Dict]) -> None:
-        """Resetează sesiunea de chat cu istoricul dat."""
-        self._chat = self._model.start_chat(history=history)
+    def send(self, text: str) -> str:
+        self.history.append({"role": "user", "content": text})
+
+        messages = []
+        if self.system_instruction:
+            messages.append({"role": "system", "content": self.system_instruction})
+        messages += self.history
+
+        response = requests.post(OLLAMA_URL, json={
+            "model": self.model,
+            "messages": messages,
+            "stream": False,
+        }, timeout=120)
+
+        if response.status_code != 200:
+            raise Exception(f"Ollama error {response.status_code}: {response.text}")
+
+        data = response.json()
+        reply = data["message"]["content"]
+        self.history.append({"role": "assistant", "content": reply})
+        return reply
