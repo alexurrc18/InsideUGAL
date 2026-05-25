@@ -1,6 +1,7 @@
 import os
 import sys
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(__file__))
 
 from flask import Flask, request, jsonify, send_from_directory
@@ -32,8 +33,11 @@ def upload():
 
     try:
         load_pdf_into_rag(pdf_path, pdf_id)
-        summary = generate_summary(pdf_id)
-        quiz = generate_quiz(pdf_id)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            f_summary = pool.submit(generate_summary, pdf_id)
+            f_quiz = pool.submit(generate_quiz, pdf_id)
+            summary = f_summary.result()
+            quiz = f_quiz.result()
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
