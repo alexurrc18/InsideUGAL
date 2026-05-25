@@ -230,6 +230,8 @@ def generate_quiz(pdf_id: str) -> list:
             if cleaned.startswith("```"):
                 cleaned = cleaned.split("\n", 1)[1].rsplit("```", 1)[0]
             parsed = json.loads(cleaned)
+            # Filtrăm întrebările incomplete returnate uneori de Gemini
+            parsed = [q for q in parsed if isinstance(q, dict) and "raspuns_corect" in q and "variante" in q]
             output = GenerateQuizOutput(questions=parsed)
             return [q.model_dump(exclude_none=True) for q in output.questions]
         except (json.JSONDecodeError, ValidationError, ValueError) as exc:
