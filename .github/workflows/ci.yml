@@ -10,39 +10,39 @@ jobs:
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ["20", "22"]
     defaults:
       run:
         working-directory: Frontend/Dashboard/dashboard-insideugal
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: ${{ matrix.node-version }}
           cache: npm
           cache-dependency-path: Frontend/Dashboard/dashboard-insideugal/package-lock.json
-
       - name: Install dependencies
         run: npm ci
-
       - name: Lint
         run: npm run lint
-
       - name: Typecheck
         run: npx tsc --noEmit
-
       - name: Build
         run: npm run build
 
   backend:
     name: Backend
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Detect FastAPI backend
         id: detect
         shell: bash
@@ -56,48 +56,40 @@ jobs:
           else
             echo "path=" >> "$GITHUB_OUTPUT"
           fi
-
       - name: Backend missing
         if: steps.detect.outputs.path == ''
         run: |
-          echo "::warning::No FastAPI backend module found at app/main.py, app/pyproject.toml, app/requirements.txt, backend/app/main.py, backend/pyproject.toml or backend/requirements.txt. Skipping backend CI until the backend team ships runnable code."
-
+          echo "::warning::No FastAPI backend module found. Skipping backend CI until the backend team ships runnable code."
       - name: Setup Python
         if: steps.detect.outputs.path != ''
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
           cache: pip
-
+          cache-dependency-path: "backend/requirements.txt"
       - name: Install dependencies
         if: steps.detect.outputs.path != ''
         working-directory: ${{ steps.detect.outputs.path }}
         shell: bash
         run: |
           python -m pip install --upgrade pip
-
           if [ -f requirements.txt ]; then
             pip install -r requirements.txt
           fi
-
           if [ -f pyproject.toml ]; then
             pip install -e ".[dev]" || pip install -e .
           fi
-
           pip install ruff mypy
-
       - name: Lint
         if: steps.detect.outputs.path != ''
         working-directory: ${{ steps.detect.outputs.path }}
         shell: bash
         run: ruff check .
-
       - name: Typecheck
         if: steps.detect.outputs.path != ''
         working-directory: ${{ steps.detect.outputs.path }}
         shell: bash
         run: mypy .
-
       - name: Build
         if: steps.detect.outputs.path != ''
         working-directory: ${{ steps.detect.outputs.path }}

@@ -1,4 +1,4 @@
-.env
+
 .env.*
 !.env.example
 !.env.*.example
@@ -20,4 +20,3 @@ __pycache__/
 
 .DS_Store
 Thumbs.db
-

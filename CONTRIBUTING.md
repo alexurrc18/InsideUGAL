@@ -27,3 +27,26 @@ S-a terminat cu mesajele de commit de genul "update", "fix", "ceva" sau "merge".
 - Tot codul ajunge în `main` DOAR prin Pull Request pe GitHub.
 - Niciun PR nu primește Merge fără **cel puțin 1 Review (Approve)** de la un coleg.
 - Cel care dă Merge (Integratorul) va folosi **doar opțiunea "Squash and Merge"** pentru a păstra istoricul curat în `main`, redenumind commit-ul final conform regulilor de la punctul 2.
+
+## 4. Pre-commit Hooks (Obligatoriu)
+
+Pre-commit hooks verifică automat codul înainte de fiecare commit (linting, formatting, secrete).
+
+**Instalare (o singură dată, după ce clonezi repo-ul):**
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+**Verificare manuală:**
+```bash
+pre-commit run --all-files
+```
+
+### Ce verifică hooks-urile:
+- **ruff** — linting și formatting Python
+- **eslint + prettier** — linting și formatting JavaScript/TypeScript
+- **sqlfluff** — linting SQL (dialect PostgreSQL)
+- **gitleaks** — detectare secrete/parole în cod
+
+> ⚠️ Niciun commit nu va fi acceptat dacă hooks-urile eșuează.
