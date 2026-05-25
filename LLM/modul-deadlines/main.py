@@ -131,7 +131,7 @@ async def extract_tasks(request: AnnouncementRequest):
         elif raw_text.startswith("```"):
             raw_text = raw_text.split("```")[1].split("```")[0].strip()
 
-        result_dict = json.loads(raw_text)
+        result_dict = json.loads(raw_text, strict=False)
         
         # --- MODIFICARE AICI ---
         # Validam si injectam UUID-ul si Timestamp-ul trecand prin Pydantic
