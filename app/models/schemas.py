@@ -1,187 +1,220 @@
 from datetime import datetime
-from typing import Annotated, Optional
+from decimal import Decimal
+from typing import Any
+from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
+from pydantic import BaseModel, ConfigDict, field_serializer
 
-
-EmailString = Annotated[
-    StrictStr,
-    Field(min_length=3, max_length=255, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$"),
-]
-NameString = Annotated[StrictStr, Field(min_length=1, max_length=255)]
-PasswordString = Annotated[StrictStr, Field(min_length=8, max_length=128)]
+from app.models.models import ComplaintStatus, UserRole
 
 
-class StrictSchema(BaseModel):
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+class ProfileBase(BaseModel):
+    email: str
+    full_name: str
+    role: UserRole = UserRole.STUDENT
+    is_active: bool | None = True
 
 
-class ORMStrictSchema(StrictSchema):
-    model_config = ConfigDict(
-        extra="forbid",
-        str_strip_whitespace=True,
-        from_attributes=True,
-    )
+class ProfileCreate(ProfileBase):
+    id: UUID
 
 
-class UserBase(StrictSchema):
-    email: EmailString
-    full_name: NameString
+class ProfileUpdate(BaseModel):
+    email: str | None = None
+    full_name: str | None = None
+    role: UserRole | None = None
+    is_active: bool | None = None
 
 
-class UserCreate(UserBase):
-    password: PasswordString
+class ProfileResponse(ProfileBase):
+    model_config = ConfigDict(from_attributes=True)
 
-
-class UserResponse(ORMStrictSchema):
-    id: StrictInt
-    email: EmailString
-    full_name: NameString
-    is_active: StrictBool
-    is_admin: StrictBool
+    id: UUID
     created_at: datetime
     updated_at: datetime
 
 
-UserInDB = UserResponse
-
-
-class Token(StrictSchema):
-    access_token: StrictStr
-    token_type: StrictStr
-
-
-class TokenData(StrictSchema):
-    user_id: Optional[StrictInt] = None
-
-
-class StudentBase(StrictSchema):
-    year: Optional[StrictInt] = None
-    student_id: Optional[StrictStr] = None
-
-
-class StudentCreate(StudentBase):
-    user_id: StrictInt
-    faculty_id: Optional[StrictInt] = None
-
-
-class StudentInDB(ORMStrictSchema):
-    id: StrictInt
-    user_id: StrictInt
-    faculty_id: Optional[StrictInt] = None
-    year: Optional[StrictInt] = None
-    student_id: Optional[StrictStr] = None
-    created_at: datetime
-    updated_at: datetime
-
-
-class ProfessorBase(StrictSchema):
-    pass
-
-
-class ProfessorCreate(ProfessorBase):
-    user_id: StrictInt
-    faculty_id: Optional[StrictInt] = None
-
-
-class ProfessorInDB(ORMStrictSchema):
-    id: StrictInt
-    user_id: StrictInt
-    faculty_id: Optional[StrictInt] = None
-    created_at: datetime
-    updated_at: datetime
-
-
-class FacultyBase(StrictSchema):
-    name: Annotated[StrictStr, Field(min_length=1, max_length=255)]
-    abbreviation: Annotated[StrictStr, Field(min_length=1, max_length=50)]
-    description: Optional[StrictStr] = None
+class FacultyBase(BaseModel):
+    name: str
+    abbreviation: str
 
 
 class FacultyCreate(FacultyBase):
     pass
 
 
-class FacultyInDB(ORMStrictSchema):
-    id: StrictInt
-    name: StrictStr
-    abbreviation: StrictStr
-    description: Optional[StrictStr] = None
+class FacultyUpdate(BaseModel):
+    name: str | None = None
+    abbreviation: str | None = None
+
+
+class FacultyResponse(FacultyBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
     created_at: datetime
     updated_at: datetime
 
 
-class CourseBase(StrictSchema):
-    name: Annotated[StrictStr, Field(min_length=1, max_length=255)]
-    code: Annotated[StrictStr, Field(min_length=1, max_length=50)]
-    description: Optional[StrictStr] = None
-    credits: StrictInt = 3
-    semester: Optional[StrictInt] = None
-    year: Optional[StrictInt] = None
+class LocationBase(BaseModel):
+    name: str
+    address: str | None = None
+    coordinates: Any | None = None
+    faculty_id: int | None = None
 
 
-class CourseCreate(CourseBase):
-    faculty_id: StrictInt
-    professor_id: Optional[StrictInt] = None
+class LocationCreate(LocationBase):
+    pass
 
 
-class CourseInDB(ORMStrictSchema):
-    id: StrictInt
-    name: StrictStr
-    code: StrictStr
-    description: Optional[StrictStr] = None
-    faculty_id: StrictInt
-    professor_id: Optional[StrictInt] = None
-    credits: StrictInt
-    semester: Optional[StrictInt] = None
-    year: Optional[StrictInt] = None
+class LocationUpdate(BaseModel):
+    name: str | None = None
+    address: str | None = None
+    coordinates: Any | None = None
+    faculty_id: int | None = None
+
+
+class LocationResponse(LocationBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    @field_serializer("coordinates")
+    def serialize_coordinates(self, coordinates: Any | None) -> str | None:
+        if coordinates is None:
+            return None
+        return str(coordinates)
+
+
+class DormRoomBase(BaseModel):
+    building_name: str
+    room_number: str
+    capacity: int
+
+
+class DormRoomCreate(DormRoomBase):
+    pass
+
+
+class DormRoomUpdate(BaseModel):
+    building_name: str | None = None
+    room_number: str | None = None
+    capacity: int | None = None
+
+
+class DormRoomResponse(DormRoomBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
     created_at: datetime
     updated_at: datetime
 
 
-class AnnouncementBase(StrictSchema):
-    title: Annotated[StrictStr, Field(min_length=1, max_length=255)]
-    content: Annotated[StrictStr, Field(min_length=1)]
-    is_pinned: StrictBool = False
-    expires_at: Optional[datetime] = None
+class CafeteriaMenuBase(BaseModel):
+    name: str
+    price: Decimal
+    calories: int | None = None
+    proteins: Decimal | None = None
+    is_available: bool | None = True
+
+
+class CafeteriaMenuCreate(CafeteriaMenuBase):
+    pass
+
+
+class CafeteriaMenuUpdate(BaseModel):
+    name: str | None = None
+    price: Decimal | None = None
+    calories: int | None = None
+    proteins: Decimal | None = None
+    is_available: bool | None = None
+
+
+class CafeteriaMenuResponse(CafeteriaMenuBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class ComplaintBase(BaseModel):
+    user_id: UUID
+    location_id: int | None = None
+    title: str
+    description: str
+    status: ComplaintStatus = ComplaintStatus.NEW
+
+
+class ComplaintCreate(ComplaintBase):
+    pass
+
+
+class ComplaintUpdate(BaseModel):
+    user_id: UUID | None = None
+    location_id: int | None = None
+    title: str | None = None
+    description: str | None = None
+    status: ComplaintStatus | None = None
+
+
+class ComplaintResponse(ComplaintBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class PaymentBase(BaseModel):
+    user_id: UUID
+    amount: Decimal
+    description: str
+    status: str | None = "PENDING"
+
+
+class PaymentCreate(PaymentBase):
+    pass
+
+
+class PaymentUpdate(BaseModel):
+    user_id: UUID | None = None
+    amount: Decimal | None = None
+    description: str | None = None
+    status: str | None = None
+
+
+class PaymentResponse(PaymentBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class AnnouncementBase(BaseModel):
+    title: str
+    content: str
+    event_date: datetime | None = None
+    created_by: UUID
 
 
 class AnnouncementCreate(AnnouncementBase):
-    created_by: StrictInt
+    pass
 
 
-class AnnouncementUpdate(StrictSchema):
-    title: Optional[Annotated[StrictStr, Field(min_length=1, max_length=255)]] = None
-    content: Optional[Annotated[StrictStr, Field(min_length=1)]] = None
-    is_pinned: Optional[StrictBool] = None
-    expires_at: Optional[datetime] = None
+class AnnouncementUpdate(BaseModel):
+    title: str | None = None
+    content: str | None = None
+    event_date: datetime | None = None
+    created_by: UUID | None = None
 
 
-class AnnouncementInDB(ORMStrictSchema):
-    id: StrictInt
-    title: StrictStr
-    content: StrictStr
-    created_by: StrictInt
-    is_pinned: StrictBool
-    expires_at: Optional[datetime] = None
-    created_at: datetime
-    updated_at: datetime
+class AnnouncementResponse(AnnouncementBase):
+    model_config = ConfigDict(from_attributes=True)
 
-
-class EnrollmentBase(StrictSchema):
-    grade: Optional[StrictStr] = None
-
-
-class EnrollmentCreate(StrictSchema):
-    student_id: StrictInt
-    course_id: StrictInt
-
-
-class EnrollmentInDB(ORMStrictSchema):
-    id: StrictInt
-    student_id: StrictInt
-    course_id: StrictInt
-    grade: Optional[StrictStr] = None
-    enrolled_at: datetime
+    id: int
     created_at: datetime
     updated_at: datetime

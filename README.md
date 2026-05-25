@@ -21,14 +21,16 @@ Baza de date folosita este **PostgreSQL**, gazduita in **Supabase**. Schemele si
 
 ### Endpoint-uri CRUD pregatite pentru Frontend
 
-API-ul pregateste endpoint-uri CRUD pentru urmatoarele module:
+API-ul pregateste endpoint-uri CRUD pentru tabelele existente in SQL-ul curent:
 
-- **Noutati**
-- **Cantina**
-- **Harta**
-- **Sesizari**
-- **Facultati**
-- **Cursuri**
+- **Profiles**
+- **Faculties**
+- **Locations**
+- **Dorm rooms**
+- **Cafeteria menus**
+- **Complaints**
+- **Payments**
+- **Announcements**
 
 ## Instalare si Configurare
 
@@ -90,42 +92,16 @@ API-ul va fi disponibil local la:
 
 ## Endpoint-uri API Principale
 
-Pe langa modulele standard, API-ul acopera functionalitatile cerute de Frontend:
+Fiecare resursa expune operatiile CRUD standard:
 
-### Noutati si Evenimente
-
-- `GET /api/announcements` - Lista noutati
-- `POST /api/announcements` - Creare noutate
-- `GET /api/events` - Lista evenimente din campus
-
-### Cantina
-
-- `GET /api/cafeteria/products` - Nomenclatorul de preparate
-- `GET /api/cafeteria/menu` - Meniul structurat pe zilele saptamanii
-
-### Harta Campusului
-
-- `GET /api/locations` - Returneaza cladirile si coordonatele GPS
-
-### Sesizari
-
-- `GET /api/issues` - Lista sesizarilor active
-- `POST /api/issues` - Deschidere sesizare noua
-- `PUT /api/issues/{id}/status` - Modificare status
-
-### Facultati
-
-- `GET /api/faculties` - Lista facultati
-- `POST /api/faculties` - Creare facultate
-- `PUT /api/faculties/{id}` - Actualizare facultate
-- `DELETE /api/faculties/{id}` - Stergere facultate
-
-### Cursuri
-
-- `GET /api/courses` - Lista cursuri
-- `POST /api/courses` - Creare curs
-- `PUT /api/courses/{id}` - Actualizare curs
-- `DELETE /api/courses/{id}` - Stergere curs
+- `POST /profiles/`, `GET /profiles/`, `GET /profiles/{item_id}`, `PUT /profiles/{item_id}`, `DELETE /profiles/{item_id}`
+- `POST /faculties/`, `GET /faculties/`, `GET /faculties/{item_id}`, `PUT /faculties/{item_id}`, `DELETE /faculties/{item_id}`
+- `POST /locations/`, `GET /locations/`, `GET /locations/{item_id}`, `PUT /locations/{item_id}`, `DELETE /locations/{item_id}`
+- `POST /dorm_rooms/`, `GET /dorm_rooms/`, `GET /dorm_rooms/{item_id}`, `PUT /dorm_rooms/{item_id}`, `DELETE /dorm_rooms/{item_id}`
+- `POST /cafeteria_menus/`, `GET /cafeteria_menus/`, `GET /cafeteria_menus/{item_id}`, `PUT /cafeteria_menus/{item_id}`, `DELETE /cafeteria_menus/{item_id}`
+- `POST /complaints/`, `GET /complaints/`, `GET /complaints/{item_id}`, `PUT /complaints/{item_id}`, `DELETE /complaints/{item_id}`
+- `POST /payments/`, `GET /payments/`, `GET /payments/{item_id}`, `PUT /payments/{item_id}`, `DELETE /payments/{item_id}`
+- `POST /announcements/`, `GET /announcements/`, `GET /announcements/{item_id}`, `PUT /announcements/{item_id}`, `DELETE /announcements/{item_id}`
 
 ## Structura proiectului
 
@@ -153,5 +129,5 @@ InsideUGAL/
 | Aplicatie FastAPI                                            | Gata     | Configurarea de baza este prezenta pe branch-ul `backend`.                                     |
 | Endpoint-uri de baza                                         | Gata     | Rutele de baza pentru Frontend sunt pregatite pe branch-ul `backend`.                          |
 | Conectare PostgreSQL prin Supabase                           | In lucru | Conectarea se face prin `DATABASE_URL` din `.env`; tabelele sunt gestionate de Infrastructura. |
-| CRUD Noutati, Cantina, Harta, Sesizari, Facultati si Cursuri | In lucru | Endpoint-urile sunt pregatite pentru integrarea cu Frontend-ul.                                |
+| CRUD pentru tabelele SQL curente                             | Gata     | Profiles, faculties, locations, dorm_rooms, cafeteria_menus, complaints, payments, announcements. |
 | Integrare RBAC                                               | In lucru | Urmeaza validari pe roluri si permisiuni.                                                      |

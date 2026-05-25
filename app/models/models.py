@@ -1,6 +1,54 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Text, func, Index
-from sqlalchemy.orm import relationship, validates
+import enum
+
+from geoalchemy2 import Geometry
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    func,
+)
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+
 from app.db.database import Base
+
+
+class UserRole(str, enum.Enum):
+    STUDENT = "STUDENT"
+    REPREZENTANT = "REPREZENTANT"
+    PROFESOR = "PROFESOR"
+    CANTINA_HEAD = "CANTINA_HEAD"
+    FACULTATE_HEAD = "FACULTATE_HEAD"
+    ADMIN = "ADMIN"
+
+
+class ComplaintStatus(str, enum.Enum):
+    NEW = "NEW"
+    IN_PROGRESS = "IN_PROGRESS"
+    RESOLVED = "RESOLVED"
+
+
+user_role_enum = Enum(
+    UserRole,
+    name="user_role",
+    schema="public",
+    create_type=False,
+)
+
+complaint_status_enum = Enum(
+    ComplaintStatus,
+    name="complaint_status",
+    schema="public",
+    create_type=False,
+)
 
 
 class TimestampMixin:
@@ -8,135 +56,119 @@ class TimestampMixin:
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
-class User(Base, TimestampMixin):
-    __tablename__ = "users"
-
+class Profile(Base, TimestampMixin):
+    __tablename__ = "profiles"
     __table_args__ = (
-        Index("idx_users_email_active", "email", "is_active"),
-        Index("idx_users_id", "id"),
-        Index("idx_users_email", "email"),
+        Index("idx_profiles_role", "role"),
+        {"schema": "public"},
     )
 
-    id = Column(Integer, primary_key=True)
+    id = Column(UUID(as_uuid=True), ForeignKey("auth.users.id", ondelete="CASCADE"), primary_key=True)
     email = Column(String(255), unique=True, nullable=False)
     full_name = Column(String(255), nullable=False)
-    hashed_password = Column(String(255), nullable=False)
-    is_active = Column(Boolean, default=True)
-    is_admin = Column(Boolean, default=False)
+    role = Column(user_role_enum, nullable=False, server_default=UserRole.STUDENT.value)
+    is_active = Column(Boolean, default=True, server_default="true")
 
-    @validates("email")
-    def validate_email(self, key, address):
-        if "@" not in address:
-            raise ValueError("Invalid email address")
-        return address
-
-    student = relationship("Student", back_populates="user", uselist=False)
-    professor = relationship("Professor", back_populates="user", uselist=False)
-
-
-class Student(Base, TimestampMixin):
-    __tablename__ = "students"
-
-    __table_args__ = (
-        Index("idx_students_faculty_year", "faculty_id", "year"),
-        Index("idx_students_id", "id"),
-    )
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    faculty_id = Column(Integer, ForeignKey("faculties.id", ondelete="SET NULL"), nullable=True)
-    year = Column(Integer, nullable=True)
-    student_id = Column(String(100), unique=True, nullable=True)
-
-    user = relationship("User", back_populates="student")
-    faculty = relationship("Faculty", back_populates="students")
-    enrollments = relationship("Enrollment", back_populates="student")
-
-
-class Professor(Base, TimestampMixin):
-    __tablename__ = "professors"
-
-    __table_args__ = (
-        Index("idx_professors_faculty", "faculty_id"),
-        Index("idx_professors_id", "id"),
-    )
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    faculty_id = Column(Integer, ForeignKey("faculties.id", ondelete="SET NULL"), nullable=True)
-
-    user = relationship("User", back_populates="professor")
-    faculty = relationship("Faculty", back_populates="professors")
-    courses = relationship("Course", back_populates="professor")
+    complaints = relationship("Complaint", back_populates="user")
+    payments = relationship("Payment", back_populates="user")
+    announcements = relationship("Announcement", back_populates="creator")
 
 
 class Faculty(Base, TimestampMixin):
     __tablename__ = "faculties"
-
-    __table_args__ = (Index("idx_faculties_id", "id"),)
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String(255), nullable=False)
-    abbreviation = Column(String(50), nullable=False, unique=True)
-    description = Column(Text, nullable=True)
-
-    students = relationship("Student", back_populates="faculty")
-    professors = relationship("Professor", back_populates="faculty")
-    courses = relationship("Course", back_populates="faculty")
-
-
-class Course(Base, TimestampMixin):
-    __tablename__ = "courses"
-
-    __table_args__ = (Index("idx_courses_id", "id"),)
+    __table_args__ = {"schema": "public"}
 
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False)
-    code = Column(String(50), nullable=False, unique=True)
-    description = Column(Text, nullable=True)
-    faculty_id = Column(Integer, ForeignKey("faculties.id", ondelete="CASCADE"), nullable=False)
-    professor_id = Column(Integer, ForeignKey("professors.id", ondelete="SET NULL"), nullable=True)
-    credits = Column(Integer, default=3)
-    semester = Column(Integer, nullable=True)
-    year = Column(Integer, nullable=True)
+    abbreviation = Column(String(50), unique=True, nullable=False)
 
-    faculty = relationship("Faculty", back_populates="courses")
-    professor = relationship("Professor", back_populates="courses")
-    enrollments = relationship("Enrollment", back_populates="course")
+    locations = relationship("Location", back_populates="faculty")
+
+
+class Location(Base, TimestampMixin):
+    __tablename__ = "locations"
+    __table_args__ = (
+        Index("idx_locations_coordinates", "coordinates", postgresql_using="gist"),
+        {"schema": "public"},
+    )
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    address = Column(Text)
+    coordinates = Column(Geometry(geometry_type="POINT", srid=4326))
+    faculty_id = Column(Integer, ForeignKey("public.faculties.id", ondelete="SET NULL"))
+
+    faculty = relationship("Faculty", back_populates="locations")
+    complaints = relationship("Complaint", back_populates="location")
+
+
+class DormRoom(Base, TimestampMixin):
+    __tablename__ = "dorm_rooms"
+    __table_args__ = (
+        CheckConstraint("capacity > 0", name="dorm_rooms_capacity_check"),
+        {"schema": "public"},
+    )
+
+    id = Column(Integer, primary_key=True)
+    building_name = Column(String(100), nullable=False)
+    room_number = Column(String(20), nullable=False)
+    capacity = Column(Integer, nullable=False)
+
+
+class CafeteriaMenu(Base, TimestampMixin):
+    __tablename__ = "cafeteria_menus"
+    __table_args__ = (
+        CheckConstraint("price > 0", name="cafeteria_menus_price_check"),
+        {"schema": "public"},
+    )
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    price = Column(Numeric(10, 2), nullable=False)
+    calories = Column(Integer)
+    proteins = Column(Numeric(5, 2))
+    is_available = Column(Boolean, default=True, server_default="true")
+
+
+class Complaint(Base, TimestampMixin):
+    __tablename__ = "complaints"
+    __table_args__ = {"schema": "public"}
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
+    location_id = Column(Integer, ForeignKey("public.locations.id", ondelete="SET NULL"))
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+    status = Column(complaint_status_enum, nullable=False, server_default=ComplaintStatus.NEW.value)
+
+    user = relationship("Profile", back_populates="complaints")
+    location = relationship("Location", back_populates="complaints")
+
+
+class Payment(Base, TimestampMixin):
+    __tablename__ = "payments"
+    __table_args__ = (
+        CheckConstraint("amount > 0", name="payments_amount_check"),
+        {"schema": "public"},
+    )
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
+    amount = Column(Numeric(10, 2), nullable=False)
+    description = Column(String(255), nullable=False)
+    status = Column(String(50), server_default="PENDING")
+
+    user = relationship("Profile", back_populates="payments")
 
 
 class Announcement(Base, TimestampMixin):
     __tablename__ = "announcements"
-
-    __table_args__ = (
-        Index("idx_announcements_created", "created_at"),
-        Index("idx_announcements_pinned", "is_pinned"),
-        Index("idx_announcements_id", "id"),
-    )
+    __table_args__ = {"schema": "public"}
 
     id = Column(Integer, primary_key=True)
     title = Column(String(255), nullable=False)
     content = Column(Text, nullable=False)
-    created_by = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    is_pinned = Column(Boolean, default=False)
-    expires_at = Column(DateTime(timezone=True), nullable=True)
+    event_date = Column(DateTime(timezone=True))
+    created_by = Column(UUID(as_uuid=True), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
 
-    creator = relationship("User")
-
-
-class Enrollment(Base, TimestampMixin):
-    __tablename__ = "enrollments"
-
-    __table_args__ = (
-        Index("idx_enrollments_unique", "student_id", "course_id", unique=True),
-        Index("idx_enrollments_id", "id"),
-    )
-
-    id = Column(Integer, primary_key=True)
-    student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
-    course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
-    grade = Column(String(50), nullable=True)
-    enrolled_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    student = relationship("Student", back_populates="enrollments")
-    course = relationship("Course", back_populates="enrollments")
+    creator = relationship("Profile", back_populates="announcements")

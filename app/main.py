@@ -2,7 +2,16 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api import announcements, courses, faculties, users
+from app.api import (
+    announcements,
+    cafeteria_menus,
+    complaints,
+    dorm_rooms,
+    faculties,
+    locations,
+    payments,
+    profiles,
+)
 from app.api.errors import http_exception_handler, validation_exception_handler
 from app.models import models
 
@@ -16,7 +25,11 @@ app = FastAPI(
     }
 )
 
-app.include_router(users.router)
+app.include_router(profiles.router)
 app.include_router(faculties.router)
-app.include_router(courses.router)
+app.include_router(locations.router)
+app.include_router(dorm_rooms.router)
+app.include_router(cafeteria_menus.router)
+app.include_router(complaints.router)
+app.include_router(payments.router)
 app.include_router(announcements.router)
