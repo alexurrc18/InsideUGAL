@@ -229,13 +229,17 @@ def generate_quiz(pdf_id: str) -> list:
         '    "variante": {"A": "...", "B": "...", "C": "...", "D": "..."},\n'
         '    "raspuns_corect": "A",\n'
         '    "explicatii": {\n'
-        '      "A": "De ce varianta A este corecta sau gresita.",\n'
-        '      "B": "De ce varianta B este corecta sau gresita.",\n'
-        '      "C": "De ce varianta C este corecta sau gresita.",\n'
-        '      "D": "De ce varianta D este corecta sau gresita."\n'
+        '      "A": "Corect: explica de ce aceasta varianta este corecta SAU Gresit: explica exact ce e incorect la aceasta varianta.",\n'
+        '      "B": "Corect: ... SAU Gresit: ...",\n'
+        '      "C": "Corect: ... SAU Gresit: ...",\n'
+        '      "D": "Corect: ... SAU Gresit: ..."\n'
         "    }\n"
         "  }\n"
         "]\n\n"
+        "Reguli stricte pentru explicatii:\n"
+        "- Incepe cu 'Corect:' sau 'Gresit:'\n"
+        "- Explica direct de ce varianta e corecta sau gresita, nu cita din material\n"
+        "- Maxim 1-2 propozitii clare, la obiect\n\n"
         f"Material:\n{context}"
     )
 
