@@ -184,7 +184,22 @@ def generate_summary(pdf_id: str) -> str:
         "rezumat general curs introducere concepte principale", inp.pdf_id, n_results=8
     )
     context = "\n\n".join(chunks)
-    prompt = f"Fa un rezumat clar si concis al urmatorului material de curs, in romana:\n\n{context}"
+    prompt = (
+        "Esti un profesor care ajuta studentii sa invete eficient.\n"
+        "Creeaza un rezumat structurat al materialului de mai jos, in romana, respectand EXACT acest format:\n\n"
+        "## Idei principale\n"
+        "- [maxim 5 idei cheie, fiecare pe un rand]\n\n"
+        "## Concepte importante\n"
+        "- **Concept**: explicatie scurta si clara\n"
+        "- [repeta pentru fiecare concept important]\n\n"
+        "## Ce trebuie sa retii\n"
+        "[2-3 fraze cu cele mai importante lucruri de memorat pentru examen]\n\n"
+        "Reguli:\n"
+        "- Foloseste limbaj simplu, fara jargon inutil\n"
+        "- Fii concis — studentul trebuie sa inteleaga in 2 minute\n"
+        "- Nu copia fraze din material, reformuleaza cu cuvinte proprii\n\n"
+        f"Material:\n{context}"
+    )
 
     for attempt in range(2):
         raw = _call(prompt, function_name="generate_summary")
