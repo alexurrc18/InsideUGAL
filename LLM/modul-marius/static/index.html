@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>InsideUGAL - LLM</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #f4f6f9; color: #333; }
@@ -61,11 +62,20 @@
     #summary-text {
       background: #f9f9f9;
       border-left: 4px solid #1a73e8;
-      padding: 15px;
+      padding: 15px 20px;
       border-radius: 4px;
-      white-space: pre-wrap;
-      line-height: 1.6;
+      line-height: 1.8;
     }
+    #summary-text h2 {
+      color: #1a73e8;
+      font-size: 17px;
+      margin: 18px 0 8px 0;
+      border-bottom: 1px solid #d0e3ff;
+      padding-bottom: 4px;
+    }
+    #summary-text ul { padding-left: 20px; margin: 6px 0; }
+    #summary-text li { margin-bottom: 5px; }
+    #summary-text strong { color: #1a1a1a; }
 
     .question-card {
       background: #f9f9f9;
@@ -208,7 +218,7 @@
   }
 
   function afiseazaRezumat(summary) {
-    document.getElementById("summary-text").textContent = summary;
+    document.getElementById("summary-text").innerHTML = marked.parse(summary);
     document.getElementById("summary-section").style.display = "block";
   }
 
