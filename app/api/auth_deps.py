@@ -1,7 +1,7 @@
 import os
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
+from jose import ExpiredSignatureError, JWTError, jwt
 
 SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET")
 if not SUPABASE_JWT_SECRET:
@@ -23,20 +23,26 @@ async def get_current_user(
             SUPABASE_JWT_SECRET,
             algorithms=[JWT_ALGORITHM],
         )
-        user_id = payload.get("sub")
-        
-        if not user_id:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid authentication credentials.",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-            
-        return user_id
-        
+    except ExpiredSignatureError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
     except JWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired authentication token.",
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
+
+    # Validarea scoasă în afara blocului try, exact cum a cerut Roby
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return user_id
