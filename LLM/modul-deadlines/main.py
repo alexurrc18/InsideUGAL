@@ -1,5 +1,6 @@
 import os
 import json
+import uuid
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,7 +9,6 @@ from typing import List, Optional
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-import uuid
 from datetime import datetime
 
 
@@ -61,6 +61,8 @@ class AnnouncementRequest(BaseModel):
     text: str = Field(..., description="Textul brut al anuntului postat de profesor")
 
 class ExtractedTaskResponse(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="ID unic generat automat")
+    data_generare: str = Field(default_factory=lambda: datetime.now().isoformat(), description="Data si ora cand a fost extras")
     materie: str = Field(description="Numele materiei la care se face referire")
     deadline_absolut: Optional[str] = Field(None, description="Data si ora limita (ex: YYYY-MM-DD HH:MM)")
     dimensiune_echipa: Optional[int] = Field(None, description="Numarul maxim de membri permisi")
