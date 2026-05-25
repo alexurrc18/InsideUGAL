@@ -54,6 +54,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- LOGICA DE BAZA DE DATE LOCALA ---
+DEADLINES_STORAGE_PATH = os.path.join(current_dir, "extracted_deadlines.json")
+
+def save_deadline_to_local_storage(deadline_data: dict):
+    deadlines = []
+    if os.path.exists(DEADLINES_STORAGE_PATH):
+        try:
+            with open(DEADLINES_STORAGE_PATH, "r", encoding="utf-8") as f:
+                deadlines = json.load(f)
+        except Exception:
+            deadlines = []
+            
+    deadlines.append(deadline_data)
+    with open(DEADLINES_STORAGE_PATH, "w", encoding="utf-8") as f:
+        json.dump(deadlines, f, indent=4, ensure_ascii=False)
+
 # ---------------------------------------------------------
 # 2. SCHEME PYDANTIC (Pentru Request si Response)
 # ---------------------------------------------------------
