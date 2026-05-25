@@ -1,6 +1,9 @@
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api import announcements, courses, faculties, users
+from app.api.errors import http_exception_handler, validation_exception_handler
 from app.models import models
 
 
@@ -9,6 +12,9 @@ app = FastAPI(
     description="REST API pentru platforma academica InsideUGAL.",
     version="0.1.0",
 )
+
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
 
 @app.get("/")
