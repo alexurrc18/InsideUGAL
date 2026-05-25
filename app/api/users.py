@@ -45,11 +45,19 @@ async def list_users(skip: int = 0, limit: int = 100, db: AsyncSession = Depends
 
 @router.get("/{user_id}", response_model=schemas.UserResponse)
 async def get_user(
+<<<<<<< Updated upstream
     user_id: int,
     current_user_id: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     if str(user_id) != current_user_id:
+=======
+    user_id: str,
+    current_user_id: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if user_id != current_user_id:
+>>>>>>> Stashed changes
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to access other user's data.",
