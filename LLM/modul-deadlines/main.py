@@ -112,11 +112,14 @@ def health_check():
 @app.post("/api/v1/extract-tasks", response_model=ExtractedTaskResponse)
 async def extract_tasks(request: AnnouncementRequest):
     try:
+        now = datetime.now().strftime("%Y-%m-%d %H:%M")
         prompt_system = (
             "Esti un asistent analitic strict pentru studentii unei facultati de inginerie. "
-            "Rolul tau este sa analizezi anunturile academice. Fii atent la termeni precum: "
-            "'colocviu', 'partial', 'laborator', 'proiect'. Extrage informatiile in formatul cerut, "
-            "fara niciun text suplimentar."
+            "Rolul tau este sa analizezi anunturile academice transmise de profesori. "
+            f"Data curenta este {now}. Foloseste aceasta data pentru a calcula deadline-urile relative "
+            "(ex: 'vinerea viitoare', 'peste 2 saptamani', 'maine'). "
+            "Fii atent la termeni precum: 'colocviu', 'partial', 'laborator', 'proiect'. "
+            "Extrage informatiile in formatul cerut, fara niciun text suplimentar."
         )
 
         # Modificarea principala: folosim 'await' si clientul asincron 'client.aio'
