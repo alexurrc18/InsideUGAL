@@ -24,12 +24,17 @@ services:
       - public
       - internal
     labels:
-      - traefik.enable=true
-      - traefik.docker.network=coolify
-      - traefik.http.routers.insideugal-frontend.rule=Host(`insideugal.ro`)
-      - traefik.http.routers.insideugal-frontend.entrypoints=https
-      - traefik.http.routers.insideugal-frontend.tls.certresolver=letsencrypt
-      - traefik.http.services.insideugal-frontend.loadbalancer.server.port=3000
+      - "traefik.enable=true"
+      - "traefik.docker.network=${TRAEFIK_NETWORK:-coolify}"
+      - "traefik.http.routers.insideugal-frontend.rule=Host(`${FRONTEND_HOST:-insideugal.ro}`)"
+      - "traefik.http.routers.insideugal-frontend.entrypoints=${TRAEFIK_HTTPS_ENTRYPOINT:-https}"
+      - "traefik.http.routers.insideugal-frontend.tls=true"
+      - "traefik.http.routers.insideugal-frontend-http.rule=Host(`${FRONTEND_HOST:-insideugal.ro}`)"
+      - "traefik.http.routers.insideugal-frontend-http.entrypoints=${TRAEFIK_HTTP_ENTRYPOINT:-http}"
+      - "traefik.http.routers.insideugal-frontend-http.middlewares=insideugal-redirect-https"
+      - "traefik.http.routers.insideugal-frontend-http.service=insideugal-frontend"
+      - "traefik.http.middlewares.insideugal-redirect-https.redirectscheme.scheme=https"
+      - "traefik.http.services.insideugal-frontend.loadbalancer.server.port=3000"
 
 networks:
   public:
