@@ -2,6 +2,7 @@ import os
 import json
 import uuid
 import logging
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -66,19 +67,21 @@ app.add_middleware(
 
 # --- LOGICA DE BAZA DE DATE LOCALA ---
 DEADLINES_STORAGE_PATH = os.path.join(current_dir, "extracted_deadlines.json")
+storage_lock = asyncio.Lock()
 
-def save_deadline_to_local_storage(deadline_data: dict):
-    deadlines = []
-    if os.path.exists(DEADLINES_STORAGE_PATH):
-        try:
-            with open(DEADLINES_STORAGE_PATH, "r", encoding="utf-8") as f:
-                deadlines = json.load(f)
-        except Exception:
-            deadlines = []
-            
-    deadlines.append(deadline_data)
-    with open(DEADLINES_STORAGE_PATH, "w", encoding="utf-8") as f:
-        json.dump(deadlines, f, indent=4, ensure_ascii=False)
+async def save_deadline_to_local_storage(deadline_data: dict):
+    async with storage_lock:
+        deadlines = []
+        if os.path.exists(DEADLINES_STORAGE_PATH):
+            try:
+                with open(DEADLINES_STORAGE_PATH, "r", encoding="utf-8") as f:
+                    deadlines = json.load(f)
+            except Exception:
+                deadlines = []
+                
+        deadlines.append(deadline_data)
+        with open(DEADLINES_STORAGE_PATH, "w", encoding="utf-8") as f:
+            json.dump(deadlines, f, indent=4, ensure_ascii=False)
 
 # ---------------------------------------------------------
 # 2. SCHEME PYDANTIC (Pentru Request si Response)
@@ -149,7 +152,7 @@ async def extract_tasks(request: AnnouncementRequest):
         final_dict = task_complet.model_dump()
         
         # Salvam pe disc
-        save_deadline_to_local_storage(final_dict)
+        await save_deadline_to_local_storage(final_dict)
         
         return final_dict
 
@@ -159,9 +162,12 @@ async def extract_tasks(request: AnnouncementRequest):
 
 # --- ENDPOINT PENTRU FRONTEND: CITIREA CARDURILOR ---
 @app.get("/api/v1/deadlines", response_model=List[ExtractedTaskResponse])
-def get_all_extracted_deadlines():
+async def get_all_extracted_deadlines():
     """Returneaza toate cardurile salvate"""
-    if os.path.exists(DEADLINES_STORAGE_PATH):
+    if not os.path.exists(DEADLINES_STORAGE_PATH):
+        return []
+        
+    async with storage_lock:
         try:
             with open(DEADLINES_STORAGE_PATH, "r", encoding="utf-8") as f:
                 deadlines = json.load(f)
@@ -169,30 +175,30 @@ def get_all_extracted_deadlines():
                 return deadlines
         except Exception:
             return []
-    return []
 
 # --- ENDPOINT PENTRU FRONTEND: STERGEREA UNUI CARD ---
 @app.delete("/api/v1/deadlines/{task_id}")
-def delete_deadline(task_id: str):
+async def delete_deadline(task_id: str):
     """Sterge un card pe baza ID-ului"""
     if not os.path.exists(DEADLINES_STORAGE_PATH):
         raise HTTPException(status_code=404, detail="Nu exista niciun card salvat.")
         
-    try:
-        with open(DEADLINES_STORAGE_PATH, "r", encoding="utf-8") as f:
-            deadlines = json.load(f)
+    async with storage_lock:
+        try:
+            with open(DEADLINES_STORAGE_PATH, "r", encoding="utf-8") as f:
+                deadlines = json.load(f)
+                
+            new_deadlines = [task for task in deadlines if task.get("id") != task_id]
             
-        new_deadlines = [task for task in deadlines if task.get("id") != task_id]
-        
-        if len(deadlines) == len(new_deadlines):
-            raise HTTPException(status_code=404, detail="Task-ul nu a fost gasit.")
-            
-        with open(DEADLINES_STORAGE_PATH, "w", encoding="utf-8") as f:
-            json.dump(new_deadlines, f, indent=4, ensure_ascii=False)
-            
-        return {"status": "success", "message": f"Task-ul {task_id} a fost sters."}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+            if len(deadlines) == len(new_deadlines):
+                raise HTTPException(status_code=404, detail="Task-ul nu a fost gasit.")
+                
+            with open(DEADLINES_STORAGE_PATH, "w", encoding="utf-8") as f:
+                json.dump(new_deadlines, f, indent=4, ensure_ascii=False)
+                
+            return {"status": "success", "message": f"Task-ul {task_id} a fost sters."}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
