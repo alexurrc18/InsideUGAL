@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
-
+from app.api.auth_deps import get_current_user
 
 ValidatePayload = Callable[[BaseModel, AsyncSession], Awaitable[None]]
 
@@ -39,7 +39,11 @@ def create_crud_router(
             ) from exc
 
     @router.post("/", response_model=response_schema, status_code=status.HTTP_201_CREATED)
-    async def create_item(payload: create_schema, db: AsyncSession = Depends(get_db)):  # type: ignore[valid-type]
+    async def create_item(
+        payload: create_schema,  # type: ignore[arg-type]
+        db: AsyncSession = Depends(get_db),
+        current_user_id: str = Depends(get_current_user)
+    ):
         if validate_create:
             await validate_create(payload, db)
 
@@ -62,8 +66,9 @@ def create_crud_router(
     @router.put("/{item_id}", response_model=response_schema)
     async def update_item(
         item_id: str,
-        payload: update_schema,  # type: ignore[valid-type]
+        payload: update_schema,  # type: ignore[arg-type]
         db: AsyncSession = Depends(get_db),
+        current_user_id: str = Depends(get_current_user)
     ):
         if validate_update:
             await validate_update(payload, db)
@@ -77,7 +82,11 @@ def create_crud_router(
         return db_item
 
     @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-    async def delete_item(item_id: str, db: AsyncSession = Depends(get_db)):
+    async def delete_item(
+        item_id: str,
+        db: AsyncSession = Depends(get_db),
+        current_user_id: str = Depends(get_current_user)
+    ):
         db_item = await _get_or_404(db, model, id_field, parse_id(item_id), not_found_detail)
         await db.delete(db_item)
         await db.commit()
