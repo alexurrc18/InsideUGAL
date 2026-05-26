@@ -8,7 +8,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
-
+# Importăm funcția de autentificare pe care ai scris-o
+from app.api.dependencies import get_current_user
 
 ValidatePayload = Callable[[BaseModel, AsyncSession], Awaitable[None]]
 
@@ -38,8 +39,13 @@ def create_crud_router(
                 detail=f"Invalid {id_field}.",
             ) from exc
 
+    # PROTEJAT: Doar userii logați pot crea resurse
     @router.post("/", response_model=response_schema, status_code=status.HTTP_201_CREATED)
-    async def create_item(payload: create_schema, db: AsyncSession = Depends(get_db)):  # type: ignore[valid-type]
+    async def create_item(
+        payload: create_schema, 
+        db: AsyncSession = Depends(get_db),
+        current_user_id: str = Depends(get_current_user)  # <-- Validare Auth
+    ):  # type: ignore[valid-type]
         if validate_create:
             await validate_create(payload, db)
 
@@ -49,21 +55,25 @@ def create_crud_router(
         await db.refresh(db_item)
         return db_item
 
+    # PUBLIC: Oricine poate vedea lista (ex: cantina, evenimente)
     @router.get("/", response_model=list[response_schema])  # type: ignore[valid-type]
     async def list_items(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
         result = await db.execute(select(model).offset(skip).limit(limit))
         return result.scalars().all()
 
+    # PUBLIC: Oricine poate citi detaliile unui singur element
     @router.get("/{item_id}", response_model=response_schema)
     async def get_item(item_id: str, db: AsyncSession = Depends(get_db)):  # type: ignore[valid-type]
         db_item = await _get_or_404(db, model, id_field, parse_id(item_id), not_found_detail)
         return db_item
 
+    # PROTEJAT: Doar userii logați pot edita
     @router.put("/{item_id}", response_model=response_schema)
     async def update_item(
         item_id: str,
         payload: update_schema,  # type: ignore[valid-type]
         db: AsyncSession = Depends(get_db),
+        current_user_id: str = Depends(get_current_user)  # <-- Validare Auth
     ):
         if validate_update:
             await validate_update(payload, db)
@@ -76,8 +86,13 @@ def create_crud_router(
         await db.refresh(db_item)
         return db_item
 
+    # PROTEJAT: Doar userii logați pot șterge
     @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-    async def delete_item(item_id: str, db: AsyncSession = Depends(get_db)):
+    async def delete_item(
+        item_id: str, 
+        db: AsyncSession = Depends(get_db),
+        current_user_id: str = Depends(get_current_user)  # <-- Validare Auth
+    ):
         db_item = await _get_or_404(db, model, id_field, parse_id(item_id), not_found_detail)
         await db.delete(db_item)
         await db.commit()
