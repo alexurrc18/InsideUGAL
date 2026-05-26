@@ -86,14 +86,18 @@ def save_deadline_to_local_storage(deadline_data: dict):
 class AnnouncementRequest(BaseModel):
     text: str = Field(..., description="Textul brut al anuntului postat de profesor")
 
-class ExtractedTaskResponse(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="ID unic generat automat")
-    data_generare: str = Field(default_factory=lambda: datetime.now().isoformat(), description="Data si ora cand a fost extras")
+class GeminiTaskOutput(BaseModel):
+    """Schema pentru datele extrase direct de LLM"""
     materie: str = Field(description="Numele materiei la care se face referire")
     deadline_absolut: Optional[str] = Field(None, description="Data si ora limita (ex: YYYY-MM-DD HH:MM)")
     dimensiune_echipa: Optional[int] = Field(None, description="Numarul maxim de membri permisi")
     taskuri_extrase: List[str] = Field(description="Lista cu actiunile concrete pe care trebuie sa le faca studentul")
     penalizari_sau_reguli: List[str] = Field(default=[], description="Reguli stricte, penalizari la nota sau conventii")
+
+class ExtractedTaskResponse(GeminiTaskOutput):
+    """Schema completa pentru raspunsul API (include ID si Timestamp)"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="ID unic generat automat")
+    data_generare: str = Field(default_factory=lambda: datetime.now().isoformat(), description="Data si ora cand a fost extras")
 
 # ---------------------------------------------------------
 # 3. ENDPOINT-URILE API-ULUI
@@ -105,18 +109,6 @@ def health_check():
 @app.post("/api/v1/extract-tasks", response_model=ExtractedTaskResponse)
 async def extract_tasks(request: AnnouncementRequest):
     try:
-        schema = {
-            "type": "OBJECT",
-            "properties": {
-                "materie": {"type": "STRING"},
-                "deadline_absolut": {"type": "STRING"},
-                "dimensiune_echipa": {"type": "INTEGER"},
-                "taskuri_extrase": {"type": "ARRAY", "items": {"type": "STRING"}},
-                "penalizari_sau_reguli": {"type": "ARRAY", "items": {"type": "STRING"}}
-            },
-            "required": ["materie", "taskuri_extrase"]
-        }
-
         prompt_system = (
             "Esti un asistent analitic strict pentru studentii unei facultati de inginerie. "
             "Rolul tau este sa analizezi anunturile academice. Fii atent la termeni precum: "
@@ -130,20 +122,28 @@ async def extract_tasks(request: AnnouncementRequest):
             contents=f"{prompt_system}\n\nAnalizeaza urmatorul anunt:\n{request.text}",
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                response_schema=schema,
+                response_schema=GeminiTaskOutput,
                 temperature=0.1 
             ),
         )
 
-        raw_text = response.text.strip()
-        if raw_text.startswith("```json"):
-            raw_text = raw_text.split("```json")[1].split("```")[0].strip()
-        elif raw_text.startswith("```"):
-            raw_text = raw_text.split("```")[1].split("```")[0].strip()
-
-        result_dict = json.loads(raw_text, strict=False)
+        # Rezultatul vine deja ca obiect daca am folosit response_schema cu Pydantic (in versiunile noi de SDK)
+        # sau ca string JSON pe care il parsam.
+        if hasattr(response, 'parsed') and isinstance(response.parsed, GeminiTaskOutput):
+            result_dict = response.parsed.model_dump()
+        else:
+            raw_text = response.text
+            # Daca e un obiect (cum ar fi un Mock in teste), incercam sa-l convertim la string
+            if not isinstance(raw_text, str):
+                raw_text = str(raw_text)
+            
+            raw_text = raw_text.strip()
+            if raw_text.startswith("```json"):
+                raw_text = raw_text.split("```json")[1].split("```")[0].strip()
+            elif raw_text.startswith("```"):
+                raw_text = raw_text.split("```")[1].split("```")[0].strip()
+            result_dict = json.loads(raw_text, strict=False)
         
-        # --- MODIFICARE AICI ---
         # Validam si injectam UUID-ul si Timestamp-ul trecand prin Pydantic
         task_complet = ExtractedTaskResponse(**result_dict)
         final_dict = task_complet.model_dump()
@@ -154,6 +154,7 @@ async def extract_tasks(request: AnnouncementRequest):
         return final_dict
 
     except Exception as e:
+        logger.error(f"Eroare la procesarea LLM: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Eroare la procesarea LLM: {str(e)}")
 
 # --- ENDPOINT PENTRU FRONTEND: CITIREA CARDURILOR ---
