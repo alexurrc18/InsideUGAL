@@ -37,6 +37,9 @@ class ProfileResponse(ProfileBase):
 class FacultyBase(BaseModel):
     name: str
     abbreviation: str
+    website_url: str | None = None
+    dormitory_url: str | None = None
+    description: str | None = None
 
 
 class FacultyCreate(FacultyBase):
@@ -46,6 +49,9 @@ class FacultyCreate(FacultyBase):
 class FacultyUpdate(BaseModel):
     name: str | None = None
     abbreviation: str | None = None
+    website_url: str | None = None
+    dormitory_url: str | None = None
+    description: str | None = None
 
 
 class FacultyResponse(FacultyBase):
@@ -88,35 +94,16 @@ class LocationResponse(LocationBase):
         return str(coordinates)
 
 
-class DormRoomBase(BaseModel):
-    building_name: str
-    room_number: str
-    capacity: int
-
-
-class DormRoomCreate(DormRoomBase):
-    pass
-
-
-class DormRoomUpdate(BaseModel):
-    building_name: str | None = None
-    room_number: str | None = None
-    capacity: int | None = None
-
-
-class DormRoomResponse(DormRoomBase):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    created_at: datetime
-    updated_at: datetime
-
-
 class CafeteriaMenuBase(BaseModel):
     name: str
     price: Decimal
+    description: str | None = None
     calories: int | None = None
     proteins: Decimal | None = None
+    fats: Decimal | None = None
+    carbohydrates: Decimal | None = None
+    grams: int
+    day_of_week: int | None = None
     is_available: bool | None = True
 
 
@@ -127,8 +114,13 @@ class CafeteriaMenuCreate(CafeteriaMenuBase):
 class CafeteriaMenuUpdate(BaseModel):
     name: str | None = None
     price: Decimal | None = None
+    description: str | None = None
     calories: int | None = None
     proteins: Decimal | None = None
+    fats: Decimal | None = None
+    carbohydrates: Decimal | None = None
+    grams: int | None = None
+    day_of_week: int | None = None
     is_available: bool | None = None
 
 
@@ -145,6 +137,7 @@ class ComplaintBase(BaseModel):
     location_id: int | None = None
     title: str
     description: str
+    image_url: str | None = None
     status: ComplaintStatus = ComplaintStatus.NEW
 
 
@@ -157,6 +150,7 @@ class ComplaintUpdate(BaseModel):
     location_id: int | None = None
     title: str | None = None
     description: str | None = None
+    image_url: str | None = None
     status: ComplaintStatus | None = None
 
 
@@ -168,36 +162,18 @@ class ComplaintResponse(ComplaintBase):
     updated_at: datetime
 
 
-class PaymentBase(BaseModel):
-    user_id: UUID
-    amount: Decimal
-    description: str
-    status: str | None = "PENDING"
-
-
-class PaymentCreate(PaymentBase):
-    pass
-
-
-class PaymentUpdate(BaseModel):
-    user_id: UUID | None = None
-    amount: Decimal | None = None
-    description: str | None = None
-    status: str | None = None
-
-
-class PaymentResponse(PaymentBase):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    created_at: datetime
-    updated_at: datetime
-
-
 class AnnouncementBase(BaseModel):
     title: str
     content: str
-    event_date: datetime | None = None
+    category: str | None = None
+    image_url: str | None = None
+    is_event: bool | None = False
+    start_date: datetime | None = None
+    end_date: datetime | None = None
+    location_name: str | None = None
+    target_audience: str | None = None
+    event_redirect_id: int | None = None
+    send_push: bool | None = False
     created_by: UUID
 
 
@@ -208,7 +184,15 @@ class AnnouncementCreate(AnnouncementBase):
 class AnnouncementUpdate(BaseModel):
     title: str | None = None
     content: str | None = None
-    event_date: datetime | None = None
+    category: str | None = None
+    image_url: str | None = None
+    is_event: bool | None = None
+    start_date: datetime | None = None
+    end_date: datetime | None = None
+    location_name: str | None = None
+    target_audience: str | None = None
+    event_redirect_id: int | None = None
+    send_push: bool | None = None
     created_by: UUID | None = None
 
 

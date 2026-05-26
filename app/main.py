@@ -7,13 +7,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 import app.api.announcements as announcements
 import app.api.cafeteria_menus as cafeteria_menus
 import app.api.complaints as complaints
-import app.api.dorm_rooms as dorm_rooms
 import app.api.faculties as faculties
 import app.api.locations as locations
-import app.api.payments as payments
 import app.api.profiles as profiles
 from app.api.errors import http_exception_handler, validation_exception_handler
-from app.models import models
 
 # Configurare logger pentru middleware
 logging.basicConfig(level=logging.INFO)
@@ -45,8 +42,6 @@ async def add_request_id_middleware(request: Request, call_next):
 app.include_router(profiles.router)
 app.include_router(faculties.router)
 app.include_router(locations.router)
-app.include_router(dorm_rooms.router)
 app.include_router(cafeteria_menus.router)
 app.include_router(complaints.router)
-app.include_router(payments.router)
 app.include_router(announcements.router)

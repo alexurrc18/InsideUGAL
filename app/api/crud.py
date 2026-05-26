@@ -38,11 +38,10 @@ def create_crud_router(
                 detail=f"Invalid {id_field}.",
             ) from exc
 
-    @router.post("/", response_model=response_schema, status_code=status.HTTP_201_CREATED)
+    @router.post("/", response_model=response_schema, status_code=status.HTTP_201_CREATED, dependencies=[Depends(get_current_user)])
     async def create_item(
         payload: create_schema,  # type: ignore[arg-type]
-        db: AsyncSession = Depends(get_db),
-        current_user_id: str = Depends(get_current_user)
+        db: AsyncSession = Depends(get_db)
     ):
         if validate_create:
             await validate_create(payload, db)
@@ -63,12 +62,11 @@ def create_crud_router(
         db_item = await _get_or_404(db, model, id_field, parse_id(item_id), not_found_detail)
         return db_item
 
-    @router.put("/{item_id}", response_model=response_schema)
+    @router.put("/{item_id}", response_model=response_schema, dependencies=[Depends(get_current_user)])
     async def update_item(
         item_id: str,
         payload: update_schema,  # type: ignore[arg-type]
-        db: AsyncSession = Depends(get_db),
-        current_user_id: str = Depends(get_current_user)
+        db: AsyncSession = Depends(get_db)
     ):
         if validate_update:
             await validate_update(payload, db)

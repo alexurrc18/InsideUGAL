@@ -47,6 +47,7 @@ class ComplaintStatus(str, enum.Enum):
     NEW = "NEW"
     IN_PROGRESS = "IN_PROGRESS"
     RESOLVED = "RESOLVED"
+    REJECTED = "REJECTED"
 
 
 # Folosim PG_ENUM din dialectul de Postgres pentru a asigura o mapare asincronă corectă
@@ -87,7 +88,6 @@ class Profile(Base, TimestampMixin):
     is_active = Column(Boolean, default=True, server_default="true")
 
     complaints = relationship("Complaint", back_populates="user")
-    payments = relationship("Payment", back_populates="user")
     announcements = relationship("Announcement", back_populates="creator")
 
 
@@ -98,6 +98,9 @@ class Faculty(Base, TimestampMixin):
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False)
     abbreviation = Column(String(50), unique=True, nullable=False)
+    website_url = Column(Text)
+    dormitory_url = Column(Text)
+    description = Column(Text)
 
     locations = relationship("Location", back_populates="faculty")
 
@@ -119,31 +122,25 @@ class Location(Base, TimestampMixin):
     complaints = relationship("Complaint", back_populates="location")
 
 
-class DormRoom(Base, TimestampMixin):
-    __tablename__ = "dorm_rooms"
-    __table_args__ = (
-        CheckConstraint("capacity > 0", name="dorm_rooms_capacity_check"),
-        {"schema": "public"},
-    )
-
-    id = Column(Integer, primary_key=True)
-    building_name = Column(String(100), nullable=False)
-    room_number = Column(String(20), nullable=False)
-    capacity = Column(Integer, nullable=False)
-
-
 class CafeteriaMenu(Base, TimestampMixin):
     __tablename__ = "cafeteria_menus"
     __table_args__ = (
         CheckConstraint("price > 0", name="cafeteria_menus_price_check"),
+        CheckConstraint("grams > 0", name="cafeteria_menus_grams_check"),
+        CheckConstraint("day_of_week BETWEEN 1 AND 5", name="cafeteria_menus_day_of_week_check"),
         {"schema": "public"},
     )
 
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False)
     price = Column(Numeric(10, 2), nullable=False)
+    description = Column(Text)
     calories = Column(Integer)
     proteins = Column(Numeric(5, 2))
+    fats = Column(Numeric(5, 2))
+    carbohydrates = Column(Numeric(5, 2))
+    grams = Column(Integer, nullable=False)
+    day_of_week = Column(Integer)
     is_available = Column(Boolean, default=True, server_default="true")
 
 
@@ -156,26 +153,11 @@ class Complaint(Base, TimestampMixin):
     location_id = Column(Integer, ForeignKey("public.locations.id", ondelete="SET NULL"))
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=False)
+    image_url = Column(Text)
     status = Column(complaint_status_enum, nullable=False, server_default="NEW")
 
     user = relationship("Profile", back_populates="complaints")
     location = relationship("Location", back_populates="complaints")
-
-
-class Payment(Base, TimestampMixin):
-    __tablename__ = "payments"
-    __table_args__ = (
-        CheckConstraint("amount > 0", name="payments_amount_check"),
-        {"schema": "public"},
-    )
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(PG_UUID(as_uuid=True), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
-    amount = Column(Numeric(10, 2), nullable=False)
-    description = Column(String(255), nullable=False)
-    status = Column(String(50), server_default="PENDING")
-
-    user = relationship("Profile", back_populates="payments")
 
 
 class Announcement(Base, TimestampMixin):
@@ -185,7 +167,15 @@ class Announcement(Base, TimestampMixin):
     id = Column(Integer, primary_key=True)
     title = Column(String(255), nullable=False)
     content = Column(Text, nullable=False)
-    event_date = Column(DateTime(timezone=True))
+    category = Column(String(50))
+    image_url = Column(Text)
+    is_event = Column(Boolean, default=False, server_default="false")
+    start_date = Column(DateTime(timezone=True))
+    end_date = Column(DateTime(timezone=True))
+    location_name = Column(String(255))
+    target_audience = Column(String(100))
+    event_redirect_id = Column(Integer, ForeignKey("public.announcements.id", ondelete="SET NULL"))
+    send_push = Column(Boolean, default=False, server_default="false")
     created_by = Column(PG_UUID(as_uuid=True), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
 
     creator = relationship("Profile", back_populates="announcements")
