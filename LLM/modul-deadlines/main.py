@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +12,15 @@ from google import genai
 from google.genai import types
 from datetime import datetime
 
+# ---------------------------------------------------------
+# 0. CONFIGURARE LOGGING
+# ---------------------------------------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+logger = logging.getLogger("smart-task-extractor")
 
 # ---------------------------------------------------------
 # 1. INITIALIZARE SI CONFIGURARE
@@ -20,7 +30,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 env_path = os.path.join(current_dir, ".env")
 
 # Incarcam variabilele de mediu, fortand suprascrierea celor existente (override=True)
-print(f"📂 Incarcare configuratie din: {env_path}")
+logger.info(f"📂 Incarcare configuratie din: {env_path}")
 load_dotenv(dotenv_path=env_path, override=True)
 
 API_KEY = os.getenv("GEMINI_API_KEY")
@@ -34,9 +44,9 @@ client = genai.Client(api_key=API_KEY)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 Modulul Smart Task Extractor (UGAL) a pornit...")
+    logger.info("🚀 Modulul Smart Task Extractor (UGAL) a pornit...")
     yield
-    print("🛑 Modulul se opreste...")
+    logger.info("🛑 Modulul se opreste...")
 
 app = FastAPI(
     title="InsideUGAL - Smart Task Extractor API",
