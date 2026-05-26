@@ -104,22 +104,19 @@ Serverul va rula la `http://127.0.0.1:8000`.
 ```
 
 ### Exemplu Real (Anunț Sesiune Restanțe - ACIEE)
+
 **Text Brut:**
+
 > "Sesiune de restanțe 6 - 24 aprilie 2026 În perioada 6-24 aprilie 2026 se organizează o sesiune de restanțe suplimentară pentru toți anii de studii, licență și masterat. Participarea studenților la această sesiune se va face pe bază de cerere, completând formularul: https://forms.gle/cJGdBd1k3Dr5eG8W9, până pe 24 martie, ora 12:00. Examenele restante se pot susține cu acordul cadrului didactic titular, cu plata taxei!"
 
 **Output Gemini:**
+
 ```json
 {
   "materie": "Sesiune Restanțe",
   "tip_eveniment": "anunt_general",
   "urgenta_estimata": "scazuta",
-  "taguri_cheie": [
-    "Restanțe",
-    "Licență",
-    "Masterat",
-    "Taxă",
-    "Formular"
-  ],
+  "taguri_cheie": ["Restanțe", "Licență", "Masterat", "Taxă", "Formular"],
   "deadline_absolut": "2026-03-24 12:00",
   "dimensiune_echipa": null,
   "rezumat_notificare": "Anunt sesiune restanțe suplimentară licență și masterat în aprilie 2026.",
@@ -133,9 +130,7 @@ Serverul va rula la `http://127.0.0.1:8000`.
     "Examenele se susțin cu acordul cadrului didactic titular",
     "Examenele se susțin cu plata taxei"
   ],
-  "linkuri_utile": [
-    "https://forms.gle/cJGdBd1k3Dr5eG8W9"
-  ],
+  "linkuri_utile": ["https://forms.gle/cJGdBd1k3Dr5eG8W9"],
   "id": "52315a72-d837-417b-b739-db273586a81a",
   "data_generare": "2026-05-26T10:52:46.424912"
 }
@@ -158,6 +153,47 @@ pytest
 - [ ] Integrare cu baza de date globală Postgres.
 - [ ] Suport pentru parsarea fișierelor PDF (cerințe de laborator).
 - [ ] Tehnici de Few-Shot Prompting pentru o acuratețe sporită.
+
+---
+
+## 🛠️ Ghid Integrare Backend & Database (Specificații Contract)
+
+Această secțiune este dedicată echipei de **Backend** pentru a facilita salvarea datelor extrase în Postgres.
+
+### 1. Schema SQL Sugerată
+
+Pentru a păstra integritatea datelor, recomandăm următoarea structură de tabel:
+
+```sql
+-- Definire Enums pentru validare strictă
+CREATE TYPE nivel_urgenta AS ENUM ('ridicata', 'medie', 'scazuta');
+CREATE TYPE tip_eveniment AS ENUM ('proiect', 'laborator', 'partial', 'colocviu', 'anunt_general');
+
+CREATE TABLE extracted_tasks (
+    id UUID PRIMARY KEY,
+    materie VARCHAR(255) NOT NULL,
+    tip_eveniment tip_eveniment NOT NULL,
+    urgenta_estimata nivel_urgenta NOT NULL,
+    deadline_absolut TIMESTAMP WITHOUT TIME ZONE,
+    rezumat_notificare VARCHAR(80) NOT NULL,
+    dimensiune_echipa INTEGER,
+
+    -- Utilizăm JSONB pentru flexibilitate și interogări rapide în liste
+    taguri_cheie JSONB DEFAULT '[]',
+    taskuri_extrase JSONB DEFAULT '[]',
+    penalizari_sau_reguli JSONB DEFAULT '[]',
+    linkuri_utile JSONB DEFAULT '[]',
+
+    data_generare TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    text_sursa TEXT -- Recomandat pentru audit sau re-procesare
+);
+```
+
+### 2. Note Implementare
+
+- **Idempotentă:** Deși modulul generează un `id` (UUID), se recomandă ca backend-ul să verifice duplicatele pe baza unui hash al `text_sursa` dacă utilizatorii pot declanșa extracția manual de mai multe ori.
+- **Tipuri de Date:** Câmpurile `taguri_cheie`, `taskuri_extrase`, `penalizari_sau_reguli` și `linkuri_utile` sunt returnate ca liste Python (`List[str]`). În Postgres, acestea se mapează cel mai bine pe `JSONB`.
+- **Validare:** Valorile pentru `tip_eveniment` și `urgenta_estimata` sunt fixe. Orice adăugare de noi tipuri trebuie sincronizată între modelul Pydantic din `main.py` și tipurile `ENUM` din baza de date.
 
 ---
 
