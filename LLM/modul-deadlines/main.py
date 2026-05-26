@@ -84,7 +84,7 @@ def save_deadline_to_local_storage(deadline_data: dict):
 # 2. SCHEME PYDANTIC (Pentru Request si Response)
 # ---------------------------------------------------------
 class AnnouncementRequest(BaseModel):
-    text: str = Field(..., description="Textul brut al anuntului postat de profesor")
+    text: str = Field(..., min_length=10, max_length=5000, description="Textul brut al anuntului postat de profesor")
 
 class GeminiTaskOutput(BaseModel):
     """Schema pentru datele extrase direct de LLM"""
