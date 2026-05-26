@@ -1,0 +1,27 @@
+{
+  "id": "20260525_114136",
+  "title": "da mi raspunsul la 2 + 2",
+  "messages": [
+    {
+      "role": "user",
+      "text": "da mi raspunsul la 2 + 2",
+      "timestamp": "2026-05-25T11:42:04.069729"
+    },
+    {
+      "role": "model",
+      "text": "2 + 2 este 4.",
+      "timestamp": "2026-05-25T11:42:04.069734"
+    },
+    {
+      "role": "user",
+      "text": "ce model esti?",
+      "timestamp": "2026-05-25T12:04:40.560768"
+    },
+    {
+      "role": "model",
+      "text": "Sunt un sistem de inteligență artificială care utilizează învățarea automată pentru a oferi răspunsuri la întrebări și să execute sarcini. Am fost învățat pentru a comunica în limba română, dar pot să înțeleg și să răspund la întrebările scrise sau vorbite în alte limbi, dacă sunt traduse în limba română.",
+      "timestamp": "2026-05-25T12:04:40.560774"
+    }
+  ],
+  "created": "2026-05-25T11:41:36.579422"
+}
