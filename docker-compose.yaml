@@ -25,15 +25,15 @@ services:
       - internal
     labels:
       - traefik.enable=true
-      - traefik.docker.network=${TRAEFIK_NETWORK:-coolify}
-      - traefik.http.routers.insideugal-frontend.rule=Host(`${FRONTEND_HOST}`)
-      - traefik.http.routers.insideugal-frontend.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
-      - traefik.http.routers.insideugal-frontend.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}
+      - traefik.docker.network=coolify
+      - traefik.http.routers.insideugal-frontend.rule=Host(`insideugal.ro`)
+      - traefik.http.routers.insideugal-frontend.entrypoints=https
+      - traefik.http.routers.insideugal-frontend.tls.certresolver=letsencrypt
       - traefik.http.services.insideugal-frontend.loadbalancer.server.port=3000
 
 networks:
   public:
-    name: ${TRAEFIK_NETWORK:-coolify}
+    name: coolify
     external: true
   internal:
     internal: true
