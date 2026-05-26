@@ -154,4 +154,4 @@ async def extract_tasks(request: AnnouncementRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)git rm --cached extracted_deadlines.json 2>/dev/null
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

@@ -12,7 +12,7 @@ client = TestClient(app)
 def test_health_check():
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "service": "Smart Task Extractor v1.1", "cors": "enabled"}
+    assert response.json() == {"status": "ok", "service": "Smart Task Extractor v2.0 (Mobile Ready)", "cors": "enabled"}
 
 # ---------------------------------------------------------
 # 2. TEST PENTRU EXTRACTIE CU RASPUNS CURAT (MOCK LLM)
@@ -22,8 +22,10 @@ def test_health_check():
 async def test_extract_tasks_success(mock_generate_content):
     # Simulam ce ar returna in mod normal Gemini daca totul e perfect
     fake_gemini_json = (
-        '{"materie": "Ingineria Programarii", "deadline_absolut": "2026-05-27 23:59", '
-        '"dimensiune_echipa": 3, "taskuri_extrase": ["UML"], "penalizari_sau_reguli": []}'
+        '{"materie": "Ingineria Programarii", "tip_eveniment": "proiect", '
+        '"urgenta_estimata": "medie", "taguri_cheie": ["UML"], '
+        '"rezumat_notificare": "Deadline proiect IP", "deadline_absolut": "2026-05-27 23:59", '
+        '"dimensiune_echipa": 3, "taskuri_extrase": ["UML"], "penalizari_sau_reguli": [], "linkuri_utile": []}'
     )
     
     # Configuram obiectul fals (mock-ul) sa returneze acest text
@@ -39,8 +41,8 @@ async def test_extract_tasks_success(mock_generate_content):
     assert response.status_code == 200
     data = response.json()
     assert data["materie"] == "Ingineria Programarii"
-    assert data["dimensiune_echipa"] == 3
-    assert "UML" in data["taskuri_extrase"]
+    assert data["tip_eveniment"] == "proiect"
+    assert data["rezumat_notificare"] == "Deadline proiect IP"
 
 # ---------------------------------------------------------
 # 3. TEST PENTRU CURATAREA BLOCURILOR MARKDOWN (```json)
@@ -52,7 +54,8 @@ async def test_extract_tasks_cleaning_markdown(mock_generate_content):
     # Testam daca logica noastra de curatare (if raw_text.startswith...) functioneaza.
     fake_gemini_markdown = (
         "```json\n"
-        '{"materie": "Baze de Date", "taskuri_extrase": ["Proiect SQL"]}\n'
+        '{"materie": "Baze de Date", "tip_eveniment": "laborator", "urgenta_estimata": "scazuta", '
+        '"taguri_cheie": ["SQL"], "rezumat_notificare": "Laborator BD", "taskuri_extrase": ["Proiect SQL"]}\n'
         "```"
     )
     
@@ -67,6 +70,7 @@ async def test_extract_tasks_cleaning_markdown(mock_generate_content):
     assert response.status_code == 200
     data = response.json()
     assert data["materie"] == "Baze de Date"
+    assert data["tip_eveniment"] == "laborator"
 
 # ---------------------------------------------------------
 # 4. TEST PENTRU GESTIONAREA ERORILOR (ERROR HANDLING)
