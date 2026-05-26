@@ -60,20 +60,27 @@ POST /api/v1/extract-tasks
 
 ---
 
-## 📤 Exemplu de Răspuns (JSON generat de Gemini)
+## 📤 Exemplu de Răspuns (JSON generat de Gemini v2.0 Mobile-Ready)
 
 ```json
 {
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "data_generare": "2026-05-26T14:30:00.000000",
   "materie": "Ingineria Programarii",
+  "tip_eveniment": "proiect",
+  "urgenta_estimata": "medie",
+  "taguri_cheie": ["UML", "IP", "Echipa"],
   "deadline_absolut": "2026-05-27 23:59",
   "dimensiune_echipa": 3,
+  "rezumat_notificare": "Deadline Proiect IP pe 27.05 - Diagrama UML obligatorie",
   "taskuri_extrase": [
     "Realizarea proiectului la Ingineria Programarii",
     "Generarea diagramei UML"
   ],
   "penalizari_sau_reguli": [
     "Lipsa diagramei UML atrage o penalizare de -2 puncte."
-  ]
+  ],
+  "linkuri_utile": []
 }
 ```
 
