@@ -5,6 +5,14 @@
 # Python cache
 __pycache__/
 *.pyc
+.pytest_cache/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Local Storage
+extracted_deadlines.json
 
 # Virtual environments
 venv/
