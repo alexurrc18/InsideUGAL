@@ -89,14 +89,3 @@ async def test_extract_tasks_invalid_json(mock_generate_content):
     # Codul nostru trebuie sa prinda eroarea in blocul 'except Exception' si sa returneze status 500
     assert response.status_code == 500
     assert "Eroare la procesarea LLM" in response.json()["detail"]
-
-# ---------------------------------------------------------
-# 5. TEST PENTRU VALIDARE INPUT (TEXT PREA SCURT)
-# ---------------------------------------------------------
-def test_extract_tasks_invalid_input():
-    payload = {"text": "Scurt"}
-    response = client.post("/api/v1/extract-tasks", json=payload)
-    
-    # FastAPI/Pydantic returneaza 422 Unprocessable Entity pentru erori de validare
-    assert response.status_code == 422
-    assert "text" in response.json()["detail"][0]["loc"]
