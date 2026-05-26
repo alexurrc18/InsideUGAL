@@ -90,7 +90,7 @@ async def test_extract_tasks_invalid_json(mock_generate_content):
 # 5. TEST PENTRU VALIDARE INPUT (TEXT PREA SCURT)
 # ---------------------------------------------------------
 def test_extract_tasks_invalid_input():
-    payload = {"text": "Prea scurt"}
+    payload = {"text": "Scurt"}
     response = client.post("/api/v1/extract-tasks", json=payload)
     
     # FastAPI/Pydantic returneaza 422 Unprocessable Entity pentru erori de validare
