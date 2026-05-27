@@ -130,7 +130,7 @@ services:
       - "8000:8000"
     environment:
       # Acestea vor pointa către URL-urile generate de supabase start
-      SUPABASE_URL: ${SUPABASE_URL:-[http://host.docker.internal:54321](http://host.docker.internal:54321)}
+      SUPABASE_URL: ${SUPABASE_URL:-http://host.docker.internal:54321}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-your_local_anon_key}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-your_local_service_key}
 
@@ -160,7 +160,7 @@ services:
 
 - Jurnale Aplicații: Se verifică direct în interfața web Coolify, navigând la fiecare serviciu/aplicație.
 - Monitorizare Uptime: Uptime Kuma va fi instalat tot ca serviciu prin Coolify.
-  - Se configurează monitoare de tip HTTP(s) către: http://app.insideugal.local și http://api.insideugal.local/health (un endpoint special creat de echipa BE).
+  - Se configurează monitoare de tip HTTP(s) către: [http://app.insideugal.local](http://app.insideugal.local) și [http://api.insideugal.local/health](http://api.insideugal.local/health) (un endpoint special creat de echipa BE).
   - Notificările în caz de downtime vor fi trimise automat prin Webhook pe un canal de Discord sau grup de Telegram al echipei.
 
 ---
@@ -204,10 +204,12 @@ git push -u origin infra/initial-setup
 
 PASUL 3: Integrarea Continuă - GitHub Actions CI (Raul)
 Se testează automat codul. Creați fișierul .github/workflows/ci.yml:
+
+```yaml
 name: CI Pipeline
 on:
   pull_request:
-    branches: [ develop, main ]
+    branches: [develop, main]
 jobs:
   test-backend:
     runs-on: ubuntu-latest
@@ -216,12 +218,13 @@ jobs:
       - name: Set up mediul ales (Node/Python)
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
       - name: Install dependencies & Test
         run: |
           cd backend
           npm ci
           npm test
+```
 
 PASUL 4: Configurarea Bazei de Date / Supabase (Ion)
 Instalează instanța Supabase (fie ca Docker compose în Coolify, fie conectând aplicațiile la un proiect cloud dacă ulterior se decide mutarea de pe self-hosted).
@@ -237,15 +240,18 @@ Selectează repository-ul alexurrc18/InsideUGAL și ramura develop.
 Setează Base Directory la /backend.
 La Build Pack, lasă pe Nixpacks.
 În tab-ul Environment Variables, adaugă variabilele primite de la Ion (SUPABASE_URL, etc.).
-Setează domeniul: http://api.insideugal.local și apasă Deploy.
-Repetă procesul pentru Frontend, setând Base Directory /frontend și domeniul http://app.insideugal.local.
+Setează domeniul: [http://api.insideugal.local](http://api.insideugal.local) și apasă Deploy.
+Repetă procesul pentru Frontend, setând Base Directory /frontend și domeniul [http://app.insideugal.local](http://app.insideugal.local).
 
 ---
 
-11. Configurare Tool-uri Locale și Extensii (Pregătire Individuală)
+## 11. Configurare Tool-uri Locale și Extensii (Pregătire Individuală)
+
 Fiecare membru al echipei (Robert, Ion, Raul) trebuie să ruleze aceste comenzi în VS Code și WSL.
 
 Instalare Extensii în VS Code (din terminal):
+
+```bash
 code --install-extension ms-azuretools.vscode-docker
 code --install-extension redhat.vscode-yaml
 code --install-extension github.vscode-github-actions
