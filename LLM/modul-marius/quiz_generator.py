@@ -3,7 +3,9 @@ import os
 from dotenv import load_dotenv
 from google import genai
 
-load_dotenv()
+current_dir = os.path.dirname(os.path.abspath(__file__))
+root_env_path = os.path.abspath(os.path.join(current_dir, "..", ".env"))
+load_dotenv(dotenv_path=root_env_path)
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 GEMINI_MODEL = "gemini-2.5-flash"
 

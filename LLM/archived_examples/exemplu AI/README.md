@@ -40,24 +40,6 @@ Designul vizual utilizează o paletă cromatică profund desaturată, axată pe 
 - **Zona de Mesaje și Bulele de Chat:** Utilizatorul și Bot-ul beneficiază de stiluri vizuale distincte. Mesajele utilizatorului sunt aliniate la dreapta, pe un fundal albastru saturat, sugerând acțiune, în timp ce răspunsurile asistentului apar la stânga, pe un fundal închis, oferind un contrast excelent pentru textul alb-argintiu.
 - **Mecanismul de Control al Tastaturii:** Aplicația implementează scurtături inteligente pentru productivitate. O simplă apăsare a tastei Enter transmite textul instantaneu, în timp ce combinația tastelor Shift și Enter permite inserarea de rânduri noi, oferind utilizatorului flexibilitatea de a redacta mesaje complexe sau liste structurate înainte de trimitere.
 
-### Rularea Asincronă și Indicatorul de Gândire
-
-Una dintre cele mai mari provocări în aplicațiile desktop o reprezintă latența rețelei. Când utilizatorul adresează o întrebare complexă, răspunsul poate dura câteva secunde. Dacă această așteptare s-ar produce pe firul de execuție principal, întreaga fereastră ar deveni complet nativ inertă (sistemul de operare ar raporta că aplicația „Nu răspunde”).
-
-Pentru a combate acest fenomen, asistentul folosește fire de execuție secundare (multithreading). În momentul transmiterii unui mesaj:
-
-1.  Interfața grafică blochează butonul de trimitere pentru a preveni cererile multiple accidentale.
-2.  Un fir de execuție paralel pornește în fundal și se ocupă strict de conexiunea cu serverul cloud.
-3.  Pe ecran este injectat un rând special de „gândire”, animat printr-un algoritm temporal, care afișează puncte pulsatorii. Această animație oferă utilizatorului confirmarea vizuală că sistemul procesează cererea, păstrând în același timp interfața complet interactivă (utilizatorul poate naviga prin istoricul vechi în timp ce asistentul generează noul răspuns).
-
-### Managementul Sesiunilor și Persistența Datelor
-
-Aplicația nu își pierde memoria la închidere. Fiecare conversație este tratată ca o sesiune unică, generându-se automat un identificator unic bazat pe timestamp-ul exact al creării.
-
-- **Titluri Automate:** Utilizatorul nu trebuie să își numească manual conversațiile. Sistemul interceptează primul mesaj trimis, extrage primele caractere reprezentative și generează automat un titlu elocvent pe care îl salvează în bara laterală.
-- **Sistemul de Stocare JSON:** Toate mesajele, împreună cu rolul lor (utilizator sau model), timpul exact al trimiterii și textul propriu-zis, sunt serializate și salvate local în fișiere de tip text structurat în interiorul unui director dedicat de istorice. La repornirea aplicației, sistemul scanează acest director, rearanjează elementele cronologic și re-populează interfața.
-- **Ștergerea Securizată:** Aplicația oferă posibilitatea curățării spațiului de lucru. Prin acționarea butonului de ștergere, utilizatorul este întâmpinat de o fereastră de confirmare, prevenind pierderea accidentală a datelor. La confirmare, fișierul fizic este eliminat de pe disc, iar memoria cache a aplicației este eliberată.
-
 ---
 
 ## 4. Securitate, Izolarea Mediului și Igiena Codului
@@ -68,16 +50,7 @@ Migrarea către un API public în cloud (OpenRouter) a adus cu sine necesitatea 
 
 Pentru a garanta un nivel maxim de securitate, aplicația implementează un sistem de decuplare a cheilor prin intermediul variabilelor de mediu ale sistemului de operare, asistat de module specializate de încărcare dinamică la rulare.
 
-- **Fișierul de Configurare Locală:** Cheia API este stocată în afara codului sursă, într-un fișier dedicat, ascuns, aflat la rădăcina proiectului. Acest fișier conține perechi simple de tip cheie-valoare. Când aplicația pornește, ea citește în mod invizibil aceste valori și le injectează direct în memoria volatilă a procesului curent. Codul Python nu vede niciodată cheia scrisă efectiv în interiorul său, ci doar o solicită de la sistemul de operare.
-
-### Strategia Git și Prevenirea Conflictelor în Echipă
-
-Când se lucrează într-o echipă de dezvoltatori, fișierele care se modifică local foarte des (cum ar fi istoricul conversațiilor tale sau cache-ul Python) pot genera blocaje majore atunci când se încearcă sincronizarea codului pe GitHub. Aceste blocaje poartă numele de conflicte de îmbinare (merge conflicts).
-
-Proiectul rezolvă această problemă printr-o politică strictă de ignorare a fișierelor (Git Hygiene):
-
-- **Ignorarea Fișierelor de Configurare:** Fișierul care conține cheia ta secretă este marcat ca fiind complet invizibil pentru sistemul Git. Astfel, poți uploada codul pe GitHub fără nicio frică: codul tău va ajunge pe internet, dar fișierul cu cheia ta va rămâne fizic doar pe calculatorul tău.
-- **Izolarea Istoricului Local:** Directoarele care salvează conversațiile tale zilnice și fișierele temporare generate automat în timpul testelor sunt, de asemenea, complet ignorate de Git. Acest lucru înseamnă că tu poți avea mii de conversații salvate local pe calculatorul tău, iar colegii tăi pot avea propriile lor conversații pe calculatoarele lor, fără ca aceste date să se bată vreodată cap în cap atunci când faceți schimb de cod prin comenzi de actualizare (pull/push).
+- **Fișierul de Configurare Locală:** Cheia API este stocată în afara codului sursă, într-un fișier dedicat, ascuns, aflat la rădăcina proiectului. Când aplicația pornește, ea citește în mod invizibil aceste valori și le injectează direct în memoria volatilă a procesului curent. Codul Python nu vede niciodată cheia scrisă efectiv în interiorul său, ci doar o solicită de la sistemul de operare.
 
 ---
 

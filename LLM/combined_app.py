@@ -12,10 +12,8 @@ BASE_DIR = Path(__file__).resolve().parent
 MODUL_DEADLINES = BASE_DIR / "modul-deadlines"
 MODUL_MARIUS = BASE_DIR / "modul-marius"
 
-# Load environment variables from modul-deadlines or repo root
-env_path = MODUL_DEADLINES / ".env"
-if not env_path.exists():
-    env_path = BASE_DIR / ".env"
+# Load environment variables from the LLM root .env
+env_path = BASE_DIR / ".env"
 load_dotenv(dotenv_path=env_path, override=True)
 
 

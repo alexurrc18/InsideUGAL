@@ -47,7 +47,7 @@ pip install -r requirements.txt
 
 ### 3. Configurare Variabile de Mediu
 
-Creează un fișier `.env` în folderul curent:
+Creează un fișier `.env` în root-ul `LLM`:
 
 ```env
 GEMINI_API_KEY=Cheia_Ta_De_La_Google_AI_Studio
@@ -103,11 +103,13 @@ Serverul va rula la `http://127.0.0.1:8000`.
 ## 🧪 Testare
 
 Pentru a rula testele unitare:
+
 ```bash
 pytest test_main.py
 ```
 
 Pentru a testa cu anunțuri reale din UGAL:
+
 ```bash
 python test_real_announcements.py
 ```

@@ -6,7 +6,7 @@ class LLMClient:
         self.model_name = model_name
         self.system_instruction = system_instruction
         self.messages = []
-        
+
         # Preluăm cheia de OpenRouter în liniște
         self.api_key = os.environ.get("OPENROUTER_API_KEY", "").strip().strip("'").strip('"')
 
@@ -14,7 +14,7 @@ class LLMClient:
         self.messages = []
         if self.system_instruction:
             self.messages.append({"role": "system", "content": self.system_instruction})
-        
+
         if history:
             for msg in history:
                 if isinstance(msg, dict):
@@ -30,13 +30,13 @@ class LLMClient:
              raise Exception("Cheia OPENROUTER_API_KEY lipsește din fișierul .env.")
 
         self.messages.append({"role": "user", "content": text})
-        
+
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
-        
+
         payload = {
             "model": self.model_name,
             "messages": self.messages
@@ -48,11 +48,11 @@ class LLMClient:
             reply = response.json()["choices"][0]["message"]["content"]
             self.messages.append({"role": "assistant", "content": reply})
             return reply
-            
+
         except requests.exceptions.RequestException as e:
             if self.messages and self.messages[-1]["role"] == "user":
                 self.messages.pop()
-                
+
             error_msg = str(e)
             if hasattr(e, 'response') and e.response is not None:
                 try:

@@ -5,10 +5,11 @@ from dotenv import load_dotenv
 from llm_service import LLMService
 
 async def run_tests():
-    # Incarcam configuratia
+    # Incarcam configuratia din root-ul LLM
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    load_dotenv(dotenv_path=os.path.join(current_dir, ".env"), override=True)
-    
+    root_env_path = os.path.abspath(os.path.join(current_dir, "..", ".env"))
+    load_dotenv(dotenv_path=root_env_path, override=True)
+
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         print("❌ EROARE: GEMINI_API_KEY nu a fost gasit!")
@@ -34,7 +35,7 @@ Fiecare echipă, formată din maximum trei membri, va realiza o aplicație într
 
 Înscrierea participanţilor se face până pe 20 martie 2026.
 
-Mai multe informații despre concurs și înscriere puteți obține pe site-ul concursului: https://www.concurssbumbaru.ugal.ro/ 
+Mai multe informații despre concurs și înscriere puteți obține pe site-ul concursului: https://www.concurssbumbaru.ugal.ro/
 
 Vă așteptăm cu drag să vă înscrieți!"""
         },
@@ -47,7 +48,7 @@ Studenții orfani sau studentii proveniți din casele de copii beneficiază de g
 Eliberarea titlurilor de transport cu reducere 90% și gratuite pentru studenți se efectuează în baza legitimației de student pentru reducere la transport vizată pentru anul universitar în curs și a unui act de identitate sau pașaport, până la împlinirea vârstei de 30 ani.
 Decontarea transportului nu se face pe perioada vacanțelor.
 Studenții beneficiază lunar de un singur abonament cu reducere de 90% sau gratuit, după caz.
- 
+
 
 Decontarea abonamentului de transport local în comun TRANSURB
 Studenții care doresc decontarea abonamentelor de transport local în comun puse la dispoziție de către Societatea de transport local, trebuie să parcurgă următoarele etape:
@@ -62,7 +63,7 @@ abonamentul trebuie să aibă prima zi de valabilitate în luna anterioară depu
 copia cardului nominal de transport (să fie lizibile numele și seria cardului);
 documente justificative în cazul studenților orfani (copie certificat deces);
 extrasul de cont (titular studentul) - se aduce o singură dată, la prima decontare, sau atunci când numărul de cont/banca se modifică.
- 
+
 
 Decontarea abonamentului interurban auto și transport naval
 Studenții care doresc decontarea biletelor de transport interurban auto și transportul naval trebuie să aibă în vedere următoarele:
@@ -74,7 +75,7 @@ pe abonament trebuie specificat numărul de călătorii și ruta, anexată chita
 ruta trebuie să coincidă cu adresa de domiciliu din cartea de identitate a studentului;
 dacă pe ruta de deplasare de la facultate până la localitatea de domiciliu există rută directă feroviară, nu se decontează biletele sau abonamentul pentru mijlocul de transport auto.
 în cazul în care studentul locuiește într-o localitate deservită de o stație de cale ferată, călătoria se poate face fracționat cu mijloacele de transport ale mai multor operatori de transport feroviar și auto, doar pe ruta de deplasare de la facultate până la localitatea de domiciliu, decontându-se doar transportul auto pentru 8 călătorii sau abonamentul lunar.
- 
+
 
 Important!
 Pe toate copiile depuse studentul va scrie conform cu originalul și va semna.

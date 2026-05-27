@@ -3,6 +3,7 @@ uvicorn==0.29.0
 pydantic==2.13.4
 google-genai==1.66.0
 python-dotenv==1.0.1
+pytest==7.4.3
 pytest-asyncio==0.20.3
 flask
 pdfplumber
@@ -11,3 +12,4 @@ sentence-transformers
 tenacity
 pybreaker
 requests
+langdetect

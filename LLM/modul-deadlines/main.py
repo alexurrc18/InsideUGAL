@@ -22,8 +22,8 @@ logger = logging.getLogger("smart-task-extractor-mobile")
 # 1. INITIALIZARE
 # ---------------------------------------------------------
 current_dir = os.path.dirname(os.path.abspath(__file__))
-env_path = os.path.join(current_dir, ".env")
-load_dotenv(dotenv_path=env_path, override=True)
+root_env_path = os.path.abspath(os.path.join(current_dir, "..", ".env"))
+load_dotenv(dotenv_path=root_env_path, override=True)
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 if not API_KEY:
@@ -62,7 +62,7 @@ app.add_middleware(
 @app.get("/")
 def health_check():
     return {
-        "status": "ok", 
+        "status": "ok",
         "service": "Smart Task Extractor v2.1",
         "capabilities": ["Multi-Source Detection", "Target Audience Extraction", "Location Parsing"]
     }
@@ -70,7 +70,7 @@ def health_check():
 @app.post("/api/v1/extract-tasks", response_model=ExtractedTaskResponse)
 async def extract_tasks(request: AnnouncementRequest):
     """
-    Endpoint principal care primeste textul brut al unui anunt 
+    Endpoint principal care primeste textul brut al unui anunt
     si returneaza date structurate optimizate pentru widget-uri si notificari.
     """
     try:
@@ -80,7 +80,7 @@ async def extract_tasks(request: AnnouncementRequest):
     except Exception as e:
         logger.error(f"❌ Eroare la procesarea anuntului: {str(e)}", exc_info=True)
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail=f"Eroare la analiza AI: {str(e)}"
         )
 

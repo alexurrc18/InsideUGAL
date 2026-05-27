@@ -2,12 +2,12 @@ import os
 from dotenv import load_dotenv
 from google import genai
 
-# Obtinem calea absoluta catre fisierul .env
+# Obtinem calea absoluta catre fisierul .env din root-ul LLM
 current_dir = os.path.dirname(os.path.abspath(__file__))
-env_path = os.path.join(current_dir, ".env")
+root_env_path = os.path.abspath(os.path.join(current_dir, "..", ".env"))
 
 # Incarcam variabilele de mediu
-load_dotenv(dotenv_path=env_path, override=True)
+load_dotenv(dotenv_path=root_env_path, override=True)
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 

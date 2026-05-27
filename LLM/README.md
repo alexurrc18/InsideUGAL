@@ -1,117 +1,127 @@
-# InsideUGAL LLM Module
+# InsideUGAL — LLM Module (consolidat)
 
-Această secțiune centralizează tot ce ține de LLM-ul nostru: integrarea task extraction + PDF/RAG + quiz/summary/qa.
+Acest README unifică documentația internă pentru tot ce ține de LLM în proiect: extragere task-uri, ingestie PDF + RAG, Q&A, generare rezumat și quiz. Scopul: să ai o singură sursă clară pentru dezvoltare, configurare și înțelegerea arhitecturii.
 
-## Ce face LLM-ul nostru
+## 1. Prezentare generală
 
-- `LLM/combined_app.py`
-  - un serviciu FastAPI care combină modulele `modul-deadlines` și `modul-marius`
-  - oferă endpoint-uri pentru:
-    - extragerea task-urilor din anunțuri
-    - încărcarea PDF-urilor în vector DB
-    - întrebări pe baza materialului PDF
-    - generare rezumat
-    - generare quiz
+- Serviciul integrat este `LLM/combined_app.py` — un API FastAPI care expune funcționalitățile principale.
+- Există două componente principale:
+  - `modul-deadlines`: extragere structuratã de task-uri din anunțuri folosind Google Gemini (biblioteca `google-genai`).
+  - `modul-marius`: ingestie PDF → indexare în Chroma DB → RAG + apeluri LLM pentru `ask`, `summary`, `quiz`.
 
-- `LLM/modul-deadlines`
-  - serviciu de analiză text cu Gemini
-  - folosește schema `GeminiTaskOutput` și `ExtractedTaskResponse`
-  - transformă anunțurile UGAL/facultăți în date structurate
+## 2. Diagramă simplă a fluxului
 
-- `LLM/modul-marius`
-  - PDF ingestion + RAG + LLM calls
-  - funcționalități pentru:
-    - indexare PDF în Chroma DB
-    - răspuns de tip Q&A
-    - generare rezumat de curs
-    - generare quiz de verificare
+1. Extragere task-uri
+   - Client → `POST /api/v1/extract-tasks` → `modul-deadlines.llm_service.LLMService.extract_tasks(text)` → GenAI (Gemini) → validare Pydantic → răspuns structurat.
 
-## Cum se configurează
+2. Ingestie PDF și RAG
+   - Client → `POST /api/v1/upload-pdf` → fișier salvat în `LLM/modul-marius/uploads/` → `modul-marius.functions.load_pdf_into_rag` → extragere text (`pdfplumber`) → chunking → embeddings (`sentence-transformers`) → stocat în Chroma DB local.
 
-1. Instalează dependențele:
+3. Q&A / Rezumat / Quiz
+   - Client → `POST /api/v1/ask|summary|quiz` → `modul-marius.functions` interoghează colecția Chroma pentru `pdf_id` → construiește prompt cu contextul relevant (cele mai bune n chunk-uri) → apelează LLM (Gemini) cu mecanisme de retry, caching și circuit-breaker → parse și validate răspuns → returnează.
 
-   ```bash
-   python -m pip install --user -r LLM/requirements.txt
-   ```
+## 3. Fișiere și locuri importante
 
-2. Setează cheia Gemini în `LLM/modul-deadlines/.env`:
+- API integrat: [LLM/combined_app.py](LLM/combined_app.py#L1)
+- Extracție task-uri: [LLM/modul-deadlines/llm_service.py](LLM/modul-deadlines/llm_service.py#L1)
+- Schema task-uri: [LLM/modul-deadlines/schemas.py](LLM/modul-deadlines/schemas.py#L1)
+- PDF / RAG / QA: [LLM/modul-marius/functions/llm_functions.py](LLM/modul-marius/functions/llm_functions.py#L1)
+- Schema PDF/QA: [LLM/modul-marius/schemas.py](LLM/modul-marius/schemas.py#L1)
+- Exemple locale / prototip: [LLM/exemplu AI](LLM/exemplu%20AI/README.md)
 
-   ```env
-   GEMINI_API_KEY=cheia_ta_google_ai_studio
-   ```
+## 4. Configurare (env & dependențe)
 
-3. Rulează serviciul integrat:
-   ```bash
-   python LLM/combined_app.py
-   ```
-
-## Endpoints disponibili
-
-- `GET /` - health check
-- `POST /api/v1/extract-tasks` - extragere task-uri din `text`
-- `POST /api/v1/upload-pdf` - upload PDF și indexare vectorială
-- `POST /api/v1/ask` - întrebare pe baza PDF-ului încărcat
-- `POST /api/v1/summary` - rezumat generat din PDF
-- `POST /api/v1/quiz` - quiz generat din PDF
-
-## Testare rapidă
-
-1. Deschide documentația automată:
-   - `http://127.0.0.1:8000/docs`
-
-2. Folosește Swagger UI ca să testezi endpoint-urile.
-
-3. Pentru `upload-pdf`, obține `pdf_id` și folosește-l la `/ask`, `/summary`, `/quiz`.
-
-## Cum fac PR pe branch-ul de LLM
-
-Dacă te afli pe branch-ul `LLM-integration` și vrei să împingi schimbările către remote și să deschizi PR pe branch-ul `LLM`:
+- Instalează dependențele principale:
 
 ```bash
-cd c:/Users/Administrator/Desktop/Practica/InsideUGAL
-git add LLM/combined_app.py LLM/requirements.txt LLM/README.md LLM/modul-deadlines/requirements.txt
-git commit -m "Integrare LLM: serviciu FastAPI + README + dependențe"
-git push -u origin LLM-integration
+python -m pip install --user -r LLM/requirements.txt
 ```
 
-Apoi, în GitHub/GitLab:
+- Variabile de mediu (exemplu `.env` în root-ul `LLM`):
 
-- deschide un Pull Request din `LLM-integration`
-- targetează `LLM` sau `main` (după cum este convenit în echipă)
-- descrie ce conține PR-ul
+```env
+GEMINI_API_KEY=sk-...     # cheia Google GenAI (Gemini) folosită de ambele module
+OPENROUTER_API_KEY=...   # folosit doar în exemple (LLM/exemplu AI)
+DATABASE_URL=...         # opțional, dacă înregistrezi loguri/telemetrie
+```
 
-## Sugestie de taskuri pentru patru oameni
+Notă: `combined_app.py` încarcă variabilele din `LLM/.env` și toate modulele active folosesc aceeași locație.
 
-### 1) Setup, dependențe și infrastructură
+> Folosește un singur fișier de requirements: `LLM/requirements.txt`. Fișierele `requirements.txt` ale modulelor au fost arhivate în `LLM/archived_examples/`.
 
-- Curăță `LLM/requirements.txt`
-- Fix `.env` și ghid de instalare
-- Asigură stabilitatea la instalare pe Windows/Linux
-- Documentează pașii de rulare și debugging
+## 5. Cum rulezi local (quickstart)
 
-### 2) Modul task extraction (`modul-deadlines`)
+1. Asigură-ți că `GEMINI_API_KEY` este setat.
+2. Rulează API-ul integrat:
 
-- Îmbunătățește promptul și schema LLM pentru `ExtractedTaskResponse`
-- Adaugă validări pentru datele extrase
-- Gestionează erori și răspunsuri nevalide
-- Testează extragerea pe anunțuri reale UGAL
+```bash
+python LLM/combined_app.py
+# sau, pentru reload dev:
+uvicorn LLM.combined_app:app --reload --port 8000
+```
 
-### 3) Modul PDF / RAG / QA (`modul-marius`)
+3. Deschide Swagger UI: `http://127.0.0.1:8000/docs`
 
-- Optimizează chunking-ul și indexarea în Chroma
-- Verifică eventualele probleme de embedded/recall
-- Îmbunătățește prompturile pentru QA, rezumat și quiz
-- Adaugă validare și retry la parsare JSON
+## 6. Endpoint-uri (sumar)
 
-### 4) API integrat și UX pentru dezvoltatori
+- `GET /` — health check
+- `POST /api/v1/extract-tasks` — body: `{ "text": "..." }` → returnează `ExtractedTaskResponse` (vezi schema în [LLM/modul-deadlines/schemas.py](LLM/modul-deadlines/schemas.py#L1)).
+- `POST /api/v1/upload-pdf` — multipart upload PDF → răspunde `{ pdf_id }` după indexare în Chroma.
+- `POST /api/v1/ask` — body: `{ "question": "...", "pdf_id": "..." }` → returnează `AnswerQuestionOutput`.
+- `POST /api/v1/summary` — body: `{ "pdf_id": "..." }` → returnează `GenerateSummaryOutput`.
+- `POST /api/v1/quiz` — body: `{ "pdf_id": "..." }` → returnează `GenerateQuizOutput`.
 
-- Finalizează `LLM/combined_app.py`
-- Adaugă validări request/response și cod de stare
-- Construiește teste de integrare pentru endpoint-uri
-- Verifică documentația `swagger` și `README`
+Vezi definițiile Pydantic pentru detalii (validări, formate): [LLM/modul-marius/schemas.py](LLM/modul-marius/schemas.py#L1).
 
-## Ce poate fi următorul pas
+## 7. Detalii implementare și bune practici
 
-- Adaugăm un script de testare automată pentru `LLM/combined_app.py`
-- Refactorizăm modulele ca să nu mai importe `schemas` ambiguu
-- Adăugăm un exemplu de request `curl` în README
+- Apelurile LLM din `modul-marius` folosesc:
+  - caching intern (`llm_cache`) pentru a evita costuri duplicate
+  - `pybreaker` circuit breaker pentru degradare controlată
+  - `tenacity` retry exponential backoff la erori temporare
+  - execuție cu timeout (ThreadPoolExecutor) pentru a opri apelurile blocate
+
+- Indexarea PDF:
+  - text extras cu `pdfplumber`
+  - chunking simplu pe cuvinte (`chunk_size` implicit 200, overlap 30)
+  - embeddings generate cu `sentence-transformers` (`all-MiniLM-L6-v2`)
+  - stocate local în Chroma DB persistent
+
+- Extracția de taskuri (`modul-deadlines`):
+  - folosește `google-genai` (Gemini) cu `response_schema` Pydantic când e posibil
+  - promptul conține reguli stricte (format, deadline calculat relativ la data curentă, taguri)
+
+## 8. Testare
+
+- Sunt teste pentru modulele de exemplu și pentru `LLM`:
+  - [LLM/evals](LLM/evals) conține test-evaluate
+  - [LLM/exemplu AI/tests](LLM/exemplu%20AI/tests) conține teste pentru `prompt_builder`, `output_parser`, `llm_client`
+
+Rulează teste cu:
+
+```bash
+pytest -q LLM
+```
+
+## 9. Limitări cunoscute și riscuri
+
+- Dependență directă de API-urile comerciale (costuri, rate limits).
+- Răspunsurile LLM pot necesita validare și sanitizare (în special pentru JSON generat de quiz).
+- Chunking simplu poate duce la pierdere de context în documente complexe; recomandat: îmbunătăţirea metodei de chunking (pe paragraf + sentințe).
+
+## 10. Propuneri de îmbunătățire (next steps)
+
+- Centralizare `.env` și documentare clară a variabilelor necesare.
+- Adăugare job-uri de curățare pentru Chroma (gestionare spațiu) și o rută de ștergere PDF/colecție.
+- Script de testare end-to-end: upload PDF → ask → verify schema răspuns.
+- Extragere rate-limit și monitorizare costuri LLM (telemetrie Supabase deja utilizată în cod).
+
+---
+
+Dacă vrei, pot:
+
+- genera exemple `curl` pentru fiecare endpoint,
+- rula testele din `LLM` (dacă vrei să rulez local),
+- crea un `CONTRIBUTING` mic pentru modulul `LLM`.
+
+Spune-mi ce preferi să fac mai departe.

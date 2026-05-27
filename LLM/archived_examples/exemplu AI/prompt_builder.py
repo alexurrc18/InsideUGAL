@@ -13,6 +13,6 @@ class PromptBuilder:
         for entry in saved_history:
             role = entry.get("role", "user")
             text = entry.get("text", "")
-            
+
             result.append({"role": role, "content": text})
         return result
