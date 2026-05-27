@@ -127,6 +127,29 @@ jobs:
         working-directory: ${{ steps.detect.outputs.path }}
         run: python -m compileall .
 
+  security-scan:
+    name: Container Security Scan
+    needs: [changes]
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build local image for scanning
+        run: |
+          docker build -t insideugal-frontend:test Frontend/Dashboard/dashboard-insideugal/
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'insideugal-frontend:test'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
   coverage-report:
     name: Coverage Report
     needs: [frontend, backend]
