@@ -5,26 +5,114 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>InsideUGAL - LLM</title>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; background: #f4f6f9; color: #333; }
+    body { font-family: Arial, sans-serif; background: #f4f6f9; color: #333; display: flex; flex-direction: column; min-height: 100vh; }
 
     header {
       background: #1a73e8;
       color: white;
-      padding: 20px 40px;
-      font-size: 22px;
+      padding: 16px 30px;
+      font-size: 20px;
       font-weight: bold;
+      flex-shrink: 0;
     }
 
-    .container { max-width: 800px; margin: 40px auto; padding: 0 20px; }
+    .layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 260px;
+      background: #fff;
+      border-right: 1px solid #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 16px;
+      font-weight: bold;
+      font-size: 14px;
+      color: #1a73e8;
+      border-bottom: 1px solid #e0e0e0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .pdf-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+
+    .pdf-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 14px;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: background 0.15s;
+      gap: 8px;
+    }
+    .pdf-item:hover { background: #f0f4ff; }
+    .pdf-item.active { background: #e8f0fe; border-left-color: #1a73e8; }
+
+    .pdf-item-info { flex: 1; overflow: hidden; }
+    .pdf-item-name {
+      font-size: 13px;
+      font-weight: bold;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #222;
+    }
+    .pdf-item-date { font-size: 11px; color: #888; margin-top: 2px; }
+
+    .btn-delete {
+      background: none;
+      border: none;
+      color: #ccc;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      font-size: 16px;
+      line-height: 1;
+      width: auto;
+      margin: 0;
+      flex-shrink: 0;
+      transition: color 0.15s;
+    }
+    .btn-delete:hover { color: #dc3545; background: #ffe8e8; }
+
+    .sidebar-empty {
+      padding: 20px;
+      text-align: center;
+      color: #aaa;
+      font-size: 13px;
+    }
+
+    /* ── Main content ── */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 30px 20px;
+    }
+
+    .container { max-width: 780px; margin: 0 auto; }
 
     .card {
       background: white;
       border-radius: 10px;
-      padding: 30px;
+      padding: 28px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      margin-bottom: 30px;
+      margin-bottom: 24px;
     }
 
     h2 { margin-bottom: 15px; color: #1a73e8; }
@@ -32,7 +120,7 @@
     .upload-area {
       border: 2px dashed #1a73e8;
       border-radius: 8px;
-      padding: 40px;
+      padding: 36px;
       text-align: center;
       cursor: pointer;
       transition: background 0.2s;
@@ -124,47 +212,86 @@
     }
 
     #filename { margin-top: 10px; font-size: 14px; color: #555; }
+
+    .pdf-title-bar {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding: 12px 16px;
+      background: #e8f0fe;
+      border-radius: 8px;
+      border-left: 4px solid #1a73e8;
+    }
+    .pdf-title-bar span { font-weight: bold; color: #1a73e8; flex: 1; }
+    .pdf-title-bar small { color: #555; font-size: 12px; }
   </style>
 </head>
 <body>
 
 <header>InsideUGAL — Generator Rezumat & Quiz din PDF</header>
 
-<div class="container">
+<div class="layout">
 
-  <div class="card">
-    <h2>Incarca un PDF</h2>
-    <div class="upload-area" onclick="document.getElementById('pdf-input').click()">
-      <svg width="48" height="48" fill="#1a73e8" viewBox="0 0 24 24">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/>
-      </svg>
-      <p id="filename">Click pentru a selecta un fisier PDF</p>
-      <input type="file" id="pdf-input" accept=".pdf" onchange="fisierSelectat(this)"/>
-    </div>
-    <button id="btn-upload" onclick="upload()" disabled>Genereaza Rezumat & Quiz</button>
-    <div id="loading">⏳ Se proceseaza PDF-ul... (poate dura 30-60 secunde)</div>
-  </div>
-
-  <div class="card" id="summary-section">
-    <h2>Rezumat</h2>
-    <div id="summary-text"></div>
-  </div>
-
-  <div class="card" id="chat-section" style="display:none">
-    <h2>Intreaba despre PDF</h2>
-    <div id="chat-messages" style="max-height:400px; overflow-y:auto; margin-bottom:15px;"></div>
-    <div style="display:flex; gap:10px;">
-      <input id="chat-input" type="text" placeholder="Scrie o intrebare despre PDF..."
-        style="flex:1; padding:12px; border-radius:6px; border:2px solid #ddd; font-size:15px;"
-        onkeydown="if(event.key==='Enter') trimiteMesaj()"/>
-      <button onclick="trimiteMesaj()" style="width:auto; margin:0; padding:12px 20px;">Trimite</button>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">PDF-uri incarcate</div>
+    <div class="pdf-list" id="pdf-list">
+      <div class="sidebar-empty">Niciun PDF incarcat inca.</div>
     </div>
   </div>
 
-  <div class="card" id="quiz-section">
-    <h2>Quiz</h2>
-    <div id="quiz-container"></div>
-    <div id="scor"></div>
+  <!-- Main -->
+  <div class="main">
+    <div class="container">
+
+      <div class="card">
+        <h2>Incarca un PDF</h2>
+        <div class="upload-area" onclick="document.getElementById('pdf-input').click()">
+          <svg width="48" height="48" fill="#1a73e8" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/>
+          </svg>
+          <p id="filename">Click pentru a selecta un fisier PDF</p>
+          <input type="file" id="pdf-input" accept=".pdf" onchange="fisierSelectat(this)"/>
+        </div>
+        <button id="btn-upload" onclick="upload()" disabled>Genereaza Rezumat & Quiz</button>
+        <div id="loading">Se proceseaza PDF-ul... (poate dura 30-60 secunde)</div>
+      </div>
+
+      <!-- PDF activ -->
+      <div class="pdf-title-bar" id="pdf-title-bar">
+        <span id="pdf-title-name"></span>
+        <small id="pdf-title-date"></small>
+      </div>
+
+      <div class="card" id="summary-section">
+        <h2>Rezumat</h2>
+        <div id="summary-text"></div>
+      </div>
+
+      <div class="card" id="chat-section" style="display:none">
+        <h2>Intreaba despre PDF</h2>
+        <div id="chat-messages" style="max-height:400px; overflow-y:auto; margin-bottom:15px;"></div>
+        <div style="display:flex; gap:10px;">
+          <input id="chat-input" type="text" placeholder="Scrie o intrebare despre PDF..."
+            style="flex:1; padding:12px; border-radius:6px; border:2px solid #ddd; font-size:15px;"
+            onkeydown="if(event.key==='Enter') trimiteMesaj()"/>
+          <button onclick="trimiteMesaj()" style="width:auto; margin:0; padding:12px 20px;">Trimite</button>
+        </div>
+      </div>
+
+      <div class="card" id="quiz-section">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:15px;">
+          <h2 style="margin:0;">Quiz</h2>
+          <button onclick="exportQuizPDF()" style="width:auto; margin:0; padding:8px 18px; font-size:14px;">
+            &#x2B73; Descarca Quiz (PDF)
+          </button>
+        </div>
+        <div id="quiz-container"></div>
+        <div id="scor"></div>
+      </div>
+
+    </div>
   </div>
 
 </div>
@@ -172,9 +299,95 @@
 <script>
   let fisier = null;
   let currentPdfId = null;
+  let currentFilename = "";
+  let currentQuiz = null;
   let raspunsuriDate = 0;
   let scorCorect = 0;
   let totalIntrebari = 0;
+
+  // ── Sidebar ──────────────────────────────────────────────
+
+  async function loadPdfList() {
+    try {
+      const resp = await fetch("/pdfs");
+      const pdfs = await resp.json();
+      renderPdfList(pdfs);
+    } catch (e) {
+      console.error("Nu am putut incarca lista de PDF-uri:", e);
+    }
+  }
+
+  function renderPdfList(pdfs) {
+    const list = document.getElementById("pdf-list");
+    if (!pdfs || pdfs.length === 0) {
+      list.innerHTML = '<div class="sidebar-empty">Niciun PDF incarcat inca.</div>';
+      return;
+    }
+    list.innerHTML = pdfs.map(pdf => {
+      const date = new Date(pdf.uploaded_at).toLocaleDateString("ro-RO", {
+        day: "2-digit", month: "short", year: "numeric"
+      });
+      const isActive = pdf.pdf_id === currentPdfId ? " active" : "";
+      return `
+        <div class="pdf-item${isActive}" id="item-${pdf.pdf_id}" onclick="selectPdf(${JSON.stringify(pdf).replace(/"/g, '&quot;')})">
+          <div class="pdf-item-info">
+            <div class="pdf-item-name" title="${pdf.filename}">${pdf.filename}</div>
+            <div class="pdf-item-date">${date}</div>
+          </div>
+          <button class="btn-delete" title="Sterge PDF" onclick="event.stopPropagation(); deletePdf('${pdf.pdf_id}')">&#x2715;</button>
+        </div>`;
+    }).join("");
+  }
+
+  function selectPdf(pdf) {
+    currentPdfId = pdf.pdf_id;
+
+    // Highlight activ in sidebar
+    document.querySelectorAll(".pdf-item").forEach(el => el.classList.remove("active"));
+    const activeEl = document.getElementById("item-" + pdf.pdf_id);
+    if (activeEl) activeEl.classList.add("active");
+
+    // Bara titlu
+    const bar = document.getElementById("pdf-title-bar");
+    document.getElementById("pdf-title-name").textContent = pdf.filename;
+    const date = new Date(pdf.uploaded_at).toLocaleDateString("ro-RO", {
+      day: "2-digit", month: "long", year: "numeric"
+    });
+    document.getElementById("pdf-title-date").textContent = "Incarcat: " + date;
+    bar.style.display = "flex";
+
+    currentFilename = pdf.filename || "quiz";
+
+    // Resetam chat
+    document.getElementById("chat-messages").innerHTML = "";
+
+    // Afisam summary si quiz din metadata
+    if (pdf.summary) afiseazaRezumat(pdf.summary);
+    if (pdf.quiz) afiseazaQuiz(pdf.quiz);
+    document.getElementById("chat-section").style.display = "block";
+  }
+
+  async function deletePdf(pdf_id) {
+    if (!confirm("Stergi acest PDF?")) return;
+    try {
+      await fetch("/pdfs/" + pdf_id, { method: "DELETE" });
+    } catch (e) {
+      alert("Eroare la stergere: " + e.message);
+      return;
+    }
+
+    if (pdf_id === currentPdfId) {
+      currentPdfId = null;
+      document.getElementById("pdf-title-bar").style.display = "none";
+      document.getElementById("summary-section").style.display = "none";
+      document.getElementById("quiz-section").style.display = "none";
+      document.getElementById("chat-section").style.display = "none";
+    }
+
+    loadPdfList();
+  }
+
+  // ── Upload ───────────────────────────────────────────────
 
   function fisierSelectat(input) {
     if (input.files.length > 0) {
@@ -205,10 +418,19 @@
         return;
       }
 
-      currentPdfId = data.pdf_id;
-      afiseazaRezumat(data.summary);
-      afiseazaQuiz(data.quiz);
-      document.getElementById("chat-section").style.display = "block";
+      await loadPdfList();
+      selectPdf({
+        pdf_id: data.pdf_id,
+        filename: data.filename,
+        uploaded_at: new Date().toISOString(),
+        summary: data.summary,
+        quiz: data.quiz,
+      });
+
+      // Reset upload area
+      fisier = null;
+      document.getElementById("filename").textContent = "Click pentru a selecta un fisier PDF";
+      document.getElementById("pdf-input").value = "";
     } catch (e) {
       alert("Eroare de retea: " + e.message);
     } finally {
@@ -217,18 +439,22 @@
     }
   }
 
+  // ── Rezumat & Quiz ───────────────────────────────────────
+
   function afiseazaRezumat(summary) {
     document.getElementById("summary-text").innerHTML = marked.parse(summary);
     document.getElementById("summary-section").style.display = "block";
   }
 
   function afiseazaQuiz(quiz) {
+    currentQuiz = quiz;
     totalIntrebari = quiz.length;
     raspunsuriDate = 0;
     scorCorect = 0;
 
     const container = document.getElementById("quiz-container");
     container.innerHTML = "";
+    document.getElementById("scor").style.display = "none";
 
     quiz.forEach((q, i) => {
       const card = document.createElement("div");
@@ -239,7 +465,7 @@
         const opt = document.createElement("div");
         opt.className = "option";
         opt.textContent = `${litera}) ${text}`;
-        opt.onclick = () => raspunde(opt, litera, q.raspuns_corect, q.explicatie, card, i);
+        opt.onclick = () => raspunde(opt, litera, q.raspuns_corect, card, i);
         card.appendChild(opt);
       });
 
@@ -257,6 +483,8 @@
 
     document.getElementById("quiz-section").style.display = "block";
   }
+
+  // ── Chat ─────────────────────────────────────────────────
 
   async function trimiteMesaj() {
     const input = document.getElementById("chat-input");
@@ -294,7 +522,9 @@
     messages.scrollTop = messages.scrollHeight;
   }
 
-  function raspunde(optEl, litera, corect, explicatie, card, idx) {
+  // ── Quiz scoring ─────────────────────────────────────────
+
+  function raspunde(optEl, litera, corect, card, idx) {
     const optiuni = card.querySelectorAll(".option");
     optiuni.forEach(o => { o.classList.add("disabled"); o.onclick = null; });
 
@@ -315,8 +545,112 @@
       const scor = document.getElementById("scor");
       scor.textContent = `Scor final: ${scorCorect}/${totalIntrebari}`;
       scor.style.display = "block";
+
+      if (currentPdfId) {
+        fetch("/score", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pdf_id: currentPdfId, correct: scorCorect, total: totalIntrebari })
+        }).catch(() => {});
+      }
     }
   }
+
+  // ── Export Quiz PDF ──────────────────────────────────────
+
+  function norm(text) {
+    // jsPDF standard fonts nu suporta diacritice romane
+    return (text || "")
+      .replace(/[ăÅ]/g, 'a').replace(/Ă/g, 'A')
+      .replace(/â/g, 'a').replace(/Â/g, 'A')
+      .replace(/î/g, 'i').replace(/Î/g, 'I')
+      .replace(/[șş]/g, 's').replace(/[ȘŞ]/g, 'S')
+      .replace(/[țţ]/g, 't').replace(/[ȚŢ]/g, 'T');
+  }
+
+  function exportQuizPDF() {
+    if (!currentQuiz || currentQuiz.length === 0) {
+      alert("Nu exista quiz de exportat.");
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+
+    const marginL = 20;
+    const marginR = 20;
+    const pageW = 210;
+    const pageH = 297;
+    const maxW = pageW - marginL - marginR;
+    let y = 20;
+
+    function checkPage(needed) {
+      if (y + needed > pageH - 15) {
+        doc.addPage();
+        y = 20;
+      }
+    }
+
+    function line(text, fontSize, bold, color) {
+      doc.setFontSize(fontSize);
+      doc.setFont("helvetica", bold ? "bold" : "normal");
+      doc.setTextColor(...(color || [0, 0, 0]));
+      const lines = doc.splitTextToSize(text, maxW);
+      checkPage(lines.length * (fontSize * 0.4 + 1) + 2);
+      doc.text(lines, marginL, y);
+      y += lines.length * (fontSize * 0.4 + 1) + 2;
+    }
+
+    // Titlu
+    const filename = norm(currentFilename.replace(/\.pdf$/i, ""));
+    line("Quiz: " + filename, 16, true, [26, 115, 232]);
+    y += 4;
+
+    // Data
+    const today = new Date().toLocaleDateString("ro-RO", { day: "2-digit", month: "long", year: "numeric" });
+    line("Data: " + today, 10, false, [100, 100, 100]);
+    y += 6;
+
+    // Linie separator
+    doc.setDrawColor(200, 200, 200);
+    doc.line(marginL, y, pageW - marginR, y);
+    y += 8;
+
+    // Intrebari
+    currentQuiz.forEach((q, i) => {
+      checkPage(30);
+      line(`${i + 1}. ${norm(q.intrebare)}`, 12, true);
+      y += 2;
+
+      ["A", "B", "C", "D"].forEach(lit => {
+        const text = q.variante?.[lit] ? `   ${lit})  ${norm(q.variante[lit])}` : "";
+        if (text) { line(text, 11, false); y += 1; }
+      });
+
+      y += 6;
+    });
+
+    // Cheie raspunsuri — pagina noua
+    doc.addPage();
+    y = 20;
+    line("Cheie de raspunsuri", 14, true, [26, 115, 232]);
+    y += 4;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(marginL, y, pageW - marginR, y);
+    y += 8;
+
+    currentQuiz.forEach((q, i) => {
+      checkPage(8);
+      line(`${i + 1}.  Raspuns corect: ${q.raspuns_corect}`, 11, false);
+      y += 1;
+    });
+
+    const safeName = (currentFilename || "quiz").replace(/\.pdf$/i, "").replace(/\s+/g, "_");
+    doc.save(`quiz_${safeName}.pdf`);
+  }
+
+  // ── Init ─────────────────────────────────────────────────
+  loadPdfList();
 </script>
 
 </body>
