@@ -1,1 +1,0 @@
-CREATE TABLE test_conexiune_coolify (id SERIAL PRIMARY KEY, testat_la TIMESTAMP DEFAULT NOW());
