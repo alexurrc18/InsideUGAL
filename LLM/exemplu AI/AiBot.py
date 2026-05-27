@@ -16,6 +16,7 @@ def install_if_missing(package, install_name=None):
 install_if_missing("PIL", "pillow")
 install_if_missing("requests", "requests")
 install_if_missing("dotenv", "python-dotenv") # <--- Adăugat pentru securitate
+install_if_missing("google.genai", "google-genai")
 
 import tkinter as tk
 from tkinter import messagebox
@@ -23,15 +24,15 @@ from PIL import Image, ImageTk, ImageDraw
 from dotenv import load_dotenv # <--- Importăm librăria dotenv
 
 # Încărcăm automat variabilele de mediu din fișierul .env
-load_dotenv()
+load_dotenv(override=True)
 
 from llm_client import LLMClient
 from prompt_builder import PromptBuilder
 from output_parser import OutputParser
 
 # ── Config ───────────────────────────────────────────────
-# Folosim modelul specificat de tine pentru OpenRouter
-MODEL        = "openrouter/free" 
+# Folosim modelul oficial de la Google
+MODEL = "openai/gpt-oss-120b:free"
 HISTORY_DIR  = "histories"
 AVATAR_PATH  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot_avatar.png")
 
@@ -386,8 +387,8 @@ class ChatApp:
         tk.Label(frm, text="✦", font=("Segoe UI", 30), fg=ACCENT, bg=BG_MSG).pack()
         tk.Label(frm, text="Bună! Cum te pot ajuta?",
                  font=("Segoe UI", 14, "bold"), fg=TEXT, bg=BG_MSG).pack(pady=(6,2))
-        # Text modificat pentru OpenRouter din rațiuni estetice și de acuratețe
-        tk.Label(frm, text=f"Asistentul rulează {MODEL} prin OpenRouter AI",
+        # Text modificat pentru Google GenAI
+        tk.Label(frm, text=f"Asistentul rulează {MODEL} oficial",
                  font=("Segoe UI", 9), fg=TEXT_DIM, bg=BG_MSG).pack()
 
     # ── Mesaje ────────────────────────────────────────────
@@ -434,15 +435,15 @@ class ChatApp:
         lbl.configure(state="disabled")
         lbl.pack(fill="x", expand=True)
 
-        def _fit(widget=lbl, event=None):
-            widget.update_idletasks()
+        def _fit(event=None):
+            lbl.update_idletasks()
             try:
-                dlines = int(widget.count("1.0","end","displaylines")[0])
-                widget.configure(height=max(1, dlines))
+                dlines = int(lbl.count("1.0","end","displaylines")[0])
+                lbl.configure(height=max(1, dlines))
             except:
-                lines = int(widget.index("end-1c").split(".")[0])
-                widget.configure(height=max(1, lines))
-            widget.after(10, self._on_frame_cfg)
+                lines = int(lbl.index("end-1c").split(".")[0])
+                lbl.configure(height=max(1, lines))
+            lbl.after(10, self._on_frame_cfg)
         lbl.bind("<Configure>", _fit)
         lbl.after(50, _fit)
 

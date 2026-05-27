@@ -1,36 +1,64 @@
+import os
 import requests
-import json
-
-OLLAMA_URL = "http://localhost:11434/api/chat"
 
 class LLMClient:
-    def __init__(self, api_key=None, model_name="mistral:7b",
-                 system_instruction="", generation_config=None):
-        self.model = model_name
+    def __init__(self, model_name, system_instruction=""):
+        self.model_name = model_name
         self.system_instruction = system_instruction
-        self.history = []
+        self.messages = []
+        
+        # Preluăm cheia de OpenRouter în liniște
+        self.api_key = os.environ.get("OPENROUTER_API_KEY", "").strip().strip("'").strip('"')
 
-    def reset(self, formatted_history=None):
-        self.history = formatted_history or []
-
-    def send(self, text: str) -> str:
-        self.history.append({"role": "user", "content": text})
-
-        messages = []
+    def reset(self, history=None):
+        self.messages = []
         if self.system_instruction:
-            messages.append({"role": "system", "content": self.system_instruction})
-        messages += self.history
+            self.messages.append({"role": "system", "content": self.system_instruction})
+        
+        if history:
+            for msg in history:
+                if isinstance(msg, dict):
+                    role = msg.get("role", "user")
+                    if role == "model":
+                        role = "assistant"
+                    content = msg.get("text", msg.get("content", ""))
+                    if content:
+                        self.messages.append({"role": role, "content": content})
 
-        response = requests.post(OLLAMA_URL, json={
-            "model": self.model,
-            "messages": messages,
-            "stream": False,
-        }, timeout=120)
+    def send(self, text):
+        if not self.api_key:
+             raise Exception("Cheia OPENROUTER_API_KEY lipsește din fișierul .env.")
 
-        if response.status_code != 200:
-            raise Exception(f"Ollama error {response.status_code}: {response.text}")
+        self.messages.append({"role": "user", "content": text})
+        
+        url = "https://openrouter.ai/api/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "model": self.model_name,
+            "messages": self.messages
+        }
 
-        data = response.json()
-        reply = data["message"]["content"]
-        self.history.append({"role": "assistant", "content": reply})
-        return reply
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
+            response.raise_for_status()
+            reply = response.json()["choices"][0]["message"]["content"]
+            self.messages.append({"role": "assistant", "content": reply})
+            return reply
+            
+        except requests.exceptions.RequestException as e:
+            if self.messages and self.messages[-1]["role"] == "user":
+                self.messages.pop()
+                
+            error_msg = str(e)
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_data = e.response.json()
+                    if "error" in error_data:
+                        error_msg = error_data["error"].get("message", error_msg)
+                except:
+                    error_msg = e.response.text
+            raise Exception(f"Eroare OpenRouter: {error_msg}")

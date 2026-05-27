@@ -1,0 +1,57 @@
+{
+  "id": "20260527_103157",
+  "title": "salut, ce faci?",
+  "messages": [
+    {
+      "role": "user",
+      "text": "salut, ce faci?",
+      "timestamp": "2026-05-27T10:32:04.373483"
+    },
+    {
+      "role": "model",
+      "text": "Salut! Sunt bine, mulțumesc. Cu ce te pot ajuta?",
+      "timestamp": "2026-05-27T10:32:04.373488"
+    },
+    {
+      "role": "user",
+      "text": "fa mi o pisica folosind caractere si operatori",
+      "timestamp": "2026-05-27T10:32:24.613809"
+    },
+    {
+      "role": "model",
+      "text": "Iată o pisicuță desenată exclusiv cu caractere şi operatori:\n\n```\n /\\_/\\ \n( o.o )\n > ^ <\n```",
+      "timestamp": "2026-05-27T10:32:24.613814"
+    },
+    {
+      "role": "user",
+      "text": "o pisica muuuuult mai draguta",
+      "timestamp": "2026-05-27T10:32:48.102380"
+    },
+    {
+      "role": "model",
+      "text": "Sigur, iată o pisicuță puţin mai drăguţă, tot cu caractere:\n\n```\n      |\\---/|\n      | ,_, |\n     /  . .  \\\n    (   ‑   )\n     \\  _ /\n      `---'\n```",
+      "timestamp": "2026-05-27T10:32:48.102385"
+    },
+    {
+      "role": "user",
+      "text": "vreau muuult mai complexa",
+      "timestamp": "2026-05-27T10:34:10.655017"
+    },
+    {
+      "role": "model",
+      "text": "Desigur! Iată o pisică mult mai complexă, realizată exclusiv cu caractere și simboluri ASCII:\n\n```\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⣤⣤⣤⣤⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⡶⠟⠛⠉⠉⠙⠛⠛⠛⠻⢿⣦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⢀⡾⠋⠀⣀⣤⣶⣾⣿⣿⣶⣤⡀⠀⠈⢻⣆⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⣠⡟⠀⣰⣿⣿⠟⠁⢀⣀⡀⠈⠙⢿⣦⠀⠈⢻⣦⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⣰⡿⠁⣰⣿⠏⠁⣠⣾⣿⣿⣿⣶⣄⡈⠙⢧⠀⠈⢿⣧⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⢠⡿⠁⣴⣿⡏⠀⢠⠿⠟⢿⣿⣿⡿⠿⢿⡍⢦⠹⣦⠀⠹⣧⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⣠⡿⢁⣾⣿⡇⢀⣾⠃⠀⢀⣈⣓⣀⣤⣀⠀⠈⢧⠘⣎⣧⠀⠈⢿⣆⠀⠀⠀⠀\n⠀⠀⠀⣰⡟⢁⣾⣿⡏⢠⣾⡏⠀⣰⡾⠋⠁⠈⠉⠻⢦⡄⠘⣆⠈⢿⣧⣀⣀⣿⣆⠀⠀⠀\n⠀⢀⣾⡿⢁⣾⣿⢿⠀⢸⣿⡇⢸⡏⠀⠀⢦⣤⣤⠀⠈⡏⠀⠹⡀⠸⣦⡈⢿⣿⣿⣧⣀⠀\n⣠⣾⣿⠁⣿⣿⣯⣾⠀⠘⢿⠁⣾⡁⠀⠀⣾⣿⣿⣧⠀⡇⠀⣠⡇⢀⣾⡙⣦⠙⣿⣽⣿⡆\n⢿⡿⢧⣾⡏⣾⣿⠊⠀⠀⠀⠀⠙⣧⣤⣤⣈⠙⢧⠀⣴⣧⠀⡏⠀⣾⣋⡥⠌⣧⠈⢻⡿⡿\n⠘⠧⣾⡏⢁⣾⡟⢠⣾⢂⣰⣬⣤⡈⠙⢿⣛⣒⣤⣊⣩⣭⣤⡽⠛⢻⠧⡤⣆⠹⣧⡈⣁⡟\n⠀⢠⡙⣽⠟⢹⣧⡘⢇⠈⠙⠃⠉⠙⠿⣾⣏⣱⣾⣏⣽⣶⣾⣧⣤⣽⣾⣾⣧⣱⣳⡀⣸⠁\n⠀⣾⢧⣉⠤⡀⢛⣻⠞⣰⣆⢤⣤⣶⣶⣘⣿⣷⣽⣿⣿⣿⡟⠉⠈⠁⠀⣸⣏⣽⣾⣦⣰⡄\n⠀⠙⢎⣱⠛⢦⣎⢤⣾⣱⢛⡞⣲⣽⣿⣿⡿⠟⠛⠋⠉⠀⣠⣾⣿⣿⣍⣀⣈⣁⣙⣠⣾⠃\n⠀⠀⠀⢹⣓⡓⠾⡏⠎⣧⢸⡸⢿⣭⣭⣽⣶⢦⠀⠀⢀⣾⣿⢛⣙⡽⠶⣶⣾⣎⣬⠞⠁⠀\n⠀⠀⠀⠈⠛⠿⣶⠶⣾⣏⠉⢧⢹⣋⣭⣝⣛⣍⡙⠲⣛⠁⡍⢸⠭⣟⣵⣖⠛⠋⠁⠀⠀⠀\n⠀⠀⠀⠀⠀⣀⠔⣠⣿⣾⣧⣁⠁⠉⠁⣽⣿⠏⣛⣉⡸⣽⡿⣁⠙⢉⣁⡀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⣴⣶⣦⣀⣠⣉⣺⣉⣛⣛⠈⣖⣛⢿⣭⣁⣪⣲⣁⣈⣣⣼⣿⣾⣆⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠈⠙⢿⡽⠦⣬⣫⣶⢫⢱⣚⣈⣉⣀⣽⣭⡶⠍⣛⣿⢿⠟⠋⠉⠙⠁⠀⠀⠀\n```\n\nSper să-ţi placă această versiune „mega‑detaliată”! Dacă doreşti alte variaţiuni sau alte animale, spune-mi!",
+      "timestamp": "2026-05-27T10:34:10.655021"
+    },
+    {
+      "role": "user",
+      "text": "ce pisica e asta ca nu mi dau seama",
+      "timestamp": "2026-05-27T10:35:41.012077"
+    },
+    {
+      "role": "model",
+      "text": "Este o pisică desenată în stil **ASCII art**, adică realizată exclusiv cu caractere tipografice (litere, cifre, simboluri și spații).  \n\n- **Conturul** general – linia de sus, urechile și trunchiul – este construit din combinații de `⢀`, `⣤`, `⣶` etc., care în fonturile monospaced formează suprafețe de umbră și „puf”.  \n- **Detaliile feței** – ochii, botul și mustățile – apar din „puncte” (`⢸`, `⠁`, `⣾`) și din linii fine (`⣦`, `⣧`).  \n- **Blochele de umbră** (`⣶`, `⣾`, `⣽`, `⠿`…) creează impresia de blană voluminosă și de adâncime, în timp ce spațiile goale delimitează formele.  \n\nÎn esență, nu este o fotografie, ci o reprezentare stilizată a unei pisici, foarte detaliată, creată numai cu caractere Unicode care imită texturile și volumul. Dacă vrei o versiune mai simplă sau un alt tip de animal, spune-mi și te ajut cu plăcere!",
+      "timestamp": "2026-05-27T10:35:41.012082"
+    }
+  ],
+  "created": "2026-05-27T10:31:57.845248"
+}

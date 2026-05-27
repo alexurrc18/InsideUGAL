@@ -1,0 +1,17 @@
+{
+  "id": "20260526_112512",
+  "title": "salut, ce faci?",
+  "messages": [
+    {
+      "role": "user",
+      "text": "salut, ce faci?",
+      "timestamp": "2026-05-26T11:25:55.813603"
+    },
+    {
+      "role": "model",
+      "text": "Salut! Sunt gata să te ajut. În ce te pot ajuta?",
+      "timestamp": "2026-05-26T11:25:55.813608"
+    }
+  ],
+  "created": "2026-05-26T11:25:12.777116"
+}
