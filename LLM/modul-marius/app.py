@@ -64,10 +64,10 @@ def upload():
     file.save(pdf_path)
 
     try:
-        load_pdf_into_rag(pdf_path, pdf_id)
+        _, language = load_pdf_into_rag(pdf_path, pdf_id)
         with ThreadPoolExecutor(max_workers=2) as pool:
-            f_summary = pool.submit(generate_summary, pdf_id)
-            f_quiz = pool.submit(generate_quiz, pdf_id)
+            f_summary = pool.submit(generate_summary, pdf_id, language)
+            f_quiz = pool.submit(generate_quiz, pdf_id, language)
             summary = f_summary.result()
             quiz = f_quiz.result()
     except Exception as e:
@@ -78,6 +78,7 @@ def upload():
         "pdf_id": pdf_id,
         "filename": file.filename,
         "uploaded_at": datetime.utcnow().isoformat(),
+        "language": language,
         "summary": summary,
         "quiz": quiz,
     })
@@ -93,8 +94,11 @@ def ask():
     pdf_id = data.get("pdf_id", "").strip()
     if not question or not pdf_id:
         return jsonify({"error": "Intrebare sau pdf_id lipsa"}), 400
+    metadata = load_metadata()
+    pdf_meta = next((p for p in metadata if p["pdf_id"] == pdf_id), {})
+    language = pdf_meta.get("language", "ro")
     try:
-        answer = answer_question(question, pdf_id)
+        answer = answer_question(question, pdf_id, language)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     supabase_logger.log_question(pdf_id, question, answer)

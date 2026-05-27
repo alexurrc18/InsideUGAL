@@ -8,6 +8,7 @@ from typing import Dict, Tuple
 import chromadb
 import pdfplumber
 import pybreaker
+from langdetect import detect as langdetect_detect, LangDetectException
 from dotenv import load_dotenv
 from google import genai
 from google.genai import errors as genai_errors
@@ -114,6 +115,14 @@ def extract_text_from_pdf(pdf_path: str) -> str:
     return text
 
 
+def detect_language(text: str) -> str:
+    """Detectează limba PDF-ului automat. Returnează codul ISO (ex: 'ro', 'en', 'fr')."""
+    try:
+        return langdetect_detect(text[:3000])
+    except LangDetectException:
+        return "ro"
+
+
 def chunk_text(text: str, chunk_size: int = 200, overlap: int = 30) -> list:
     words = text.split()
     chunks = []
@@ -142,26 +151,27 @@ def query_relevant_chunks(query: str, pdf_id: str, n_results: int = 5) -> list:
     return results["documents"][0]
 
 
-def load_pdf_into_rag(pdf_path: str, pdf_id: str) -> list:
+def load_pdf_into_rag(pdf_path: str, pdf_id: str) -> tuple:
     text = extract_text_from_pdf(pdf_path)
+    language = detect_language(text)
     chunks = chunk_text(text)
     store_in_vector_db(chunks, pdf_id)
-    return chunks
+    return chunks, language
 
 
 # ── Funcții publice cu contract Pydantic ──────────────────
 
-def answer_question(question: str, pdf_id: str) -> str:
+def answer_question(question: str, pdf_id: str, language: str = "ro") -> str:
     inp = AnswerQuestionInput(question=question, pdf_id=pdf_id)
 
     chunks = query_relevant_chunks(inp.question, inp.pdf_id, n_results=8)
     context = "\n\n".join(chunks)
     prompt = (
+        "Raspunde in aceeasi limba in care este scris materialul de mai jos.\n"
         "Esti un asistent care raspunde EXCLUSIV pe baza materialului furnizat mai jos.\n"
         "Reguli stricte:\n"
         "- Foloseste DOAR informatiile din materialul de mai jos.\n"
-        "- Daca intrebarea nu are raspuns in material, raspunde exact: "
-        "'Aceasta informatie nu se regaseste in materialul furnizat.'\n"
+        "- Daca intrebarea nu are raspuns in material, spune asta scurt in aceeasi limba ca materialul.\n"
         "- Nu inventa, nu completa, nu presupune nimic in afara materialului.\n\n"
         f"Material:\n{context}\n\nIntrebare: {inp.question}"
     )
@@ -177,7 +187,7 @@ def answer_question(question: str, pdf_id: str) -> str:
     raise RuntimeError("unreachable")
 
 
-def generate_summary(pdf_id: str) -> str:
+def generate_summary(pdf_id: str, language: str = "ro") -> str:
     inp = GenerateSummaryInput(pdf_id=pdf_id)
 
     chunks = query_relevant_chunks(
@@ -186,7 +196,8 @@ def generate_summary(pdf_id: str) -> str:
     context = "\n\n".join(chunks)
     prompt = (
         "Esti un profesor care ajuta studentii sa invete eficient.\n"
-        "Creeaza un rezumat structurat al materialului de mai jos, in romana, respectand EXACT acest format:\n\n"
+        "Raspunde in aceeasi limba in care este scris materialul de mai jos.\n"
+        "Creeaza un rezumat structurat al materialului, respectand EXACT acest format:\n\n"
         "## Idei principale\n"
         "- [maxim 5 idei cheie, fiecare pe un rand]\n\n"
         "## Concepte importante\n"
@@ -212,7 +223,7 @@ def generate_summary(pdf_id: str) -> str:
     raise RuntimeError("unreachable")
 
 
-def generate_quiz(pdf_id: str) -> list:
+def generate_quiz(pdf_id: str, language: str = "ro") -> list:
     inp = GenerateQuizInput(pdf_id=pdf_id)
 
     chunks = query_relevant_chunks(
@@ -221,6 +232,7 @@ def generate_quiz(pdf_id: str) -> list:
     context = "\n\n".join(chunks)
     nr_intrebari = min(10, max(5, len(chunks)))
     prompt = (
+        "Genereaza intrebarile si variantele in aceeasi limba in care este scris materialul de mai jos.\n"
         f"Genereaza {nr_intrebari} intrebari quiz bazate pe materialul de mai jos.\n"
         "Returneaza DOAR un JSON valid, fara alt text, in acest format exact:\n"
         "[\n"
