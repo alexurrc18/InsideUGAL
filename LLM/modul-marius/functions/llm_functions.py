@@ -3,7 +3,7 @@ import os
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
-from typing import Dict, Optional, Tuple
+from typing import Dict, Tuple
 
 import chromadb
 import pdfplumber
