@@ -7,8 +7,33 @@ on:
       - main
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Path Filter
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'Frontend/**'
+              - 'package.json'
+              - 'package-lock.json'
+            backend:
+              - 'app/**'
+              - 'backend/**'
+              - 'Backend/**'
+              - 'requirements.txt'
+
   frontend:
     name: Frontend
+    needs: [changes]
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -31,11 +56,15 @@ jobs:
         run: npm run lint
       - name: Typecheck
         run: npx tsc --noEmit
+      - name: Run Tests with Coverage
+        run: npm run test:coverage
       - name: Build
         run: npm run build
 
   backend:
     name: Backend
+    needs: [changes]
+    if: ${{ needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -58,8 +87,7 @@ jobs:
           fi
       - name: Backend missing
         if: steps.detect.outputs.path == ''
-        run: |
-          echo "::warning::No FastAPI backend module found. Skipping backend CI until the backend team ships runnable code."
+        run: echo "::warning::No FastAPI backend module found. Skipping backend CI until the backend team ships runnable code."
       - name: Setup Python
         if: steps.detect.outputs.path != ''
         uses: actions/setup-python@v5
@@ -79,7 +107,7 @@ jobs:
           if [ -f pyproject.toml ]; then
             pip install -e ".[dev]" || pip install -e .
           fi
-          pip install ruff mypy
+          pip install ruff mypy pytest pytest-cov
       - name: Lint
         if: steps.detect.outputs.path != ''
         working-directory: ${{ steps.detect.outputs.path }}
@@ -90,7 +118,65 @@ jobs:
         working-directory: ${{ steps.detect.outputs.path }}
         shell: bash
         run: mypy .
+      - name: Run Tests with Coverage
+        if: steps.detect.outputs.path != ''
+        working-directory: ${{ steps.detect.outputs.path }}
+        run: pytest --cov=. --cov-report=xml
       - name: Build
         if: steps.detect.outputs.path != ''
         working-directory: ${{ steps.detect.outputs.path }}
         run: python -m compileall .
+
+  security-scan:
+    name: Container Security Scan
+    needs: [changes]
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build local image for scanning
+        run: |
+          docker build -t insideugal-frontend:test Frontend/Dashboard/dashboard-insideugal/
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'insideugal-frontend:test'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+  semgrep-scan:
+    name: Security Scan (SAST)
+    needs: [changes]
+    if: ${{ needs.changes.outputs.frontend == 'true' || needs.changes.outputs.backend == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    container:
+      image: returntocorp/semgrep
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run Semgrep
+        run: semgrep scan --config="p/react" --config="p/nextjs" --config="p/python" --error
+
+  coverage-report:
+    name: Coverage Report
+    needs: [frontend, backend]
+    if: always() && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Add Coverage PR Comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: coverage
+          message: "### :bar_chart: Test Coverage Setup Complete\nInfrastructura de raportare este activă. După ce echipele vor adăuga teste de unitate, rapoartele detaliate LCOV/XML vor fi afișate aici."

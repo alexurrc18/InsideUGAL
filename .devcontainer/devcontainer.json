@@ -1,0 +1,59 @@
+{
+  "name": "InsideUGAL - Full Stack Environment",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "features": {
+    // Docker-in-Docker pentru a permite rularea containerelor în interiorul dev container-ului
+    "ghcr.io/devcontainers/features/docker-in-docker:1": {
+      "version": "latest",
+      "moby": true
+    }
+  },
+  // Configurare permisiuni pentru Docker socket
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-azuretools.vscode-docker",
+        "tamasfe.even-better-toml",
+        "editorconfig.editorconfig",
+        "bradlc.vscode-tailwindcss",
+        "rvest.vs-code-prettier-eslint",
+        "ms-ceintl.vscode-language-pack-ro"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "python.linting.enabled": true,
+        "python.linting.ruffEnabled": true,
+        "python.analysis.typeCheckingMode": "basic"
+      }
+    }
+  },
+  "forwardPorts": [3000, 8000, 5432, 19000, 19001, 19002],
+  "portsAttributes": {
+    "3000": {
+      "label": "Frontend Dashboard",
+      "onAutoForward": "notify"
+    },
+    "8000": {
+      "label": "FastAPI Backend",
+      "onAutoForward": "notify"
+    },
+    "5432": {
+      "label": "Supabase Postgres",
+      "onAutoForward": "ignore"
+    }
+  },
+  "postCreateCommand": "echo 'Mediul de dezvoltare InsideUGAL este gata! Nu uita să rulezi npm install și pip install.'"
+}
