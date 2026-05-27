@@ -1,9 +1,13 @@
 {
   "recommendations": [
-    "eamodio.gitlens",
     "esbenp.prettier-vscode",
-    "ms-vsliveshare.vsliveshare",
+    "dbaeumer.vscode-eslint",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "EditorConfig.EditorConfig",
+    "redhat.vscode-yaml",
+    "bungcip.better-toml",
     "ms-azuretools.vscode-docker",
-    "rangav.vscode-thunder-client"
+    "eamodio.gitlens"
   ]
 }
