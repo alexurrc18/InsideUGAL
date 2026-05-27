@@ -150,6 +150,21 @@ jobs:
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
+  semgrep-scan:
+    name: Security Scan (SAST)
+    needs: [changes]
+    if: ${{ needs.changes.outputs.frontend == 'true' || needs.changes.outputs.backend == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    container:
+      image: returntocorp/semgrep
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run Semgrep
+        run: semgrep scan --config="p/react" --config="p/nextjs" --config="p/python" --error
+
   coverage-report:
     name: Coverage Report
     needs: [frontend, backend]
