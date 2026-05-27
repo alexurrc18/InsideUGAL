@@ -404,7 +404,10 @@
     document.getElementById("loading").style.display = "block";
     document.getElementById("summary-section").style.display = "none";
     document.getElementById("quiz-section").style.display = "none";
+    document.getElementById("chat-section").style.display = "none";
+    document.getElementById("pdf-title-bar").style.display = "none";
     document.getElementById("scor").style.display = "none";
+    currentPdfId = null;
 
     const formData = new FormData();
     formData.append("pdf", fisier);
