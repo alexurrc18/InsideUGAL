@@ -32,7 +32,7 @@ jobs:
 
   frontend:
     name: Frontend
-    needs: changes
+    needs: [changes]
     if: ${{ needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     strategy:
@@ -56,12 +56,14 @@ jobs:
         run: npm run lint
       - name: Typecheck
         run: npx tsc --noEmit
+      - name: Run Tests with Coverage
+        run: npm run test:coverage
       - name: Build
         run: npm run build
 
   backend:
     name: Backend
-    needs: changes
+    needs: [changes]
     if: ${{ needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     strategy:
@@ -85,8 +87,7 @@ jobs:
           fi
       - name: Backend missing
         if: steps.detect.outputs.path == ''
-        run: |
-          echo "::warning::No FastAPI backend module found. Skipping backend CI until the backend team ships runnable code."
+        run: echo "::warning::No FastAPI backend module found. Skipping backend CI until the backend team ships runnable code."
       - name: Setup Python
         if: steps.detect.outputs.path != ''
         uses: actions/setup-python@v5
@@ -106,7 +107,7 @@ jobs:
           if [ -f pyproject.toml ]; then
             pip install -e ".[dev]" || pip install -e .
           fi
-          pip install ruff mypy
+          pip install ruff mypy pytest pytest-cov
       - name: Lint
         if: steps.detect.outputs.path != ''
         working-directory: ${{ steps.detect.outputs.path }}
@@ -117,7 +118,25 @@ jobs:
         working-directory: ${{ steps.detect.outputs.path }}
         shell: bash
         run: mypy .
+      - name: Run Tests with Coverage
+        if: steps.detect.outputs.path != ''
+        working-directory: ${{ steps.detect.outputs.path }}
+        run: pytest --cov=. --cov-report=xml
       - name: Build
         if: steps.detect.outputs.path != ''
         working-directory: ${{ steps.detect.outputs.path }}
         run: python -m compileall .
+
+  coverage-report:
+    name: Coverage Report
+    needs: [frontend, backend]
+    if: always() && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Add Coverage PR Comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: coverage
+          message: "### :bar_chart: Test Coverage Setup Complete\nInfrastructura de raportare este activă. După ce echipele vor adăuga teste de unitate, rapoartele detaliate LCOV/XML vor fi afișate aici."
