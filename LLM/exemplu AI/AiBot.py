@@ -10,21 +10,28 @@ def install_if_missing(package, install_name=None):
     except ImportError:
         import subprocess
         name = install_name or package
-        subprocess.check_call(["uv", "pip", "install", name, "-q"])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", name, "-q"])
 
+# Dependențele tale + python-dotenv pentru securizarea cheii API
 install_if_missing("PIL", "pillow")
 install_if_missing("requests", "requests")
+install_if_missing("dotenv", "python-dotenv") # <--- Adăugat pentru securitate
 
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk, ImageDraw
+from dotenv import load_dotenv # <--- Importăm librăria dotenv
+
+# Încărcăm automat variabilele de mediu din fișierul .env
+load_dotenv()
 
 from llm_client import LLMClient
 from prompt_builder import PromptBuilder
 from output_parser import OutputParser
 
 # ── Config ───────────────────────────────────────────────
-MODEL        = "mistral:7b"
+# Folosim modelul specificat de tine pentru OpenRouter
+MODEL        = "openrouter/free" 
 HISTORY_DIR  = "histories"
 AVATAR_PATH  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot_avatar.png")
 
@@ -234,7 +241,7 @@ class ChatApp:
         tk.Label(bar, text="Enter → trimite  |  Shift+Enter → linie nouă",
                  font=("Segoe UI", 8), fg=TEXT_DIM,
                  bg=BG_INPUT_BAR).grid(row=1, column=0, columnspan=2,
-                                        pady=(4,0), padx=14, sticky="w")
+                                       pady=(4,0), padx=14, sticky="w")
 
     # ── Scroll ───────────────────────────────────────────
     def _on_mousewheel(self, e):
@@ -379,7 +386,8 @@ class ChatApp:
         tk.Label(frm, text="✦", font=("Segoe UI", 30), fg=ACCENT, bg=BG_MSG).pack()
         tk.Label(frm, text="Bună! Cum te pot ajuta?",
                  font=("Segoe UI", 14, "bold"), fg=TEXT, bg=BG_MSG).pack(pady=(6,2))
-        tk.Label(frm, text=f"Rulezi {MODEL} local prin Ollama",
+        # Text modificat pentru OpenRouter din rațiuni estetice și de acuratețe
+        tk.Label(frm, text=f"Asistentul rulează {MODEL} prin OpenRouter AI",
                  font=("Segoe UI", 9), fg=TEXT_DIM, bg=BG_MSG).pack()
 
     # ── Mesaje ────────────────────────────────────────────
