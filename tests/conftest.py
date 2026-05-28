@@ -5,6 +5,7 @@ from collections.abc import AsyncGenerator, Generator
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 TEST_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@127.0.0.1:55005/postgres"
@@ -19,6 +20,7 @@ test_engine = create_async_engine(
     TEST_DATABASE_URL,
     echo=False,
     pool_pre_ping=True,
+    poolclass=NullPool,
 )
 
 
