@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import sys
 import uuid
@@ -103,6 +105,7 @@ def health_check():
             "/api/v1/ask",
             "/api/v1/summary",
             "/api/v1/quiz",
+            "/api/v1/delete-pdf/{pdf_id}",
         ],
     }
 
@@ -129,8 +132,8 @@ async def upload_pdf(pdf: UploadFile = File(...)):
         with pdf_path.open("wb") as f:
             f.write(await pdf.read())
 
-        mod_marius_functions.load_pdf_into_rag(str(pdf_path), pdf_id)
-        return {"pdf_id": pdf_id, "message": "PDF incarcat si indexat in vector DB."}
+        _, language = mod_marius_functions.load_pdf_into_rag(str(pdf_path), pdf_id)
+        return {"pdf_id": pdf_id, "language": language, "message": "PDF incarcat si indexat in vector DB."}
     except Exception as exc:
         logger.error("Eroare la incarcare PDF: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
@@ -164,6 +167,24 @@ async def quiz(request: mod_marius_schemas.GenerateQuizInput):
     except Exception as exc:
         logger.error("Eroare la generare quiz: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.delete("/api/v1/delete-pdf/{pdf_id}")
+async def delete_pdf(pdf_id: str):
+    """Sterge fisierul fizic din uploads/ si vectorii din ChromaDB."""
+    pdf_path = UPLOAD_FOLDER / f"{pdf_id}.pdf"
+
+    if pdf_path.exists():
+        pdf_path.unlink()
+        logger.info("Fisier sters: %s", pdf_path)
+
+    try:
+        mod_marius_functions.delete_pdf_from_rag(pdf_id)
+        logger.info("Colectie ChromaDB stearsa pentru pdf_id=%s", pdf_id)
+    except Exception as exc:
+        logger.warning("Nu am putut sterge colectia ChromaDB pentru %s: %s", pdf_id, exc)
+
+    return {"ok": True, "pdf_id": pdf_id}
 
 
 if __name__ == "__main__":
