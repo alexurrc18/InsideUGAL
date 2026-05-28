@@ -38,7 +38,12 @@ async def create_faculty(
 
 
 @router.put("/{faculty_id}", response_model=schemas.FacultyResponse)
-async def update_faculty(faculty_id: int, faculty_in: schemas.FacultyUpdate, session: AsyncSession = Depends(get_db)):
+async def update_faculty(
+    faculty_id: int,
+    faculty_in: schemas.FacultyUpdate,
+    session: AsyncSession = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
     """Actualizează datele unei facultăți existente."""
     faculty = await repo.get_by_id(session, faculty_id)
     if not faculty:
@@ -48,7 +53,11 @@ async def update_faculty(faculty_id: int, faculty_in: schemas.FacultyUpdate, ses
 
 
 @router.delete("/{faculty_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_faculty(faculty_id: int, session: AsyncSession = Depends(get_db)):
+async def delete_faculty(
+    faculty_id: int,
+    session: AsyncSession = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
     """Șterge o facultate din baza de date."""
     faculty = await repo.get_by_id(session, faculty_id)
     if not faculty:
