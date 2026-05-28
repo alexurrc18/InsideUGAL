@@ -1,42 +1,161 @@
-🗄️ Supabase - Arhitectura și Organizarea Datelor
-Acest folder conține configurația bazei de date PostgreSQL și migrările necesare. Supabase funcționează ca „depozitul” central al proiectului, unde informațiile sunt organizate în tabele (sertare de date) securizate.
+# 🗄️ Supabase — Setup Local (Windows)
 
-📊 Structura Tabelelor (Schema SQL)
-📍 locations (Infrastructură)
-Stochează locațiile fizice din campus pentru a fi afișate pe hartă.
+Acest ghid explică cum să pornești baza de date local pe PC-ul tău pentru a putea lucra la proiect.
 
-Coloane cheie: id, name, address, coordinates (Lat/Long), faculty_id.
+---
 
-Rol: Sursa de date pentru harta din Frontend.
+## ✅ Cerințe
 
-🍴 cafeteria_inventory (Cantină)
-Inventarul de produse și preparate disponibile la cantină.
+- Windows 10/11
+- Git instalat
+- Conexiune la internet (prima dată, pentru descărcat imaginile Docker)
 
-Coloane cheie: id, name, price, calories, proteins, is_available.
+---
 
-Rol: Afișarea meniului și a valorilor nutriționale pentru studenți.
+## 📦 PASUL 1 — Instalează Docker Desktop
 
-⚠️ complaints (Ticketing)
-Baza de date pentru sesizările și plângerile trimise de utilizatori.
+> ⚠️ Dacă ai deja Docker Desktop instalat, treci la Pasul 2.
 
-Coloane cheie: id, user_id, location_id, description, status (new, in_progress, resolved).
+1. Descarcă Docker Desktop de la: https://www.docker.com/products/docker-desktop/
+2. Rulează installer-ul
+3. Când întreabă, bifează **"Use WSL 2"**
+4. **Repornește PC-ul** după instalare
+5. Deschide Docker Desktop și așteaptă să pornească complet (iconița din taskbar devine stabilă)
 
-Rol: Suportă fluxul de lucru pentru rezolvarea incidentelor din campus.
+---
 
-👥 profiles (Utilizatori)
-Centralizatorul de utilizatori și permisiuni.
+## ⚙️ PASUL 2 — Instalează Supabase CLI
 
-Conținut: Lista cu toți utilizatorii și „gradul” lor (Admin, Profesor, Student).
+1. Deschide **PowerShell ca Administrator** (click dreapta pe Start → Terminal Admin)
+2. Rulează comanda:
 
-🔒 Reguli de Securitate (Policies - RLS)
-Nu oricine poate modifica orice. Folosim Row Level Security pentru a controla accesul:
+```powershell
+winget install Supabase.CLI
+```
 
-🔓 Public / Studenți: Pot doar să citească (SELECT) meniul și locațiile. Pot adăuga (INSERT) sesizări noi, dar nu le pot modifica pe cele existente.
+3. Închide și redeschide PowerShell
+4. Verifică instalarea:
 
-🛡️ Admini: Au permisiuni de editare pentru a actualiza prețurile la cantină sau a schimba statusul sesizărilor.
+```powershell
+supabase --version
+```
 
-⚙️ Service Role: Permite backend-ului (modulul app) să gestioneze datele fără restricții.
+Ar trebui să apară un număr de versiune (ex: `1.x.x`). Dacă apare, ești gata.
 
-🔄 Folderul migrations
-Aici se găsesc fișierele .sql care funcționează ca o „rețetă”:
-Dacă proiectul trebuie mutat sau refăcut de la zero pe un alt server, aceste scripturi rulează în ordine cronologică pentru a recrea automat toate tabelele și regulile de securitate descrise mai sus.
+---
+
+## 📁 PASUL 3 — Clonează repo-ul
+
+```powershell
+git clone https://github.com/ORGANIZATIE/NUME-REPO.git
+cd NUME-REPO
+```
+
+> ⚠️ Înlocuiește `ORGANIZATIE/NUME-REPO` cu path-ul real al repo-ului vostru.
+
+---
+
+## 🚀 PASUL 4 — Pornește Supabase local
+
+Navighează în folderul `supabase/` din repo:
+
+```powershell
+cd supabase
+```
+
+Inițializează (doar prima dată):
+
+```powershell
+supabase init
+```
+
+Pornește containerele:
+
+```powershell
+supabase start
+```
+
+> ⏳ **Prima pornire durează 5-10 minute** — descarcă imaginile Docker. Urmărește progresul în terminal.
+
+La final vei vedea ceva de genul:
+
+```
+API URL:        http://localhost:54321
+DB URL:         postgresql://postgres:postgres@localhost:54322/postgres
+Studio URL:     http://localhost:54323
+anon key:       eyJ...
+service_role:   eyJ...
+```
+
+> 📋 **Copiază aceste valori** și pune-le în fișierul `.env` al proiectului tău (backend/frontend după caz).
+
+---
+
+## 🗃️ PASUL 5 — Importă schema bazei de date
+
+Aplică toate migrațiile (tabelele) din repo pe instanța ta locală:
+
+```powershell
+supabase db reset
+```
+
+Această comandă rulează automat toate fișierele din folderul `migrations/` în ordine.
+
+---
+
+## 🌐 PASUL 6 — Verifică în browser
+
+Deschide:
+
+```
+http://localhost:54323
+```
+
+Ar trebui să se deschidă **Supabase Studio local** cu toate tabelele vizibile. Dacă le vezi — totul funcționează! ✅
+
+---
+
+## 📅 Folosire zilnică
+
+```powershell
+# Pornire Supabase
+supabase start
+
+# Oprire Supabase
+supabase stop
+```
+
+---
+
+## 🔄 Când apar modificări în schema bazei de date
+
+Când colegul de infrastructure face update la tabele și dă push, trebuie să:
+
+```powershell
+git pull
+supabase db reset
+```
+
+> ⚠️ `supabase db reset` șterge datele locale și reimportă schema curată. Datele de test se pierd — este normal în development.
+
+---
+
+## 🆘 Probleme frecvente
+
+**Docker nu pornește / eroare WSL 2**
+→ Asigură-te că WSL 2 este activat: deschide PowerShell ca Admin și rulează `wsl --install`, apoi repornește PC-ul.
+
+**`supabase` nu e recunoscut ca comandă**
+→ Închide și redeschide PowerShell după instalarea CLI-ului.
+
+**Port deja folosit (eroare 54321 / 54322 / 54323)**
+→ Ai alt Supabase sau PostgreSQL pornit. Rulează `supabase stop` sau oprește serviciul conflictual.
+
+**`supabase db reset` dă eroare**
+→ Verifică că Docker Desktop rulează în fundal înainte să rulezi orice comandă Supabase.
+
+---
+
+## 📞 Contact
+
+Pentru probleme legate de baza de date, contactează colegul de infrastructure.
