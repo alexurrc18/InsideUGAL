@@ -1,5 +1,11 @@
+import os
+import uuid
+from pathlib import Path
+from urllib.parse import quote
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+
+import httpx
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,9 +32,13 @@ async def validate_complaint_refs(payload: BaseModel, db: AsyncSession) -> None:
 
 
 @router.get("/", response_model=List[schemas.ComplaintResponse])
-async def read_complaints(session: AsyncSession = Depends(get_db)):
+async def read_complaints(
+    status: str | None = None,
+    location_id: int | None = None,
+    session: AsyncSession = Depends(get_db),
+):
     """Returnează lista cu toate sesizările."""
-    return await repo.get_all(session)
+    return await repo.get_all(session, status=status, location_id=location_id)
 
 
 @router.get("/{complaint_id}", response_model=schemas.ComplaintResponse)
@@ -50,6 +60,45 @@ async def create_complaint(
     # Validăm ID-urile înainte de inserare
     await validate_complaint_refs(complaint_in, session)
     return await repo.create(session, complaint_in)
+
+
+@router.post("/upload-image/")
+async def upload_complaint_image(
+    file: UploadFile = File(...),
+    current_user: str = Depends(get_current_user),
+):
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
+
+    if not supabase_url or not supabase_key:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Supabase Storage is not configured.",
+        )
+
+    safe_filename = Path(file.filename or "upload").name
+    unique_filename = f"{uuid.uuid4()}-{safe_filename}"
+    encoded_filename = quote(unique_filename)
+    upload_url = f"{supabase_url.rstrip('/')}/storage/v1/object/complaints/{encoded_filename}"
+    public_url = f"{supabase_url.rstrip('/')}/storage/v1/object/public/complaints/{encoded_filename}"
+
+    file_content = await file.read()
+    headers = {
+        "apikey": supabase_key,
+        "Authorization": f"Bearer {supabase_key}",
+        "Content-Type": file.content_type or "application/octet-stream",
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(upload_url, headers=headers, content=file_content)
+
+    if response.status_code >= 400:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Image upload failed.",
+        )
+
+    return {"image_url": public_url}
 
 
 @router.put("/{complaint_id}", response_model=schemas.ComplaintResponse)
