@@ -1,0 +1,17 @@
+{
+  "id": "20260528_083634",
+  "title": "buna ce mai zici",
+  "messages": [
+    {
+      "role": "user",
+      "text": "buna ce mai zici",
+      "timestamp": "2026-05-28T08:36:43.425301"
+    },
+    {
+      "role": "model",
+      "text": "Bună! Sunt bine, mulțumesc. Tu cum te simți?",
+      "timestamp": "2026-05-28T08:36:43.425305"
+    }
+  ],
+  "created": "2026-05-28T08:36:34.891843"
+}
