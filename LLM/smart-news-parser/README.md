@@ -36,7 +36,7 @@ Acest microserviciu face parte din platforma **InsideUGAL** și utilizează inte
 ### 1. Clonare și Navigare
 
 ```bash
-cd InsideUGAL/LLM/modul-deadlines
+cd InsideUGAL/LLM/smart-news-parser
 ```
 
 ### 2. Instalare Dependențe

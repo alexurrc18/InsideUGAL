@@ -6,13 +6,13 @@ Acest README unifică documentația internă pentru tot ce ține de LLM în proi
 
 - Serviciul integrat este `LLM/combined_app.py` — un API FastAPI care expune funcționalitățile principale.
 - Există două componente principale:
-  - `modul-deadlines`: extragere structuratã de task-uri din anunțuri folosind Google Gemini (biblioteca `google-genai`).
+  - `smart-news-parser`: extragere structuratã de task-uri din anunțuri folosind Google Gemini (biblioteca `google-genai`).
   - `modul-marius`: ingestie PDF → indexare în Chroma DB → RAG + apeluri LLM pentru `ask`, `summary`, `quiz`.
 
 ## 2. Diagramă simplă a fluxului
 
 1. Extragere task-uri
-   - Client → `POST /api/v1/extract-tasks` → `modul-deadlines.llm_service.LLMService.extract_tasks(text)` → GenAI (Gemini) → validare Pydantic → răspuns structurat.
+   - Client → `POST /api/v1/extract-tasks` → `smart-news-parser.llm_service.LLMService.extract_tasks(text)` → GenAI (Gemini) → validare Pydantic → răspuns structurat.
 
 2. Ingestie PDF și RAG
    - Client → `POST /api/v1/upload-pdf` → fișier salvat în `LLM/modul-marius/uploads/` → `modul-marius.functions.load_pdf_into_rag` → extragere text (`pdfplumber`) → chunking → embeddings (`sentence-transformers`) → stocat în Chroma DB local.
@@ -65,7 +65,7 @@ uvicorn LLM.combined_app:app --reload --port 8000
 ## 6. Endpoint-uri (sumar)
 
 - `GET /` — health check
-- `POST /api/v1/extract-tasks` — body: `{ "text": "..." }` → returnează `ExtractedTaskResponse` (vezi schema în [LLM/modul-deadlines/schemas.py](LLM/modul-deadlines/schemas.py#L1)).
+- `POST /api/v1/extract-tasks` — body: `{ "text": "..." }` → returnează `ExtractedTaskResponse` (vezi schema în LLM/smart-news-parser/schemas.py).
 - `POST /api/v1/upload-pdf` — multipart upload PDF → răspunde `{ pdf_id }` după indexare în Chroma.
 - `POST /api/v1/ask` — body: `{ "question": "...", "pdf_id": "..." }` → returnează `AnswerQuestionOutput`.
 - `POST /api/v1/summary` — body: `{ "pdf_id": "..." }` → returnează `GenerateSummaryOutput`.
@@ -87,7 +87,7 @@ Vezi definițiile Pydantic pentru detalii (validări, formate): [LLM/modul-mariu
   - embeddings generate cu `sentence-transformers` (`all-MiniLM-L6-v2`)
   - stocate local în Chroma DB persistent
 
-- Extracția de taskuri (`modul-deadlines`):
+- Extracția de taskuri (`smart-news-parser`):
   - folosește `google-genai` (Gemini) cu `response_schema` Pydantic când e posibil
   - promptul conține reguli stricte (format, deadline calculat relativ la data curentă, taguri)
 

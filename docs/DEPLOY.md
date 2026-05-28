@@ -88,7 +88,7 @@ rg -n -i "password|api[_-]?key|secret|SUPABASE_SERVICE_KEY|OPENAI_API_KEY|GEMINI
 git log -p --all | grep -iE "key|secret|password|SUPABASE_SERVICE_KEY|OPENAI_API_KEY|GEMINI_API_KEY|\.env"
 ```
 
-Rezultat audit local: istoricul Git contine o cheie reala `GEMINI_API_KEY` in `LLM/modul-deadlines/.env`. Rotiti cheia imediat din provider si curatati istoricul cu `git filter-repo` sau BFG Repo-Cleaner.
+Rezultat audit local: istoricul Git contine o cheie reala `GEMINI_API_KEY` in `LLM/smart-news-parser/.env`. Rotiti cheia imediat din provider si curatati istoricul cu `git filter-repo` sau BFG Repo-Cleaner.
 
 ## 5. Deploy pe server nou
 

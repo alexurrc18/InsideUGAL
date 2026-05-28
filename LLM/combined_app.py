@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent
-MODUL_DEADLINES = BASE_DIR / "modul-deadlines"
+SMART_NEWS_PARSER = BASE_DIR / "smart-news-parser"
 MODUL_MARIUS = BASE_DIR / "modul-marius"
 
 # Load environment variables from the LLM root .env
@@ -32,17 +32,17 @@ def load_module(name: str, path: Path, extra_paths: list[Path] | None = None):
     finally:
         sys.path[:] = old_sys_path
 
-mod_deadlines_schemas = load_module(
-    "mod_deadlines_schemas",
-    MODUL_DEADLINES / "schemas.py",
-    extra_paths=[MODUL_DEADLINES],
+smart_news_schemas = load_module(
+    "smart_news_schemas",
+    SMART_NEWS_PARSER / "schemas.py",
+    extra_paths=[SMART_NEWS_PARSER],
 )
 old_schemas = sys.modules.get("schemas")
-sys.modules["schemas"] = mod_deadlines_schemas
-mod_deadlines_service = load_module(
-    "mod_deadlines_service",
-    MODUL_DEADLINES / "llm_service.py",
-    extra_paths=[MODUL_DEADLINES],
+sys.modules["schemas"] = smart_news_schemas
+smart_news_service = load_module(
+    "smart_news_service",
+    SMART_NEWS_PARSER / "llm_service.py",
+    extra_paths=[SMART_NEWS_PARSER],
 )
 if old_schemas is None:
     sys.modules.pop("schemas", None)
@@ -73,7 +73,7 @@ if not API_KEY:
 logger = logging.getLogger("llm-integration")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-llm_service = mod_deadlines_service.LLMService(api_key=API_KEY)
+llm_service = smart_news_service.LLMService(api_key=API_KEY)
 
 app = FastAPI(
     title="InsideUGAL LLM Integrated Service",
@@ -107,8 +107,8 @@ def health_check():
     }
 
 
-@app.post("/api/v1/extract-tasks", response_model=mod_deadlines_schemas.ExtractedTaskResponse)
-async def extract_tasks(request: mod_deadlines_schemas.AnnouncementRequest):
+@app.post("/api/v1/extract-tasks", response_model=smart_news_schemas.ExtractedTaskResponse)
+async def extract_tasks(request: smart_news_schemas.AnnouncementRequest):
     try:
         logger.info("Primire cerere extractie task-uri din anunt.")
         return await llm_service.extract_tasks(request.text)
