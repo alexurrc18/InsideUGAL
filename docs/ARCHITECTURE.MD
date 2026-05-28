@@ -20,18 +20,18 @@ graph LR
     %% Domeniul Client
     User((Student / Browser Client)) <-->|HTTPS / TLS v1.3 <br/> Port 443| VIP[Reverse Proxy Expus]
     
-    subgraph InsideUGAL Rețea Virtuală Docker [Rețea Bridge Izolată: insideugal_net]
+    subgraph insideugal_net [Retea Bridge Izolata Docker]
         %% Modul Frontend
         Frontend[Container Serviciu Frontend <br/> • Runtime: Next.js Node Engine <br/> • Port intern: 3000 <br/> • Rol: Virtual DOM / Dashboard Client]:::clientLayer
 
         %% Modul Backend Gateway
-        Backend[Container API Gateway Backend <br/> • Runtime: FastAPI / Python 3.11 <br/> • Port intern: 8000 <br/> • Rol: Logică de Business & Orchestrare Rute]:::gatewayLayer
+        Backend[Container API Gateway Backend <br/> • Runtime: FastAPI / Python 3.11 <br/> • Port intern: 8000 <br/> • Rol: Logica de Business & Orchestrare Rute]:::gatewayLayer
 
-        %% Modul Bază de Date
-        Supabase[(Container Cluster Bază de Date <br/> • Motor: PostgreSQL 15 <br/> • Port intern: 5432 <br/> • Extensii: Ecosystem Spațial PostGIS)]:::dataLayer
+        %% Modul Baza de Date
+        Supabase[(Container Cluster Baza de Date <br/> • Motor: PostgreSQL 15 <br/> • Port intern: 5432 <br/> • Extensii: Ecosystem Spatial PostGIS)]:::dataLayer
 
         %% Modul Inteligență Artificială
-        LLM[Container Motor AI Cognitiv <br/> • Framework: LangChain / Python <br/> • Port intern: 5000 <br/> • Rol: Pipeline RAG & Analiză Embeddings]:::aiLayer
+        LLM[Container Motor AI Cognitiv <br/> • Framework: LangChain / Python <br/> • Port intern: 5000 <br/> • Rol: Pipeline RAG & Analiza Embeddings]:::aiLayer
     end
 
     %% Maparea Fluxurilor Bidirecționale
@@ -39,14 +39,14 @@ graph LR
     
     Frontend <-->|1. Token-uri de Autentificare Bearer <br/> 2. Payload-uri JSON prin Cereri REST| Backend
     
-    Backend <-->|1. Connection Pool / Interogări SQL Native <br/> 2. Evaluare Context Row Level Security| Supabase
+    Backend <-->|1. Connection Pool / Interogari SQL Native <br/> 2. Evaluare Context Row Level Security| Supabase
     
-    Backend <-->|1. Ingestie Interogări Tokenizate <br/> 2. Injectare Obiect Context Normalizat| LLM
+    Backend <-->|1. Ingestie Interogari Tokenizate <br/> 2. Injectare Obiect Context Normalizat| LLM
     
-    LLM <-->|1. Calcule de Distanță Vectorială <br/> 2. Fragmente de Context pentru Generare RAG| Supabase
+    LLM <-->|1. Calcule de Distanta Vectoriala <br/> 2. Fragmente de Context pentru Generare RAG| Supabase
 
     %% Aplicare Clase Structurale
-    class InsideUGAL Rețea Virtuală Docker networkBoundary;
+    class insideugal_net networkBoundary;
 ```
 
 ---
@@ -79,7 +79,7 @@ Aplicarea Securității la Nivel de Rând (RLS): Pentru fiecare fir de conexiune
 
 Evaluarea Spațială: Rulează nativ indexare spațială (structuri de tip R-Tree), returnând instantaneu către backend rezultatele interogărilor de proximitate (ex: calcularea celei mai scurte rute pietonale dintre clădirile UGAL).
 
-D. Stratul de Procesare AI Cognitivă (Nodul de Generare RAG)
+D. Stratul de Processare AI Cognitivă (Nodul de Generare RAG)
 Context Runtime Intern: Motor Python izolat ce găzduiește instrumente de procesare semantică (LangChain), wrapper-e pentru modele de embeddings și vectori de căutare.
 
 Mecanica Interfeței Bidirecționale:
