@@ -1,0 +1,12 @@
+[
+  {
+    "role": "user",
+    "text": "salut",
+    "timestamp": "2026-05-21T09:19:54.935917"
+  },
+  {
+    "role": "model",
+    "text": "Salut! Mă bucur să te aud. Cu ce te pot ajuta astăzi?",
+    "timestamp": "2026-05-21T09:19:54.935928"
+  }
+]

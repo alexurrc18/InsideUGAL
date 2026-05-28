@@ -1,0 +1,4 @@
+llm_cache.db
+chroma_db/
+pdfs_metadata.json
+uploads/
