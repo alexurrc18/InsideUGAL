@@ -2,22 +2,25 @@
 
 ![Gemini AI](https://img.shields.io/badge/AI-Gemini%202.5%20Flash-blueviolet)
 ![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688)
-![Version](https://img.shields.io/badge/Version-2.1.0--Multi--Source-orange)
+![Version](https://img.shields.io/badge/Version-2.2.0--Smart--Logic-orange)
 
 ## 📌 Descriere
 
-Acest microserviciu face parte din platforma **InsideUGAL** și utilizează inteligența artificială (Google Gemini) pentru a extrage date structurate din anunțurile academice. Versiunea **2.1.0 (Multi-Source Ready)** este capabilă să identifice sursa anunțului (Facultate vs. Universitate), publicul țintă și locațiile fizice sau virtuale menționate.
+Acest microserviciu face parte din platforma **InsideUGAL** și utilizează inteligența artificială (Google Gemini) pentru a extrage date structurate din anunțurile academice. Versiunea **2.2.0 (Smart Logic)** introduce suport extins pentru oportunități de carieră și o logică avansată de calcul pentru termene limită.
 
 ---
 
 ## ✨ Funcționalități Cheie
 
-- **Detectare Sursă:** Identifică dacă anunțul vine de la o facultate specifică (ex: ACIEE, FSEAA, SIA) sau de la Rectoratul UGAL (Directia Camine, Social, etc.).
-- **Public Țintă:** Determină grupurile de studenți vizate (ex: "Anul 1", "Masteranzi", "Toți studenții").
-- **Extracție Locație:** Identifică săli, corpuri de clădire (ex: "B21", "Corp D"), platforme online (Teams, Moodle) sau puncte de interes (Secretariat).
-- **Recunoaștere Evenimente:** Clasifică anunțurile în categorii precum proiecte, laboratoare, examene, concursuri sau anunțuri administrative.
-- **Calcul Inteligent Deadline:** Transformă termenele relative (ex: "până vineri", "în perioada 1-7") în date calendaristice precise raportate la momentul curent.
-- **Optimizare Mobile:** Generează rezumate scurte (max 80 caractere) potrivite pentru notificările Push.
+- **Detectare Sursă:** Identifică automat entitatea emitentă (Rectorat, Facultăți, Companii partenere).
+- **Recunoaștere Evenimente (Extinsă):** Clasifică anunțurile în categorii: proiecte, laboratoare, examene, **internships, burse, voluntariat, cazare**, concursuri sau administrativ.
+- **Logică Inteligentă Deadline (v2.2):** 
+  - Gestionează date relative (ex: "până vineri").
+  - Rezolvă contradicții (alege termenul cel mai urgent).
+  - Corectează erori de an (ex: corecție automată din 2024 în viitorul apropiat).
+  - Returnează `null` pentru anunțuri fără termen limită (fără placeholders).
+- **Public Țintă & Locație:** Extracție precisă a grupurilor vizate și a locațiilor (fizice sau digitale).
+- **Optimizare Mobile:** Rezumate telegrafice (max 80 caractere) pentru notificări Push.
 
 ---
 
@@ -77,24 +80,24 @@ Serverul va rula la `http://127.0.0.1:8000`.
 }
 ```
 
-### Exemplu Răspuns (v2.1.0)
+### Exemplu Răspuns (v2.2.0)
 
 ```json
 {
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "data_generare": "2026-05-27T14:30:00.000000",
-  "materie_sau_subiect": "Concurs Severin Bumbaru",
-  "entitate_sursa": "UGAL General",
-  "tip_eveniment": "concurs",
+  "id": "9b80f3a5-9daf-4e5a-875a-5be75d604503",
+  "data_generare": "2026-05-28T10:30:00.000000",
+  "materie_sau_subiect": "Internship Liberty - Scoala de vara",
+  "entitate_sursa": "LIBERTY Galati",
+  "tip_eveniment": "internship",
   "urgenta_estimata": "scazuta",
-  "public_tinta": ["Toti studentii"],
-  "locatie": "Online",
-  "deadline_absolut": "2026-03-20 23:59",
-  "rezumat_notificare": "Inscrieri Concurs Severin Bumbaru pana pe 20.03",
-  "taskuri_extrase": ["Inscriere la concurs"],
-  "penalizari_sau_reguli": ["Inscrierea se face online"],
-  "linkuri_utile": ["https://www.concurssbumbaru.ugal.ro/"],
-  "taguri_cheie": ["Concurs", "IT", "UGAL"]
+  "public_tinta": ["Studenti", "Proaspeti absolventi"],
+  "locatie": null,
+  "deadline_absolut": "2027-04-30 23:59",
+  "rezumat_notificare": "Internship Liberty 'Scoala de vara' 2024. Aplica pana pe 30 aprilie.",
+  "taskuri_extrase": ["Aplica la programul de internship"],
+  "penalizari_sau_reguli": [],
+  "linkuri_utile": ["https://www.libertysteelgroup.com"],
+  "taguri_cheie": ["Internship", "Cariera", "Liberty"]
 }
 ```
 
