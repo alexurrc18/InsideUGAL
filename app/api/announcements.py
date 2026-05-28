@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth_deps import get_current_user
+from app.api.auth_deps import require_admin
 from app.db.database import get_db
 from app.models import models, schemas
 from app.api.crud import ensure_exists
@@ -39,7 +39,7 @@ async def read_announcement(announcement_id: int, session: AsyncSession = Depend
 async def create_announcement(
     announcement_in: schemas.AnnouncementCreate,
     session: AsyncSession = Depends(get_db),
-    current_user: str = Depends(get_current_user),
+    current_user: str = Depends(require_admin),
 ):
     """Adaugă un anunț nou în baza de date (Necesită Autentificare)."""
     await validate_creator(announcement_in, session)
@@ -51,7 +51,7 @@ async def update_announcement(
     announcement_id: int,
     announcement_in: schemas.AnnouncementUpdate,
     session: AsyncSession = Depends(get_db),
-    current_user: str = Depends(get_current_user),
+    current_user: str = Depends(require_admin),
 ):
     """Actualizează datele unui anunț existent (Necesită Autentificare)."""
     announcement = await repo.get_by_id(session, announcement_id)
@@ -66,7 +66,7 @@ async def update_announcement(
 async def delete_announcement(
     announcement_id: int,
     session: AsyncSession = Depends(get_db),
-    current_user: str = Depends(get_current_user),
+    current_user: str = Depends(require_admin),
 ):
     """Șterge un anunț din baza de date (Necesită Autentificare)."""
     announcement = await repo.get_by_id(session, announcement_id)

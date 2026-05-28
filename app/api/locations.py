@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth_deps import get_current_user
+from app.api.auth_deps import require_admin
 from app.db.database import get_db
 from app.models import models, schemas
 from app.api.crud import ensure_exists
@@ -40,7 +40,7 @@ async def read_location(location_id: int, session: AsyncSession = Depends(get_db
 async def create_location(
     location_in: schemas.LocationCreate,
     session: AsyncSession = Depends(get_db),
-    current_user: str = Depends(get_current_user),
+    current_user: str = Depends(require_admin),
 ):
     """Adaugă o locație nouă în baza de date (Necesită Autentificare)."""
     # Validăm ID-ul facultății înainte de inserare
@@ -53,7 +53,7 @@ async def update_location(
     location_id: int,
     location_in: schemas.LocationUpdate,
     session: AsyncSession = Depends(get_db),
-    current_user: str = Depends(get_current_user),
+    current_user: str = Depends(require_admin),
 ):
     """Actualizează datele unei locații existente (Necesită Autentificare)."""
     location = await repo.get_by_id(session, location_id)
@@ -69,7 +69,7 @@ async def update_location(
 async def delete_location(
     location_id: int,
     session: AsyncSession = Depends(get_db),
-    current_user: str = Depends(get_current_user),
+    current_user: str = Depends(require_admin),
 ):
     """Șterge o locație din baza de date (Necesită Autentificare)."""
     location = await repo.get_by_id(session, location_id)

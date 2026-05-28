@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth_deps import get_current_user
+from app.api.auth_deps import require_admin
 from app.db.database import get_db
 from app.models import models, schemas
 from app.api.crud import ensure_exists
@@ -44,7 +44,7 @@ async def read_complaint(complaint_id: int, session: AsyncSession = Depends(get_
 async def create_complaint(
     complaint_in: schemas.ComplaintCreate,
     session: AsyncSession = Depends(get_db),
-    current_user: str = Depends(get_current_user),
+    current_user: str = Depends(require_admin),
 ):
     """Adaugă o sesizare nouă în baza de date (Necesită Autentificare)."""
     # Validăm ID-urile înainte de inserare
@@ -57,7 +57,7 @@ async def update_complaint(
     complaint_id: int,
     complaint_in: schemas.ComplaintUpdate,
     session: AsyncSession = Depends(get_db),
-    current_user: str = Depends(get_current_user),
+    current_user: str = Depends(require_admin),
 ):
     """Actualizează datele unei sesizări existente (Necesită Autentificare)."""
     complaint = await repo.get_by_id(session, complaint_id)
@@ -73,7 +73,7 @@ async def update_complaint(
 async def delete_complaint(
     complaint_id: int,
     session: AsyncSession = Depends(get_db),
-    current_user: str = Depends(get_current_user),
+    current_user: str = Depends(require_admin),
 ):
     """Șterge o sesizare din baza de date (Necesită Autentificare)."""
     complaint = await repo.get_by_id(session, complaint_id)

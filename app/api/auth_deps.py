@@ -5,6 +5,11 @@ from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import ExpiredSignatureError, JWTError, jwt
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.database import get_db
+from app.models.models import Profile, UserRole
 
 load_dotenv()
 
@@ -53,5 +58,21 @@ async def get_current_user(
     user_id = payload.get("sub")
     if not user_id:
         raise _unauthorized()
+
+    return user_id
+
+
+async def require_admin(
+    user_id: str = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> str:
+    result = await session.execute(select(Profile).where(Profile.id == user_id))
+    profile = result.scalars().first()
+
+    if profile is None or profile.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nu ai permisiuni suficiente.",
+        )
 
     return user_id

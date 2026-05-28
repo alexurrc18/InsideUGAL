@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth_deps import get_current_user
+from app.api.auth_deps import require_admin
 from app.db.database import get_db
 from app.models import schemas
 from app.repositories.cafeteria_menu_repo import CafeteriaMenuRepository
@@ -31,7 +31,7 @@ async def read_cafeteria_menu(menu_id: int, session: AsyncSession = Depends(get_
 async def create_cafeteria_menu(
     menu_in: schemas.CafeteriaMenuCreate,
     session: AsyncSession = Depends(get_db),
-    current_user: str = Depends(get_current_user),
+    current_user: str = Depends(require_admin),
 ):
     """Adaugă un meniu nou în baza de date (Necesită Autentificare)."""
     return await repo.create(session, menu_in)
@@ -42,7 +42,7 @@ async def update_cafeteria_menu(
     menu_id: int,
     menu_in: schemas.CafeteriaMenuUpdate,
     session: AsyncSession = Depends(get_db),
-    current_user: str = Depends(get_current_user),
+    current_user: str = Depends(require_admin),
 ):
     """Actualizează datele unui meniu existent (Necesită Autentificare)."""
     menu = await repo.get_by_id(session, menu_id)
@@ -56,7 +56,7 @@ async def update_cafeteria_menu(
 async def delete_cafeteria_menu(
     menu_id: int,
     session: AsyncSession = Depends(get_db),
-    current_user: str = Depends(get_current_user),
+    current_user: str = Depends(require_admin),
 ):
     """Șterge un meniu din baza de date (Necesită Autentificare)."""
     menu = await repo.get_by_id(session, menu_id)
