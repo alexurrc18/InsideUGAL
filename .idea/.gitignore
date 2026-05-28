@@ -1,0 +1,29 @@
+# --- Medii Virtuale ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# --- Baze de date & Configurare ---
+.env
+*.db
+*.sqlite
+*.sqlite3
+
+# --- IDE (JetBrains/VS Code) ---
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# --- Foldere de build/dist (dacă e cazul) ---
+dist/
+build/
+*.egg-info/

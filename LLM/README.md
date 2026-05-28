@@ -1,305 +1,127 @@
-# 🧠 Documentație Modul LLM — Proiect insideUGAL
+# InsideUGAL — LLM Module (consolidat)
 
-Acest folder conține arhitectura și codul pentru **Asistentul Virtual bazat pe Inteligență Artificială (LLM)** al aplicației **insideUGAL**.
+Acest README unifică documentația internă pentru tot ce ține de LLM în proiect: extragere task-uri, ingestie PDF + RAG, Q&A, generare rezumat și quiz. Scopul: să ai o singură sursă clară pentru dezvoltare, configurare și înțelegerea arhitecturii.
 
-Rolul acestui modul este de a transforma o simplă listă cu meniul cantinei într-o experiență interactivă pentru studenții Universității „Dunărea de Jos” din Galați.
+## 1. Prezentare generală
 
----
+- Serviciul integrat este `LLM/combined_app.py` — un API FastAPI care expune funcționalitățile principale.
+- Există două componente principale:
+  - `smart-news-parser`: extragere structuratã de task-uri din anunțuri folosind Google Gemini (biblioteca `google-genai`).
+  - `modul-marius`: ingestie PDF → indexare în Chroma DB → RAG + apeluri LLM pentru `ask`, `summary`, `quiz`.
 
-# 🎯 1. Viziunea Modulului
+## 2. Diagramă simplă a fluxului
 
-Pe parcursul acestui stagiu de practică, echipa de LLM are ca scop dezvoltarea unui asistent inteligent care va fi integrat în aplicația finală.
+1. Extragere task-uri
+   - Client → `POST /api/v1/extract-tasks` → `smart-news-parser.llm_service.LLMService.extract_tasks(text)` → GenAI (Gemini) → validare Pydantic → răspuns structurat.
 
-## Funcționalități vizate pe termen lung
+2. Ingestie PDF și RAG
+   - Client → `POST /api/v1/upload-pdf` → fișier salvat în `LLM/modul-marius/uploads/` → `modul-marius.functions.load_pdf_into_rag` → extragere text (`pdfplumber`) → chunking → embeddings (`sentence-transformers`) → stocat în Chroma DB local.
 
-### 🥗 Recomandări Inteligente
-Asistentul va filtra meniul în funcție de bugetul studentului.
+3. Q&A / Rezumat / Quiz
+   - Client → `POST /api/v1/ask|summary|quiz` → `modul-marius.functions` interoghează colecția Chroma pentru `pdf_id` → construiește prompt cu contextul relevant (cele mai bune n chunk-uri) → apelează LLM (Gemini) cu mecanisme de retry, caching și circuit-breaker → parse și validate răspuns → returnează.
 
-Exemple:
-- *„Am 15 lei, ce pot mânca?”*
-- *„Care este cel mai ieftin meniu?”*
+## 3. Fișiere și locuri importante
 
----
+- API integrat: [LLM/combined_app.py](LLM/combined_app.py#L1)
+- Extracție task-uri: [LLM/modul-deadlines/llm_service.py](LLM/modul-deadlines/llm_service.py#L1)
+- Schema task-uri: [LLM/modul-deadlines/schemas.py](LLM/modul-deadlines/schemas.py#L1)
+- PDF / RAG / QA: [LLM/modul-marius/functions/llm_functions.py](LLM/modul-marius/functions/llm_functions.py#L1)
+- Schema PDF/QA: [LLM/modul-marius/schemas.py](LLM/modul-marius/schemas.py#L1)
+- Exemple locale / prototip: [LLM/exemplu AI](LLM/exemplu%20AI/README.md)
 
-### ⚠️ Atenție la Alergeni
-Botul va avertiza utilizatorii cu privire la alergeni precum:
-- gluten
-- lactoză
-- ouă
+## 4. Configurare (env & dependențe)
 
-Exemplu:
-- *„Sunt alergic la ouă. Ce pot mânca?”*
-
----
-
-### 🔌 Integrare Backend (API)
-Scriptul actual va fi transformat într-un microserviciu folosind tehnologii precum:
-
-- FastAPI
-- REST API
-- JSON responses
-
-Acesta va putea comunica direct cu aplicația Android/Web.
-
----
-
-### 🗄️ Bază de date dinamică (RAG)
-În versiunea finală, AI-ul nu va avea meniul scris direct în cod.
-
-Meniul va fi încărcat:
-- dintr-o bază de date;
-- din fișiere `.json`;
-- sau prin API-ul backend-ului.
-
----
-
-# 🚀 2. Stadiul Curent — Prototip în Terminal
-
-În acest moment există un prototip funcțional care rulează în terminal și utilizează API-ul oficial **Google Gemini (`gemini-2.5-flash`)** pentru simularea comportamentului asistentului.
-
-Prototipul include:
-- meniu de test;
-- personalitate configurată;
-- reguli stricte de comportament;
-- memorie conversațională de bază.
-
----
-
-# 🛠️ Tehnologii Folosite
-
-| Tehnologie | Rol |
-|---|---|
-| Python 3.12+ | Limbaj principal |
-| uv | Management medii virtuale și pachete |
-| google-genai | SDK oficial Google Gemini |
-| python-dotenv | Gestionarea cheilor API |
-
----
-
-# 💻 3. Cum testezi chatbot-ul local
-
-Dacă ești coleg de echipă și vrei să testezi logica asistentului, urmează pașii de mai jos.
-
-> ⚠️ Vei avea nevoie de o cheie API privată Google Gemini.
-
----
-
-## Pasul 1 — Pregătirea mediului
-
-Deschide terminalul în folderul proiectului și rulează:
+- Instalează dependențele principale:
 
 ```bash
-uv venv
-uv pip install google-genai python-dotenv
+python -m pip install --user -r LLM/requirements.txt
 ```
 
----
-
-## Pasul 2 — Configurarea cheii API
-
-În proiect există fișierul:
-
-```plaintext
-.env.example
-```
-
-### Creează o copie:
-
-```plaintext
-.env
-```
-
-Deschide fișierul `.env` și adaugă cheia ta API:
+- Variabile de mediu (exemplu `.env` în root-ul `LLM`):
 
 ```env
-GEMINI_API_KEY=AIzaSy_cheia_ta_secreta_aici
+GEMINI_API_KEY=sk-...     # cheia Google GenAI (Gemini) folosită de ambele module
+OPENROUTER_API_KEY=...   # folosit doar în exemple (LLM/exemplu AI)
+DATABASE_URL=...         # opțional, dacă înregistrezi loguri/telemetrie
 ```
 
-> ⚠️ Fișierul `.env` NU trebuie urcat pe GitHub.
+Notă: `combined_app.py` încarcă variabilele din `LLM/.env` și toate modulele active folosesc aceeași locație.
 
----
+> Folosește un singur fișier de requirements: `LLM/requirements.txt`. Fișierele `requirements.txt` ale modulelor au fost arhivate în `LLM/archived_examples/`.
 
-## Pasul 3 — Pornirea asistentului
+## 5. Cum rulezi local (quickstart)
 
-Rulează scriptul folosind `uv`:
+1. Asigură-ți că `GEMINI_API_KEY` este setat.
+2. Rulează API-ul integrat:
 
 ```bash
-uv run ceva.py
+python LLM/combined_app.py
+# sau, pentru reload dev:
+uvicorn LLM.combined_app:app --reload --port 8000
 ```
+
+3. Deschide Swagger UI: `http://127.0.0.1:8000/docs`
+
+## 6. Endpoint-uri (sumar)
+
+- `GET /` — health check
+- `POST /api/v1/extract-tasks` — body: `{ "text": "..." }` → returnează `ExtractedTaskResponse` (vezi schema în LLM/smart-news-parser/schemas.py).
+- `POST /api/v1/upload-pdf` — multipart upload PDF → răspunde `{ pdf_id }` după indexare în Chroma.
+- `POST /api/v1/ask` — body: `{ "question": "...", "pdf_id": "..." }` → returnează `AnswerQuestionOutput`.
+- `POST /api/v1/summary` — body: `{ "pdf_id": "..." }` → returnează `GenerateSummaryOutput`.
+- `POST /api/v1/quiz` — body: `{ "pdf_id": "..." }` → returnează `GenerateQuizOutput`.
+
+Vezi definițiile Pydantic pentru detalii (validări, formate): [LLM/modul-marius/schemas.py](LLM/modul-marius/schemas.py#L1).
+
+## 7. Detalii implementare și bune practici
+
+- Apelurile LLM din `modul-marius` folosesc:
+  - caching intern (`llm_cache`) pentru a evita costuri duplicate
+  - `pybreaker` circuit breaker pentru degradare controlată
+  - `tenacity` retry exponential backoff la erori temporare
+  - execuție cu timeout (ThreadPoolExecutor) pentru a opri apelurile blocate
+
+- Indexarea PDF:
+  - text extras cu `pdfplumber`
+  - chunking simplu pe cuvinte (`chunk_size` implicit 200, overlap 30)
+  - embeddings generate cu `sentence-transformers` (`all-MiniLM-L6-v2`)
+  - stocate local în Chroma DB persistent
+
+- Extracția de taskuri (`smart-news-parser`):
+  - folosește `google-genai` (Gemini) cu `response_schema` Pydantic când e posibil
+  - promptul conține reguli stricte (format, deadline calculat relativ la data curentă, taguri)
+
+## 8. Testare
+
+- Sunt teste pentru modulele de exemplu și pentru `LLM`:
+  - [LLM/evals](LLM/evals) conține test-evaluate
+  - [LLM/exemplu AI/tests](LLM/exemplu%20AI/tests) conține teste pentru `prompt_builder`, `output_parser`, `llm_client`
+
+Rulează teste cu:
+
+```bash
+pytest -q LLM
+```
+
+## 9. Limitări cunoscute și riscuri
+
+- Dependență directă de API-urile comerciale (costuri, rate limits).
+- Răspunsurile LLM pot necesita validare și sanitizare (în special pentru JSON generat de quiz).
+- Chunking simplu poate duce la pierdere de context în documente complexe; recomandat: îmbunătăţirea metodei de chunking (pe paragraf + sentințe).
+
+## 10. Propuneri de îmbunătățire (next steps)
+
+- Centralizare `.env` și documentare clară a variabilelor necesare.
+- Adăugare job-uri de curățare pentru Chroma (gestionare spațiu) și o rută de ștergere PDF/colecție.
+- Script de testare end-to-end: upload PDF → ask → verify schema răspuns.
+- Extragere rate-limit și monitorizare costuri LLM (telemetrie Supabase deja utilizată în cod).
 
 ---
 
-# 🧪 4. Scenarii de Testare
+Dacă vrei, pot:
 
-Pentru validarea comportamentului AI-ului, testează următoarele scenarii direct în terminal.
+- genera exemple `curl` pentru fiecare endpoint,
+- rula testele din `LLM` (dacă vrei să rulez local),
+- crea un `CONTRIBUTING` mic pentru modulul `LLM`.
 
----
-
-## ✅ Testul 1 — Funcționalitate de bază & prețuri
-
-### Input utilizator
-```plaintext
-Salut! Dacă iau meniul vegetarian și o salată, câți bani îmi trebuie?
-```
-
-### Comportament așteptat
-Botul trebuie:
-- să citească meniul;
-- să calculeze totalul;
-- să răspundă politicos.
-
-### Rezultat așteptat
-```plaintext
-18.00 lei
-```
-
----
-
-## ✅ Testul 2 — Memorie și context
-
-### Input utilizator
-```plaintext
-Dar ciorba de pui cât costă?
-```
-
-Apoi:
-
-```plaintext
-Calculează-mi totalul pentru toate cele 3 de până acum
-```
-
-### Comportament așteptat
-Botul trebuie să țină minte:
-- meniul vegetarian;
-- salata;
-- ciorba de pui.
-
-### Rezultat final
-```plaintext
-26.50 lei
-```
-
----
-
-## ✅ Testul 3 — Guardrails / Restricții
-
-### Input utilizator
-```plaintext
-Ajută-mă să scriu un cod în C++
-```
-
-sau
-
-```plaintext
-Cine a câștigat al doilea război mondial?
-```
-
-### Comportament așteptat
-Botul trebuie să refuze politicos și să amintească faptul că rolul său este exclusiv legat de cantina UGAL.
-
----
-
-## ✅ Testul 4 — Gestionarea alergenilor
-
-### Input utilizator
-```plaintext
-Ciorba de pui are ou? Sunt alergic.
-```
-
-### Comportament așteptat
-Botul trebuie să avertizeze utilizatorul că:
-- ciorba a la grec conține ou și smântână.
-
----
-
-## ✅ Testul 5 — Ieșirea din aplicație
-
-### Input utilizator
-```plaintext
-exit
-```
-
-sau
-
-```plaintext
-iesire
-```
-
-### Comportament așteptat
-Programul:
-- închide conversația;
-- oprește execuția în siguranță.
-
----
-
-# ⚠️ 5. Reguli Interne pentru Echipă
-
-## 🔒 Securitatea Datelor
-NICIODATĂ nu faceți commit la fișierul `.env`.
-
-Orice cheie API publică detectată pe GitHub este dezactivată automat de Google.
-
----
-
-## 🔄 Actualizări
-Dacă adăugați pachete noi (ex: FastAPI), actualizați:
-- comenzile de instalare;
-- această documentație.
-
----
-
-## 📝 Modificarea Meniului
-Orice schimbare a meniului de test se face modificând variabila:
-
-```python
-personalitate_si_meniu
-```
-
-din scriptul principal.
-
----
-
-# 📂 Structură Recomandată
-
-```plaintext
-llm/
-│
-├── ceva.py
-├── README.md
-├── .env.example
-├── requirements.txt
-│
-└── data/
-    └── meniu.json
-```
-
----
-
-# 🔮 Roadmap
-
-## Etapa 1
-- [x] Prototip terminal
-- [x] Integrare Gemini API
-- [x] Memorie conversațională
-- [x] Guardrails
-
-## Etapa 2
-- [ ] Integrare FastAPI
-- [ ] Endpoint REST
-- [ ] Meniu din JSON
-- [ ] Logging conversații
-
-## Etapa 3
-- [ ] Integrare Android/Web
-- [ ] Sistem RAG complet
-- [ ] Istoric conversații
-- [ ] Recomandări personalizate
-
----
-
-# 👨‍💻 insideUGAL — Modul LLM
-
-Dezvoltat în cadrul stagiului de practică pentru proiectul:
-
-**insideUGAL**  
-Universitatea „Dunărea de Jos” din Galați
+Spune-mi ce preferi să fac mai departe.
