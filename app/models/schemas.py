@@ -1,9 +1,10 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Any
+import re
+import struct
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, field_serializer
+from pydantic import BaseModel, ConfigDict, field_serializer, field_validator
 
 from app.models.models import ComplaintStatus, UserRole
 
@@ -62,10 +63,51 @@ class FacultyResponse(FacultyBase):
     updated_at: datetime
 
 
+class Coordinates(BaseModel):
+    lat: float
+    lon: float
+
+
+def _parse_point_coordinates(coordinates: object) -> Coordinates | None:
+    raw_data = getattr(coordinates, "data", None)
+
+    if raw_data is not None:
+        if isinstance(raw_data, str):
+            data = bytes.fromhex(raw_data)
+        else:
+            data = bytes(raw_data)
+
+        if len(data) < 21:
+            return None
+
+        byte_order = "<" if data[0] == 1 else ">"
+        geometry_type = struct.unpack(f"{byte_order}I", data[1:5])[0]
+        has_srid = bool(geometry_type & 0x20000000)
+        base_geometry_type = geometry_type & 0x000000FF
+
+        if base_geometry_type != 1:
+            return None
+
+        offset = 9 if has_srid else 5
+        lon, lat = struct.unpack(f"{byte_order}dd", data[offset : offset + 16])
+        return Coordinates(lat=lat, lon=lon)
+
+    match = re.fullmatch(
+        r"POINT\s*\(\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*\)",
+        str(coordinates),
+        flags=re.IGNORECASE,
+    )
+    if match is None:
+        return None
+
+    lon, lat = match.groups()
+    return Coordinates(lat=float(lat), lon=float(lon))
+
+
 class LocationBase(BaseModel):
     name: str
     address: str | None = None
-    coordinates: Any | None = None
+    coordinates: Coordinates | None = None
     faculty_id: int | None = None
 
 
@@ -76,7 +118,7 @@ class LocationCreate(LocationBase):
 class LocationUpdate(BaseModel):
     name: str | None = None
     address: str | None = None
-    coordinates: Any | None = None
+    coordinates: Coordinates | None = None
     faculty_id: int | None = None
 
 
@@ -87,11 +129,26 @@ class LocationResponse(LocationBase):
     created_at: datetime
     updated_at: datetime
 
-    @field_serializer("coordinates")
-    def serialize_coordinates(self, coordinates: Any | None) -> str | None:
+    @field_validator("coordinates", mode="before")
+    @classmethod
+    def validate_coordinates(cls, coordinates: object) -> Coordinates | None:
         if coordinates is None:
             return None
-        return str(coordinates)
+        if isinstance(coordinates, Coordinates):
+            return coordinates
+        if isinstance(coordinates, dict):
+            return Coordinates.model_validate(coordinates)
+
+        return _parse_point_coordinates(coordinates)
+
+    @field_serializer("coordinates")
+    def serialize_coordinates(
+        self,
+        coordinates: Coordinates | None,
+    ) -> dict[str, float] | None:
+        if coordinates is None:
+            return None
+        return coordinates.model_dump()
 
 
 class CafeteriaMenuBase(BaseModel):

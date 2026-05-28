@@ -10,7 +10,11 @@ import app.api.complaints as complaints
 import app.api.faculties as faculties
 import app.api.locations as locations
 import app.api.profiles as profiles
-from app.api.errors import http_exception_handler, validation_exception_handler
+from app.api.errors import (
+    global_exception_handler,
+    http_exception_handler,
+    validation_exception_handler,
+)
 
 # Configurare logger pentru middleware
 logging.basicConfig(level=logging.INFO)
@@ -21,6 +25,7 @@ app = FastAPI(
     description="REST API pentru platforma academica InsideUGAL.",
     version="0.1.0",
     exception_handlers={
+        Exception: global_exception_handler,
         StarletteHTTPException: http_exception_handler,
         RequestValidationError: validation_exception_handler,
     }

@@ -41,3 +41,20 @@ async def validation_exception_handler(
         },
         media_type="application/problem+json",
     )
+
+
+async def global_exception_handler(
+    request: Request,
+    _exc: Exception,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "type": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500",
+            "title": "Internal Server Error",
+            "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "detail": "An unexpected error occurred.",
+            "instance": request.url.path,
+        },
+        media_type="application/problem+json",
+    )
