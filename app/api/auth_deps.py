@@ -1,47 +1,53 @@
 import os
+from typing import Any
+
+from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import ExpiredSignatureError, JWTError, jwt
 
-SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET")
-if not SUPABASE_JWT_SECRET:
-    raise RuntimeError(
-        "SUPABASE_JWT_SECRET nu este setat. Definiți-l în .env "
-        "(local) sau în Coolify Environment (deploy). Aplicația "
-        "nu pornește fără secret real."
-    )
+load_dotenv()
 
 JWT_ALGORITHM = "HS256"
-security = HTTPBearer()
+oauth2_scheme = HTTPBearer(auto_error=False)
+
+
+def _unauthorized(detail: str = "Invalid authentication credentials.") -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail=detail,
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+def verify_supabase_token(token: str) -> dict[str, Any]:
+    jwt_secret = os.environ.get("SUPABASE_JWT_SECRET")
+    if not jwt_secret:
+        raise RuntimeError("SUPABASE_JWT_SECRET is not configured.")
+
+    return jwt.decode(
+        token,
+        jwt_secret,
+        algorithms=[JWT_ALGORITHM],
+        audience="authenticated",
+    )
+
 
 async def get_current_user(
-    token: HTTPAuthorizationCredentials = Depends(security),
+    token: HTTPAuthorizationCredentials | None = Depends(oauth2_scheme),
 ) -> str:
+    if token is None:
+        raise _unauthorized("Missing authentication token.")
+
     try:
-        payload = jwt.decode(
-            token.credentials,
-            SUPABASE_JWT_SECRET,
-            algorithms=[JWT_ALGORITHM],
-        )
+        payload = verify_supabase_token(token.credentials)
     except ExpiredSignatureError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token expired",
-            headers={"WWW-Authenticate": "Bearer"},
-        ) from exc
+        raise _unauthorized("Token expired.") from exc
     except JWTError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired authentication token.",
-            headers={"WWW-Authenticate": "Bearer"},
-        ) from exc
+        raise _unauthorized("Invalid or expired authentication token.") from exc
 
     user_id = payload.get("sub")
     if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise _unauthorized()
 
     return user_id
