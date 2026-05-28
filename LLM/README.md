@@ -6,7 +6,7 @@ Acest README unifică documentația internă pentru tot ce ține de LLM în proi
 
 - Serviciul integrat este `LLM/combined_app.py` — un API FastAPI care expune funcționalitățile principale.
 - Există două componente principale:
-  - `smart-news-parser`: extragere structuratã de task-uri din anunțuri folosind Google Gemini (biblioteca `google-genai`).
+  - `smart-news-parser`: extragere structurată de task-uri din anunțuri (v2.2.0 - Smart Logic) (biblioteca `google-genai`).
   - `modul-marius`: ingestie PDF → indexare în Chroma DB → RAG + apeluri LLM pentru `ask`, `summary`, `quiz`.
 
 ## 2. Diagramă simplă a fluxului
@@ -23,8 +23,8 @@ Acest README unifică documentația internă pentru tot ce ține de LLM în proi
 ## 3. Fișiere și locuri importante
 
 - API integrat: [LLM/combined_app.py](LLM/combined_app.py#L1)
-- Extracție task-uri: [LLM/modul-deadlines/llm_service.py](LLM/modul-deadlines/llm_service.py#L1)
-- Schema task-uri: [LLM/modul-deadlines/schemas.py](LLM/modul-deadlines/schemas.py#L1)
+- Extracție task-uri: [LLM/smart-news-parser/llm_service.py](LLM/smart-news-parser/llm_service.py#L1)
+- Schema task-uri: [LLM/smart-news-parser/schemas.py](LLM/smart-news-parser/schemas.py#L1)
 - PDF / RAG / QA: [LLM/modul-marius/functions/llm_functions.py](LLM/modul-marius/functions/llm_functions.py#L1)
 - Schema PDF/QA: [LLM/modul-marius/schemas.py](LLM/modul-marius/schemas.py#L1)
 - Exemple locale / prototip: [LLM/exemplu AI](LLM/exemplu%20AI/README.md)
@@ -65,7 +65,7 @@ uvicorn LLM.combined_app:app --reload --port 8000
 ## 6. Endpoint-uri (sumar)
 
 - `GET /` — health check
-- `POST /api/v1/extract-tasks` — body: `{ "text": "..." }` → returnează `ExtractedTaskResponse` (vezi schema în LLM/smart-news-parser/schemas.py).
+- `POST /api/v1/extract-tasks` — body: `{ "text": "..." }` → returnează `ExtractedTaskResponse` (v2.2: suport internships, burse, cazare + logică smart de deadline).
 - `POST /api/v1/upload-pdf` — multipart upload PDF → răspunde `{ pdf_id }` după indexare în Chroma.
 - `POST /api/v1/ask` — body: `{ "question": "...", "pdf_id": "..." }` → returnează `AnswerQuestionOutput`.
 - `POST /api/v1/summary` — body: `{ "pdf_id": "..." }` → returnează `GenerateSummaryOutput`.
@@ -89,7 +89,7 @@ Vezi definițiile Pydantic pentru detalii (validări, formate): [LLM/modul-mariu
 
 - Extracția de taskuri (`smart-news-parser`):
   - folosește `google-genai` (Gemini) cu `response_schema` Pydantic când e posibil
-  - promptul conține reguli stricte (format, deadline calculat relativ la data curentă, taguri)
+  - promptul conține Smart Logic (v2.2) pentru termene relative, contradicții, corecție de an și categorii noi (internship, burse, cazare)
 
 ## 8. Testare
 
