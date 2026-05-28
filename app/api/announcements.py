@@ -1,5 +1,11 @@
+import os
+import uuid
+from pathlib import Path
+from urllib.parse import quote
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+
+import httpx
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -44,6 +50,45 @@ async def create_announcement(
     """Adaugă un anunț nou în baza de date (Necesită Autentificare)."""
     await validate_creator(announcement_in, session)
     return await repo.create(session, announcement_in)
+
+
+@router.post("/upload-image/")
+async def upload_announcement_image(
+    file: UploadFile = File(...),
+    current_user: str = Depends(require_admin),
+):
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
+
+    if not supabase_url or not supabase_key:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Supabase Storage is not configured.",
+        )
+
+    safe_filename = Path(file.filename or "upload").name
+    unique_filename = f"{uuid.uuid4()}-{safe_filename}"
+    encoded_filename = quote(unique_filename)
+    upload_url = f"{supabase_url.rstrip('/')}/storage/v1/object/announcements/{encoded_filename}"
+    public_url = f"{supabase_url.rstrip('/')}/storage/v1/object/public/announcements/{encoded_filename}"
+
+    file_content = await file.read()
+    headers = {
+        "apikey": supabase_key,
+        "Authorization": f"Bearer {supabase_key}",
+        "Content-Type": file.content_type or "application/octet-stream",
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(upload_url, headers=headers, content=file_content)
+
+    if response.status_code >= 400:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Image upload failed.",
+        )
+
+    return {"image_url": public_url}
 
 
 @router.put("/{announcement_id}", response_model=schemas.AnnouncementResponse)
