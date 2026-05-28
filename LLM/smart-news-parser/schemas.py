@@ -22,7 +22,7 @@ class NivelUrgenta(str, Enum):
 class AnnouncementRequest(BaseModel):
     text: str = Field(..., min_length=10, max_length=5000, description="Textul brut al anuntului")
 
-class GeminiTaskOutput(BaseModel):
+class GeminiAnnouncementInfo(BaseModel):
     """Schema extinsa pentru datele extrase direct de LLM, adaptata pentru UGAL/Facultati"""
     materie_sau_subiect: str = Field(description="Numele materiei sau subiectul administrativ (ex: 'Baze de Date', 'Camine', 'Transport')")
     entitate_sursa: str = Field(description="Facultatea sau departamentul sursa (ex: 'ACIEE', 'FSEAA', 'SIA', 'Rectorat', 'Secretariat')")
@@ -34,13 +34,13 @@ class GeminiTaskOutput(BaseModel):
     locatie: Optional[str] = Field(None, description="Sala, corpul sau platforma online (ex: 'B21', 'Microsoft Teams')")
     
     rezumat_notificare: str = Field(description="Text de max 80 caractere pentru notificari Push")
-    taskuri_extrase: List[str] = Field(description="Lista cu actiuni concrete de facut")
+    actiuni_extrase: List[str] = Field(description="Lista cu actiuni concrete de facut")
     penalizari_sau_reguli: List[str] = Field(default=[], description="Reguli sau penalizari mentionate")
     
     linkuri_utile: List[str] = Field(default=[], description="URL-uri detectate in text")
     taguri_cheie: List[str] = Field(description="Etichete pentru UI (ex: 'Important', 'Urgent', 'Online')")
 
-class ExtractedTaskResponse(GeminiTaskOutput):
+class ExtractedAnnouncementInfo(GeminiAnnouncementInfo):
     """Schema completa pentru raspunsul API, include metadate de sistem"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     data_generare: str = Field(default_factory=lambda: datetime.now().isoformat())

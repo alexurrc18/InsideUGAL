@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from schemas import AnnouncementRequest, ExtractedTaskResponse
+from schemas import AnnouncementRequest, ExtractedAnnouncementInfo
 from llm_service import LLMService
 
 # ---------------------------------------------------------
@@ -16,7 +16,7 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S"
 )
-logger = logging.getLogger("smart-task-extractor-mobile")
+logger = logging.getLogger("smart-announcement-parser")
 
 # ---------------------------------------------------------
 # 1. INITIALIZARE
@@ -37,14 +37,14 @@ llm_service = LLMService(api_key=API_KEY)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("🚀 Smart Task Extractor v2.1 (Multi-Source Ready) a pornit...")
+    logger.info("🚀 Smart Announcement Parser v2.2 a pornit...")
     yield
     logger.info("🛑 Modulul se opreste...")
 
 app = FastAPI(
-    title="InsideUGAL - Smart Task Extractor API",
-    description="Middleware AI pentru extragerea datelor din anunturi UGAL (Facultate vs Universitate).",
-    version="2.1.0",
+    title="InsideUGAL - Smart Announcement Parser API",
+    description="Middleware AI pentru extragerea datelor structurate din anunturi UGAL.",
+    version="2.2.0",
     lifespan=lifespan
 )
 
@@ -63,19 +63,19 @@ app.add_middleware(
 def health_check():
     return {
         "status": "ok",
-        "service": "Smart Task Extractor v2.1",
-        "capabilities": ["Multi-Source Detection", "Target Audience Extraction", "Location Parsing"]
+        "service": "Smart Announcement Parser v2.2",
+        "capabilities": ["Source Detection", "Deadline Calculation", "Target Audience Extraction"]
     }
 
-@app.post("/api/v1/extract-tasks", response_model=ExtractedTaskResponse)
-async def extract_tasks(request: AnnouncementRequest):
+@app.post("/api/v1/extract-announcement-info", response_model=ExtractedAnnouncementInfo)
+async def extract_announcement_info(request: AnnouncementRequest):
     """
     Endpoint principal care primeste textul brut al unui anunt
-    si returneaza date structurate optimizate pentru widget-uri si notificari.
+    si returneaza date structurate optimizate pentru aplicatie.
     """
     try:
-        logger.info(f"📥 Primire cerere extractie: {request.text[:50]}...")
-        result = await llm_service.extract_tasks(request.text)
+        logger.info(f"📥 Primire cerere extractie info-anunt: {request.text[:50]}...")
+        result = await llm_service.extract_announcement_info(request.text)
         return result
     except Exception as e:
         logger.error(f"❌ Eroare la procesarea anuntului: {str(e)}", exc_info=True)

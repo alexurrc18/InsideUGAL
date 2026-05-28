@@ -1,7 +1,7 @@
 """
 Task 4.1 — Test End-to-End pe fluxul RAG (combined_app FastAPI)
 Task 4.2 — Test Rezilienta Circuit Breaker / Chaos Engineering
-Task 4.3 — Test Smart News Parser (extract-tasks endpoint)
+Task 4.3 — Smart News Parser (extract-announcement-info endpoint)
 
 Rulare: pytest LLM/evals/test_rag_e2e.py -v -m eval
 """
@@ -199,7 +199,7 @@ class TestCircuitBreaker:
 
 
 # ════════════════════════════════════════════════════════════════
-# Task 4.3 — Smart News Parser: /api/v1/extract-tasks
+# Task 4.3 — Smart News Parser: /api/v1/extract-announcement-info
 # ════════════════════════════════════════════════════════════════
 
 ANUNT_TEST = (
@@ -215,67 +215,67 @@ ANUNT_SCURT = "Secretariatul anunta ca depunerea cererilor de bursa se face pana
 @pytest.mark.eval
 class TestSmartNewsParser:
 
-    def test_extract_tasks_returneaza_200(self, http):
-        resp = http.post("/api/v1/extract-tasks", json={"text": ANUNT_TEST})
+    def test_extract_announcement_info_returneaza_200(self, http):
+        resp = http.post("/api/v1/extract-announcement-info", json={"text": ANUNT_TEST})
         assert resp.status_code == 200
 
-    def test_extract_tasks_schema_contine_campuri_obligatorii(self, http):
-        resp = http.post("/api/v1/extract-tasks", json={"text": ANUNT_TEST})
+    def test_extract_announcement_info_schema_contine_campuri_obligatorii(self, http):
+        resp = http.post("/api/v1/extract-announcement-info", json={"text": ANUNT_TEST})
         assert resp.status_code == 200
         data = resp.json()
         campuri_obligatorii = [
             "materie_sau_subiect", "entitate_sursa", "tip_eveniment",
             "urgenta_estimata", "public_tinta", "rezumat_notificare",
-            "taskuri_extrase", "taguri_cheie", "id", "data_generare",
+            "actiuni_extrase", "taguri_cheie", "id", "data_generare",
         ]
         for camp in campuri_obligatorii:
             assert camp in data, f"Camp lipsa din raspuns: {camp}"
 
-    def test_extract_tasks_tip_eveniment_valid(self, http):
-        resp = http.post("/api/v1/extract-tasks", json={"text": ANUNT_TEST})
+    def test_extract_announcement_info_tip_eveniment_valid(self, http):
+        resp = http.post("/api/v1/extract-announcement-info", json={"text": ANUNT_TEST})
         assert resp.status_code == 200
         tip = resp.json()["tip_eveniment"]
         tipuri_valide = {"proiect", "laborator", "partial", "colocviu",
                          "examen", "concurs", "anunt_general", "administrativ"}
         assert tip in tipuri_valide, f"tip_eveniment invalid: {tip}"
 
-    def test_extract_tasks_urgenta_valida(self, http):
-        resp = http.post("/api/v1/extract-tasks", json={"text": ANUNT_TEST})
+    def test_extract_announcement_info_urgenta_valida(self, http):
+        resp = http.post("/api/v1/extract-announcement-info", json={"text": ANUNT_TEST})
         assert resp.status_code == 200
         urgenta = resp.json()["urgenta_estimata"]
         assert urgenta in {"ridicata", "medie", "scazuta"}
 
-    def test_extract_tasks_rezumat_max_80_caractere(self, http):
-        resp = http.post("/api/v1/extract-tasks", json={"text": ANUNT_TEST})
+    def test_extract_announcement_info_rezumat_max_80_caractere(self, http):
+        resp = http.post("/api/v1/extract-announcement-info", json={"text": ANUNT_TEST})
         assert resp.status_code == 200
         rezumat = resp.json()["rezumat_notificare"]
         assert len(rezumat) <= 80, f"Rezumatul depaseste 80 caractere: {len(rezumat)}"
 
-    def test_extract_tasks_taskuri_extrase_nevide(self, http):
-        resp = http.post("/api/v1/extract-tasks", json={"text": ANUNT_TEST})
+    def test_extract_announcement_info_actiuni_extrase_nevide(self, http):
+        resp = http.post("/api/v1/extract-announcement-info", json={"text": ANUNT_TEST})
         assert resp.status_code == 200
-        taskuri = resp.json()["taskuri_extrase"]
+        taskuri = resp.json()["actiuni_extrase"]
         assert isinstance(taskuri, list)
         assert len(taskuri) > 0
 
-    def test_extract_tasks_public_tinta_lista(self, http):
-        resp = http.post("/api/v1/extract-tasks", json={"text": ANUNT_TEST})
+    def test_extract_announcement_info_public_tinta_lista(self, http):
+        resp = http.post("/api/v1/extract-announcement-info", json={"text": ANUNT_TEST})
         assert resp.status_code == 200
         assert isinstance(resp.json()["public_tinta"], list)
 
-    def test_extract_tasks_id_este_uuid(self, http):
-        resp = http.post("/api/v1/extract-tasks", json={"text": ANUNT_TEST})
+    def test_extract_announcement_info_id_este_uuid(self, http):
+        resp = http.post("/api/v1/extract-announcement-info", json={"text": ANUNT_TEST})
         assert resp.status_code == 200
         id_val = resp.json()["id"]
         assert len(id_val) == 36 and id_val.count("-") == 4
 
-    def test_extract_tasks_text_prea_scurt_returneaza_422(self, http):
-        resp = http.post("/api/v1/extract-tasks", json={"text": "scurt"})
+    def test_extract_announcement_info_text_prea_scurt_returneaza_422(self, http):
+        resp = http.post("/api/v1/extract-announcement-info", json={"text": "scurt"})
         assert resp.status_code == 422
 
-    def test_extract_tasks_anunt_diferit_rezultat_diferit(self, http):
-        resp1 = http.post("/api/v1/extract-tasks", json={"text": ANUNT_TEST})
-        resp2 = http.post("/api/v1/extract-tasks", json={"text": ANUNT_SCURT})
+    def test_extract_announcement_info_anunt_diferit_rezultat_diferit(self, http):
+        resp1 = http.post("/api/v1/extract-announcement-info", json={"text": ANUNT_TEST})
+        resp2 = http.post("/api/v1/extract-announcement-info", json={"text": ANUNT_SCURT})
         assert resp1.status_code == 200
         assert resp2.status_code == 200
         assert resp1.json()["materie_sau_subiect"] != resp2.json()["materie_sau_subiect"]

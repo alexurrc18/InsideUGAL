@@ -100,7 +100,7 @@ def health_check():
         "status": "ok",
         "service": "InsideUGAL LLM Integrated Service",
         "endpoints": [
-            "/api/v1/extract-tasks",
+            "/api/v1/extract-announcement-info",
             "/api/v1/upload-pdf",
             "/api/v1/ask",
             "/api/v1/summary",
@@ -110,13 +110,13 @@ def health_check():
     }
 
 
-@app.post("/api/v1/extract-tasks", response_model=smart_news_schemas.ExtractedTaskResponse)
-async def extract_tasks(request: smart_news_schemas.AnnouncementRequest):
+@app.post("/api/v1/extract-announcement-info", response_model=smart_news_schemas.ExtractedAnnouncementInfo)
+async def extract_announcement_info(request: smart_news_schemas.AnnouncementRequest):
     try:
-        logger.info("Primire cerere extractie task-uri din anunt.")
-        return await llm_service.extract_tasks(request.text)
+        logger.info("Primire cerere extractie info-anunt.")
+        return await llm_service.extract_announcement_info(request.text)
     except Exception as exc:
-        logger.error("Eroare la extragerea task-urilor: %s", exc)
+        logger.error("Eroare la extragerea informatiilor din anunt: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
 
 
