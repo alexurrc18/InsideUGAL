@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth_deps import require_admin
+from app.api.auth_deps import get_current_user, require_admin
 from app.db.database import get_db
 from app.models import models, schemas
 from app.api.crud import ensure_exists
@@ -44,7 +44,7 @@ async def read_complaint(complaint_id: int, session: AsyncSession = Depends(get_
 async def create_complaint(
     complaint_in: schemas.ComplaintCreate,
     session: AsyncSession = Depends(get_db),
-    current_user: str = Depends(require_admin),
+    current_user: str = Depends(get_current_user),
 ):
     """Adaugă o sesizare nouă în baza de date (Necesită Autentificare)."""
     # Validăm ID-urile înainte de inserare

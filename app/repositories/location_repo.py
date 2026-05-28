@@ -2,7 +2,30 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.models import Location
-from app.models.schemas import LocationCreate, LocationUpdate
+from app.models.schemas import Coordinates, LocationCreate, LocationUpdate
+
+
+def _coordinates_to_ewkt(coordinates: Coordinates | dict[str, float] | None) -> str | None:
+    if coordinates is None:
+        return None
+
+    if isinstance(coordinates, dict):
+        lat = coordinates["lat"]
+        lon = coordinates["lon"]
+    else:
+        lat = coordinates.lat
+        lon = coordinates.lon
+
+    return f"SRID=4326;POINT({lon} {lat})"
+
+
+def _serialize_location_data(location_in: LocationCreate | LocationUpdate, *, exclude_unset: bool) -> dict:
+    data = location_in.model_dump(exclude_unset=exclude_unset)
+
+    if "coordinates" in data:
+        data["coordinates"] = _coordinates_to_ewkt(data["coordinates"])
+
+    return data
 
 
 class LocationRepository:
@@ -19,7 +42,7 @@ class LocationRepository:
         return result.scalars().first()
 
     async def create(self, session: AsyncSession, location_in: LocationCreate) -> Location:
-        db_location = Location(**location_in.model_dump())
+        db_location = Location(**_serialize_location_data(location_in, exclude_unset=False))
         
         session.add(db_location)
         await session.commit()
@@ -28,7 +51,7 @@ class LocationRepository:
         return db_location
 
     async def update(self, session: AsyncSession, db_location: Location, location_in: LocationUpdate) -> Location:
-        update_data = location_in.model_dump(exclude_unset=True)
+        update_data = _serialize_location_data(location_in, exclude_unset=True)
         
         for key, value in update_data.items():
             setattr(db_location, key, value)
