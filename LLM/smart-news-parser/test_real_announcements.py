@@ -88,7 +88,7 @@ Virarea sumelor în conturile studenților se efectuează până în ultima zi a
     for ann in announcements:
         print(f"\n🚀 Testare: {ann['name']}...")
         try:
-            result = await service.extract_tasks(ann['text'])
+            result = await service.extract_announcement_info(ann['text'])
             print(f"✅ Rezultat pentru {ann['name']}:")
             print(json.dumps(result.model_dump(), indent=2, ensure_ascii=False))
         except Exception as e:

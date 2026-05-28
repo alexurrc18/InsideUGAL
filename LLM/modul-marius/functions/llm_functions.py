@@ -123,14 +123,56 @@ def detect_language(text: str) -> str:
         return "ro"
 
 
-def chunk_text(text: str, chunk_size: int = 200, overlap: int = 30) -> list:
-    words = text.split()
-    chunks = []
-    i = 0
-    while i < len(words):
-        chunks.append(" ".join(words[i : i + chunk_size]))
-        i += chunk_size - overlap
-    return chunks
+def chunk_text(text: str, max_words: int = 200, overlap_words: int = 30) -> list:
+    """Chunking inteligent: paragraf → propoziție → cuvinte ca fallback.
+    Păstrează contextul semantic nealterat față de tăierea brutală la N cuvinte.
+    """
+    import re
+
+    paragraphs = [p.strip() for p in re.split(r"\n{2,}", text) if p.strip()]
+
+    raw_chunks: list[str] = []
+
+    for para in paragraphs:
+        words = para.split()
+        if not words:
+            continue
+        if len(words) <= max_words:
+            raw_chunks.append(para)
+        else:
+            # Paragraful e prea lung — împarte în propoziții
+            sentences = re.split(r"(?<=[.!?])\s+", para)
+            current: list[str] = []
+            for sent in sentences:
+                sent_words = sent.split()
+                if len(current) + len(sent_words) <= max_words:
+                    current.extend(sent_words)
+                else:
+                    if current:
+                        raw_chunks.append(" ".join(current))
+                    if len(sent_words) <= max_words:
+                        current = sent_words
+                    else:
+                        # Propoziție uriașă — fallback word split
+                        for i in range(0, len(sent_words), max_words):
+                            raw_chunks.append(" ".join(sent_words[i : i + max_words]))
+                        current = []
+            if current:
+                raw_chunks.append(" ".join(current))
+
+    if not raw_chunks:
+        return raw_chunks
+
+    # Aplică overlap semantic între chunk-uri consecutive
+    if overlap_words <= 0 or len(raw_chunks) == 1:
+        return raw_chunks
+
+    overlapped = [raw_chunks[0]]
+    for i in range(1, len(raw_chunks)):
+        prev_words = raw_chunks[i - 1].split()
+        tail = " ".join(prev_words[-overlap_words:])
+        overlapped.append(tail + " " + raw_chunks[i])
+    return overlapped
 
 
 def store_in_vector_db(chunks: list, pdf_id: str):
@@ -149,6 +191,14 @@ def query_relevant_chunks(query: str, pdf_id: str, n_results: int = 5) -> list:
     query_embedding = _embedding_model.encode([query]).tolist()
     results = collection.query(query_embeddings=query_embedding, n_results=n_results)
     return results["documents"][0]
+
+
+def delete_pdf_from_rag(pdf_id: str) -> None:
+    """Sterge colectia ChromaDB asociata unui PDF (garbage collection vectorial)."""
+    try:
+        _chroma.delete_collection(name=pdf_id)
+    except Exception:
+        pass
 
 
 def load_pdf_into_rag(pdf_path: str, pdf_id: str) -> tuple:
