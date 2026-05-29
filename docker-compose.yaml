@@ -8,6 +8,12 @@ services:
       - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000/ >/dev/null"]
       interval: 30s
@@ -18,16 +24,21 @@ services:
       - public
       - internal
     labels:
-      - traefik.enable=true
-      - traefik.docker.network=${TRAEFIK_NETWORK:-coolify}
-      - traefik.http.routers.insideugal-frontend.rule=Host(`${FRONTEND_HOST}`)
-      - traefik.http.routers.insideugal-frontend.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
-      - traefik.http.routers.insideugal-frontend.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}
-      - traefik.http.services.insideugal-frontend.loadbalancer.server.port=3000
+      - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
+      - "traefik.http.routers.insideugal-frontend.rule=Host(`insideugal.ro`)"
+      - "traefik.http.routers.insideugal-frontend.entrypoints=https"
+      - "traefik.http.routers.insideugal-frontend.tls=true"
+      - "traefik.http.routers.insideugal-frontend-http.rule=Host(`insideugal.ro`)"
+      - "traefik.http.routers.insideugal-frontend-http.entrypoints=http"
+      - "traefik.http.routers.insideugal-frontend-http.middlewares=insideugal-redirect-https"
+      - "traefik.http.routers.insideugal-frontend-http.service=insideugal-frontend"
+      - "traefik.http.middlewares.insideugal-redirect-https.redirectscheme.scheme=https"
+      - "traefik.http.services.insideugal-frontend.loadbalancer.server.port=3000"
 
 networks:
   public:
-    name: ${TRAEFIK_NETWORK:-coolify}
+    name: coolify
     external: true
   internal:
     internal: true

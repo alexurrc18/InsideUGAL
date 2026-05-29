@@ -2,6 +2,7 @@
 .env.*
 !.env.example
 !.env.*.example
+*.env
 
 node_modules/
 .npm-cache/
@@ -14,10 +15,12 @@ build/
 venv/
 __pycache__/
 *.py[cod]
+*.pyc
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 
+uploads/
+
 .DS_Store
 Thumbs.db
-
