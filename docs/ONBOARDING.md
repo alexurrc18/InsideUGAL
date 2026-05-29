@@ -90,3 +90,24 @@ Resetare completă: Pentru a curăța memoria cache și a reporni de la zero, fo
 ```
 
 ---
+
+
+6.Configurare Dashboard (Frontend Next.js)
+Dacă dorești să rulezi sau să depanezi interfața web (Dashboard) nativ pe mașina ta locală, independent de restul containerelor Docker:
+
+Din folderul rădăcină al proiectului, navighează în directorul dedicat frontend-ului (sau direct în zona de dashboard în funcție de structura aleasă):
+
+```bash
+   cd Frontend
+```
+Instalează pachetele de noduri necesare:
+
+```bash
+   npm install
+```
+Pornește serverul Next.js în modul de dezvoltare locală:
+
+```bash
+   npm run dev
+```
+🌐 Aplicativul va porni implicit pe http://localhost:3000 și va reflecta instant (Hot Reload) orice modificare adusă codului din componente.
