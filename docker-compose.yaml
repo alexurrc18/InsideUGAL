@@ -1,6 +1,66 @@
 # Minimal stack: frontend + Supabase Studio + postgres-meta + Postgres.
 # supabase-db is required because supabase-meta/Studio need a database to manage.
 services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
+      SUPABASE_URL: ${SUPABASE_URL:-http://localhost:3001}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+    restart: unless-stopped
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/docs', timeout=5)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    ports:
+    - 8001:8000
+    networks:
+    - public
+    - internal
+  llm:
+    build:
+      context: ./LLM
+      dockerfile: Dockerfile
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
+      SUPABASE_URL: ${SUPABASE_URL:-http://localhost:3001}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      ALLOWED_ORIGINS: ${LLM_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+    restart: unless-stopped
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    volumes:
+    - llm-uploads:/app/LLM/modul-marius/uploads
+    - llm-chroma-data:/app/LLM/modul-marius/chroma_db
+    ports:
+    - 8002:8000
+    networks:
+    - public
+    - internal
   frontend:
     build:
       context: ./Frontend/Dashboard/dashboard-insideugal
@@ -125,3 +185,5 @@ networks:
     internal: true
 volumes:
   supabase-db-data: {}
+  llm-uploads: {}
+  llm-chroma-data: {}
