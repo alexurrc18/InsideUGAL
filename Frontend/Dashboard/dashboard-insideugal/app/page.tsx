@@ -1,11 +1,14 @@
-import React from "react";
-
-export default function HomePage() {
+export default function Page() {
   return (
-    // bg-background preia acum direct nuanța ta deschisă (#0f62ac) definită în @theme
-    // h-screen și w-full forțează culoarea să umple absolut tot ecranul din dreapta
-    <div className="w-full h-screen min-h-screen bg-background">
-      {/* Pagina ta este acum complet albastră, gata pentru conținut */}
+    <div className="w-full h-auto">
+      <div className="text-h1 text-neutral-900 font-bold mb-4">
+        Pagină Home în lucru...
+      </div>
+      
+      {/* Container pentru conținutul tău lung */}
+      <div className="space-y-4">
+        {/* Aici va veni restul conținutului paginii care va genera scroll */}
+      </div>
     </div>
   );
 }
