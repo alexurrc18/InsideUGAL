@@ -25,7 +25,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-
+get_token.py
 # --- Baze de Date ---
 *.db
 *.sqlite
