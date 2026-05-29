@@ -1,0 +1,10 @@
+name: "🚀 Feature Request"
+description: Propune o funcționalitate nouă pentru platformă.
+body:
+  - type: textarea
+    id: concept
+    attributes:
+      label: Descrie funcționalitatea dorită
+      placeholder: Ce problemă rezolvă această adăugare?
+    validations:
+      required: true

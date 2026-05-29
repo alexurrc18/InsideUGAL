@@ -1,61 +1,110 @@
-<<<<<<< Updated upstream
-version: "3.8"
-
+# Minimal compose: frontend + Supabase Studio + Postgres.
+# supabase-meta is required because Studio uses postgres-meta to inspect/manage the database.
+# Keep secret values in .env/Coolify variables.
 services:
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    volumes:
-      - ./backend:/app
-    ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - WATCHFILES_FORCE_POLLING=true
-
   frontend:
     build:
       context: ./Frontend/Dashboard/dashboard-insideugal
       dockerfile: Dockerfile
-    volumes:
-      - ./Frontend/Dashboard/dashboard-insideugal:/app
-      - /app/node_modules
-    ports:
-      - "8091:3000"
     environment:
-      - VITE_API_URL=http://localhost:8000
-      - NODE_ENV=development
+    - NODE_ENV=production
+    - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
+    - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+    - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - curl -fsS http://127.0.0.1:3000/ >/dev/null
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+    - public
+    - internal
+    labels:
+    - traefik.enable=true
+    - traefik.docker.network=coolify
+    - traefik.http.routers.insideugal-frontend.rule=Host(`insideugal.ro`)
+    - traefik.http.routers.insideugal-frontend.entrypoints=https
+    - traefik.http.routers.insideugal-frontend.tls=true
+    - traefik.http.routers.insideugal-frontend-http.rule=Host(`insideugal.ro`)
+    - traefik.http.routers.insideugal-frontend-http.entrypoints=http
+    - traefik.http.routers.insideugal-frontend-http.middlewares=insideugal-redirect-https
+    - traefik.http.routers.insideugal-frontend-http.service=insideugal-frontend
+    - traefik.http.middlewares.insideugal-redirect-https.redirectscheme.scheme=https
+    - traefik.http.services.insideugal-frontend.loadbalancer.server.port=3000
+  supabase-db:
+    image: supabase/postgres:15.8.1.085
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pg_isready -U postgres -d postgres
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    command:
+    - postgres
+    - -c
+    - config_file=/etc/postgresql/postgresql.conf
+    - -c
+    - log_min_messages=fatal
+    environment:
+    - POSTGRES_HOST=/var/run/postgresql
+    - PGPORT=${POSTGRES_PORT:-5432}
+    - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+    - PGPASSWORD=${POSTGRES_PASSWORD}
+    - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    - PGDATABASE=${POSTGRES_DB:-postgres}
+    - POSTGRES_DB=${POSTGRES_DB:-postgres}
+    - JWT_SECRET=${SUPABASE_JWT_SECRET}
+    - JWT_EXP=${JWT_EXPIRY:-3600}
+    volumes:
+    - supabase-db-data:/var/lib/postgresql/data
+    - supabase-db-config:/etc/postgresql-custom
+  supabase-meta:
+    image: supabase/postgres-meta:v0.95.2
     depends_on:
-      - backend
-=======
-version: "3.8"
-
-services:
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    volumes:
-      - ./backend:/app
-    ports:
-      - "8000:8000"
+      supabase-db:
+        condition: service_healthy
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - WATCHFILES_FORCE_POLLING=true
-
-  frontend:
-    build:
-      context: ./Frontend/Dashboard/dashboard-insideugal
-      dockerfile: Dockerfile
-    volumes:
-      - ./Frontend/Dashboard/dashboard-insideugal:/app
-      - /app/node_modules
-    ports:
-      - "8091:3000"
-    environment:
-      - VITE_API_URL=http://localhost:8000
-      - NODE_ENV=development
+    - PG_META_PORT=8080
+    - PG_META_DB_HOST=${POSTGRES_HOSTNAME:-supabase-db}
+    - PG_META_DB_PORT=${POSTGRES_PORT:-5432}
+    - PG_META_DB_NAME=${POSTGRES_DB:-postgres}
+    - PG_META_DB_USER=supabase_admin
+    - PG_META_DB_PASSWORD=${POSTGRES_PASSWORD}
+    - CRYPTO_KEY=${PG_META_CRYPTO_KEY:-${SUPABASE_JWT_SECRET}}
+  supabase-studio:
+    image: supabase/studio:2026.03.16-sha-5528817
     depends_on:
-      - backend
->>>>>>> Stashed changes
+      supabase-meta:
+        condition: service_started
+    environment:
+    - STUDIO_PG_META_URL=http://supabase-meta:8080
+    - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    - DEFAULT_ORGANIZATION_NAME=${STUDIO_DEFAULT_ORGANIZATION:-InsideUGAL}
+    - DEFAULT_PROJECT_NAME=${STUDIO_DEFAULT_PROJECT:-InsideUGAL}
+    - SUPABASE_PUBLIC_URL=${SUPABASE_PUBLIC_URL:-http://localhost:8000}
+    - SUPABASE_URL=${SUPABASE_URL:-http://localhost:8000}
+    - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-http://localhost:8000}
+    - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-}
+    - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-}
+    ports:
+    - 3001:3000
+networks:
+  internal:
+    internal: true
+  public:
+    name: coolify
+    external: true
+volumes:
+  supabase-db-config: {}
+  supabase-db-data: {}
