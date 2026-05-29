@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "EditorConfig.EditorConfig",
+    "redhat.vscode-yaml",
+    "bungcip.better-toml",
+    "ms-azuretools.vscode-docker",
+    "eamodio.gitlens"
+  ]
+}
