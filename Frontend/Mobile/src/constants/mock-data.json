@@ -1,0 +1,86 @@
+{
+  "events": [
+    {
+      "id": "1",
+      "title": "Festivitatea de deschidere a anului universitar",
+      "date_start": "21 septembrie 2026",
+      "time_start": "09:00",
+      "date_end": "21 septembrie 2026",
+      "time_end": "12:00",
+      "posted_at": "1 septembrie 2026",
+      "author": "Rectorat UGAL",
+      "category": "Evenimente",
+      "image": "https://images.unsplash.com/photo-1541339907198-e087563f02b1?q=80&w=1000",
+      "content": "Vă invităm să participați la festivitatea de deschidere a noului an universitar. Evenimentul va avea loc în holul central al universității și va reuni studenți, profesori și invitați speciali.",
+      "location": "Hol Central, Corp A"
+    },
+    {
+      "id": "2",
+      "title": "Hackathon de 24 ore: Inovație în Galați",
+      "date_start": "15 noiembrie 2026",
+      "time_start": "10:00",
+      "date_end": "16 noiembrie 2026",
+      "time_end": "10:00",
+      "posted_at": "1 noiembrie 2026",
+      "author": "Facultatea de Automatică",
+      "category": "Evenimente",
+      "image": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=1000",
+      "content": "Ești gata să schimbi lumea în 24 de ore? Vino la cel mai mare hackathon din regiune. Premii totale de peste 5000 EUR.",
+      "location": "Laborator Multimedia, Corp B"
+    },
+    {
+      "id": "3",
+      "title": "Noi oportunități de burse Erasmus+",
+      "date": "24 mai 2026",
+      "posted_at": "20 mai 2026",
+      "author": "Biroul Erasmus",
+      "category": "Noutăți",
+      "image": "https://images.unsplash.com/photo-1523050335456-c384474b5eb9?q=80&w=1000",
+      "content": "A fost lansat noul apel pentru mobilități studențești. Verifică lista universităților partenere și depune dosarul până la sfârșitul lunii.",
+      "author_title": "Departament Relații Internaționale"
+    },
+    {
+      "id": "4",
+      "title": "Workshop de design grafic în weekend",
+      "date": "27 mai 2026",
+      "posted_at": "25 mai 2026",
+      "author": "Alex Vlad",
+      "category": "Noutăți",
+      "image": "https://images.unsplash.com/photo-1561070791-26c11d69963d?q=80&w=1000",
+      "content": "Învață bazele designului grafic folosind instrumente moderne. Workshop-ul este gratuit pentru toți studenții UGAL.",
+      "author_title": "Senior Designer"
+    }
+  ],
+  "faculties": [
+    {
+      "id": "f1",
+      "title": "Automatică și Calculatoare",
+      "image": "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=500"
+    },
+    {
+      "id": "f2",
+      "title": "Inginerie și Agronomie",
+      "image": "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?q=80&w=500"
+    },
+    {
+      "id": "f3",
+      "title": "Economie și Business",
+      "image": "https://images.unsplash.com/photo-1454165833767-13143895600f?q=80&w=500"
+    },
+    {
+      "id": "f4",
+      "title": "Medicină și Farmacie",
+      "image": "https://images.unsplash.com/photo-1576091160550-217359f4ecf8?q=80&w=500"
+    },
+    {
+      "id": "f5",
+      "title": "Litere",
+      "image": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=500"
+    },
+    {
+      "id": "f6",
+      "title": "Educație Fizică și Sport",
+      "image": "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=500"
+    }
+  ]
+}
