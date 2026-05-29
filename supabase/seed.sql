@@ -1,6 +1,4 @@
 
-
-```sql
 -- ==========================================================
 -- InsideUGAL seed data
 -- ==========================================================
@@ -127,42 +125,58 @@ VALUES
 ON CONFLICT DO NOTHING;
 
 -- ==========================================================
--- TEST USERS PROFILES
--- IMPORTANT:
--- Aceste INSERT-uri functioneaza doar daca utilizatorii exista
--- deja in auth.users.
+-- TEST USERS AUTH
+-- Triggerul on_auth_user_created creaza automat profilul
 -- ==========================================================
 
-INSERT INTO public.profiles (
+INSERT INTO auth.users (
     id,
     email,
-    full_name,
-    role,
-    is_active
+    encrypted_password,
+    email_confirmed_at,
+    created_at,
+    updated_at,
+    raw_app_meta_data,
+    raw_user_meta_data,
+    is_super_admin,
+    role
 )
 VALUES
 (
     '11111111-1111-1111-1111-111111111111',
     'student@insideugal.ro',
-    'Student Demo',
-    'STUDENT',
-    TRUE
+    crypt('password123', gen_salt('bf')),
+    NOW(), NOW(), NOW(),
+    '{"provider":"email","providers":["email"]}',
+    '{"full_name":"Student Demo"}',
+    FALSE,
+    'authenticated'
 ),
 (
     '22222222-2222-2222-2222-222222222222',
     'admin@insideugal.ro',
-    'Admin Demo',
-    'ADMIN',
-    TRUE
+    crypt('password123', gen_salt('bf')),
+    NOW(), NOW(), NOW(),
+    '{"provider":"email","providers":["email"]}',
+    '{"full_name":"Admin Demo"}',
+    FALSE,
+    'authenticated'
 ),
 (
     '33333333-3333-3333-3333-333333333333',
     'profesor@insideugal.ro',
-    'Profesor Demo',
-    'PROFESOR',
-    TRUE
+    crypt('password123', gen_salt('bf')),
+    NOW(), NOW(), NOW(),
+    '{"provider":"email","providers":["email"]}',
+    '{"full_name":"Profesor Demo"}',
+    FALSE,
+    'authenticated'
 )
 ON CONFLICT (id) DO NOTHING;
+
+-- Updateaza rolurile (triggerul creaza profilul cu rol default STUDENT)
+UPDATE public.profiles SET role = 'ADMIN'    WHERE id = '22222222-2222-2222-2222-222222222222';
+UPDATE public.profiles SET role = 'PROFESOR' WHERE id = '33333333-3333-3333-3333-333333333333';
 
 -- ==========================================================
 -- COMPLAINTS
@@ -240,4 +254,4 @@ VALUES
     '22222222-2222-2222-2222-222222222222'
 )
 ON CONFLICT DO NOTHING;
-```
+
