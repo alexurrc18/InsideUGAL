@@ -27,7 +27,7 @@ export const Colors = {
     background: ColorScheme.white,
 
     primary: ColorScheme.blue,
-
+    secondary: ColorScheme.red,
 
   },
   dark: {
@@ -36,6 +36,7 @@ export const Colors = {
     background: ColorScheme.black,
 
     primary: ColorScheme.blue,
+    secondary: ColorScheme.red,
 
 
   },

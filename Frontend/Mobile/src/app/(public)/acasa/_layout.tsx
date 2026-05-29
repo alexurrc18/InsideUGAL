@@ -5,6 +5,8 @@ import { Stack, useRouter } from "expo-router";
 import { Colors, ColorScheme } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 
+import BackIcon from "@/assets/icons/svg/chevron-left.svg";
+
 
 export default function LineupLayout() {
     const router = useRouter();
@@ -25,17 +27,33 @@ export default function LineupLayout() {
             />
 
             <Stack.Screen
-                name="categorie"
-                options={{
-                    headerShown: true,
-                    headerTransparent: true,
-                    headerTitle: "",
-                    headerLeft: () => (
-                        <Pressable onPress={() => router.back()} style={{ marginHorizontal: 16 }}>
-                            <Text style={[Typography.Paragraph1, { color: theme.text }]}>&lt; Mergi înapoi</Text>
-                        </Pressable>
-                    ),
-                }}
+              name="categorie"
+              options={{
+                headerShown: true,
+                headerTransparent: true,
+                headerTitle: "",
+                headerLeft: () => (
+                  <Pressable onPress={() => router.back()} style={{ marginHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <BackIcon />
+                    <Text style={[Typography.Paragraph1, { color: theme.text }]}>Mergi înapoi</Text>
+                  </Pressable>
+                ),
+              }}
+            />
+
+            <Stack.Screen
+              name="vizualizare"
+              options={{
+                headerShown: true,
+                headerTransparent: true,
+                headerTitle: "",
+                headerLeft: () => (
+                  <Pressable onPress={() => router.back()} style={{ marginHorizontal: 16, flexDirection: "row", alignItems: "center" }}>
+                    <BackIcon />
+                    <Text style={[Typography.Paragraph1, { color: theme.text }]}>Mergi înapoi</Text>
+                  </Pressable>
+                ),
+              }}
             />
 
         </Stack>
