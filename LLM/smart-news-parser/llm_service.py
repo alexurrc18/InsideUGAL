@@ -5,6 +5,7 @@ from datetime import datetime
 from google import genai
 from google.genai import types
 from schemas import GeminiAnnouncementInfo, ExtractedAnnouncementInfo
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger("smart-news-parser")
 
@@ -13,6 +14,11 @@ class LLMService:
         self.client = genai.Client(api_key=api_key)
         self.model_id = 'gemini-3.5-flash'
 
+    @retry(
+        stop=stop_after_attempt(3), 
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        reraise=True
+    )
     async def extract_announcement_info(self, text: str) -> ExtractedAnnouncementInfo:
         now = datetime.now().strftime("%Y-%m-%d %H:%M")
         
