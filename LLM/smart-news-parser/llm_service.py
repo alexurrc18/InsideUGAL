@@ -42,8 +42,9 @@ class LLMService:
         try:
             response = await self.client.aio.models.generate_content(
                 model=self.model_id,
-                contents=f"{prompt_system}\n\nAnalizeaza acum urmatorul anunt:\n{text}",
+                contents=f"Analizeaza acum urmatorul anunt:\n{text}",
                 config=types.GenerateContentConfig(
+                    system_instruction=prompt_system,
                     response_mime_type="application/json",
                     response_schema=GeminiAnnouncementInfo,
                     temperature=0.1
@@ -54,9 +55,14 @@ class LLMService:
                 result_dict = response.parsed.model_dump()
             else:
                 # Fallback pt cazul in care 'parsed' nu e disponibil direct
-                raw_text = response.text
+                raw_text = response.text.strip()
                 if raw_text.startswith("```json"):
-                    raw_text = raw_text.split("```json")[1].split("```")[0].strip()
+                    raw_text = raw_text[7:]
+                if raw_text.startswith("```"):
+                    raw_text = raw_text[3:]
+                if raw_text.endswith("```"):
+                    raw_text = raw_text[:-3]
+                raw_text = raw_text.strip()
                 result_dict = json.loads(raw_text)
 
             # Validare anti-placeholders

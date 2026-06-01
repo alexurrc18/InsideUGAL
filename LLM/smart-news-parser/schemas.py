@@ -11,6 +11,11 @@ class TipEveniment(str, Enum):
     COLOCVIU = "colocviu"
     EXAMEN = "examen"
     CONCURS = "concurs"
+    INTERNSHIP = "internship"
+    BURSA = "bursa"
+    VOLUNTARIAT = "voluntariat"
+    OPORTUNITATE = "oportunitate"
+    CAZARE = "cazare"
     ANUNT_GENERAL = "anunt_general"
     ADMINISTRATIV = "administrativ"
 
