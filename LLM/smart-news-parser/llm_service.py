@@ -11,7 +11,7 @@ logger = logging.getLogger("smart-news-parser")
 class LLMService:
     def __init__(self, api_key: str):
         self.client = genai.Client(api_key=api_key)
-        self.model_id = 'gemini-2.5-flash'
+        self.model_id = 'gemini-3.5-flash'
 
     async def extract_announcement_info(self, text: str) -> ExtractedAnnouncementInfo:
         now = datetime.now().strftime("%Y-%m-%d %H:%M")
