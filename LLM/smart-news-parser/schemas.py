@@ -11,6 +11,11 @@ class TipEveniment(str, Enum):
     COLOCVIU = "colocviu"
     EXAMEN = "examen"
     CONCURS = "concurs"
+    INTERNSHIP = "internship"
+    BURSA = "bursa"
+    VOLUNTARIAT = "voluntariat"
+    OPORTUNITATE = "oportunitate"
+    CAZARE = "cazare"
     ANUNT_GENERAL = "anunt_general"
     ADMINISTRATIV = "administrativ"
 
@@ -30,7 +35,7 @@ class GeminiAnnouncementInfo(BaseModel):
     urgenta_estimata: NivelUrgenta = Field(description="Nivelul de prioritate")
     public_tinta: List[str] = Field(description="Cine trebuie sa actioneze (ex: ['Anul 2', 'Toti studentii'])")
     
-    deadline_absolut: Optional[str] = Field(None, description="Data si ora limita (YYYY-MM-DD HH:MM)")
+    deadline_absolut: Optional[datetime] = Field(None, description="Data si ora limita (YYYY-MM-DD HH:MM)")
     locatie: Optional[str] = Field(None, description="Sala, corpul sau platforma online (ex: 'B21', 'Microsoft Teams')")
     
     rezumat_notificare: str = Field(description="Text de max 80 caractere pentru notificari Push")

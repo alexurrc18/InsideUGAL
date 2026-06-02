@@ -5,10 +5,10 @@ from dotenv import load_dotenv
 from llm_service import LLMService
 
 async def run_tests():
-    # Incarcam configuratia din root-ul LLM
+    # Incarcam configuratia din smart-news-parser
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    root_env_path = os.path.abspath(os.path.join(current_dir, "..", ".env"))
-    load_dotenv(dotenv_path=root_env_path, override=True)
+    local_env_path = os.path.join(current_dir, ".env")
+    load_dotenv(dotenv_path=local_env_path, override=True)
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
