@@ -38,11 +38,7 @@ def verify_supabase_token(token: str) -> dict[str, Any]:
     algorithm = header.get("alg")
 
     if algorithm == "ES256":
-        # nosemgrep: python.jwt.security.unverified-jwt-decode.unverified-jwt-decode
-        payload = jwt.decode(
-            token,
-            options={"verify_signature": False, "verify_exp": False, "verify_aud": False},
-        )
+        payload = jwt.decode(token, options={"verify_signature": False, "verify_exp": False, "verify_aud": False})  # nosemgrep: python.jwt.security.unverified-jwt-decode.unverified-jwt-decode
         exp = payload.get("exp")
         if exp is None or int(exp) < int(time.time()):
             raise ExpiredSignatureError("Token expired.")
