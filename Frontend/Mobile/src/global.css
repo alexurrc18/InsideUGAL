@@ -7,3 +7,31 @@
   --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
   --font-serif: Georgia, 'Times New Roman', serif;
 }
+
+/* Bara de scroll a caruselelor pe desktop web: subțire, colorată, doar orizontală */
+[data-carousel] {
+  overflow-y: hidden !important;
+  scrollbar-width: thin;
+  scrollbar-color: #00479E transparent;
+}
+[data-carousel]::-webkit-scrollbar {
+  height: 6px;
+}
+[data-carousel]::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-carousel]::-webkit-scrollbar-thumb {
+  background-color: #00479E;
+  border-radius: 3px;
+}
+[data-carousel]::-webkit-scrollbar-button,
+[data-carousel]::-webkit-scrollbar-button:single-button,
+[data-carousel]::-webkit-scrollbar-button:start:decrement,
+[data-carousel]::-webkit-scrollbar-button:end:increment,
+[data-carousel]::-webkit-scrollbar-button:horizontal:start,
+[data-carousel]::-webkit-scrollbar-button:horizontal:end {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}

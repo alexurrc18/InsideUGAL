@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, FlatList, Dimensions, Pressable, useColorScheme } from "react-native";
+import { View, Text, FlatList, Dimensions, Pressable, Platform, useColorScheme, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { Typography } from "@/constants/typography";
 import { Colors, ColorScheme } from "@/constants/theme";
@@ -27,8 +27,12 @@ export function Carousel<T>({
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
     const theme = Colors[themeName];
 
+    // Bara de scroll orizontală o arătăm doar pe desktop web (pe telefon merge swipe-ul)
+    const { width: windowWidth } = useWindowDimensions();
+    const isDesktopWeb = Platform.OS === "web" && windowWidth >= 768;
+
     return (
-        <View style={{ flex: 1, marginVertical: 15 }}>
+        <View style={{ marginVertical: 15 }}>
             {(title || viewAllHref) && (
                 <View style={{ 
                     flexDirection: "row", 
@@ -51,10 +55,11 @@ export function Carousel<T>({
                 renderItem={renderItem}
                 keyExtractor={keyExtractor}
                 horizontal
-                showsHorizontalScrollIndicator={false}
+                showsHorizontalScrollIndicator={isDesktopWeb}
                 contentContainerStyle={{ paddingHorizontal: 16 }}
                 snapToInterval={CAROUSEL_CARD_WIDTH + CAROUSEL_CARD_MARGIN}
                 decelerationRate="fast"
+                {...(isDesktopWeb ? ({ dataSet: { carousel: "true" } } as any) : {})}
             />
         </View>
     );
