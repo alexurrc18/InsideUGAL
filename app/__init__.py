@@ -1,0 +1,1 @@
+"""InsideUGAL application package."""
