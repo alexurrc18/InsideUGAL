@@ -14,14 +14,16 @@ interface CarouselProps<T> {
     keyExtractor: (item: T, index: number) => string;
     title?: string;
     viewAllHref?: string;
+    centered?: boolean;
 }
 
-export function Carousel<T>({ 
-    data, 
-    renderItem, 
-    keyExtractor, 
-    title, 
-    viewAllHref 
+export function Carousel<T>({
+    data,
+    renderItem,
+    keyExtractor,
+    title,
+    viewAllHref,
+    centered
 }: CarouselProps<T>) {
     const router = useRouter();
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
@@ -56,7 +58,10 @@ export function Carousel<T>({
                 keyExtractor={keyExtractor}
                 horizontal
                 showsHorizontalScrollIndicator={isDesktopWeb}
-                contentContainerStyle={{ paddingHorizontal: 16 }}
+                contentContainerStyle={[
+                    { paddingHorizontal: 16 },
+                    centered && isDesktopWeb ? { flexGrow: 1, justifyContent: "center" } : null,
+                ]}
                 snapToInterval={CAROUSEL_CARD_WIDTH + CAROUSEL_CARD_MARGIN}
                 decelerationRate="fast"
                 {...(isDesktopWeb ? ({ dataSet: { carousel: "true" } } as any) : {})}

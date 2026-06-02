@@ -76,9 +76,10 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={{paddingTop: 16, paddingBottom: insets.bottom+5, flex: 1}}>
+        <View style={{paddingTop: 16, paddingBottom: insets.bottom+5, flex: 1, width: "100%", maxWidth: 1600, alignSelf: "center"}}>
           <Carousel
             title="Noutăți"
+            centered
             data={noutati}
             keyExtractor={(item) => item.id}
             viewAllHref="/(public)/acasa/categorie?title=Noutăți"
@@ -95,6 +96,7 @@ export default function HomeScreen() {
           />
           <Carousel
             title="Evenimente"
+            centered
             data={evenimente}
             keyExtractor={(item) => item.id}
             viewAllHref="/(public)/acasa/categorie?title=Evenimente"
@@ -111,6 +113,7 @@ export default function HomeScreen() {
           />
           <Carousel
             title="Facultăți"
+            centered
             data={facultati}
             keyExtractor={(item) => item.id}
             viewAllHref="/(public)/acasa/categorie?title=Facultăți"
