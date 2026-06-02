@@ -1,5 +1,7 @@
 version: '3.8'
 
+# Minimal stack: frontend + Supabase Studio + postgres-meta + Postgres.
+# supabase-db is required because supabase-meta/Studio need a database to manage.
 services:
   backend:
     build:
