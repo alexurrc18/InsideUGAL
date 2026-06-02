@@ -183,6 +183,7 @@ services:
       context: ./Frontend/Mobile
       dockerfile: Dockerfile
     command: npm run web -- --host lan
+    restart: unless-stopped
     ports:
       - "3002:8081"
     environment:
