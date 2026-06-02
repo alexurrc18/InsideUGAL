@@ -8,6 +8,7 @@ import { Typography } from "@/constants/typography";
 
 import { Carousel, CAROUSEL_CARD_WIDTH, CAROUSEL_CARD_MARGIN } from "@/components/ui/carousel";
 import { NewsCard } from "@/components/ui/news-card";
+import { getFormattedDate } from "@/utils/date";
 import MOCK_DATA from "@/constants/mock-data.json";
 
 export default function HomeScreen() {
@@ -16,10 +17,10 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // Filtram datele pentru fiecare carusel
+  // Filtram datele pentru fiecare carusel (fără filtrare locală per facultate)
   const noutati = MOCK_DATA.events.filter(e => e.category === "Noutăți");
   const evenimente = MOCK_DATA.events.filter(e => e.category === "Evenimente");
-  const facultati = MOCK_DATA.faculties; // Folosim noua lista de facultati
+  const facultati = MOCK_DATA.faculties;
 
   const handlePress = (item: any) => {
     router.push({
@@ -34,19 +35,30 @@ export default function HomeScreen() {
             date_start: item.date_start,
             date_end: item.date_end,
             time_start: item.time_start,
-            time_end: item.time_end
+            time_end: item.time_end,
+            date: item.date_start || item.date
         }
     });
   };
 
   const handleFacultyPress = (faculty: any) => {
-    // Logica pentru pagina de facultate (va fi implementata ulterior)
-    console.log("Faculty pressed:", faculty.title);
+    router.push({
+        pathname: "/(public)/acasa/vizualizare",
+        params: {
+            type: "Facultate",
+            title: faculty.title,
+            content: faculty.content,
+            image: faculty.image,
+            address: faculty.address,
+            phone: faculty.phone,
+            website: faculty.website
+        }
+    });
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView style={{ flex: 1, gap: 16 }} contentContainerStyle={{ flexGrow: 1 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
         <View style={{ width: "100%", height: 285 }}>
           <Image
             source={require("@/assets/images/campus-stiintei.png")}
@@ -64,7 +76,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={{paddingBottom: insets.bottom+5, flex: 1}}>
+        <View style={{paddingTop: 16, paddingBottom: insets.bottom+5, flex: 1}}>
           <Carousel
             title="Noutăți"
             data={noutati}
@@ -73,7 +85,7 @@ export default function HomeScreen() {
             renderItem={({ item, index }) => (
               <NewsCard
                 title={item.title}
-                date={item.date}
+                date={getFormattedDate(item.date)}
                 author={item.author}
                 image={item.image}
                 marginRight={index === noutati.length - 1 ? 0 : CAROUSEL_CARD_MARGIN}
@@ -89,7 +101,7 @@ export default function HomeScreen() {
             renderItem={({ item, index }) => (
               <NewsCard
                 title={item.title}
-                date={item.date_start || item.date}
+                date={getFormattedDate(item.date_start || item.date)}
                 author={item.author}
                 image={item.image}
                 marginRight={index === evenimente.length - 1 ? 0 : CAROUSEL_CARD_MARGIN}
