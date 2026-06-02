@@ -1,0 +1,5 @@
+# Documentație Modul LLM - insideUGAL 🍔🎓
+
+Acesta este microserviciul de Inteligență Artificială (LLM) pentru proiectul **insideUGAL**. Funcționează ca un asistent nutrițional și de recomandări pentru studenții care mănâncă la cantina universității.
+
+Sistemul nu face parte din aplicația monolitică de backend, ci rulează separat ca un microserviciu independent (API). Acest lucru permite scalarea, testarea și actualizarea asistentului AI fără a afecta restul aplicației.

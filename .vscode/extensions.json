@@ -1,9 +1,0 @@
-{
-  "recommendations": [
-    "eamodio.gitlens",
-    "esbenp.prettier-vscode",
-    "ms-vsliveshare.vsliveshare",
-    "ms-azuretools.vscode-docker",
-    "rangav.vscode-thunder-client"
-  ]
-}
