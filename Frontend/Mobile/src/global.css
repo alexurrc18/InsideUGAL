@@ -30,3 +30,11 @@
   width: 0;
   height: 0;
 }
+
+/* Hover „focus" pe carduri (doar desktop web): zoom + umbră + întunecarea colțurilor */
+[data-card] {
+  transition: transform 180ms ease;
+}
+[data-card]:hover {
+  transform: scale(1.03);
+}

@@ -36,12 +36,13 @@ export function Carousel<T>({
     return (
         <View style={{ marginVertical: 15 }}>
             {(title || viewAllHref) && (
-                <View style={{ 
-                    flexDirection: "row", 
-                    justifyContent: "space-between", 
-                    alignItems: "center", 
-                    paddingHorizontal: 16, 
-                    marginBottom: 12 
+                <View style={{
+                    flexDirection: centered && isDesktopWeb ? "column" : "row",
+                    justifyContent: centered && isDesktopWeb ? "center" : "space-between",
+                    alignItems: "center",
+                    gap: centered && isDesktopWeb ? 8 : 0,
+                    paddingHorizontal: 16,
+                    marginBottom: 12
                 }}>
                     {title && <Text style={[Typography.Heading3, { color: theme.text }]}>{title}</Text>}
                     {viewAllHref && (
@@ -60,6 +61,7 @@ export function Carousel<T>({
                 showsHorizontalScrollIndicator={isDesktopWeb}
                 contentContainerStyle={[
                     { paddingHorizontal: 16 },
+                    isDesktopWeb ? { paddingVertical: 8 } : null,
                     centered && isDesktopWeb ? { flexGrow: 1, justifyContent: "center" } : null,
                 ]}
                 snapToInterval={CAROUSEL_CARD_WIDTH + CAROUSEL_CARD_MARGIN}

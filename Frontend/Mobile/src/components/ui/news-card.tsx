@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, useWindowDimensions, Pressable } from "react-native";
+import { View, Text, useWindowDimensions, Pressable, Platform } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Typography } from "@/constants/typography";
@@ -85,10 +85,11 @@ export function NewsCard({
                     width: width || defaultWidth, 
                     height: height || defaultHeight, 
                     marginRight, 
-                    borderRadius: 16, 
+                    borderRadius: 16,
                     overflow: "hidden",
                     opacity: pressed ? 0.9 : 1
                 })}
+                {...(Platform.OS === "web" ? ({ dataSet: { card: "true" } } as any) : {})}
             >
                 <Image
                     source={cardImage}
@@ -125,10 +126,11 @@ export function NewsCard({
                 width: width || defaultWidth, 
                 height: height || defaultHeight, 
                 marginRight, 
-                borderRadius: 12, 
+                borderRadius: 12,
                 overflow: "hidden",
                 opacity: pressed ? 0.9 : 1
             })}
+            {...(Platform.OS === "web" ? ({ dataSet: { card: "true" } } as any) : {})}
         >
             <Image
                 source={cardImage}
