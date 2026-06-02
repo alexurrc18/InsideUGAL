@@ -1,28 +1,30 @@
-from typing import List
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth_deps import require_admin
+from app.api.auth_deps import get_current_profile, require_admin
 from app.db.database import get_db
 from app.models import schemas
 from app.repositories.profile_repo import ProfileRepository
 
-# Instanțiem router-ul și repository-ul
 router = APIRouter(prefix="/profiles", tags=["Profiles"])
 repo = ProfileRepository()
 
 
-@router.get("/", response_model=List[schemas.ProfileResponse])
-async def read_profiles(session: AsyncSession = Depends(get_db)):
-    """Returnează lista cu toate profilele."""
+@router.get("/", response_model=list[schemas.ProfileResponse])
+async def read_profiles(session: AsyncSession = Depends(get_db), current_user: str = Depends(require_admin)):
     return await repo.get_all(session)
 
 
+@router.get("/me", response_model=schemas.ProfileResponse)
+async def read_my_profile(profile=Depends(get_current_profile)):
+    return profile
+
+
 @router.get("/{profile_id}", response_model=schemas.ProfileResponse)
-async def read_profile(profile_id: UUID, session: AsyncSession = Depends(get_db)):
-    """Returnează un profil după ID-ul lui (UUID)."""
-    profile = await repo.get_by_id(session, profile_id)
+async def read_profile(profile_id: UUID, session: AsyncSession = Depends(get_db), current_user: str = Depends(require_admin)):
+    profile = await repo.get_by_id(session, str(profile_id))
     if not profile:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found.")
     return profile
@@ -34,22 +36,19 @@ async def create_profile(
     session: AsyncSession = Depends(get_db),
     current_user: str = Depends(require_admin),
 ):
-    """Adaugă un profil nou în baza de date (Necesită Autentificare)."""
     return await repo.create(session, profile_in)
 
 
-@router.put("/{profile_id}", response_model=schemas.ProfileResponse)
+@router.patch("/{profile_id}", response_model=schemas.ProfileResponse)
 async def update_profile(
     profile_id: UUID,
     profile_in: schemas.ProfileUpdate,
     session: AsyncSession = Depends(get_db),
     current_user: str = Depends(require_admin),
 ):
-    """Actualizează datele unui profil existent (Necesită Autentificare)."""
-    profile = await repo.get_by_id(session, profile_id)
+    profile = await repo.get_by_id(session, str(profile_id))
     if not profile:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found.")
-    
     return await repo.update(session, profile, profile_in)
 
 
@@ -59,9 +58,7 @@ async def delete_profile(
     session: AsyncSession = Depends(get_db),
     current_user: str = Depends(require_admin),
 ):
-    """Șterge un profil din baza de date (Necesită Autentificare)."""
-    profile = await repo.get_by_id(session, profile_id)
+    profile = await repo.get_by_id(session, str(profile_id))
     if not profile:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found.")
-    
     await repo.delete(session, profile)

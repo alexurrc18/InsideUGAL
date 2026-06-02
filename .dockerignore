@@ -1,0 +1,15 @@
+.git
+.github
+.idea
+.vscode
+__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.env
+node_modules
+Frontend/Dashboard/dashboard-insideugal/.next
+Frontend/Dashboard/dashboard-insideugal/node_modules
+LLM/modul-marius/uploads
+LLM/modul-marius/chroma_db

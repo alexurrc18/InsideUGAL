@@ -131,9 +131,10 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO auth.users (
     id,
+    aud,
     email,
     encrypted_password,
-    email_confirmed_at,
+    confirmed_at,
     created_at,
     updated_at,
     raw_app_meta_data,
@@ -144,6 +145,7 @@ INSERT INTO auth.users (
 VALUES
 (
     '11111111-1111-1111-1111-111111111111',
+    'authenticated',
     'student@insideugal.ro',
     crypt('password123', gen_salt('bf')),
     NOW(), NOW(), NOW(),
@@ -154,6 +156,7 @@ VALUES
 ),
 (
     '22222222-2222-2222-2222-222222222222',
+    'authenticated',
     'admin@insideugal.ro',
     crypt('password123', gen_salt('bf')),
     NOW(), NOW(), NOW(),
@@ -164,6 +167,7 @@ VALUES
 ),
 (
     '33333333-3333-3333-3333-333333333333',
+    'authenticated',
     'profesor@insideugal.ro',
     crypt('password123', gen_salt('bf')),
     NOW(), NOW(), NOW(),
