@@ -1,6 +1,8 @@
 import os
 import base64
 import logging
+import requests
+import asyncio
 from google import genai
 from google.genai import types
 from pydantic import BaseModel
@@ -14,10 +16,12 @@ class ImageGenerationResult(BaseModel):
     error_message: str | None = None
 
 class ImageService:
-    def __init__(self, api_key: str):
-        self.client = genai.Client(api_key=api_key)
+    def __init__(self, gemini_api_key: str, hf_api_key: str | None = None):
+        self.client = genai.Client(api_key=gemini_api_key)
         self.text_model_id = 'gemini-3.5-flash'
-        self.image_model_id = 'imagen-4.0-fast-generate-001'
+        self.hf_api_key = hf_api_key
+        # Model gratuit de la Hugging Face
+        self.hf_model_url = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
 
     async def generate_announcement_banner(self, announcement_text: str) -> ImageGenerationResult:
         try:
@@ -43,23 +47,28 @@ class ImageService:
             refined_prompt = prompt_refiner.text.strip()
             logger.info(f"🎨 Refined Prompt: {refined_prompt}")
 
-            # 2. Generate Image with Imagen 4.0
-            result = await self.client.aio.models.generate_images(
-                model=self.image_model_id,
-                prompt=refined_prompt,
-                config=types.GenerateImagesConfig(
-                    number_of_images=1,
-                    aspect_ratio='16:9',
-                    output_mime_type='image/jpeg',
-                    person_generation='DONT_ALLOW' # Previne erorile de siguranta
-                )
-            )
-
-            if not result.generated_images:
-                return ImageGenerationResult(success=False, error_message="Nu s-au putut genera imagini.")
+            # 2. Generate Image with Hugging Face (Stable Diffusion)
+            headers = {}
+            if self.hf_api_key:
+                headers["Authorization"] = f"Bearer {self.hf_api_key}"
                 
-            generated_image = result.generated_images[0]
-            image_bytes = generated_image.image.image_bytes
+            payload = {
+                "inputs": refined_prompt,
+                "parameters": {
+                    "width": 1024,
+                    "height": 576  # Aproximativ 16:9
+                }
+            }
+            
+            # Executăm cererea sincronă într-un thread separat pentru a nu bloca asyncio
+            def fetch_image():
+                response = requests.post(self.hf_model_url, headers=headers, json=payload)
+                if response.status_code != 200:
+                    raise Exception(f"HF API Error {response.status_code}: {response.text}")
+                return response.content
+                
+            logger.info("⏳ Se generează imaginea prin Hugging Face...")
+            image_bytes = await asyncio.to_thread(fetch_image)
             
             # Encodare in Base64
             base64_encoded = base64.b64encode(image_bytes).decode('utf-8')
@@ -82,13 +91,14 @@ if __name__ == "__main__":
         local_env_path = os.path.join(current_dir, ".env")
         load_dotenv(dotenv_path=local_env_path, override=True)
         
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
+        gemini_api_key = os.getenv("GEMINI_API_KEY")
+        hf_api_key = os.getenv("HUGGINGFACE_API_KEY") # Optional, dar recomandat
+        if not gemini_api_key:
             print("❌ EROARE: GEMINI_API_KEY nu a fost gasit in .env")
             return
             
-        print("🚀 Testare ImageService (Imagen 4.0 Fast)...")
-        service = ImageService(api_key=api_key)
+        print("🚀 Testare ImageService (Hugging Face - SDXL)...")
+        service = ImageService(gemini_api_key=gemini_api_key, hf_api_key=hf_api_key)
         
         test_text = "Internship la ING Hubs Romania! Cautam pasionati de Java, .NET si DevOps. Aplicati pana pe 15 Iunie."
         response = await service.generate_announcement_banner(test_text)
