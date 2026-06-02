@@ -123,7 +123,9 @@ jobs:
       - name: Run Tests with Coverage
         if: steps.detect.outputs.path != ''
         working-directory: ${{ steps.detect.outputs.path }}
-        run: pytest -n auto --cov=. --cov-report=xml
+        run: |
+          pip install pytest-xdist
+          pytest -n auto --cov=. --cov-report=xml
       - name: Build
         if: steps.detect.outputs.path != ''
         working-directory: ${{ steps.detect.outputs.path }}
