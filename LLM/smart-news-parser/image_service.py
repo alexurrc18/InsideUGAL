@@ -6,6 +6,7 @@ import asyncio
 from google import genai
 from google.genai import types
 from pydantic import BaseModel
+from schemas import ExtractedAnnouncementInfo
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("image-generator")
@@ -23,21 +24,29 @@ class ImageService:
         # Model gratuit de la Hugging Face
         self.hf_model_url = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
 
-    async def generate_announcement_banner(self, announcement_text: str) -> ImageGenerationResult:
+    async def generate_announcement_banner(self, info: ExtractedAnnouncementInfo) -> ImageGenerationResult:
         try:
-            # 1. Transform text to visual prompt using Gemini 3.5 Flash
+            # 1. Transform structured data to visual prompt using Gemini 3.5 Flash
             prompt_system = (
-                "You are an expert prompt engineer for Imagen 4.0. "
-                "Transform the following university announcement into an english prompt for an image generation model. "
-                "The image must be a photorealistic cinematic shot (buildings, environments, objects, campus life, technology). "
-                "CRITICAL: Do NOT include humans or faces. Human generation is blocked by safety filters. Focus on the environment and objects. "
+                "You are an expert prompt engineer for an image generation model. "
+                "Transform the following structured university announcement data into an english prompt for a text-to-image model. "
+                "The image must be a photorealistic cinematic shot (buildings, environments, symbolic objects, campus life, technology). "
+                "CRITICAL: Do NOT include humans or faces. Focus purely on the environment and objects. "
                 "CRITICAL: The image must NOT contain any text, letters, or numbers. "
                 "Output ONLY the prompt string, nothing else."
             )
             
+            announcement_context = (
+                f"Event Type: {info.tip_eveniment.value}\n"
+                f"Subject: {info.materie_sau_subiect}\n"
+                f"Source Entity: {info.entitate_sursa}\n"
+                f"Tags: {', '.join(info.taguri_cheie)}\n"
+                f"Summary: {info.rezumat_notificare}"
+            )
+            
             prompt_refiner = await self.client.aio.models.generate_content(
                 model=self.text_model_id,
-                contents=f"Announcement: {announcement_text}",
+                contents=f"Announcement Data:\n{announcement_context}",
                 config=types.GenerateContentConfig(
                     system_instruction=prompt_system,
                     temperature=0.7
@@ -100,8 +109,24 @@ if __name__ == "__main__":
         print("🚀 Testare ImageService (Hugging Face - SDXL)...")
         service = ImageService(gemini_api_key=gemini_api_key, hf_api_key=hf_api_key)
         
-        test_text = "Internship la ING Hubs Romania! Cautam pasionati de Java, .NET si DevOps. Aplicati pana pe 15 Iunie."
-        response = await service.generate_announcement_banner(test_text)
+        # Test mock data
+        from schemas import TipEveniment, NivelUrgenta
+        from datetime import datetime
+        
+        test_info = ExtractedAnnouncementInfo(
+            materie_sau_subiect="Internship ING Bank",
+            entitate_sursa="ING Hubs Romania",
+            tip_eveniment=TipEveniment.INTERNSHIP,
+            urgenta_estimata=NivelUrgenta.MEDIE,
+            public_tinta=["Studenti"],
+            deadline_absolut=datetime.now(),
+            locatie=None,
+            rezumat_notificare="Aplica pentru internshipul ING pana pe 15 Iunie.",
+            actiuni_extrase=["Aplica"],
+            taguri_cheie=["Java", "DevOps", "Banca", "Tech"]
+        )
+        
+        response = await service.generate_announcement_banner(test_info)
         
         if response.success:
             print("✅ SUCCES! Imaginea a fost generata cu succes.")

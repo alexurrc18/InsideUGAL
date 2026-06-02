@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 from schemas import AnnouncementRequest, ExtractedAnnouncementInfo
 from llm_service import LLMService
+from image_service import ImageService, ImageGenerationResult
 
 # ---------------------------------------------------------
 # 0. CONFIGURARE LOGGING
@@ -31,9 +32,13 @@ if not API_KEY:
 
 # Curatare cheie
 API_KEY = API_KEY.strip().strip("'").strip('"')
+HF_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
+if HF_API_KEY:
+    HF_API_KEY = HF_API_KEY.strip().strip("'").strip('"')
 
-# Serviciu LLM
+# Serviciu LLM si Image
 llm_service = LLMService(api_key=API_KEY)
+image_service = ImageService(gemini_api_key=API_KEY, hf_api_key=HF_API_KEY)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -82,6 +87,30 @@ async def extract_announcement_info(request: AnnouncementRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Eroare la analiza AI: {str(e)}"
+        )
+
+@app.post("/api/v1/generate-banner", response_model=ImageGenerationResult)
+async def generate_banner(info: ExtractedAnnouncementInfo):
+    """
+    Endpoint care primeste datele structurate ale unui anunt
+    si genereaza o imagine de banner bazata pe ele.
+    """
+    try:
+        tip = info.tip_eveniment.value if hasattr(info.tip_eveniment, 'value') else info.tip_eveniment
+        logger.info(f"🎨 Primire cerere generare banner pentru eveniment tip: {tip}")
+        result = await image_service.generate_announcement_banner(info)
+        
+        if not result.success:
+            raise HTTPException(status_code=500, detail=result.error_message)
+            
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Eroare la generarea banner-ului: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Eroare interna la generarea imaginii: {str(e)}"
         )
 
 if __name__ == "__main__":
