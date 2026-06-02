@@ -177,6 +177,23 @@ services:
     networks:
     - public
     - internal
+
+  mobile:
+    build:
+      context: ./Frontend/Mobile
+      dockerfile: Dockerfile
+    command: npm run web -- --host lan
+    ports:
+      - "3002:8081"
+    environment:
+      - NODE_ENV=development
+      - CI=1
+      - EXPO_NO_TELEMETRY=1
+      - EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0
+      - REACT_NATIVE_PACKAGER_HOSTNAME=localhost
+    networks:
+      - public
+      - internal
 networks:
   public:
     name: coolify
