@@ -103,11 +103,13 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then
             pip install -r requirements.txt
+          elif [ -f ../backend/requirements.txt ]; then
+            pip install -r ../backend/requirements.txt
           fi
           if [ -f pyproject.toml ]; then
             pip install -e ".[dev]" || pip install -e .
           fi
-          pip install ruff mypy pytest pytest-cov
+          pip install ruff mypy pytest pytest-cov types-python-jose
       - name: Lint
         if: steps.detect.outputs.path != ''
         working-directory: ${{ steps.detect.outputs.path }}
@@ -117,11 +119,15 @@ jobs:
         if: steps.detect.outputs.path != ''
         working-directory: ${{ steps.detect.outputs.path }}
         shell: bash
-        run: mypy .
+        run: |
+          export PYTHONPATH=..
+          mypy . --install-types --non-interactive
       - name: Run Tests with Coverage
         if: steps.detect.outputs.path != ''
         working-directory: ${{ steps.detect.outputs.path }}
-        run: pytest --cov=. --cov-report=xml
+        run: |
+          export PYTHONPATH=..
+          pytest --cov=. --cov-report=xml
       - name: Build
         if: steps.detect.outputs.path != ''
         working-directory: ${{ steps.detect.outputs.path }}
@@ -179,4 +185,4 @@ jobs:
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: coverage
-          message: "### :bar_chart: Test Coverage Setup Complete\nInfrastructura de raportare este activă. După ce echipele vor adăuga teste de unitate, rapoartele detaliate LCOV/XML vor fi afișate aici."
+          message: "### :bar
