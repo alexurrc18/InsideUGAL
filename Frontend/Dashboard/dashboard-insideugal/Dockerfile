@@ -1,7 +1,7 @@
 FROM node:24-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 FROM node:24-alpine AS builder
 WORKDIR /app
@@ -16,7 +16,6 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
-RUN apk add --no-cache curl
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/static ./.next/static

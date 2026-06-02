@@ -1,23 +1,76 @@
+# --- Medii Virtuale ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+get_token.py
+# --- Baze de Date ---
+*.db
+*.sqlite
+*.sqlite3
+insideugal.db
+
+# --- Configurare Secretă ---
 .env
 .env.*
 !.env.example
 !.env.*.example
+*.env
 
-node_modules/
-.npm-cache/
-.next/
-out/
-dist/
-build/
+# --- IDE ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
 
-.venv/
-venv/
-__pycache__/
-*.py[cod]
+# --- Logs & Temp ---
+*.log
+logs/
+tmp/
+temp/
+
+uploads/
+
+# --- Testing ---
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+.npm-cache/
+.next/
+out/
+node_modules/
+package-lock.json
 
 .DS_Store
 Thumbs.db
-

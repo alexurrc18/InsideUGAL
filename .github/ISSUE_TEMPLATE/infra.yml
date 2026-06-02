@@ -1,0 +1,10 @@
+name: "⚙️ Infrastructure Task"
+description: Modificări de configurare, CI/CD, baze de date sau deployment.
+body:
+  - type: textarea
+    id: scope
+    attributes:
+      label: Modificări de infrastructură
+      placeholder: Ce trebuie configurat sau actualizat?
+    validations:
+      required: true

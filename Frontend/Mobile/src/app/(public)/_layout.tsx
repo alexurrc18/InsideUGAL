@@ -1,82 +1,78 @@
-import { Tabs } from "expo-router";
-import React from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useColorScheme } from "react-native";
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import React from 'react';
+import { useColorScheme, Pressable } from 'react-native';
 import { Colors, ColorScheme } from "@/constants/theme";
-
-import HomeIcon from "@/assets/icons/home.svg";
-import MapIcon from "@/assets/icons/map.svg";
-import CantinaIcon from "@/assets/icons/fork-knife.svg";
-import SesizariIcon from "@/assets/icons/alert-octagon.svg";
-import MoreIcon from "@/assets/icons/dots-horizontal-rounded.svg";
+import { Typography } from "@/constants/typography";
+import ChatIcon from "@/assets/icons/svg/message-circle-captions.svg";
 
 export default function TabLayout() {
-  const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
-  const theme = Colors[themeName];
-  const insets = useSafeAreaInsets();
+    const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
+    const theme = Colors[themeName];
+    const activeColor = theme.primary;
 
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: ColorScheme.blue,
-        tabBarInactiveTintColor: theme.textSecondary,
-        headerShown: false,
-        tabBarShowLabel: true,
-        tabBarItemStyle: { justifyContent: "center", alignItems: "center", paddingVertical: 4 },
-        tabBarIconStyle: { marginBottom: 5 },
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontFamily: "IstrumentSans-Medium",
-          fontWeight: "500",
-        },
-        tabBarStyle: {
-          backgroundColor: theme.background,
-          borderTopWidth: 0,
-          paddingTop: 10,
-          paddingLeft: 5,
-          paddingRight: 5,
-          height: 70 + insets.bottom
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="acasa/index"
-        options={{
-          title: "Acasă",
-          tabBarIcon: ({ color }) => <HomeIcon width={30} height={30} fill={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="harta"
-        options={{
-          title: "Hartă",
-          tabBarIcon: ({ color }) => <MapIcon width={30} height={30} fill={color} />,
-        }}
-      />
+    return (
+        <NativeTabs
+            labelStyle={{
+                color: activeColor,
+            }}
+            tintColor={activeColor}
+            minimizeBehavior="onScrollDown"
+        >
+            <NativeTabs.Trigger name="acasa">
+                <NativeTabs.Trigger.Icon
+                    src={{
+                        /* temporar pana la svg fix */
+                        default: require("@/assets/icons/png/home.png"),
+                        selected: require("@/assets/icons/png/home-filled.png")
+                    }}
+                    renderingMode="template"
+                />
+                <NativeTabs.Trigger.Label>Acasă</NativeTabs.Trigger.Label>
+            </NativeTabs.Trigger>
 
-      <Tabs.Screen
-        name="cantina/index"
-        options={{
-          title: "Cantină",
-          tabBarIcon: ({ color }) => <CantinaIcon width={30} height={30} fill={color} />,
-        }}
-      />
+            <NativeTabs.Trigger name="harta">
+                <NativeTabs.Trigger.Icon
+                    src={{
+                        default: require("@/assets/icons/png/map.png"),
+                        selected: require("@/assets/icons/png/map-filled.png")
+                    }}
+                    renderingMode="template"
+                />
+                <NativeTabs.Trigger.Label>Hartă</NativeTabs.Trigger.Label>
+            </NativeTabs.Trigger>
 
-      <Tabs.Screen
-        name="sesizari/index"
-        options={{
-          title: "Sesizări",
-          tabBarIcon: ({ color }) => <SesizariIcon width={30} height={30} fill={color} />,
-        }}
-      />
+            <NativeTabs.Trigger name="cantina">
+                <NativeTabs.Trigger.Icon
+                    src={{
+                        default: require("@/assets/icons/png/fork-knife.png"),
+                        selected: require("@/assets/icons/png/fork-knife-filled.png")
+                    }}
+                    renderingMode="template"
+                />
+                <NativeTabs.Trigger.Label>Cantină</NativeTabs.Trigger.Label>
+            </NativeTabs.Trigger>
 
-      <Tabs.Screen
-        name="more/index"
-        options={{
-          title: "Mai multe",
-          tabBarIcon: ({ color }) => <MoreIcon width={30} height={30} fill={color} />,
-        }}
-      />
-    </Tabs>
-  );
+            <NativeTabs.Trigger name="sesizari">
+                <NativeTabs.Trigger.Icon
+                    src={{
+                        default: require("@/assets/icons/png/traffic-cone.png"),
+                        selected: require("@/assets/icons/png/traffic-cone-filled.png")
+                    }}
+                    renderingMode="template"
+                />
+                <NativeTabs.Trigger.Label>Sesizări</NativeTabs.Trigger.Label>
+            </NativeTabs.Trigger>
+
+            <NativeTabs.Trigger name="more">
+                <NativeTabs.Trigger.Icon
+                    src={{
+                        default: require("@/assets/icons/png/dots-horizontal-rounded.png"),
+                        selected: require("@/assets/icons/png/dots-horizontal-rounded-filled.png")
+                    }}
+                    renderingMode="template"
+                />
+                <NativeTabs.Trigger.Label>Mai multe</NativeTabs.Trigger.Label>
+            </NativeTabs.Trigger>
+        </NativeTabs>
+    );
 }

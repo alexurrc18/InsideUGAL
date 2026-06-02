@@ -26,12 +26,17 @@ export const Colors = {
     textSecondary: ColorScheme.gray,
     background: ColorScheme.white,
 
+    primary: ColorScheme.blue,
+    secondary: ColorScheme.red,
 
   },
   dark: {
     text: ColorScheme.white,
     textSecondary: ColorScheme.lightGray,
     background: ColorScheme.black,
+
+    primary: ColorScheme.blue,
+    secondary: ColorScheme.red,
 
 
   },

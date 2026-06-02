@@ -1,0 +1,53 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [ infra/raul, Infrastructura ]
+  schedule:
+    - cron: '0 9 * * 1'
+
+jobs:
+  audit-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check if requirements.txt exists
+        id: check
+        run: |
+          if [ -f backend/requirements.txt ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Backend missing
+        if: steps.check.outputs.exists == 'false'
+        run: echo "::warning::No backend/requirements.txt found. Skipping audit."
+      - name: Setup Python
+        if: steps.check.outputs.exists == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run pip-audit
+        if: steps.check.outputs.exists == 'true'
+        run: |
+          pip install pip-audit
+          pip-audit -r backend/requirements.txt
+
+  audit-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: Frontend/Dashboard/dashboard-insideugal/package-lock.json
+      - name: Install dependencies
+        run: |
+          cd Frontend/Dashboard/dashboard-insideugal
+          npm ci
+      - name: Run npm audit
+        run: |
+          cd Frontend/Dashboard/dashboard-insideugal
+          npm audit --audit-level=high

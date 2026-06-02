@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   turbopack: {
     root: process.cwd(),
+    root: __dirname,
   },
 };
 
