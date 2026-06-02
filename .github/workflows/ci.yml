@@ -185,4 +185,4 @@ jobs:
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: coverage
-          message: "### :bar
+          message: "### :bar_chart: Coverage Report"
