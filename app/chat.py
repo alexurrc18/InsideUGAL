@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
+import httpx
+import os
 from app.schemas.chat import ChatRequest, ChatResponse
 
-# Importăm logica centrală LLM (care are Circuit Breaker și Cache)
-from LLM.modul_marius.functions import llm_functions
-
 router = APIRouter(prefix="/api/v1/chat", tags=["Chatbot"])
+
+LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://llm:8000")
 
 SYSTEM_PROMPT = """Ești InsideUGAL AI, asistentul virtual al studenților de la Universitatea „Dunărea de Jos” din Galați.
 Misiunea ta este să ajuți cu informații despre orar, cantină, hartă și regulamente.
@@ -29,13 +30,20 @@ async def ask_chatbot(request: ChatRequest):
         # 1. Pregătim prompt-ul cu istoric
         full_prompt = prepare_context(request.message, request.history)
 
-        # 2. Apelăm motorul LLM (Modulul Marius)
-        # _call se ocupă intern de logging în Supabase, retry și cache
-        response_text = llm_functions._call(full_prompt, function_name="chat_general")
+        # 2. Apelăm serviciul LLM via HTTP
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{LLM_SERVICE_URL}/api/v1/chat",
+                json={"prompt": full_prompt},
+                timeout=30.0
+            )
+            response.raise_for_status()
+            response_data = response.json()
+            response_text = response_data["response"]
         
         return ChatResponse(
             response=response_text,
-            model=llm_functions.GEMINI_MODEL,
+            model="gemini-2.5-flash",
             usage={"info": "Logged in Supabase"},
             status="success"
         )

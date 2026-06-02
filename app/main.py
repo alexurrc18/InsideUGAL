@@ -5,11 +5,12 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.api import (
     announcements,
     cafeteria_menus,
+    categories,
     complaints,
-    dorm_rooms,
+    daily_menus,
     faculties,
     locations,
-    payments,
+    products,
     profiles
 )
 from app import chat, llm_features
@@ -29,10 +30,11 @@ app = FastAPI(
 app.include_router(profiles.router)
 app.include_router(faculties.router)
 app.include_router(locations.router)
-app.include_router(dorm_rooms.router)
+app.include_router(categories.router)
+app.include_router(products.router)
+app.include_router(daily_menus.router)
 app.include_router(cafeteria_menus.router)
 app.include_router(complaints.router)
-app.include_router(payments.router)
 app.include_router(announcements.router)
 app.include_router(llm_features.router)
 app.include_router(chat.router)

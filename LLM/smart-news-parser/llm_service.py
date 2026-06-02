@@ -1,10 +1,10 @@
+import os
 import json
 import logging
 from datetime import datetime
 from google import genai
 from google.genai import types
-from .schemas import GeminiAnnouncementInfo, ExtractedAnnouncementInfo
-from .schemas import GeminiAnnouncementInfo, ExtractedAnnouncementInfo # Corectat importul relativ
+from schemas import GeminiAnnouncementInfo, ExtractedAnnouncementInfo
 
 logger = logging.getLogger("smart-news-parser")
 
@@ -12,8 +12,6 @@ class LLMService:
     def __init__(self, api_key: str):
         self.client = genai.Client(api_key=api_key)
         self.model_id = 'gemini-2.5-flash'
-       
-        
 
     async def extract_announcement_info(self, text: str) -> ExtractedAnnouncementInfo:
         now = datetime.now().strftime("%Y-%m-%d %H:%M")

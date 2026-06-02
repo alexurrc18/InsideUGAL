@@ -9,7 +9,7 @@ from app.schemas.chat import (
 import os
 import uuid
 from LLM.modul_marius.functions import llm_functions
-from LLM.smart_news_parser.llm_service import LLMService 
+from LLM.smart_news_parser.llm_service import LLMService
 
 router = APIRouter(prefix="/api/v1", tags=["LLM Features"])
 API_KEY = os.getenv("GEMINI_API_KEY")
@@ -22,8 +22,10 @@ async def health_check():
 @router.post("/extract-tasks")
 async def extract_tasks(request: ExtractTasksRequest):
     """Extrage task-uri structurate dintr-un anunț academic."""
+    if not task_extractor:
+        raise HTTPException(status_code=500, detail="LLM Service not configured.")
     try:
-        result = task_extractor.extract_tasks(request.text)
+        result = await task_extractor.extract_announcement_info(request.text)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

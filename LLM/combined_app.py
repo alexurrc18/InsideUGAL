@@ -94,12 +94,22 @@ UPLOAD_FOLDER = MODUL_MARIUS / "uploads"
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 
 
+from pydantic import BaseModel, Field
+
+class ChatGeneralInput(BaseModel):
+    prompt: str = Field(..., min_length=1)
+
+class ChatGeneralOutput(BaseModel):
+    response: str
+
+
 @app.get("/")
 def health_check():
     return {
         "status": "ok",
         "service": "InsideUGAL LLM Integrated Service",
         "endpoints": [
+            "/api/v1/chat",
             "/api/v1/extract-announcement-info",
             "/api/v1/upload-pdf",
             "/api/v1/ask",
@@ -108,6 +118,17 @@ def health_check():
             "/api/v1/delete-pdf/{pdf_id}",
         ],
     }
+
+
+@app.post("/api/v1/chat", response_model=ChatGeneralOutput)
+async def chat_general(request: ChatGeneralInput):
+    try:
+        logger.info("Primire cerere general chat.")
+        response_text = mod_marius_functions._call(request.prompt, function_name="chat_general")
+        return ChatGeneralOutput(response=response_text)
+    except Exception as exc:
+        logger.error("Eroare la chat general: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @app.post("/api/v1/extract-announcement-info", response_model=smart_news_schemas.ExtractedAnnouncementInfo)
