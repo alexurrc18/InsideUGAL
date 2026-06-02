@@ -8,7 +8,7 @@ import ChatIcon from "@/assets/icons/svg/message-circle-captions.svg";
 export default function TabLayout() {
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
     const theme = Colors[themeName];
-    const activeColor = theme.primary;
+    const activeColor = ColorScheme.white;
 
     return (
         <NativeTabs
