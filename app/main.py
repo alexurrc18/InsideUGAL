@@ -6,6 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 import app.api.announcements as announcements
+import app.api.auth as auth
 import app.api.cafeteria_menus as cafeteria_menus
 import app.api.categories as categories
 import app.api.complaints as complaints
@@ -55,3 +56,4 @@ app.include_router(daily_menus.router)
 app.include_router(cafeteria_menus.router)
 app.include_router(complaints.router)
 app.include_router(announcements.router)
+app.include_router(auth.router)

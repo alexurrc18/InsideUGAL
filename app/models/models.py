@@ -11,7 +11,7 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, ENUM
 from sqlalchemy.orm import relationship
 
 from app.db.database import Base
@@ -36,12 +36,15 @@ class Profile(Base, TimestampMixin):
     __tablename__ = "profiles"
     __table_args__ = {"schema": "public"}
 
-    id = Column(UUID(as_uuid=False), ForeignKey("auth.users.id", ondelete="CASCADE"), primary_key=True)
+    id = Column(UUID(as_uuid=False), primary_key=True)
     username = Column(String(100), unique=True)
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     email = Column(String(255), unique=True, nullable=False)
-    role = Column(String(50), nullable=False, server_default="STUDENT")
+    
+    # MODIFICAT AICI
+    role = Column(ENUM('STUDENT', 'STUDENT_RESPONSABIL', 'PROFESOR', 'HEAD_CANTINA', 'HEAD_FACULTATI', 'HEAD_ADMIN', name='user_role', create_type=False), nullable=False, server_default="STUDENT")
+    
     is_active = Column(Boolean, nullable=False, default=True)
 
     complaints = relationship("Complaint", back_populates="user")
@@ -116,7 +119,9 @@ class Complaint(Base, TimestampMixin):
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=False)
     image_url = Column(Text)
-    status = Column(String(50), nullable=False, server_default="in_asteptare")
+    
+    # MODIFICAT AICI
+    status = Column(ENUM('in_asteptare', 'in_lucru', 'finalizat', 'respins', name='complaint_status', create_type=False), nullable=False, server_default="in_asteptare")
 
     user = relationship("Profile", back_populates="complaints")
     location = relationship("Location", back_populates="complaints")
@@ -127,7 +132,10 @@ class Announcement(Base, TimestampMixin):
     __table_args__ = {"schema": "public"}
 
     id = Column(Integer, primary_key=True)
-    type = Column(String(50), nullable=False)
+    
+    # MODIFICAT AICI
+    type = Column(ENUM('NOUTATE', 'EVENIMENT', name='post_type', create_type=False), nullable=False, server_default="NOUTATE")
+    
     created_by = Column(UUID(as_uuid=False), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
     title = Column(String(255))
     content = Column(Text, nullable=False)
