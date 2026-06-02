@@ -3,41 +3,56 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.models import Announcement
 from app.models.schemas import AnnouncementCreate, AnnouncementUpdate
+from app.repositories.base import CRUDRepository, schema_to_data
 
 
-class AnnouncementRepository:
-    async def get_all(self, session: AsyncSession) -> list[Announcement]:
-        result = await session.execute(select(Announcement))
-        return list(result.scalars().all())
+class AnnouncementRepository(CRUDRepository[Announcement]):
+    model = Announcement
 
-    async def get_by_id(
+    async def get_all(
         self,
         session: AsyncSession,
-        announcement_id: int,
-    ) -> Announcement | None:
-        result = await session.execute(select(Announcement).where(Announcement.id == announcement_id))
-        return result.scalars().first()
+        announcement_type: str | None = None,
+        faculty_id: int | None = None,
+    ) -> list[Announcement]:
+        query = select(Announcement).order_by(Announcement.created_at.desc())
+        if announcement_type is not None:
+            query = query.where(Announcement.type == announcement_type)
+        if faculty_id is not None:
+            query = query.where(Announcement.faculty_id == faculty_id)
 
-    async def create(self, session: AsyncSession, announcement_in: AnnouncementCreate) -> Announcement:
-        db_announcement = Announcement(**announcement_in.model_dump())
-        
-        session.add(db_announcement)
-        await session.commit()
-        await session.refresh(db_announcement)
-        
-        return db_announcement
+        result = await session.execute(query)
+        return list(result.scalars().all())
 
-    async def update(self, session: AsyncSession, db_announcement: Announcement, announcement_in: AnnouncementUpdate) -> Announcement:
-        update_data = announcement_in.model_dump(exclude_unset=True)
-        
-        for key, value in update_data.items():
+    async def create_for_user(self, session: AsyncSession, announcement_in: AnnouncementCreate, user_id: str) -> Announcement:
+        return await self.create(session, announcement_in, created_by=user_id)
+
+    async def update(
+        self,
+        session: AsyncSession,
+        db_announcement: Announcement,
+        announcement_in: AnnouncementUpdate,
+        **extra_data,
+    ) -> Announcement:
+        data = schema_to_data(announcement_in, exclude_unset=True)
+        data.update(extra_data)
+
+        announcement_type = data.get("type", db_announcement.type)
+        if announcement_type == "NOUTATE":
+            data["start_date"] = None
+            data["end_date"] = None
+            data["location_name"] = None
+        elif announcement_type == "EVENIMENT":
+            start_date = data.get("start_date", db_announcement.start_date)
+            end_date = data.get("end_date", db_announcement.end_date)
+            if start_date is None:
+                raise ValueError("start_date is required for EVENIMENT announcements.")
+            if end_date is not None and end_date < start_date:
+                raise ValueError("end_date must be after start_date.")
+
+        for key, value in data.items():
             setattr(db_announcement, key, value)
-            
+
         await session.commit()
         await session.refresh(db_announcement)
-        
         return db_announcement
-
-    async def delete(self, session: AsyncSession, db_announcement: Announcement) -> None:
-        await session.delete(db_announcement)
-        await session.commit()
