@@ -27,7 +27,7 @@ class CRUDRepository(Generic[ModelT]):
         return list(result.scalars().all())
 
     async def get_by_id(self, session: AsyncSession, entity_id: Any) -> ModelT | None:
-        result = await session.execute(select(self.model).where(self.model.id == entity_id))
+        result = await session.execute(select(self.model).where(self.model.id == entity_id))  # type: ignore[attr-defined]
         return result.scalars().first()
 
     async def create(self, session: AsyncSession, entity_in: BaseModel, **extra_data: Any) -> ModelT:
