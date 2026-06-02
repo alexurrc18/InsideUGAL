@@ -1,35 +1,31 @@
-from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth_deps import require_admin
+from app.api.auth_deps import require_roles
+from app.api.crud import ensure_exists
 from app.db.database import get_db
 from app.models import models, schemas
-from app.api.crud import ensure_exists
 from app.repositories.location_repo import LocationRepository
 
-# Instanțiem router-ul și repository-ul
 router = APIRouter(prefix="/locations", tags=["Locations"])
 repo = LocationRepository()
+manage_locations = require_roles(schemas.UserRole.HEAD_ADMIN, schemas.UserRole.HEAD_FACULTATI)
 
 
 async def validate_faculty(payload: BaseModel, db: AsyncSession) -> None:
-    """Verifică dacă facultatea asociată există în baza de date."""
     faculty_id = getattr(payload, "faculty_id", None)
     if faculty_id:
         await ensure_exists(db, models.Faculty, faculty_id, "Faculty not found.")
 
 
-@router.get("/", response_model=List[schemas.LocationResponse])
+@router.get("/", response_model=list[schemas.LocationResponse])
 async def read_locations(session: AsyncSession = Depends(get_db)):
-    """Returnează lista cu toate locațiile."""
     return await repo.get_all(session)
 
 
 @router.get("/{location_id}", response_model=schemas.LocationResponse)
 async def read_location(location_id: int, session: AsyncSession = Depends(get_db)):
-    """Returnează o locație după ID-ul ei."""
     location = await repo.get_by_id(session, location_id)
     if not location:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Location not found.")
@@ -40,27 +36,22 @@ async def read_location(location_id: int, session: AsyncSession = Depends(get_db
 async def create_location(
     location_in: schemas.LocationCreate,
     session: AsyncSession = Depends(get_db),
-    current_user: str = Depends(require_admin),
+    current_profile=Depends(manage_locations),
 ):
-    """Adaugă o locație nouă în baza de date (Necesită Autentificare)."""
-    # Validăm ID-ul facultății înainte de inserare
     await validate_faculty(location_in, session)
     return await repo.create(session, location_in)
 
 
-@router.put("/{location_id}", response_model=schemas.LocationResponse)
+@router.patch("/{location_id}", response_model=schemas.LocationResponse)
 async def update_location(
     location_id: int,
     location_in: schemas.LocationUpdate,
     session: AsyncSession = Depends(get_db),
-    current_user: str = Depends(require_admin),
+    current_profile=Depends(manage_locations),
 ):
-    """Actualizează datele unei locații existente (Necesită Autentificare)."""
     location = await repo.get_by_id(session, location_id)
     if not location:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Location not found.")
-    
-    # Validăm ID-ul facultății înainte de actualizare
     await validate_faculty(location_in, session)
     return await repo.update(session, location, location_in)
 
@@ -69,11 +60,9 @@ async def update_location(
 async def delete_location(
     location_id: int,
     session: AsyncSession = Depends(get_db),
-    current_user: str = Depends(require_admin),
+    current_profile=Depends(manage_locations),
 ):
-    """Șterge o locație din baza de date (Necesită Autentificare)."""
     location = await repo.get_by_id(session, location_id)
     if not location:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Location not found.")
-    
     await repo.delete(session, location)

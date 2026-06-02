@@ -456,3 +456,44 @@ WITH CHECK (
         OR created_by = auth.uid()
     )
 );
+
+-- ==========================================================
+-- Tabele LLM (modul-marius)
+-- ==========================================================
+
+CREATE TABLE IF NOT EXISTS public.llm_calls (
+    id              uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
+    created_at      timestamptz DEFAULT now() NOT NULL,
+    function_name   text        NOT NULL,
+    model           text        NOT NULL,
+    prompt_tokens   integer     DEFAULT 0,
+    response_tokens integer     DEFAULT 0,
+    total_tokens    integer     DEFAULT 0,
+    cached          boolean     DEFAULT false,
+    duration_ms     integer
+);
+
+CREATE INDEX IF NOT EXISTS idx_llm_calls_function ON public.llm_calls (function_name);
+CREATE INDEX IF NOT EXISTS idx_llm_calls_created  ON public.llm_calls (created_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.questions_history (
+    id          bigserial   PRIMARY KEY,
+    created_at  timestamptz DEFAULT now() NOT NULL,
+    pdf_id      text        NOT NULL,
+    question    text        NOT NULL,
+    answer      text        NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_qh_pdf_id  ON public.questions_history (pdf_id);
+CREATE INDEX IF NOT EXISTS idx_qh_created ON public.questions_history (created_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.quiz_scores (
+    id          bigserial   PRIMARY KEY,
+    created_at  timestamptz DEFAULT now() NOT NULL,
+    pdf_id      text        NOT NULL,
+    correct     integer     NOT NULL,
+    total       integer     NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_qs_pdf_id  ON public.quiz_scores (pdf_id);
+CREATE INDEX IF NOT EXISTS idx_qs_created ON public.quiz_scores (created_at DESC);

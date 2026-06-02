@@ -1,19 +1,41 @@
 from datetime import datetime
 from decimal import Decimal
+from enum import Enum
 import re
 import struct
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, field_serializer, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator, model_validator
 
-from app.models.models import ComplaintStatus, UserRole
+
+class UserRole(str, Enum):
+    STUDENT = "STUDENT"
+    STUDENT_RESPONSABIL = "STUDENT_RESPONSABIL"
+    PROFESOR = "PROFESOR"
+    HEAD_CANTINA = "HEAD_CANTINA"
+    HEAD_FACULTATI = "HEAD_FACULTATI"
+    HEAD_ADMIN = "HEAD_ADMIN"
+
+
+class ComplaintStatus(str, Enum):
+    in_asteptare = "in_asteptare"
+    in_lucru = "in_lucru"
+    finalizat = "finalizat"
+    respins = "respins"
+
+
+class PostType(str, Enum):
+    NOUTATE = "NOUTATE"
+    EVENIMENT = "EVENIMENT"
 
 
 class ProfileBase(BaseModel):
+    username: str | None = None
+    first_name: str
+    last_name: str
     email: str
-    full_name: str
     role: UserRole = UserRole.STUDENT
-    is_active: bool | None = True
+    is_active: bool = True
 
 
 class ProfileCreate(ProfileBase):
@@ -21,8 +43,10 @@ class ProfileCreate(ProfileBase):
 
 
 class ProfileUpdate(BaseModel):
+    username: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
     email: str | None = None
-    full_name: str | None = None
     role: UserRole | None = None
     is_active: bool | None = None
 
@@ -37,10 +61,9 @@ class ProfileResponse(ProfileBase):
 
 class FacultyBase(BaseModel):
     name: str
-    abbreviation: str
+    address: str | None = None
+    phone: str | None = None
     website_url: str | None = None
-    dormitory_url: str | None = None
-    description: str | None = None
 
 
 class FacultyCreate(FacultyBase):
@@ -49,10 +72,9 @@ class FacultyCreate(FacultyBase):
 
 class FacultyUpdate(BaseModel):
     name: str | None = None
-    abbreviation: str | None = None
+    address: str | None = None
+    phone: str | None = None
     website_url: str | None = None
-    dormitory_url: str | None = None
-    description: str | None = None
 
 
 class FacultyResponse(FacultyBase):
@@ -63,6 +85,24 @@ class FacultyResponse(FacultyBase):
     updated_at: datetime
 
 
+class CategoryBase(BaseModel):
+    name: str
+
+
+class CategoryCreate(CategoryBase):
+    pass
+
+
+class CategoryUpdate(BaseModel):
+    name: str | None = None
+
+
+class CategoryResponse(CategoryBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+
+
 class Coordinates(BaseModel):
     lat: float
     lon: float
@@ -70,24 +110,18 @@ class Coordinates(BaseModel):
 
 def _parse_point_coordinates(coordinates: object) -> Coordinates | None:
     raw_data = getattr(coordinates, "data", None)
-
     if raw_data is not None:
-        if isinstance(raw_data, str):
-            data = bytes.fromhex(raw_data)
-        else:
-            data = bytes(raw_data)
-
+        data = bytes.fromhex(raw_data) if isinstance(raw_data, str) else bytes(raw_data)
         if len(data) < 21:
             return None
 
         byte_order = "<" if data[0] == 1 else ">"
         geometry_type = struct.unpack(f"{byte_order}I", data[1:5])[0]
-        has_srid = bool(geometry_type & 0x20000000)
         base_geometry_type = geometry_type & 0x000000FF
-
         if base_geometry_type != 1:
             return None
 
+        has_srid = bool(geometry_type & 0x20000000)
         offset = 9 if has_srid else 5
         lon, lat = struct.unpack(f"{byte_order}dd", data[offset : offset + 16])
         return Coordinates(lat=lat, lon=lon)
@@ -106,7 +140,6 @@ def _parse_point_coordinates(coordinates: object) -> Coordinates | None:
 
 class LocationBase(BaseModel):
     name: str
-    address: str | None = None
     coordinates: Coordinates | None = None
     faculty_id: int | None = None
 
@@ -117,7 +150,6 @@ class LocationCreate(LocationBase):
 
 class LocationUpdate(BaseModel):
     name: str | None = None
-    address: str | None = None
     coordinates: Coordinates | None = None
     faculty_id: int | None = None
 
@@ -132,56 +164,36 @@ class LocationResponse(LocationBase):
     @field_validator("coordinates", mode="before")
     @classmethod
     def validate_coordinates(cls, coordinates: object) -> Coordinates | None:
-        if coordinates is None:
-            return None
-        if isinstance(coordinates, Coordinates):
+        if coordinates is None or isinstance(coordinates, Coordinates):
             return coordinates
         if isinstance(coordinates, dict):
             return Coordinates.model_validate(coordinates)
-
         return _parse_point_coordinates(coordinates)
 
     @field_serializer("coordinates")
-    def serialize_coordinates(
-        self,
-        coordinates: Coordinates | None,
-    ) -> dict[str, float] | None:
-        if coordinates is None:
-            return None
-        return coordinates.model_dump()
+    def serialize_coordinates(self, coordinates: Coordinates | None) -> dict[str, float] | None:
+        return None if coordinates is None else coordinates.model_dump()
 
 
-class CafeteriaMenuBase(BaseModel):
+class ProductBase(BaseModel):
     name: str
-    price: Decimal
     description: str | None = None
-    calories: int | None = None
-    proteins: Decimal | None = None
-    fats: Decimal | None = None
-    carbohydrates: Decimal | None = None
-    grams: int
-    day_of_week: int | None = None
-    is_available: bool | None = True
+    quantity: str
+    price: Decimal = Field(gt=0)
 
 
-class CafeteriaMenuCreate(CafeteriaMenuBase):
+class ProductCreate(ProductBase):
     pass
 
 
-class CafeteriaMenuUpdate(BaseModel):
+class ProductUpdate(BaseModel):
     name: str | None = None
-    price: Decimal | None = None
     description: str | None = None
-    calories: int | None = None
-    proteins: Decimal | None = None
-    fats: Decimal | None = None
-    carbohydrates: Decimal | None = None
-    grams: int | None = None
-    day_of_week: int | None = None
-    is_available: bool | None = None
+    quantity: str | None = None
+    price: Decimal | None = Field(default=None, gt=0)
 
 
-class CafeteriaMenuResponse(CafeteriaMenuBase):
+class ProductResponse(ProductBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -189,13 +201,36 @@ class CafeteriaMenuResponse(CafeteriaMenuBase):
     updated_at: datetime
 
 
+class DailyMenuBase(BaseModel):
+    day_of_week: int = Field(ge=1, le=7)
+    product_ids: list[int] = Field(default_factory=list)
+
+
+class DailyMenuCreate(DailyMenuBase):
+    pass
+
+
+class DailyMenuUpdate(BaseModel):
+    day_of_week: int | None = Field(default=None, ge=1, le=7)
+    product_ids: list[int] | None = None
+
+
+class DailyMenuResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    day_of_week: int
+    products: list[ProductResponse] = Field(default_factory=list)
+    created_at: datetime
+    updated_at: datetime
+
+
 class ComplaintBase(BaseModel):
-    user_id: UUID
     location_id: int | None = None
     title: str
     description: str
     image_url: str | None = None
-    status: ComplaintStatus = ComplaintStatus.NEW
+    status: ComplaintStatus = ComplaintStatus.in_asteptare
 
 
 class ComplaintCreate(ComplaintBase):
@@ -203,7 +238,6 @@ class ComplaintCreate(ComplaintBase):
 
 
 class ComplaintUpdate(BaseModel):
-    user_id: UUID | None = None
     location_id: int | None = None
     title: str | None = None
     description: str | None = None
@@ -215,23 +249,33 @@ class ComplaintResponse(ComplaintBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    user_id: UUID
     created_at: datetime
     updated_at: datetime
 
 
 class AnnouncementBase(BaseModel):
-    title: str
+    type: PostType = PostType.NOUTATE
+    title: str | None = None
     content: str
-    category: str | None = None
     image_url: str | None = None
-    is_event: bool | None = False
+    faculty_id: int | None = None
+    location_name: str | None = None
     start_date: datetime | None = None
     end_date: datetime | None = None
-    location_name: str | None = None
-    target_audience: str | None = None
-    event_redirect_id: int | None = None
-    send_push: bool | None = False
-    created_by: UUID
+
+    @model_validator(mode="after")
+    def validate_post_type_fields(self):
+        if self.type == PostType.EVENIMENT:
+            if self.start_date is None:
+                raise ValueError("start_date is required for EVENIMENT announcements.")
+            if self.end_date is not None and self.end_date < self.start_date:
+                raise ValueError("end_date must be after start_date.")
+        else:
+            self.start_date = None
+            self.end_date = None
+            self.location_name = None
+        return self
 
 
 class AnnouncementCreate(AnnouncementBase):
@@ -239,23 +283,20 @@ class AnnouncementCreate(AnnouncementBase):
 
 
 class AnnouncementUpdate(BaseModel):
+    type: PostType | None = None
     title: str | None = None
     content: str | None = None
-    category: str | None = None
     image_url: str | None = None
-    is_event: bool | None = None
+    faculty_id: int | None = None
+    location_name: str | None = None
     start_date: datetime | None = None
     end_date: datetime | None = None
-    location_name: str | None = None
-    target_audience: str | None = None
-    event_redirect_id: int | None = None
-    send_push: bool | None = None
-    created_by: UUID | None = None
 
 
 class AnnouncementResponse(AnnouncementBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    created_by: UUID
     created_at: datetime
     updated_at: datetime
