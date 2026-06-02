@@ -54,6 +54,8 @@ jobs:
         run: npm ci
       - name: Lint
         run: npm run lint
+      - name: React Doctor Audit
+        run: npm run doctor
       - name: Typecheck
         run: npx tsc --noEmit
       - name: Run Tests with Coverage
