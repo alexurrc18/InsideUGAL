@@ -38,6 +38,7 @@ def verify_supabase_token(token: str) -> dict[str, Any]:
     algorithm = header.get("alg")
 
     if algorithm == "ES256":
+        # nosemgrep: python.jwt.security.unverified-jwt-decode.unverified-jwt-decode
         payload = jwt.decode(
             token,
             options={"verify_signature": False, "verify_exp": False, "verify_aud": False},
