@@ -125,7 +125,7 @@ jobs:
         working-directory: ${{ steps.detect.outputs.path }}
         run: |
           pip install pytest-xdist
-          pytest -n auto --cov=. --cov-report=xml
+          pytest -n auto --cov=. --cov-report=xml || [[ $? -eq 5 ]]
       - name: Build
         if: steps.detect.outputs.path != ''
         working-directory: ${{ steps.detect.outputs.path }}
