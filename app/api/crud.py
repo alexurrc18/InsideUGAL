@@ -40,13 +40,16 @@ def create_crud_router(
 
     @router.post("/", response_model=response_schema, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
     async def create_item(
-        payload: create_schema,  # type: ignore[arg-type]
+        payload: BaseModel,  # Folosim BaseModel aici
         db: AsyncSession = Depends(get_db)
     ):
+        # Fortam validarea prin Pydantic in caz ca nu o face FastAPI direct
+        validated_payload = create_schema.model_validate(payload)
+        
         if validate_create:
-            await validate_create(payload, db)
+            await validate_create(validated_payload, db)
 
-        db_item = model(**payload.model_dump())
+        db_item = model(**validated_payload.model_dump())
         db.add(db_item)
         await db.commit()
         await db.refresh(db_item)
@@ -57,22 +60,24 @@ def create_crud_router(
         result = await db.execute(select(model).offset(skip).limit(limit))
         return result.scalars().all()
 
-    @router.get("/{item_id}", response_model=response_schema)
-    async def get_item(item_id: str, db: AsyncSession = Depends(get_db)):  # type: ignore[valid-type]
+    @router.get("/{item_id}", response_model=response_schema) # type: ignore[valid-type]
+    async def get_item(item_id: str, db: AsyncSession = Depends(get_db)):  
         db_item = await _get_or_404(db, model, id_field, parse_id(item_id), not_found_detail)
         return db_item
 
     @router.put("/{item_id}", response_model=response_schema, dependencies=[Depends(require_admin)])
     async def update_item(
         item_id: str,
-        payload: update_schema,  # type: ignore[arg-type]
+        payload: BaseModel, # Folosim BaseModel aici
         db: AsyncSession = Depends(get_db)
     ):
+        validated_payload = update_schema.model_validate(payload)
+        
         if validate_update:
-            await validate_update(payload, db)
+            await validate_update(validated_payload, db)
 
         db_item = await _get_or_404(db, model, id_field, parse_id(item_id), not_found_detail)
-        for field, value in payload.model_dump(exclude_unset=True).items():
+        for field, value in validated_payload.model_dump(exclude_unset=True).items():
             setattr(db_item, field, value)
 
         await db.commit()
