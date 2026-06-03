@@ -1,5 +1,4 @@
 import os
-import time
 import logging
 from collections.abc import Iterable
 from typing import Any
@@ -8,7 +7,7 @@ from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, HTTPAuthorizationCredentials
 import jwt
-from jwt import ExpiredSignatureError, InvalidAudienceError, InvalidTokenError
+from jwt import ExpiredSignatureError, InvalidTokenError, PyJWKClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,6 +20,8 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
+
+jwks_client = PyJWKClient(os.environ.get("SUPABASE_JWKS_URL", "http://127.0.0.1:54325/auth/v1/.well-known/jwks.json"))
 
 
 def _unauthorized(detail: str = "Invalid authentication credentials.") -> HTTPException:
@@ -43,13 +44,14 @@ def verify_supabase_token(token: str) -> dict[str, Any]:
     logger.debug("Verifying Supabase token, audience: %s, algorithm: %s", audience, algorithm)
 
     if algorithm == "ES256":
-        logger.debug("Using ES256 algorithm, skipping signature verification")
-        payload = jwt.decode(token, options={"verify_signature": False, "verify_exp": False, "verify_aud": False})  # nosemgrep: python.jwt.security.unverified-jwt-decode.unverified-jwt-decode
-        exp = payload.get("exp")
-        if exp is None or int(exp) < int(time.time()):
-            raise ExpiredSignatureError("Token expired.")
-        if payload.get("aud") != audience:
-            raise InvalidAudienceError("Invalid token audience.")
+        logger.debug("Using ES256 algorithm, verifying signature via JWKS")
+        signing_key = jwks_client.get_signing_key_from_jwt(token).key
+        payload = jwt.decode(
+            token,
+            signing_key,
+            algorithms=["ES256"],
+            audience=audience,
+        )
         return payload
 
     if algorithm != "HS256":
@@ -71,7 +73,7 @@ async def get_current_user(
         raise _unauthorized("Missing authentication token.")
 
     token_value = token.strip()
-    # Remove surrounding quotes if present
+  
     if len(token_value) >= 2 and \
             ((token_value.startswith('"') and token_value.endswith('"')) or
              (token_value.startswith("'") and token_value.endswith("'"))):
