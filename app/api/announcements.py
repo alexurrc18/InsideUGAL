@@ -8,7 +8,6 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-# Am șters "get_current_profile" de aici, conform linter-ului Ruff
 from app.api.auth_deps import require_roles
 from app.api.crud import ensure_exists
 from app.db.database import get_db
@@ -78,16 +77,22 @@ async def upload_announcement_image(
     safe_filename = Path(file.filename or "upload").name
     unique_filename = f"{uuid.uuid4()}-{safe_filename}"
     encoded_filename = quote(unique_filename)
-    upload_url = f"{supabase_url.rstrip('/')}/storage/v1/object/announcements/{encoded_filename}"
-    public_url = f"{supabase_url.rstrip('/')}/storage/v1/object/public/announcements/{encoded_filename}"
+    
+    upload_url = f"{supabase_url.rstrip('/')}/storage/v1/object/images/announcements/{encoded_filename}"
+    public_url = f"{supabase_url.rstrip('/')}/storage/v1/object/public/images/announcements/{encoded_filename}"
+    
     headers = {
         "apikey": supabase_key,
         "Authorization": f"Bearer {supabase_key}",
         "Content-Type": file.content_type or "application/octet-stream",
     }
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(upload_url, headers=headers, content=await file.read())
+    # FIX: Citește imaginea în memorie înainte de a face request-ul HTTP
+    file_bytes = await file.read()
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        # Trimite pachetul de biți complet către Supabase
+        response = await client.post(upload_url, headers=headers, content=file_bytes)
 
     if response.status_code >= 400:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Image upload failed.")
