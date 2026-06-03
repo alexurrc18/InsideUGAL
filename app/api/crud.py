@@ -34,7 +34,7 @@ def create_crud_router(
             return UUID(raw_id) if id_type is UUID else id_type(raw_id)
         except (TypeError, ValueError) as exc:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"Invalid {id_field}.",
             ) from exc
 
