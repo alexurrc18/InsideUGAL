@@ -34,8 +34,8 @@ export default function LineupLayout() {
                 headerTitle: "",
                 headerLeft: () => (
                   <Pressable onPress={() => router.back()} style={{ marginHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 4 }}>
-                    <BackIcon />
-                    <Text style={[Typography.Paragraph1, { color: theme.text }]}>Mergi înapoi</Text>
+                    <BackIcon width={24} height={24} color={ColorScheme.white} />
+                    <Text style={[Typography.Paragraph1, { color: theme.background }]}>Mergi înapoi</Text>
                   </Pressable>
                 ),
               }}
@@ -48,9 +48,9 @@ export default function LineupLayout() {
                 headerTransparent: true,
                 headerTitle: "",
                 headerLeft: () => (
-                  <Pressable onPress={() => router.back()} style={{ marginHorizontal: 16, flexDirection: "row", alignItems: "center" }}>
-                    <BackIcon />
-                    <Text style={[Typography.Paragraph1, { color: theme.text }]}>Mergi înapoi</Text>
+                  <Pressable onPress={() => router.back()} style={{ marginHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <BackIcon width={24} height={24} color={ColorScheme.white} />
+                    <Text style={[Typography.Paragraph1, { color: ColorScheme.white }]}>Mergi înapoi</Text>
                   </Pressable>
                 ),
               }}

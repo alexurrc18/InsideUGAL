@@ -131,4 +131,234 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 -- ==========================================================
 -- 5. STORAGE BUCKET
 -- ==========================================================
+<<<<<<< HEAD
 INSERT INTO storage.buckets (id, name, public) VALUES ('images', 'images', true) ON CONFLICT (id) DO NOTHING;
+=======
+
+DROP POLICY IF EXISTS "profiles_self_read" ON public.profiles;
+
+CREATE POLICY "profiles_self_read"
+ON public.profiles
+FOR SELECT
+USING (
+    id = auth.uid()
+    OR public.current_user_role() = 'ADMIN'
+);
+
+DROP POLICY IF EXISTS "profiles_self_insert" ON public.profiles;
+
+CREATE POLICY "profiles_self_insert"
+ON public.profiles
+FOR INSERT
+WITH CHECK (
+    id = auth.uid()
+);
+
+DROP POLICY IF EXISTS "profiles_admin_manage" ON public.profiles;
+
+CREATE POLICY "profiles_admin_manage"
+ON public.profiles
+FOR ALL
+USING (
+    public.current_user_role() = 'ADMIN'
+)
+WITH CHECK (
+    public.current_user_role() = 'ADMIN'
+);
+
+-- ==========================================================
+-- FACULTIES POLICIES
+-- ==========================================================
+
+DROP POLICY IF EXISTS "faculties_public_read" ON public.faculties;
+
+CREATE POLICY "faculties_public_read"
+ON public.faculties
+FOR SELECT
+USING (TRUE);
+
+DROP POLICY IF EXISTS "faculties_authorized_manage" ON public.faculties;
+
+CREATE POLICY "faculties_authorized_manage"
+ON public.faculties
+FOR ALL
+USING (
+    public.current_user_role() IN ('ADMIN', 'FACULTATE_HEAD')
+)
+WITH CHECK (
+    public.current_user_role() IN ('ADMIN', 'FACULTATE_HEAD')
+);
+
+-- ==========================================================
+-- LOCATIONS POLICIES
+-- ==========================================================
+
+DROP POLICY IF EXISTS "locations_public_read" ON public.locations;
+
+CREATE POLICY "locations_public_read"
+ON public.locations
+FOR SELECT
+USING (TRUE);
+
+DROP POLICY IF EXISTS "locations_authorized_manage" ON public.locations;
+
+CREATE POLICY "locations_authorized_manage"
+ON public.locations
+FOR ALL
+USING (
+    public.current_user_role() IN ('ADMIN', 'FACULTATE_HEAD')
+)
+WITH CHECK (
+    public.current_user_role() IN ('ADMIN', 'FACULTATE_HEAD')
+);
+
+-- ==========================================================
+-- CAFETERIA POLICIES
+-- ==========================================================
+
+DROP POLICY IF EXISTS "cafeteria_public_read" ON public.cafeteria_menus;
+
+CREATE POLICY "cafeteria_public_read"
+ON public.cafeteria_menus
+FOR SELECT
+USING (TRUE);
+
+DROP POLICY IF EXISTS "cafeteria_authorized_manage" ON public.cafeteria_menus;
+
+CREATE POLICY "cafeteria_authorized_manage"
+ON public.cafeteria_menus
+FOR ALL
+USING (
+    public.current_user_role() IN ('ADMIN', 'CANTINA_HEAD')
+)
+WITH CHECK (
+    public.current_user_role() IN ('ADMIN', 'CANTINA_HEAD')
+);
+
+-- ==========================================================
+-- COMPLAINTS POLICIES
+-- ==========================================================
+
+DROP POLICY IF EXISTS "complaints_owner_or_staff_read" ON public.complaints;
+
+CREATE POLICY "complaints_owner_or_staff_read"
+ON public.complaints
+FOR SELECT
+USING (
+    user_id = auth.uid()
+    OR public.current_user_role() IN (
+        'ADMIN',
+        'PROFESOR',
+        'FACULTATE_HEAD'
+    )
+);
+
+DROP POLICY IF EXISTS "complaints_student_create" ON public.complaints;
+
+CREATE POLICY "complaints_student_create"
+ON public.complaints
+FOR INSERT
+WITH CHECK (
+    user_id = auth.uid()
+);
+
+DROP POLICY IF EXISTS "complaints_staff_update" ON public.complaints;
+
+CREATE POLICY "complaints_staff_update"
+ON public.complaints
+FOR UPDATE
+USING (
+    public.current_user_role() IN (
+        'ADMIN',
+        'PROFESOR',
+        'FACULTATE_HEAD'
+    )
+)
+WITH CHECK (
+    public.current_user_role() IN (
+        'ADMIN',
+        'PROFESOR',
+        'FACULTATE_HEAD'
+    )
+);
+
+-- ==========================================================
+-- ANNOUNCEMENTS POLICIES
+-- ==========================================================
+
+DROP POLICY IF EXISTS "announcements_public_read" ON public.announcements;
+
+CREATE POLICY "announcements_public_read"
+ON public.announcements
+FOR SELECT
+USING (TRUE);
+
+DROP POLICY IF EXISTS "announcements_authorized_manage" ON public.announcements;
+
+CREATE POLICY "announcements_authorized_manage"
+ON public.announcements
+FOR ALL
+USING (
+    public.current_user_role() IN (
+        'ADMIN',
+        'PROFESOR',
+        'REPREZENTANT'
+    )
+    AND (
+        public.current_user_role() <> 'REPREZENTANT'
+        OR created_by = auth.uid()
+    )
+)
+WITH CHECK (
+    public.current_user_role() IN (
+        'ADMIN',
+        'PROFESOR',
+        'REPREZENTANT'
+    )
+    AND (
+        public.current_user_role() <> 'REPREZENTANT'
+        OR created_by = auth.uid()
+    )
+);
+
+-- ==========================================================
+-- Tabele LLM (modul-marius)
+-- ==========================================================
+
+CREATE TABLE IF NOT EXISTS public.llm_calls (
+    id              uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
+    created_at      timestamptz DEFAULT now() NOT NULL,
+    function_name   text        NOT NULL,
+    model           text        NOT NULL,
+    prompt_tokens   integer     DEFAULT 0,
+    response_tokens integer     DEFAULT 0,
+    total_tokens    integer     DEFAULT 0,
+    cached          boolean     DEFAULT false,
+    duration_ms     integer
+);
+
+CREATE INDEX IF NOT EXISTS idx_llm_calls_function ON public.llm_calls (function_name);
+CREATE INDEX IF NOT EXISTS idx_llm_calls_created  ON public.llm_calls (created_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.questions_history (
+    id          bigserial   PRIMARY KEY,
+    created_at  timestamptz DEFAULT now() NOT NULL,
+    pdf_id      text        NOT NULL,
+    question    text        NOT NULL,
+    answer      text        NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_qh_pdf_id  ON public.questions_history (pdf_id);
+CREATE INDEX IF NOT EXISTS idx_qh_created ON public.questions_history (created_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.quiz_scores (
+    id          bigserial   PRIMARY KEY,
+    created_at  timestamptz DEFAULT now() NOT NULL,
+    pdf_id      text        NOT NULL,
+    correct     integer     NOT NULL,
+    total       integer     NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_qs_pdf_id  ON public.quiz_scores (pdf_id);
+CREATE INDEX IF NOT EXISTS idx_qs_created ON public.quiz_scores (created_at DESC);
+>>>>>>> 52aefa579be1ceda20abf3b0e55b93ff1d8304ad

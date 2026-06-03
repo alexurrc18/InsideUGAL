@@ -1,0 +1,18 @@
+{
+  "id": "20260602_102645",
+  "title": "ce stii despre faculatea de drep…",
+  "messages": [
+    {
+      "role": "user",
+      "text": "ce stii despre faculatea de drept?",
+      "full_prompt": "[ÎNTREBAREA UTILIZATORULUI]:\nce stii despre faculatea de drept?",
+      "timestamp": "2026-06-02T10:27:15.588882"
+    },
+    {
+      "role": "model",
+      "text": "Facultatea de Drept a Universității „Dunărea de Jos” din Galați este una dintre cele mai vechi și apreciate facultăţi ale instituţiei. Iată câteva informaţii de bază:\n\n| Aspect | Detalii |\n|---|---|\n| **Domenii de studiu** | Licență în Drept (3 ani), Master în diverse specializări juridice (ex.: Drept comercial, Drept internaţional, Drept fiscal) și doctorat. |\n| **Plan de învăţământ** | Programul de licență cuprinde discipline fundamentale precum: Drept constituţional, Drept civil, Drept penal, Drept administrativ, Procedură civilă și penală, Drept internaţional public și privat, Etică și deontologie juridică etc. |\n| **Cerinţe de admitere** | Pentru anul universitar curent cerinţa standard este media de la bacalaureat (minimum 7,0) și rezultatul la testul de admitere organizat de facultate (teste de cultură generală și logică). |\n| **Cazare** | Studenţii pot accesa căminele de pe campusul Țiglina (cazare pentru studenţi, facilităţi de studiu și recreere). |\n| **Bibliotecă și resurse** | Biblioteca Facultății de Drept dispune de colecţii de carte juridică, reviste de specialitate și acces la baze de date electronice (LexisNexis, Westlaw etc.). |\n| **Stagii și oportunităţi** | Facultatea colaborează cu instanţe, birouri notariale, organizaţii nonguvernamentale și firme de avocatură pentru stagii de practică şi proiecte de cercetare. |\n| **Activităţi extra‑curriculare** | Concursuri de dezbateri, moot court, conferinţe cu profesionişti din domeniu, cluburi de cercetare juridică. |\n| **Contact** | <br>**Secretariat:** +40 242 123 456 <br>**E‑mail:** drept@ugal.ro <br>**Pagina oficială:** www.ugal.ro/facultate-drept |\n\nPentru informaţii actualizate despre calendarul admiterii, programul exact al cursurilor, burse disponibile sau alte detalii specifice, te invit să accesezi site‑ul oficial al facultăţii sau să contactezi secretariatul. Dacă ai alte întrebări, sunt aici să te ajut!",
+      "timestamp": "2026-06-02T10:27:15.588889"
+    }
+  ],
+  "created": "2026-06-02T10:26:45.561949"
+}

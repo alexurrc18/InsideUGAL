@@ -22,8 +22,8 @@ logger = logging.getLogger("smart-announcement-parser")
 # 1. INITIALIZARE
 # ---------------------------------------------------------
 current_dir = os.path.dirname(os.path.abspath(__file__))
-root_env_path = os.path.abspath(os.path.join(current_dir, "..", ".env"))
-load_dotenv(dotenv_path=root_env_path, override=True)
+local_env_path = os.path.join(current_dir, ".env")
+load_dotenv(dotenv_path=local_env_path, override=True)
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 if not API_KEY:

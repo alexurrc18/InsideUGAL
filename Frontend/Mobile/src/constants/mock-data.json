@@ -23,6 +23,7 @@
       "time_end": "10:00",
       "posted_at": "1 noiembrie 2026",
       "author": "Facultatea de Automatică",
+      "facultyId": "f1",
       "category": "Evenimente",
       "image": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=1000",
       "content": "Ești gata să schimbi lumea în 24 de ore? Vino la cel mai mare hackathon din regiune. Premii totale de peste 5000 EUR.",
@@ -45,42 +46,94 @@
       "date": "27 mai 2026",
       "posted_at": "25 mai 2026",
       "author": "Alex Vlad",
+      "facultyId": "f5",
       "category": "Noutăți",
       "image": "https://images.unsplash.com/photo-1561070791-26c11d69963d?q=80&w=1000",
       "content": "Învață bazele designului grafic folosind instrumente moderne. Workshop-ul este gratuit pentru toți studenții UGAL.",
       "author_title": "Senior Designer"
+    },
+    {
+      "id": "5",
+      "title": "Conferința de Inginerie Sustenabilă",
+      "date_start": "10 octombrie 2026",
+      "time_start": "09:30",
+      "date_end": "10 octombrie 2026",
+      "time_end": "17:00",
+      "posted_at": "15 septembrie 2026",
+      "author": "Facultatea de Inginerie",
+      "facultyId": "f2",
+      "category": "Evenimente",
+      "image": "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1000",
+      "content": "O conferință dedicată ultimelor inovații în domeniul ingineriei sustenabile și energiilor regenerabile.",
+      "location": "Aula Magna, Corp D"
+    },
+    {
+      "id": "6",
+      "title": "Rezultate parțiale burse de merit",
+      "date": "2 iunie 2026",
+      "posted_at": "1 iunie 2026",
+      "author": "Secretariat FEAA",
+      "facultyId": "f3",
+      "category": "Noutăți",
+      "image": "https://images.unsplash.com/photo-1454165833762-02ac4f40e6e8?q=80&w=1000",
+      "content": "Au fost afișate listele parțiale pentru bursele de merit aferente semestrului al doilea. Contestațiile se depun online.",
+      "author_title": "Secretariat"
     }
   ],
   "faculties": [
     {
       "id": "f1",
-      "title": "Automatică și Calculatoare",
-      "image": "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=500"
+      "title": "Automatică, Calculatoare Inginerie Electrică și Electronică",
+      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSM9cVjBjAF1LnZWH42Wt6A2l0X7ROmlJ1f3w&s",
+      "address": "Str. Domnească nr. 111, Corp Y, Galați",
+      "phone": "+40 236 460 182",
+      "website": "https://aciee.ugal.ro",
+      "content": "Facultatea de Automatică, Calculatoare, Inginerie Electrică și Electronică (ACIEE) este un centru de excelență în formarea specialiștilor în tehnologie și inovație."
     },
     {
       "id": "f2",
-      "title": "Inginerie și Agronomie",
-      "image": "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?q=80&w=500"
+      "title": "Inginerie",
+      "image": "https://www.ugal.ro/images/faculties/logo_inginerie.jpg",
+      "address": "Str. Domnească nr. 47, Galați",
+      "phone": "+40 236 413 602",
+      "website": "https://ing.ugal.ro",
+      "content": "Pregătim viitorii ingineri în domenii variate."
     },
     {
       "id": "f3",
-      "title": "Economie și Business",
-      "image": "https://images.unsplash.com/photo-1454165833767-13143895600f?q=80&w=500"
+      "title": "Economie și Administrarea Afacerilor",
+      "image": "https://www.ugal.ro/images/faculties/eaa.png",
+      "address": "Str. Nicolae Bălcescu nr. 59-61, Galați",
+      "phone": "+40 236 411 037",
+      "website": "https://feaaa.ugal.ro",
+      "content": "Facultatea de Economie și Administrarea Afacerilor oferă programe competitive pentru viitorii lideri în business și administrație publică."
     },
     {
       "id": "f4",
       "title": "Medicină și Farmacie",
-      "image": "https://images.unsplash.com/photo-1576091160550-217359f4ecf8?q=80&w=500"
+      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSXOYmFEbbgQ-1-aEYLRPrBhoB377NO-hcSHQ&s",
+      "address": "Str. Eroilor nr. 35, Galați",
+      "phone": "+40 236 307 002",
+      "website": "https://med.ugal.ro",
+      "content": "Misiunea noastră este formarea de medici și farmaciști dedicați sănătății publice, prin educație de înaltă calitate și cercetare."
     },
     {
       "id": "f5",
       "title": "Litere",
-      "image": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=500"
+      "image": "https://litere.ugal.ro/images/2018/litere.gif",
+      "address": "Str. Domnească nr. 111, Corp A, Galați",
+      "phone": "+40 236 413 602",
+      "website": "https://litere.ugal.ro",
+      "content": "Explorăm limbile și literaturile lumii, comunicarea și studiile culturale într-un mediu academic vibrant."
     },
     {
       "id": "f6",
       "title": "Educație Fizică și Sport",
-      "image": "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=500"
+      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQF6zH88Xd-S90nfYPPtrUMo8C3Nb01zRnFCg&s",
+      "address": "Str. Gării nr. 63-65, Galați",
+      "phone": "+40 236 460 464",
+      "website": "https://fefs.ugal.ro",
+      "content": "Promovăm performanța sportivă și un stil de viață sănătos prin programe de licență și masterat de prestigiu."
     }
   ]
 }

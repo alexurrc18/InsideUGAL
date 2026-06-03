@@ -2,17 +2,17 @@ import os
 from dotenv import load_dotenv
 from google import genai
 
-# Obtinem calea absoluta catre fisierul .env din root-ul LLM
+# Obtinem calea absoluta catre fisierul .env din smart-news-parser
 current_dir = os.path.dirname(os.path.abspath(__file__))
-root_env_path = os.path.abspath(os.path.join(current_dir, "..", ".env"))
+local_env_path = os.path.join(current_dir, ".env")
 
 # Incarcam variabilele de mediu
-load_dotenv(dotenv_path=root_env_path, override=True)
+load_dotenv(dotenv_path=local_env_path, override=True)
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 
 print(f"--- Debug info ---")
-print(f"Cale .env: {root_env_path}")
+print(f"Cale .env: {local_env_path}")
 if API_KEY:
     masked_key = API_KEY[:4] + "*" * (len(API_KEY) - 8) + API_KEY[-4:] if len(API_KEY) > 8 else "****"
     print(f"API Key gasit: {masked_key}")

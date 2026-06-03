@@ -26,7 +26,7 @@ export function NewsCard({
     title, 
     date, 
     image, 
-    author = "Adina Cocu", 
+    author, 
     width, 
     height, 
     marginRight = 0,
@@ -65,7 +65,7 @@ export function NewsCard({
                     <Text style={[Typography.Small1, { color: theme.text, opacity: 0.6 }]}>
                         {author}
                     </Text>
-                    <Text style={[Typography.Heading4, { color: theme.text }]} numberOfLines={2}>
+                    <Text style={[Typography.Heading4, { color: theme.text }]} numberOfLines={3}>
                         {title}
                     </Text>
                     <Text style={[Typography.Small2, { color: theme.text, opacity: 0.6 }]}>
