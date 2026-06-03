@@ -1,9 +1,16 @@
 import logging
 import uuid
+import os
 
+# Essential security and utility imports
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from slowapi import Limiter, _rate_limit_exceeded_responder
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 import app.api.announcements as announcements
 import app.api.auth as auth
@@ -34,6 +41,42 @@ app = FastAPI(
         RequestValidationError: validation_exception_handler,
     },
 )
+
+# Rate Limiting Configuration
+limiter = Limiter(key_func=get_remote_address, default_limits=["60 per minute"])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_responder)
+
+# CORS Configuration
+allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+allowed_origins = [origin.strip() for origin in allowed_origins_raw.split(",") if origin.strip()]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Trusted Host Configuration
+allowed_hosts_raw = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,*.local")
+allowed_hosts = [host.strip() for host in allowed_hosts_raw.split(",") if host.strip()]
+
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=allowed_hosts,
+)
+
+
+@app.middleware("http")
+async def add_security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
 
 
 @app.middleware("http")
