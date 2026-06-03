@@ -13,7 +13,10 @@
   overflow-x: auto !important;
   overflow-y: hidden !important;
   scrollbar-width: thin;
-  scrollbar-color: #00479E transparent;
+  scrollbar-color: transparent transparent; /* Firefox: ascunsa implicit */
+}
+[data-carousel]:hover {
+  scrollbar-color: #00479E transparent; /* Firefox: apare la hover */
 }
 [data-carousel]::-webkit-scrollbar {
   height: 6px;
@@ -22,8 +25,11 @@
   background: transparent;
 }
 [data-carousel]::-webkit-scrollbar-thumb {
-  background-color: #00479E;
+  background-color: transparent; /* ascunsa implicit */
   border-radius: 3px;
+}
+[data-carousel]:hover::-webkit-scrollbar-thumb {
+  background-color: #00479E; /* apare la hover pe carusel */
 }
 [data-carousel]::-webkit-scrollbar-button {
   display: none;

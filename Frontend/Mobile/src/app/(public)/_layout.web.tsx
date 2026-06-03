@@ -1,14 +1,8 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
-import React from 'react';
-import { useColorScheme, Pressable } from 'react-native';
-import { Colors, ColorScheme } from "@/constants/theme";
-import { Typography } from "@/constants/typography";
-import ChatIcon from "@/assets/icons/svg/message-circle-captions.svg";
+import { ColorScheme } from "@/constants/theme";
 
 export default function TabLayout() {
-    const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
-    const theme = Colors[themeName];
-    const activeColor = theme.primary;
+    const activeColor = ColorScheme.white;
 
     return (
         <NativeTabs

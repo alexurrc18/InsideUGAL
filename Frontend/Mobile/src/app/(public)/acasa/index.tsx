@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, ScrollView, useColorScheme, Platform } from "react-native";
+import { View, Text, ScrollView, useColorScheme } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
@@ -66,7 +66,7 @@ export default function HomeScreen() {
             contentFit="cover"
           />
 
-          <View style={{ flex: 1, padding: 16, justifyContent: "flex-end" }}>
+          <View style={{ flex: 1, padding: 16, justifyContent: "flex-end", width: "100%", maxWidth: 1200, alignSelf: "center" }}>
             <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
               Astăzi, 27 mai
             </Text>
@@ -76,7 +76,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={{paddingTop: 16, paddingBottom: insets.bottom+5, flex: 1, width: "100%", paddingHorizontal: Platform.OS === "web" ? "6%" : 0}}>
+        <View style={{paddingTop: 16, paddingBottom: insets.bottom+5, flex: 1, width: "100%", maxWidth: 1200, alignSelf: "center"}}>
           <Carousel
             title="Noutăți"
             data={noutati}
