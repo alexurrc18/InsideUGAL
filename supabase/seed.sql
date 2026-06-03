@@ -1,4 +1,3 @@
-
 DO $$ 
 BEGIN
     IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'auth' AND tablename = 'users') THEN
@@ -9,7 +8,6 @@ BEGIN
     END IF;
 END $$;
 
--- Profii asociati utilizatorilor
 INSERT INTO public.profiles (id, username, first_name, last_name, email, role, is_active) VALUES
 ('00000000-0000-0000-0000-000000000001', 'admin', 'Admin', 'User', 'admin@ugal.ro', 'HEAD_ADMIN', true),
 ('00000000-0000-0000-0000-000000000002', 'student', 'Student', 'User', 'student@ugal.ro', 'STUDENT', true)
@@ -52,7 +50,6 @@ INSERT INTO public.menu_products (menu_id, product_id) VALUES
 (3, 1), (3, 5)
 ON CONFLICT ON CONSTRAINT menu_products_pkey DO NOTHING;
 
--- Sincronizare secvențe ID (Pentru a putea adăuga date noi din interfață fără erori de ID)
 SELECT setval('public.faculties_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.faculties));
 SELECT setval('public.categories_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.categories));
 SELECT setval('public.locations_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.locations));

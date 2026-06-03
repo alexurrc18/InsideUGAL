@@ -4,7 +4,6 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 -- 1. CREARE TIPURI ENUM
 -- ==========================================================
 
--- =======================================
 DO $$ 
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
@@ -19,7 +18,7 @@ BEGIN
 END $$;
 
 -- ==========================================================
--- 2. TABELE PRINCIPALE (CU TOATE COLOANELE NECESARE)
+-- 2. TABELE PRINCIPALE
 -- ==========================================================
 
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -114,251 +113,138 @@ CREATE TABLE IF NOT EXISTS public.announcements (
 -- ==========================================================
 -- 3. TABELE LLM (MODUL MARIUS)
 -- ==========================================================
-CREATE TABLE IF NOT EXISTS public.llm_calls (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, created_at timestamptz DEFAULT now() NOT NULL, function_name text NOT NULL, model text NOT NULL, prompt_tokens integer DEFAULT 0, response_tokens integer DEFAULT 0, total_tokens integer DEFAULT 0, cached boolean DEFAULT false, duration_ms integer);
-CREATE TABLE IF NOT EXISTS public.questions_history (id bigserial PRIMARY KEY, created_at timestamptz DEFAULT now() NOT NULL, pdf_id text NOT NULL, question text NOT NULL, answer text NOT NULL);
-CREATE TABLE IF NOT EXISTS public.quiz_scores (id bigserial PRIMARY KEY, created_at timestamptz DEFAULT now() NOT NULL, pdf_id text NOT NULL, correct integer NOT NULL, total integer NOT NULL);
-
--- ==========================================================
--- 4. TRIGGERS & RLS
--- ==========================================================
-CREATE OR REPLACE FUNCTION public.set_updated_at() RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = NOW(); RETURN NEW; END; $$ LANGUAGE plpgsql;
-
--- (Am omis listarea repetitivă a triggerelor pentru concizie, dar logica e aceeasi ca in versiunile anterioare)
--- Asigură-te că activezi RLS pe toate tabelele de mai sus
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
--- ... adaugă restul de ALTER TABLE ...
-
--- ==========================================================
--- 5. STORAGE BUCKET
--- ==========================================================
-<<<<<<< HEAD
-INSERT INTO storage.buckets (id, name, public) VALUES ('images', 'images', true) ON CONFLICT (id) DO NOTHING;
-=======
-
-DROP POLICY IF EXISTS "profiles_self_read" ON public.profiles;
-
-CREATE POLICY "profiles_self_read"
-ON public.profiles
-FOR SELECT
-USING (
-    id = auth.uid()
-    OR public.current_user_role() = 'ADMIN'
-);
-
-DROP POLICY IF EXISTS "profiles_self_insert" ON public.profiles;
-
-CREATE POLICY "profiles_self_insert"
-ON public.profiles
-FOR INSERT
-WITH CHECK (
-    id = auth.uid()
-);
-
-DROP POLICY IF EXISTS "profiles_admin_manage" ON public.profiles;
-
-CREATE POLICY "profiles_admin_manage"
-ON public.profiles
-FOR ALL
-USING (
-    public.current_user_role() = 'ADMIN'
-)
-WITH CHECK (
-    public.current_user_role() = 'ADMIN'
-);
-
--- ==========================================================
--- FACULTIES POLICIES
--- ==========================================================
-
-DROP POLICY IF EXISTS "faculties_public_read" ON public.faculties;
-
-CREATE POLICY "faculties_public_read"
-ON public.faculties
-FOR SELECT
-USING (TRUE);
-
-DROP POLICY IF EXISTS "faculties_authorized_manage" ON public.faculties;
-
-CREATE POLICY "faculties_authorized_manage"
-ON public.faculties
-FOR ALL
-USING (
-    public.current_user_role() IN ('ADMIN', 'FACULTATE_HEAD')
-)
-WITH CHECK (
-    public.current_user_role() IN ('ADMIN', 'FACULTATE_HEAD')
-);
-
--- ==========================================================
--- LOCATIONS POLICIES
--- ==========================================================
-
-DROP POLICY IF EXISTS "locations_public_read" ON public.locations;
-
-CREATE POLICY "locations_public_read"
-ON public.locations
-FOR SELECT
-USING (TRUE);
-
-DROP POLICY IF EXISTS "locations_authorized_manage" ON public.locations;
-
-CREATE POLICY "locations_authorized_manage"
-ON public.locations
-FOR ALL
-USING (
-    public.current_user_role() IN ('ADMIN', 'FACULTATE_HEAD')
-)
-WITH CHECK (
-    public.current_user_role() IN ('ADMIN', 'FACULTATE_HEAD')
-);
-
--- ==========================================================
--- CAFETERIA POLICIES
--- ==========================================================
-
-DROP POLICY IF EXISTS "cafeteria_public_read" ON public.cafeteria_menus;
-
-CREATE POLICY "cafeteria_public_read"
-ON public.cafeteria_menus
-FOR SELECT
-USING (TRUE);
-
-DROP POLICY IF EXISTS "cafeteria_authorized_manage" ON public.cafeteria_menus;
-
-CREATE POLICY "cafeteria_authorized_manage"
-ON public.cafeteria_menus
-FOR ALL
-USING (
-    public.current_user_role() IN ('ADMIN', 'CANTINA_HEAD')
-)
-WITH CHECK (
-    public.current_user_role() IN ('ADMIN', 'CANTINA_HEAD')
-);
-
--- ==========================================================
--- COMPLAINTS POLICIES
--- ==========================================================
-
-DROP POLICY IF EXISTS "complaints_owner_or_staff_read" ON public.complaints;
-
-CREATE POLICY "complaints_owner_or_staff_read"
-ON public.complaints
-FOR SELECT
-USING (
-    user_id = auth.uid()
-    OR public.current_user_role() IN (
-        'ADMIN',
-        'PROFESOR',
-        'FACULTATE_HEAD'
-    )
-);
-
-DROP POLICY IF EXISTS "complaints_student_create" ON public.complaints;
-
-CREATE POLICY "complaints_student_create"
-ON public.complaints
-FOR INSERT
-WITH CHECK (
-    user_id = auth.uid()
-);
-
-DROP POLICY IF EXISTS "complaints_staff_update" ON public.complaints;
-
-CREATE POLICY "complaints_staff_update"
-ON public.complaints
-FOR UPDATE
-USING (
-    public.current_user_role() IN (
-        'ADMIN',
-        'PROFESOR',
-        'FACULTATE_HEAD'
-    )
-)
-WITH CHECK (
-    public.current_user_role() IN (
-        'ADMIN',
-        'PROFESOR',
-        'FACULTATE_HEAD'
-    )
-);
-
--- ==========================================================
--- ANNOUNCEMENTS POLICIES
--- ==========================================================
-
-DROP POLICY IF EXISTS "announcements_public_read" ON public.announcements;
-
-CREATE POLICY "announcements_public_read"
-ON public.announcements
-FOR SELECT
-USING (TRUE);
-
-DROP POLICY IF EXISTS "announcements_authorized_manage" ON public.announcements;
-
-CREATE POLICY "announcements_authorized_manage"
-ON public.announcements
-FOR ALL
-USING (
-    public.current_user_role() IN (
-        'ADMIN',
-        'PROFESOR',
-        'REPREZENTANT'
-    )
-    AND (
-        public.current_user_role() <> 'REPREZENTANT'
-        OR created_by = auth.uid()
-    )
-)
-WITH CHECK (
-    public.current_user_role() IN (
-        'ADMIN',
-        'PROFESOR',
-        'REPREZENTANT'
-    )
-    AND (
-        public.current_user_role() <> 'REPREZENTANT'
-        OR created_by = auth.uid()
-    )
-);
-
--- ==========================================================
--- Tabele LLM (modul-marius)
--- ==========================================================
 
 CREATE TABLE IF NOT EXISTS public.llm_calls (
-    id              uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
-    created_at      timestamptz DEFAULT now() NOT NULL,
-    function_name   text        NOT NULL,
-    model           text        NOT NULL,
-    prompt_tokens   integer     DEFAULT 0,
-    response_tokens integer     DEFAULT 0,
-    total_tokens    integer     DEFAULT 0,
-    cached          boolean     DEFAULT false,
-    duration_ms     integer
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY, 
+    created_at timestamptz DEFAULT now() NOT NULL, 
+    function_name text NOT NULL, 
+    model text NOT NULL, 
+    prompt_tokens integer DEFAULT 0, 
+    response_tokens integer DEFAULT 0, 
+    total_tokens integer DEFAULT 0, 
+    cached boolean DEFAULT false, 
+    duration_ms integer
 );
+
+CREATE TABLE IF NOT EXISTS public.questions_history (
+    id bigserial PRIMARY KEY, 
+    created_at timestamptz DEFAULT now() NOT NULL, 
+    pdf_id text NOT NULL, 
+    question text NOT NULL, 
+    answer text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.quiz_scores (
+    id bigserial PRIMARY KEY, 
+    created_at timestamptz DEFAULT now() NOT NULL, 
+    pdf_id text NOT NULL, 
+    correct integer NOT NULL, 
+    total integer NOT NULL
+);
+
+-- ==========================================================
+-- 4. FUNCȚII AJUTĂTOARE ȘI TRIGGERE
+-- ==========================================================
+
+CREATE OR REPLACE FUNCTION public.set_updated_at() 
+RETURNS TRIGGER AS $$ 
+BEGIN 
+    NEW.updated_at = NOW(); 
+    RETURN NEW; 
+END; 
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION public.current_user_role()
+RETURNS text AS $$
+BEGIN
+    RETURN (
+        SELECT role::text 
+        FROM public.profiles 
+        WHERE id = auth.uid()
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER handle_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+CREATE TRIGGER handle_faculties_updated_at BEFORE UPDATE ON public.faculties FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+CREATE TRIGGER handle_locations_updated_at BEFORE UPDATE ON public.locations FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+CREATE TRIGGER handle_products_updated_at BEFORE UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+CREATE TRIGGER handle_daily_menus_updated_at BEFORE UPDATE ON public.daily_menus FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+CREATE TRIGGER handle_complaints_updated_at BEFORE UPDATE ON public.complaints FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+CREATE TRIGGER handle_announcements_updated_at BEFORE UPDATE ON public.announcements FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+-- ==========================================================
+-- 5. ROW LEVEL SECURITY (RLS) & STORAGE
+-- ==========================================================
+
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.faculties ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.locations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.daily_menus ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.menu_products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.complaints ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.llm_calls ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.questions_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.quiz_scores ENABLE ROW LEVEL SECURITY;
+
+INSERT INTO storage.buckets (id, name, public) VALUES ('images', 'images', true) ON CONFLICT (id) DO NOTHING;
+
+-- ==========================================================
+-- 6. POLITICI POLICIES (RLS)
+-- ==========================================================
+
+DROP POLICY IF EXISTS "profiles_self_read" ON public.profiles;
+CREATE POLICY "profiles_self_read" ON public.profiles FOR SELECT USING (id = auth.uid() OR public.current_user_role() = 'ADMIN');
+
+DROP POLICY IF EXISTS "profiles_self_insert" ON public.profiles;
+CREATE POLICY "profiles_self_insert" ON public.profiles FOR INSERT WITH CHECK (id = auth.uid());
+
+DROP POLICY IF EXISTS "profiles_admin_manage" ON public.profiles;
+CREATE POLICY "profiles_admin_manage" ON public.profiles FOR ALL USING (public.current_user_role() = 'ADMIN') WITH CHECK (public.current_user_role() = 'ADMIN');
+
+DROP POLICY IF EXISTS "faculties_public_read" ON public.faculties;
+CREATE POLICY "faculties_public_read" ON public.faculties FOR SELECT USING (TRUE);
+
+DROP POLICY IF EXISTS "faculties_authorized_manage" ON public.faculties;
+CREATE POLICY "faculties_authorized_manage" ON public.faculties FOR ALL USING (public.current_user_role() IN ('ADMIN', 'FACULTATE_HEAD')) WITH CHECK (public.current_user_role() IN ('ADMIN', 'FACULTATE_HEAD'));
+
+DROP POLICY IF EXISTS "locations_public_read" ON public.locations;
+CREATE POLICY "locations_public_read" ON public.locations FOR SELECT USING (TRUE);
+
+DROP POLICY IF EXISTS "locations_authorized_manage" ON public.locations;
+CREATE POLICY "locations_authorized_manage" ON public.locations FOR ALL USING (public.current_user_role() IN ('ADMIN', 'FACULTATE_HEAD')) WITH CHECK (public.current_user_role() IN ('ADMIN', 'FACULTATE_HEAD'));
+
+DROP POLICY IF EXISTS "cafeteria_public_read" ON public.daily_menus;
+CREATE POLICY "cafeteria_public_read" ON public.daily_menus FOR SELECT USING (TRUE);
+
+DROP POLICY IF EXISTS "cafeteria_authorized_manage" ON public.daily_menus;
+CREATE POLICY "cafeteria_authorized_manage" ON public.daily_menus FOR ALL USING (public.current_user_role() IN ('ADMIN', 'CANTINA_HEAD')) WITH CHECK (public.current_user_role() IN ('ADMIN', 'CANTINA_HEAD'));
+
+DROP POLICY IF EXISTS "complaints_owner_or_staff_read" ON public.complaints;
+CREATE POLICY "complaints_owner_or_staff_read" ON public.complaints FOR SELECT USING (user_id = auth.uid() OR public.current_user_role() IN ('ADMIN', 'PROFESOR', 'FACULTATE_HEAD'));
+
+DROP POLICY IF EXISTS "complaints_student_create" ON public.complaints;
+CREATE POLICY "complaints_student_create" ON public.complaints FOR INSERT WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "complaints_staff_update" ON public.complaints;
+CREATE POLICY "complaints_staff_update" ON public.complaints FOR UPDATE USING (public.current_user_role() IN ('ADMIN', 'PROFESOR', 'FACULTATE_HEAD')) WITH CHECK (public.current_user_role() IN ('ADMIN', 'PROFESOR', 'FACULTATE_HEAD'));
+
+DROP POLICY IF EXISTS "announcements_public_read" ON public.announcements;
+CREATE POLICY "announcements_public_read" ON public.announcements FOR SELECT USING (TRUE);
+
+DROP POLICY IF EXISTS "announcements_authorized_manage" ON public.announcements;
+CREATE POLICY "announcements_authorized_manage" ON public.announcements FOR ALL USING (public.current_user_role() IN ('ADMIN', 'PROFESOR', 'REPREZENTANT') AND (public.current_user_role() <> 'REPREZENTANT' OR created_by = auth.uid())) WITH CHECK (public.current_user_role() IN ('ADMIN', 'PROFESOR', 'REPREZENTANT') AND (public.current_user_role() <> 'REPREZENTANT' OR created_by = auth.uid()));
+
+-- ==========================================================
+-- 7. INDECȘI
+-- ==========================================================
 
 CREATE INDEX IF NOT EXISTS idx_llm_calls_function ON public.llm_calls (function_name);
 CREATE INDEX IF NOT EXISTS idx_llm_calls_created  ON public.llm_calls (created_at DESC);
-
-CREATE TABLE IF NOT EXISTS public.questions_history (
-    id          bigserial   PRIMARY KEY,
-    created_at  timestamptz DEFAULT now() NOT NULL,
-    pdf_id      text        NOT NULL,
-    question    text        NOT NULL,
-    answer      text        NOT NULL
-);
-
 CREATE INDEX IF NOT EXISTS idx_qh_pdf_id  ON public.questions_history (pdf_id);
 CREATE INDEX IF NOT EXISTS idx_qh_created ON public.questions_history (created_at DESC);
-
-CREATE TABLE IF NOT EXISTS public.quiz_scores (
-    id          bigserial   PRIMARY KEY,
-    created_at  timestamptz DEFAULT now() NOT NULL,
-    pdf_id      text        NOT NULL,
-    correct     integer     NOT NULL,
-    total       integer     NOT NULL
-);
-
 CREATE INDEX IF NOT EXISTS idx_qs_pdf_id  ON public.quiz_scores (pdf_id);
 CREATE INDEX IF NOT EXISTS idx_qs_created ON public.quiz_scores (created_at DESC);
->>>>>>> 52aefa579be1ceda20abf3b0e55b93ff1d8304ad
