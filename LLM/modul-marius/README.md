@@ -32,9 +32,7 @@ modul-marius/
 ├── uploads/                        # PDF-urile incarcate (ignorat de git)
 ├── chroma_db/                      # Baza de date vectoriala ChromaDB (ignorat de git)
 ├── requirements.txt
-├── create_llm_calls_table.sql
-├── create_questions_history_table.sql
-└── create_quiz_scores_table.sql
+└── requirements.txt
 ```
 
 ---
@@ -67,7 +65,7 @@ modul-marius/
 
 ## Baza de date Supabase
 
-Trei tabele create cu SQL-urile din folder:
+Trei tabele incluse in migratiile Supabase (`supabase/migrations/`):
 
 **`llm_calls`** — logheaza fiecare apel catre Gemini
 | Coloana | Tip | Descriere |
@@ -117,10 +115,8 @@ GEMINI_API_KEY=...
 SUPABASE_URL=...
 SUPABASE_SERVICE_KEY=...
 
-# Creeaza tabelele in Supabase Studio (SQL Editor)
-# Ruleaza: create_llm_calls_table.sql
-# Ruleaza: create_questions_history_table.sql
-# Ruleaza: create_quiz_scores_table.sql
+# Tabelele llm_calls, questions_history, quiz_scores sunt incluse
+# automat in migratiile Supabase ale proiectului
 
 # Porneste serverul
 python app.py
