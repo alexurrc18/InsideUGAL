@@ -37,8 +37,8 @@ if HF_API_KEY:
     HF_API_KEY = HF_API_KEY.strip().strip("'").strip('"')
 
 # Serviciu LLM si Image
-llm_service = LLMService(api_key=API_KEY)
-image_service = ImageService(gemini_api_key=API_KEY, hf_api_key=HF_API_KEY)
+llm_service = LLMService(hf_api_key=HF_API_KEY)
+image_service = ImageService(hf_api_key=HF_API_KEY)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -83,10 +83,13 @@ async def extract_announcement_info(request: AnnouncementRequest):
         result = await llm_service.extract_announcement_info(request.text)
         return result
     except Exception as e:
-        logger.error(f"❌ Eroare la procesarea anuntului: {str(e)}", exc_info=True)
+        error_msg = str(e)
+        logger.error(f"❌ Eroare la procesarea anuntului: {error_msg}", exc_info=True)
+        if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
+            raise HTTPException(status_code=429, detail="API rate limit exceeded. Please try again later.")
         raise HTTPException(
             status_code=500,
-            detail=f"Eroare la analiza AI: {str(e)}"
+            detail=f"Eroare la analiza AI: {error_msg}"
         )
 
 @app.post("/api/v1/generate-banner", response_model=ImageGenerationResult)
@@ -101,6 +104,8 @@ async def generate_banner(info: ExtractedAnnouncementInfo):
         result = await image_service.generate_announcement_banner(info)
         
         if not result.success:
+            if "429" in result.error_message or "RESOURCE_EXHAUSTED" in result.error_message:
+                raise HTTPException(status_code=429, detail="API rate limit exceeded. Please try again later.")
             raise HTTPException(status_code=500, detail=result.error_message)
             
         return result

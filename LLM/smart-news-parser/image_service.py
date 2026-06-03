@@ -1,10 +1,8 @@
 import os
 import base64
 import logging
-import requests
-import asyncio
-from google import genai
-from google.genai import types
+import io
+from huggingface_hub import AsyncInferenceClient
 from pydantic import BaseModel
 from schemas import ExtractedAnnouncementInfo
 
@@ -17,67 +15,66 @@ class ImageGenerationResult(BaseModel):
     error_message: str | None = None
 
 class ImageService:
-    def __init__(self, gemini_api_key: str, hf_api_key: str | None = None):
-        self.client = genai.Client(api_key=gemini_api_key)
-        self.text_model_id = 'gemini-3.5-flash'
-        self.hf_api_key = hf_api_key
-        # Model gratuit de la Hugging Face
-        self.hf_model_url = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
+    def __init__(self, hf_api_key: str | None = None):
+        self.hf_client = AsyncInferenceClient(token=hf_api_key)
+        self.hf_text_model_id = 'meta-llama/Llama-3.3-70B-Instruct'
+        self.hf_model_id = "black-forest-labs/FLUX.1-schnell"
 
     async def generate_announcement_banner(self, info: ExtractedAnnouncementInfo) -> ImageGenerationResult:
         try:
-            # 1. Transform structured data to visual prompt using Gemini 3.5 Flash
+            # 1. Transform structured data to visual prompt using HF LLM
             prompt_system = (
                 "You are an expert prompt engineer for an image generation model. "
                 "Transform the following structured university announcement data into an english prompt for a text-to-image model. "
-                "The image must be a photorealistic cinematic shot (buildings, environments, symbolic objects, campus life, technology). "
-                "CRITICAL: Do NOT include humans or faces. Focus purely on the environment and objects. "
-                "CRITICAL: The image must NOT contain any text, letters, or numbers. "
+                "CRITICAL INSTRUCTION 1: The generated image MUST strongly visually represent the semantic meaning of the CURRENT announcement data provided. "
+                "Analyze the 'Tags', 'Subject', and 'Summary'. Choose ONE OR TWO simple thematic objects that strictly match the context (e.g., a laptop or code symbols for a Hackathon, a piggy bank for a Scholarship, a microscope for a Lab). Choose the object dynamically based on the current JSON. "
+                "CRITICAL INSTRUCTION 2: Do NOT clutter the image. Keep the composition extremely simple and clean. "
+                "CRITICAL INSTRUCTION 3: DYNAMICALLY ADAPT THE ART STYLE based on the announcement type: "
+                "- For exciting events (e.g., Hackathons, Internships, Tech Jobs): Use a 'cool, modern, futuristic, neon, vibrant 3D render, or cyberpunk' aesthetic to capture students' attention. "
+                "- For formal/administrative events (e.g., Scholarships, Dorms, Exams, Admissions): Use a 'premium high-quality 3D icon, rich vibrant colors, elegant corporate design, professional and polished' aesthetic. Do NOT use simple thin line art or boring sketches. "
+                "Do NOT make it photorealistic. "
+                "CRITICAL INSTRUCTION 4: Do NOT include human faces or people. "
                 "Output ONLY the prompt string, nothing else."
             )
             
             announcement_context = (
-                f"Event Type: {info.tip_eveniment.value}\n"
+                f"Event Type: {info.tip_eveniment.value if hasattr(info.tip_eveniment, 'value') else info.tip_eveniment}\n"
                 f"Subject: {info.materie_sau_subiect}\n"
                 f"Source Entity: {info.entitate_sursa}\n"
                 f"Tags: {', '.join(info.taguri_cheie)}\n"
                 f"Summary: {info.rezumat_notificare}"
             )
             
-            prompt_refiner = await self.client.aio.models.generate_content(
-                model=self.text_model_id,
-                contents=f"Announcement Data:\n{announcement_context}",
-                config=types.GenerateContentConfig(
-                    system_instruction=prompt_system,
-                    temperature=0.7
-                )
+            messages = [
+                {"role": "system", "content": prompt_system},
+                {"role": "user", "content": f"Announcement Data:\n{announcement_context}"}
+            ]
+            
+            prompt_refiner = await self.hf_client.chat_completion(
+                model=self.hf_text_model_id,
+                messages=messages,
+                max_tokens=256,
+                temperature=0.7
             )
             
-            refined_prompt = prompt_refiner.text.strip()
+            refined_prompt = prompt_refiner.choices[0].message.content.strip()
             logger.info(f"🎨 Refined Prompt: {refined_prompt}")
 
-            # 2. Generate Image with Hugging Face (Stable Diffusion)
-            headers = {}
-            if self.hf_api_key:
-                headers["Authorization"] = f"Bearer {self.hf_api_key}"
-                
-            payload = {
-                "inputs": refined_prompt,
-                "parameters": {
-                    "width": 1024,
-                    "height": 576  # Aproximativ 16:9
-                }
-            }
+            # 2. Generate Image with Hugging Face (Stable Diffusion) via official SDK
+            logger.info("⏳ Se generează imaginea prin Hugging Face (SDK Oficial)...")
             
-            # Executăm cererea sincronă într-un thread separat pentru a nu bloca asyncio
-            def fetch_image():
-                response = requests.post(self.hf_model_url, headers=headers, json=payload)
-                if response.status_code != 200:
-                    raise Exception(f"HF API Error {response.status_code}: {response.text}")
-                return response.content
-                
-            logger.info("⏳ Se generează imaginea prin Hugging Face...")
-            image_bytes = await asyncio.to_thread(fetch_image)
+            image = await self.hf_client.text_to_image(
+                prompt=refined_prompt,
+                negative_prompt="text, letters, alphabet, numbers, words, typography, logo, watermark, signature, blurry, distorted, deformed, messy, bad anatomy, bad proportions, low quality, ugly artifacts, photorealistic, realistic, cluttered, busy, too many objects, complex background, chaotic, thin line art, uncolored, sketch, boring",
+                model=self.hf_model_id,
+                width=1024,
+                height=576 # Aproximativ 16:9
+            )
+            
+            # Conversie din PIL Image in Bytes
+            buffered = io.BytesIO()
+            image.save(buffered, format="JPEG")
+            image_bytes = buffered.getvalue()
             
             # Encodare in Base64
             base64_encoded = base64.b64encode(image_bytes).decode('utf-8')
@@ -131,6 +128,17 @@ if __name__ == "__main__":
         if response.success:
             print("✅ SUCCES! Imaginea a fost generata cu succes.")
             print(f"Base64 (primele 100 caractere): {response.image_base64[:100]}...")
+            
+            # Salvam poza fizic pentru vizualizare rapida in folderul smart-news-parser
+            try:
+                base64_data = response.image_base64.split(",")[1]
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                save_path = os.path.join(current_dir, "test_banner.jpg")
+                with open(save_path, "wb") as f:
+                    f.write(base64.b64decode(base64_data))
+                print(f"🖼️ POZA E GATA! A fost salvata in: {save_path}")
+            except Exception as e:
+                print(f"Eroare la salvarea pozei pe disc: {e}")
         else:
             print(f"❌ EROARE: {response.error_message}")
 
