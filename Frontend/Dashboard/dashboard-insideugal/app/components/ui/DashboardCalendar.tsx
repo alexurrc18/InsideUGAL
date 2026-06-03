@@ -8,7 +8,6 @@ import { ro } from "react-day-picker/locale";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "./Card";
@@ -68,21 +67,19 @@ export default function DashboardCalendar({ events = [] }: DashboardCalendarProp
     () => Object.keys(eventsByDate).map((dateKey) => parseDateKey(dateKey)),
     [eventsByDate],
   );
-  const monthLabel = new Intl.DateTimeFormat("ro-RO", {
-    month: "long",
-    year: "numeric",
-  }).format(selectedDate ?? today);
   const startMonth = useMemo(() => new Date(today.getFullYear() - 6, 0, 1), [today]);
   const endMonth = useMemo(() => new Date(today.getFullYear() + 6, 11, 31), [today]);
+
   const EventDayButton = ({ day, modifiers, className, style, ...props }: DayButtonProps) => {
     const hasEvent = eventDates.has(toDateKey(day.date));
     const selectedClasses = modifiers.selected
       ? "bg-brand text-white hover:bg-brand"
       : "";
     const selectedStyle: CSSProperties | undefined = modifiers.selected
-      ? {
+        ? {
           backgroundColor: "var(--brand)",
           borderColor: "var(--brand)",
+          borderRadius: "0.25rem",
           color: "#ffffff",
         }
       : undefined;
@@ -91,7 +88,7 @@ export default function DashboardCalendar({ events = [] }: DashboardCalendarProp
       <button
         {...props}
         style={{ ...style, ...selectedStyle }}
-        className={`${className ?? ""} ${selectedClasses} ${hasEvent ? "relative" : ""}`}
+        className={`${className ?? ""} ${selectedClasses} ${hasEvent ? "relative" : ""} h-[2.25rem] w-[2.25rem] rounded-sm`}
       >
         <span className="relative z-10">{day.date.getDate()}</span>
         {hasEvent && (
@@ -107,16 +104,8 @@ export default function DashboardCalendar({ events = [] }: DashboardCalendarProp
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <CardTitle>Calendar</CardTitle>
-            <CardDescription className="capitalize">{monthLabel}</CardDescription>
-          </div>
-          <div className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground">
-            Azi, {today.getDate()}
-          </div>
-        </div>
+      <CardHeader className="pb-3">
+        <CardTitle>Calendar</CardTitle>
       </CardHeader>
       <CardContent>
         <Calendar
@@ -124,7 +113,7 @@ export default function DashboardCalendar({ events = [] }: DashboardCalendarProp
           selected={selectedDate}
           onSelect={setSelectedDate}
           captionLayout="dropdown"
-          navLayout="after"
+          // Am eliminat navLayout="after" pentru a permite poziționarea corectă a săgeților în margini
           startMonth={startMonth}
           endMonth={endMonth}
           fixedWeeks

@@ -1,6 +1,7 @@
 // app/noutati/page.tsx
 "use client";
 
+import Image from 'next/image';
 import React, { useState } from 'react';
 import { mockAnnouncements, Announcement } from '../data/announcements';
 import Table, { Column } from '../components/ui/Table';
@@ -104,7 +105,16 @@ export default function Page() {
         {selectedItem && (
           <div className="space-y-4 text-sm text-foreground">
             {selectedItem.thumbnail && (
-              <img src={selectedItem.thumbnail} alt={selectedItem.title} className="w-full h-48 object-cover rounded-xl border border-border" />
+              <div className="relative h-48 w-full overflow-hidden rounded-xl border border-border">
+                <Image
+                  src={selectedItem.thumbnail}
+                  alt={selectedItem.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 512px"
+                  className="object-cover"
+                  unoptimized={selectedItem.thumbnail.startsWith('data:')}
+                />
+              </div>
             )}
             <div>
               <h4 className="text-lg font-bold">{selectedItem.title}</h4>
@@ -162,7 +172,14 @@ export default function Page() {
               />
               {formState.thumbnail && (
                 <div className="mt-1 relative w-32 h-20 rounded-md overflow-hidden border border-border">
-                  <img src={formState.thumbnail} alt="Preview" className="w-full h-full object-cover" />
+                  <Image
+                    src={formState.thumbnail}
+                    alt="Preview"
+                    fill
+                    sizes="128px"
+                    className="object-cover"
+                    unoptimized={formState.thumbnail.startsWith('data:')}
+                  />
                   <button 
                     type="button" 
                     onClick={() => setFormState(prev => ({ ...prev, thumbnail: '' }))} 
