@@ -23,7 +23,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(public)" options={{ animation: "fade", animationDuration: 250 }}/>
+          <Stack.Screen name="(public)" options={{ animation: 'none' }} />
         </Stack>
     </ThemeProvider>
   );
