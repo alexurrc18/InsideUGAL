@@ -4,6 +4,9 @@ import uuid
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from slowapi import Limiter, _rate_limit_exceeded_responder
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 import app.api.announcements as announcements
 import app.api.auth as auth
@@ -34,6 +37,11 @@ app = FastAPI(
         RequestValidationError: validation_exception_handler,
     },
 )
+
+# Rate Limiting Configuration
+limiter = Limiter(key_func=get_remote_address, default_limits=["60 per minute"])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_responder)
 
 # CORS Configuration
 allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
