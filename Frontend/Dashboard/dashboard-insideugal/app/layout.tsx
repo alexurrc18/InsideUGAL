@@ -27,15 +27,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ro" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="h-screen overflow-hidden flex bg-neutral-50">
+      <body className="h-screen overflow-hidden bg-background text-foreground">
         <Providers>
           <div className="flex w-full h-screen overflow-hidden">
             <Sidebar />
 
-            <div className="flex-1 min-w-0 h-screen flex flex-col overflow-hidden">
+            <div className="flex-1 min-w-0 h-screen flex flex-col overflow-hidden bg-background">
               <PageHeader />
 
-              <main className="p-6 md:p-10 flex-1 overflow-y-auto">{children}</main>
+              <main className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
+                <div className="mx-auto w-full max-w-7xl">{children}</div>
+              </main>
             </div>
           </div>
         </Providers>

@@ -74,32 +74,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Detect FastAPI backend
-        id: detect
-        shell: bash
-        run: |
-          if [ -f app/main.py ] || [ -f app/pyproject.toml ] || [ -f app/requirements.txt ]; then
-            echo "path=app" >> "$GITHUB_OUTPUT"
-          elif [ -f backend/app/main.py ] || [ -f backend/pyproject.toml ] || [ -f backend/requirements.txt ]; then
-            echo "path=backend" >> "$GITHUB_OUTPUT"
-          elif [ -f Backend/app/main.py ] || [ -f Backend/pyproject.toml ] || [ -f Backend/requirements.txt ]; then
-            echo "path=Backend" >> "$GITHUB_OUTPUT"
-          else
-            echo "path=" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Backend missing
-        if: steps.detect.outputs.path == ''
-        run: echo "::warning::No FastAPI backend module found. Skipping backend CI until the backend team ships runnable code."
       - name: Setup Python
-        if: steps.detect.outputs.path != ''
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: "backend/requirements.txt"
       - name: Install dependencies
-        if: steps.detect.outputs.path != ''
-        working-directory: ${{ steps.detect.outputs.path }}
+        working-directory: app
         shell: bash
         run: |
           python -m pip install --upgrade pip
@@ -111,24 +93,20 @@ jobs:
           fi
           pip install ruff mypy pytest pytest-cov
       - name: Lint
-        if: steps.detect.outputs.path != ''
-        working-directory: ${{ steps.detect.outputs.path }}
+        working-directory: app
         shell: bash
         run: ruff check .
       - name: Typecheck
-        if: steps.detect.outputs.path != ''
-        working-directory: ${{ steps.detect.outputs.path }}
+        working-directory: app
         shell: bash
         run: mypy .
       - name: Run Tests with Coverage
-        if: steps.detect.outputs.path != ''
-        working-directory: ${{ steps.detect.outputs.path }}
+        working-directory: app
         run: |
           pip install pytest-xdist
           pytest -n auto --cov=. --cov-report=xml || [[ $? -eq 5 ]]
       - name: Build
-        if: steps.detect.outputs.path != ''
-        working-directory: ${{ steps.detect.outputs.path }}
+        working-directory: app
         run: python -m compileall .
 
   security-scan:

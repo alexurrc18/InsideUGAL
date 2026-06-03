@@ -38,7 +38,7 @@ ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue") 
 
 # ── Config ───────────────────────────────────────────────
-MODEL        = "openai/gpt-oss-120b:free"
+MODEL = "openrouter/free"
 HISTORY_DIR  = "histories"
 AVATAR_PATH  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot_avatar.png")
 
@@ -140,7 +140,9 @@ class ChatApp(ctk.CTk):
                       fg_color="transparent", hover_color=BG_USER, text_color=ACCENT, 
                       font=ctk.CTkFont(size=20), command=self._new_chat).pack(side="right")
 
-        self.sess_list = ctk.CTkScrollableFrame(self.sidebar, fg_color="transparent", corner_radius=0)
+        # Camuflăm scrollbar-ul din meniul lateral (matching cu BG_SIDEBAR)
+        self.sess_list = ctk.CTkScrollableFrame(self.sidebar, fg_color="transparent", corner_radius=0, 
+                                                scrollbar_button_color=BG_SIDEBAR, scrollbar_button_hover_color=BG_SIDEBAR)
         self.sess_list.grid(row=2, column=0, sticky="nsew", padx=10)
 
         sid_foot = ctk.CTkFrame(self.sidebar, fg_color="transparent")
@@ -166,7 +168,9 @@ class ChatApp(ctk.CTk):
         ctk.CTkButton(self.hdr, text="🗑", width=40, fg_color="transparent", hover_color=BG_USER, 
                       text_color=DANGER, font=ctk.CTkFont(size=18), command=self._delete_current).grid(row=0, column=2, padx=10)
 
-        self.msg_frame = ctk.CTkScrollableFrame(self.main_area, fg_color="transparent")
+        # Camuflăm scrollbar-ul din zona principală de chat (matching cu BG_MAIN)
+        self.msg_frame = ctk.CTkScrollableFrame(self.main_area, fg_color="transparent", 
+                                                scrollbar_button_color=BG_MAIN, scrollbar_button_hover_color=BG_MAIN)
         self.msg_frame.grid(row=1, column=0, sticky="nsew", padx=20)
 
         # === ZONA DE INPUT ===
@@ -186,9 +190,11 @@ class ChatApp(ctk.CTk):
                                       font=ctk.CTkFont(size=20), command=self._toggle_plus_menu)
         self.plus_btn.grid(row=0, column=0, padx=5, pady=5)
 
+        # Camuflăm scrollbar-ul din input text
         self.input_txt = ctk.CTkTextbox(self.inner_bar, height=45, fg_color="transparent", 
                                         text_color=TEXT, font=ctk.CTkFont(family="Segoe UI", size=14),
-                                        wrap="word", border_width=0)
+                                        wrap="word", border_width=0,
+                                        scrollbar_button_color=BG_INPUT, scrollbar_button_hover_color=BG_INPUT)
         self.input_txt.grid(row=0, column=1, sticky="ew", padx=10, pady=10)
         self.input_txt.bind("<Return>", self._on_enter)
 
@@ -342,7 +348,7 @@ class ChatApp(ctk.CTk):
         ctk.CTkLabel(frm, text="✨", font=ctk.CTkFont(size=40), text_color=ACCENT2).pack()
         ctk.CTkLabel(frm, text="Salut, cu ce te pot ajuta astăzi?", font=ctk.CTkFont(family="Segoe UI", size=22, weight="bold")).pack(pady=10)
 
-    # ── Randare Mesaje Moderne (Fără Trunchieri și Fără Crash-uri) ──
+    # ── Randare Mesaje Moderne ───────────────────────────
     def _add_user_row(self, text):
         row = ctk.CTkFrame(self.msg_frame, fg_color="transparent")
         row.pack(fill="x", pady=5, padx=10)
@@ -367,29 +373,35 @@ class ChatApp(ctk.CTk):
         bubble = ctk.CTkFrame(row, fg_color="transparent")
         bubble.pack(side="left", fill="x", expand=True, anchor="w")
         
-        # Folosim CTkTextbox pentru o preluare curată a textului, fără bucle de resize
+        # Camuflăm scrollbar-ul intern prin matching de culori
         txt = ctk.CTkTextbox(bubble, font=ctk.CTkFont(size=14), text_color=TEXT, 
-                             fg_color="transparent", wrap="word")
+                             fg_color="transparent", wrap="word",
+                             scrollbar_button_color=BG_MAIN, scrollbar_button_hover_color=BG_MAIN)
         txt.insert("1.0", text)
         txt.configure(state="disabled")
         txt.pack(fill="x", expand=True, pady=0)
 
+        # Transmitem acțiunea de scroll a mouse-ului către fereastra mare
         txt._textbox.bind("<MouseWheel>", lambda e: self.msg_frame._parent_canvas.yview_scroll(int(-1*(e.delta/120)), "units"))
         
-        # Metodă sigură, on-shot (fără .bind("<Configure>")) pentru a calcula spațiul
+        # FĂRĂ bind("<Configure>") pentru a opri buclele de crash! Calculăm de 2 ori pentru siguranță.
         def _fit():
-            txt.update_idletasks()
             try: 
-                dlines = txt._textbox.count("1.0", "end", "displaylines")
-                lines = int(dlines[0]) if dlines else len(text.split('\n'))
-                # Lăsăm fix cât spațiu e nevoie matematic
-                txt.configure(height=lines * 24 + 10)
+                bbox = txt._textbox.bbox("end-1c")
+                if bbox:
+                    new_height = bbox[1] + bbox[3] + 5 
+                else:
+                    dlines = txt._textbox.count("1.0", "end", "displaylines")
+                    lines = int(dlines[0]) if dlines else len(text.split('\n'))
+                    new_height = lines * 22
+                
+                txt.configure(height=new_height)
             except: pass
-            self._scroll_bottom()
             
-        # O rulăm de două ori la interval scurt pentru a ne asigura că widget-ul s-a așezat în fereastră
         txt.after(50, _fit) 
-        txt.after(150, _fit) 
+        txt.after(200, _fit)
+        
+        self._scroll_bottom()
 
     def _add_thinking_row(self):
         self.thinking_row = ctk.CTkFrame(self.msg_frame, fg_color="transparent")
@@ -410,8 +422,8 @@ class ChatApp(ctk.CTk):
             self.thinking_row = None
 
     def _scroll_bottom(self):
-        self.update_idletasks()
-        self.msg_frame._parent_canvas.yview_moveto(1.0)
+        # Așteptăm 50ms pentru a nu forța UI-ul într-o buclă de update
+        self.after(50, lambda: self.msg_frame._parent_canvas.yview_moveto(1.0))
 
     # ── Generare Imagine Pollinations ────────────────────
     def _create_image(self):
@@ -424,15 +436,34 @@ class ChatApp(ctk.CTk):
 
     def _fetch_and_show_image(self, prompt):
         try:
-            import random
             from urllib.parse import quote
             clean = prompt[:300]
-            url  = f"https://image.pollinations.ai/prompt/{quote(clean)}?width=768&height=512&seed={random.randint(1, 99999)}&nologo=true&model=flux"
-            resp = requests.get(url, timeout=120)
+            
+            # Folosim varianta absolut minimală a link-ului, complet gratuită
+            url  = f"https://image.pollinations.ai/prompt/{quote(clean)}"
+            
+            # Header pentru a părea un browser normal
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+            }
+            
+            resp = requests.get(url, headers=headers, timeout=120)
+            
+            # Traducem o eventuală eroare 402/403
+            if resp.status_code in [402, 403]:
+                raise Exception("Serverul Pollinations a atins temporar limita gratuită. Te rog încearcă din nou peste câteva minute.")
+                
             resp.raise_for_status()
 
             pil_img = Image.open(io.BytesIO(resp.content)).convert("RGB")
-            ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(500, 333))
+            
+            # Redimensionăm imaginea local (pentru a nu împovăra interfața)
+            w, h = pil_img.size
+            if w > 500:
+                pil_img = pil_img.resize((500, int(h * 500 / w)), Image.LANCZOS)
+                
+            ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=pil_img.size)
             err = None
         except Exception as e:
             ctk_img, err = None, str(e)
@@ -450,7 +481,7 @@ class ChatApp(ctk.CTk):
                 img_lbl = ctk.CTkLabel(col, image=ctk_img, text="")
                 img_lbl.pack(anchor="w")
             else:
-                self._add_bot_row(f"❌ Eroare la generare: {err}")
+                self._add_bot_row(f"❌ Eroare la generare imagine: {err}")
             self._scroll_bottom()
         self.after(0, show)
 

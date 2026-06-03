@@ -57,9 +57,12 @@ class Faculty(Base, TimestampMixin):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False)
+    abbreviation = Column(String(50))
+    description = Column(Text)
     address = Column(Text)
     phone = Column(String(50))
     website_url = Column(Text)
+    dormitory_url = Column(Text)
 
     locations = relationship("Location", back_populates="faculty")
     announcements = relationship("Announcement", back_populates="faculty")

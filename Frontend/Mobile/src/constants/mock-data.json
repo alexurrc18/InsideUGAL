@@ -10,7 +10,7 @@
       "posted_at": "1 septembrie 2026",
       "author": "Rectorat UGAL",
       "category": "Evenimente",
-      "image": "https://plus.unsplash.com/premium_photo-1680807869780-e0876a6f3cd5?q=80&w=1742&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "image": "https://ing.ugal.ro/Resurse/2024/WhatsApp_Image_2024-09-17_at_11.48.08.jpeg",
       "content": "Vă invităm să participați la festivitatea de deschidere a noului an universitar. Evenimentul va avea loc în holul central al universității și va reuni studenți, profesori și invitați speciali.",
       "location": "Hol Central, Corp A"
     },
@@ -36,7 +36,7 @@
       "posted_at": "20 mai 2026",
       "author": "Biroul Erasmus",
       "category": "Noutăți",
-      "image": "https://images.unsplash.com/photo-1695388474402-ed805a890d8d?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "image": "https://unibuc.ro/wp-content/uploads/2020/01/despre-erasmus.jpg",
       "content": "A fost lansat noul apel pentru mobilități studențești. Verifică lista universităților partenere și depune dosarul până la sfârșitul lunii.",
       "author_title": "Departament Relații Internaționale"
     },
@@ -48,7 +48,7 @@
       "author": "Alex Vlad",
       "facultyId": "f5",
       "category": "Noutăți",
-      "image": "https://images.unsplash.com/photo-1587440871875-191322ee64b0?q=80&w=1742&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRrvLpegvQvOniv6QIbBLAB50za2oHinfK75g&s",
       "content": "Învață bazele designului grafic folosind instrumente moderne. Workshop-ul este gratuit pentru toți studenții UGAL.",
       "author_title": "Senior Designer"
     },
@@ -75,7 +75,7 @@
       "author": "Secretariat FEAA",
       "facultyId": "f3",
       "category": "Noutăți",
-      "image": "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "image": "https://feaa.ugal.ro/wp-content/uploads/feaa-amalia-paharnicu.jpg",
       "content": "Au fost afișate listele parțiale pentru bursele de merit aferente semestrului al doilea. Contestațiile se depun online.",
       "author_title": "Secretariat"
     }
@@ -135,5 +135,67 @@
       "website": "https://fefs.ugal.ro",
       "content": "Promovăm performanța sportivă și un stil de viață sănătos prin programe de licență și masterat de prestigiu."
     }
-  ]
+  ],
+  "cafeteria": {
+    "products": {
+      "mz1": { "id": "mz1", "name": "Meniul Zilei 1", "price": 22, "description": "Ciorbă de văcuță, Șnițel de pui cu piure, Salată de varză (750g, 850 kcal)" },
+      "mz2": { "id": "mz2", "name": "Meniul Zilei 2", "price": 22, "description": "Supă cremă de legume, Ceafă de porc cu cartofi prăjiți, Salată de murături (750g, 920 kcal)" },
+      "c1": { "id": "c1", "name": "Ciorbă de văcuță", "price": 12, "description": "Carne de vită, legume proaspete, smântână (400g, 250 kcal)" },
+      "c2": { "id": "c2", "name": "Ciorbă de burtă", "price": 14, "description": "Burtă de vită, usturoi, smântână, ou (400g, 380 kcal)" },
+      "c3": { "id": "c3", "name": "Supă cremă de legume", "price": 10, "description": "Mix de legume de sezon, crutoane (350g, 180 kcal)" },
+      "p1": { "id": "p1", "name": "Șnițel de pui", "price": 13, "description": "Piept de pui fraged în crustă croantă (150g, 320 kcal)" },
+      "p2": { "id": "p2", "name": "Ceafă de porc la grătar", "price": 15, "description": "Ceafă de porc marinată cu ierburi (150g, 450 kcal)" },
+      "p3": { "id": "p3", "name": "Pârjoale moldovenești", "price": 12, "description": "Carne tocată de porc și vită, verdeață (120g, 280 kcal)" },
+      "g1": { "id": "g1", "name": "Piure de cartofi", "price": 7, "description": "Cartofi, unt, lapte (200g, 210 kcal)" },
+      "g2": { "id": "g2", "name": "Cartofi prăjiți", "price": 6, "description": "Cartofi tăiați manual, sare (200g, 400 kcal)" },
+      "g3": { "id": "g3", "name": "Orez cu legume", "price": 7, "description": "Orez basmati, mix de legume (200g, 150 kcal)" },
+      "s1": { "id": "s1", "name": "Salată de varză", "price": 4, "description": "Varză albă, mărar, oțet, ulei (150g, 60 kcal)" },
+      "s2": { "id": "s2", "name": "Salată de murături", "price": 5, "description": "Gogonele, castraveți murați (150g, 30 kcal)" },
+      "s3": { "id": "s3", "name": "Mujdei de usturoi", "price": 2, "description": "Usturoi proaspăt, apă, sare (50g, 40 kcal)" },
+      "d1": { "id": "d1", "name": "Papanași", "price": 18, "description": "Brânză de vaci, smântână, dulceață de afine (300g, 550 kcal)" },
+      "d2": { "id": "d2", "name": "Clătite cu ciocolată", "price": 12, "description": "Finețe de ciocolată, 2 bucăți (200g, 380 kcal)" }
+    },
+    "schedule": {
+      "luni": {
+        "Meniul Zilei": ["mz1"],
+        "Ciorbe și Supe": ["c1", "c3"],
+        "Preparate Carne": ["p1", "p3"],
+        "Salate / Sosuri": ["s1", "s3"],
+        "Garnituri": ["g1", "g3"],
+        "Desert": ["d2"]
+      },
+      "marti": {
+        "Meniul Zilei": ["mz2"],
+        "Ciorbe și Supe": ["c2", "c3"],
+        "Preparate Carne": ["p2", "p1"],
+        "Salate / Sosuri": ["s2", "s3"],
+        "Garnituri": ["g2", "g1"],
+        "Desert": ["d1"]
+      },
+      "miercuri": {
+        "Meniul Zilei": ["mz1"],
+        "Ciorbe și Supe": ["c1", "c2"],
+        "Preparate Carne": ["p1", "p2", "p3"],
+        "Salate / Sosuri": ["s1", "s2", "s3"],
+        "Garnituri": ["g1", "g2", "g3"],
+        "Desert": ["d1", "d2"]
+      },
+      "joi": {
+        "Meniul Zilei": ["mz2"],
+        "Ciorbe și Supe": ["c2", "c1"],
+        "Preparate Carne": ["p2", "p3"],
+        "Salate / Sosuri": ["s2", "s1"],
+        "Garnituri": ["g2", "g3"],
+        "Desert": ["d1"]
+      },
+      "vineri": {
+        "Meniul Zilei": ["mz1"],
+        "Ciorbe și Supe": ["c3", "c1"],
+        "Preparate Carne": ["p1", "p2"],
+        "Salate / Sosuri": ["s1", "s3"],
+        "Garnituri": ["g3", "g1"],
+        "Desert": ["d2"]
+      }
+    }
+  }
 }
