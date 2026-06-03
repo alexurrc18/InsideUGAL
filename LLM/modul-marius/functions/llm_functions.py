@@ -218,11 +218,14 @@ def answer_question(question: str, pdf_id: str, language: str = "ro") -> str:
     context = "\n\n".join(chunks)
     prompt = (
         "Raspunde in aceeasi limba in care este scris materialul de mai jos.\n"
-        "Esti un asistent care raspunde EXCLUSIV pe baza materialului furnizat mai jos.\n"
-        "Reguli stricte:\n"
-        "- Foloseste DOAR informatiile din materialul de mai jos.\n"
-        "- Daca intrebarea nu are raspuns in material, spune asta scurt in aceeasi limba ca materialul.\n"
-        "- Nu inventa, nu completa, nu presupune nimic in afara materialului.\n\n"
+        "Esti un asistent care ajuta studentii sa invete din documentul furnizat.\n"
+        "Reguli:\n"
+        "- Pentru intrebari despre continutul materialului: raspunde EXCLUSIV pe baza informatiilor din material.\n"
+        "- Pentru intrebari despre cum sa inveti, cum sa retii sau cum sa te pregatesti: "
+        "foloseste continutul materialului ca baza si ofera sfaturi concrete bazate pe ce contine documentul "
+        "(ex: ce concepte sunt importante, ce ar trebui retinut, cum e structurat materialul).\n"
+        "- Nu inventa informatii care nu sunt in material.\n"
+        "- Daca materialul nu contine absolut nimic relevant pentru intrebare, spune asta scurt.\n\n"
         f"Material:\n{context}\n\nIntrebare: {inp.question}"
     )
 
