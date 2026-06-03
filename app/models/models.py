@@ -36,7 +36,7 @@ class Profile(Base, TimestampMixin):
     __tablename__ = "profiles"
     __table_args__ = {"schema": "public"}
 
-    id = Column(UUID(as_uuid=False), ForeignKey("auth.users.id", ondelete="CASCADE"), primary_key=True)
+    id = Column(UUID(as_uuid=False), primary_key=True)
     username = Column(String(100), unique=True)
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
@@ -54,9 +54,12 @@ class Faculty(Base, TimestampMixin):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False)
+    abbreviation = Column(String(50))
+    description = Column(Text)
     address = Column(Text)
     phone = Column(String(50))
     website_url = Column(Text)
+    dormitory_url = Column(Text)
 
     locations = relationship("Location", back_populates="faculty")
     announcements = relationship("Announcement", back_populates="faculty")
