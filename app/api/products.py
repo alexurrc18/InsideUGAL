@@ -8,7 +8,11 @@ from app.repositories.product_repo import ProductRepository
 
 router = APIRouter(prefix="/products", tags=["Products"])
 repo = ProductRepository()
-manage_products = require_roles(schemas.UserRole.HEAD_ADMIN, schemas.UserRole.HEAD_CANTINA)
+manage_products = require_roles(
+    schemas.UserRole.HEAD_ADMIN,
+    schemas.UserRole.HEAD_CANTINA,
+    schemas.UserRole.HEAD_FACULTATI
+)
 
 
 @router.get("/", response_model=list[schemas.ProductResponse])

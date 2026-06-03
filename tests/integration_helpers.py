@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from uuid import uuid4
 
 import jwt
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import models, schemas
@@ -40,9 +40,6 @@ def auth_headers(user_id: str, *, email: str = "user@example.com") -> dict[str, 
 
 
 async def create_auth_user(db_session: AsyncSession, *, user_id: str, email: str) -> None:
-    await db_session.execute(text("ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS full_name text"))
-    await db_session.execute(text("ALTER TABLE public.profiles ALTER COLUMN first_name SET DEFAULT 'Test'"))
-    await db_session.execute(text("ALTER TABLE public.profiles ALTER COLUMN last_name SET DEFAULT 'User'"))
     await db_session.execute(
         text(
             """
@@ -75,7 +72,6 @@ async def create_auth_user(db_session: AsyncSession, *, user_id: str, email: str
         ),
         {"id": user_id, "email": email},
     )
-    await db_session.execute(text("DELETE FROM public.profiles WHERE id = :id"), {"id": user_id})
 
 
 async def create_profile(
@@ -91,17 +87,32 @@ async def create_profile(
     resolved_email = email or f"{resolved_id}@example.com"
 
     await create_auth_user(db_session, user_id=resolved_id, email=resolved_email)
-    db_session.add(
-        models.Profile(
-            id=resolved_id,
-            username=username or f"user-{resolved_id[:8]}",
-            first_name="Test",
-            last_name=role.value.title(),
-            email=resolved_email,
-            role=role.value,
-            is_active=is_active,
-        )
+
+    result = await db_session.execute(
+        select(models.Profile).where(models.Profile.id == resolved_id)
     )
+    existing_profile = result.scalars().first()
+
+    if existing_profile:
+        existing_profile.username = username or f"user-{resolved_id[:8]}"
+        existing_profile.first_name = "Test"
+        existing_profile.last_name = role.value.title()
+        existing_profile.email = resolved_email
+        existing_profile.role = role.value
+        existing_profile.is_active = is_active
+    else:
+        db_session.add(
+            models.Profile(
+                id=resolved_id,
+                username=username or f"user-{resolved_id[:8]}",
+                first_name="Test",
+                last_name=role.value.title(),
+                email=resolved_email,
+                role=role.value,
+                is_active=is_active,
+            )
+        )
+
     await db_session.flush()
 
     return TestUser(

@@ -2,6 +2,7 @@ from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import schemas
@@ -42,6 +43,7 @@ async def test_admin_can_create_read_update_and_delete_profile(
     new_user_id = str(uuid4())
     new_email = f"{new_user_id}@example.com"
     await create_auth_user(db_session, user_id=new_user_id, email=new_email)
+    await db_session.execute(text("DELETE FROM public.profiles WHERE id = :id"), {"id": new_user_id})
 
     create_payload = {
         "id": new_user_id,
