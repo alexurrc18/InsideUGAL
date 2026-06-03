@@ -77,8 +77,11 @@ async def upload_complaint_image(
     safe_filename = Path(file.filename or "upload").name
     unique_filename = f"{uuid.uuid4()}-{safe_filename}"
     encoded_filename = quote(unique_filename)
-    upload_url = f"{supabase_url.rstrip('/')}/storage/v1/object/complaints/{encoded_filename}"
-    public_url = f"{supabase_url.rstrip('/')}/storage/v1/object/public/complaints/{encoded_filename}"
+    
+    # MODIFICARE AICI: Am adăugat bucket-ul corect "images"
+    upload_url = f"{supabase_url.rstrip('/')}/storage/v1/object/images/complaints/{encoded_filename}"
+    public_url = f"{supabase_url.rstrip('/')}/storage/v1/object/public/images/complaints/{encoded_filename}"
+    
     headers = {
         "apikey": supabase_key,
         "Authorization": f"Bearer {supabase_key}",
