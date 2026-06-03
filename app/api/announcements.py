@@ -8,7 +8,8 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth_deps import get_current_profile, require_roles
+# Am șters "get_current_profile" de aici, conform linter-ului Ruff
+from app.api.auth_deps import require_roles
 from app.api.crud import ensure_exists
 from app.db.database import get_db
 from app.models import models, schemas
