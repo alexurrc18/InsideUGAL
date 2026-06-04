@@ -1,0 +1,221 @@
+FACULTATEA DE AUTOMATICĂ, CALCULATOARE, INGINERIE ELECTRICĂ ȘI ELECTRONICĂ (FACIEE)
+Universitatea "Dunărea de Jos" din Galați, România
+Website oficial: https://aciee.ugal.ro/
+
+=== PREZENTARE GENERALĂ ===
+FACIEE este parte a Universității "Dunărea de Jos" din Galați. Facultatea pregătește ingineri de înaltă calificare capabili să se integreze în industrie, cercetare sau alte domenii socio-economice.
+Adresă: Str. Domnească nr. 111 (cu intrare din Str. Științei), Galați 800201, România
+Telefon: +40 336 130 236 sau +40 236 470 905
+Facebook: facebook.com/faciee/
+Instagram: @facultate_aciee
+YouTube: Facultatea ACIEE Galati
+
+=== CONDUCERE ===
+- Decan: Conf. dr. ing. Răzvan Constantin Șolea (program audiențe: joi 10:00-14:00)
+- Prodecan (Informatizare și Parteneriat Studențesc): Șl. dr. ing. Mihai Vlase (marți 12:00-16:00)
+- Prodecan (Activitate Didactică și Asigurarea Calității): Șl. dr. ing. Elena Selim (luni 10:00-14:00)
+- Secretariat: Clădirea Y, etaj 1, program luni-vineri 12:00-14:00
+
+=== DEPARTAMENTE ===
+1. Departamentul de Calculatoare și Tehnologia Informației – https://www.cti.ugal.ro/
+2. Departamentul de Automatică – http://www.automatica.ugal.ro/
+3. Departamentul de Inginerie Electrică și Sisteme de Conversie a Energiei – https://iesce.ugal.ro
+4. Departamentul de Electronică și Telecomunicații – http://www.etc.ugal.ro/
+
+=== SCURT ISTORIC ===
+- 1990: Înființarea Facultății de Nave și Inginerie Electrică
+- 2002: Divizare în Facultatea de Inginerie Electrică și Calculatoare și Facultatea de Nave
+- 2004: Divizare ulterioară în Facultatea de Informatică și Facultatea de Inginerie Electrică și Electronică
+- 2010: Reunificare prin HG nr. 631 din 30.06.2010 → actuala FACIEE
+
+=== PROGRAME DE STUDIU - LICENȚĂ (4 ani) ===
+Acreditate ARACIS cu calificativul ÎNCREDERE. Forma: zi, 240 credite ECTS.
+Total locuri 2025: 320
+
+1. Automatică și Informatică Aplicată (AIA)
+   - Departament: Automatică
+   - Locuri 2025: 60
+   - Profil: sisteme de control automat, PLC, SCADA, roboți industriali
+
+2. Calculatoare (CR)
+   - Departament: Calculatoare și Tehnologia Informației
+   - Locuri 2025: 120
+   - Profil: programare, arhitectura calculatoarelor, rețele, baze de date, securitate
+
+3. Electromecanică (EM)
+   - Departament: Inginerie Electrică și Sisteme de Conversie a Energiei
+   - Locuri 2025: incluse în cele 90 (Inginerie Electrică)
+   - Profil: mașini electrice, acționări, instalații industriale
+
+4. Electronică de Putere și Acționări Electrice (EPAE)
+   - Departament: Inginerie Electrică și Sisteme de Conversie a Energiei
+   - Profil: convertoare de putere, acționări electrice moderne
+
+5. Inginerie Electrică și Calculatoare (IEC)
+   - Departament: Inginerie Electrică și Sisteme de Conversie a Energiei
+   - Profil: sisteme electrice, rețele, calculatoare aplicate în energetică
+
+6. Electronică Aplicată (EA)
+   - Departament: Electronică și Telecomunicații
+   - Locuri 2025: incluse în cele 50 (Electronică și Telecomunicații)
+   - Profil: circuite electronice, microcontrolere, IoT, sisteme embedded
+
+7. Rețele și Software de Telecomunicații (RST)
+   - Departament: Electronică și Telecomunicații
+   - Profil: rețele de telecomunicații, protocoale, software dedicat
+
+=== PROGRAME DE STUDIU - MASTER (2 ani) ===
+Acreditate ARACIS cu calificativul ÎNCREDERE. Forma: zi, 120 credite ECTS.
+Locuri disponibile iulie 2025: 165 total (95 bugetate)
+Locuri disponibile septembrie 2025: 106 total (46 bugetate)
+
+1. Sisteme Informatice de Conducere Avansată (SICA) – domeniu: Inginerie de Sisteme
+2. Tehnologii Informatice Avansate (TIA) – domeniu: Calculatoare și Tehnologia Informației
+3. Utilizarea Eficientă a Energiei și Surse Regenerabile (UEESR) – domeniu: Inginerie Electrică
+4. Electronică de Putere și Sisteme Avansate de Conversie (EPSAC) – domeniu: Inginerie Electrică
+5. Prelucrarea Informației pentru Aplicații Multimedia (PIAM) – domeniu: Electronică și Telecomunicații
+6. Sisteme Electronice Avansate (SEA) – domeniu: Electronică și Telecomunicații
+
+=== PROGRAME DE STUDIU - DOCTORAT (3 ani) ===
+Disponibil prin Școala Doctorală a Universității "Dunărea de Jos". Detalii: https://www.admitere.ugal.ro/doctorat
+
+=== ADMITERE LICENȚĂ ===
+Pagina oficială: https://aciee.ugal.ro/admitere/licenta
+
+Metoda de admitere: dosar (fără probă scrisă sau examen de admitere)
+Nota finală = 50% media Bacalaureat + 50% nota de la o disciplină la alegere (Matematică, Informatică sau Fizică)
+
+Sesiunea iulie 2025:
+- Înscriere online: 30 iunie – 17 iulie 2025
+- Depunere documente fizic: 1-18 iulie 2025 (L-V: 8:30-15:30; S-D: 9:00-14:00)
+- Afișare rezultate: 21-22 iulie (faza I), 26 iulie (faza II), 29 iulie (final)
+- Înmatriculare: 30 iulie – 3 august 2025
+
+Locul depunerii dosarului: Secretariatul facultății, Str. Științei nr. 2, Clădirea Y, etaj 1
+
+Acte necesare dosar:
+- Diploma de bacalaureat în original (sau adeverință)
+- Foaia matricolă
+- Certificat medical
+- 3 fotografii tip buletin
+- Chitanță taxă înscriere (200 lei)
+- Certificat de naștere (copie)
+- Carte de identitate (copie)
+
+=== ADMITERE MASTER ===
+Pagina oficială: https://aciee.ugal.ro/admitere/masterat
+
+Nota finală = 50% media diplomei de licență + 50% media anilor de studiu
+(Unele programe au interviu eliminatoriu – verificați regulamentul specific)
+
+Sesiunea iulie 2025:
+- Înscriere: 18-24 iulie
+- Examene/interviuri: 25-26 iulie
+- Înmatriculare: 30 iulie – 3 august
+
+Sesiunea septembrie 2025:
+- Înscriere: 10-14 septembrie
+- Examene/interviuri: 15-16 septembrie
+- Înmatriculare: 20-23 septembrie
+
+=== TAXE ȘI FINANȚARE ===
+Pagina oficială: https://aciee.ugal.ro/studenti/taxe
+- Studenți bugetați: fără taxă de școlarizare
+- Studenți cu taxă: valoarea se publică anual (verificați pagina oficială)
+- Taxă de înscriere la admitere licență: 200 lei
+- Detalii actualizate pe site sau la secretariat
+
+=== BURSE ===
+Pagina oficială: https://aciee.ugal.ro/studenti/burse
+
+Tipuri de burse disponibile:
+- Bursă de performanță pentru studiu (licență și master)
+- Bursă de performanță pentru rezultate deosebite
+- Bursă de performanță pentru activități extracurriculare (voluntariat)
+- Bursă de cercetare (activitate științifică, inovație, brevete)
+- Burse pentru românii de pretutindeni
+- Burse pentru studenți internaționali la master
+Valorile burselor se stabilesc prin Hotărâre de Senat și se publică semestrial.
+
+=== CENTRE DE CERCETARE ===
+Pagina oficială: https://aciee.ugal.ro/cercetare/centre-de-cercetare
+
+1. SITI – Sisteme Inteligente și Tehnologia Informației
+   - extragere automată cunoștințe, sisteme multi-agent, evaluare software
+
+2. SICECAPC – Sisteme Integrate de Conversie a Energiei și Control Avansat de Proces
+   - energie regenerabilă, microco-generare, sisteme solare/eoliene, eficiență energetică
+
+3. SCAP – Sisteme de Control Automat al Proceselor
+   - control procese neliniare, epurare ape uzate, optimizare evenimente discrete
+
+4. CCETIC – Centrul de Cercetare în Electronică, Tehnologia Informației și Comunicații
+   - sisteme embedded (microcontrolere, DSP, FPGA), prelucrare semnal, electronică de putere
+
+=== PROIECTE ȘI GRANTURI ACTIVE ===
+Pagina oficială: https://aciee.ugal.ro/cercetare/proiecte-si-granturi
+- DigitalSkillsWallet (Erasmus+): micro-credențiale pentru competențe digitale
+- D3T4H2S (Horizon Europe): stocare hidrogen pentru tranziție energetică
+- EntrNet (Erasmus+): educație antreprenorială pentru adulți
+- SPEET (Erasmus+): profilul studentului pentru tutoriat în inginerie
+- CRESC-INTEL, RegenSys, BIOCON, ADCOSBIO (programe naționale)
+
+=== INFRASTRUCTURĂ ȘI LABORATOARE ===
+Pagina: https://aciee.ugal.ro/informatii/interes-general/baza-materiala
+- Laboratoare de automatică și control: PLC Siemens, Allen Bradley
+- Laboratoare de electronică: circuite, embedded, FPGA, DSP
+- Laboratoare de informatică: servere, rețele, cluster HPC
+- Laboratoare de inginerie electrică: mașini electrice, acționări, convertoare
+- Centru de calcul pentru studenți
+- Clădiri: Y, G (laboratoare și cercetare), D, SB, SD (săli curs/seminar)
+
+=== PARTENERIATE INTERNAȚIONALE (Erasmus+) ===
+Pagina: https://aciee.ugal.ro/studenti/erasmus
+Universități partenere: Strasbourg, Clermont Ferrand, Toulouse, Le Havre, Nantes, ESTIA Bayonne (Franța), Karlsruhe, Duisburg (Germania), Universitatea din Ghent (Belgia), Coimbra, Setúbal (Portugalia), Liverpool (Anglia), Viena TU (Austria), Patras (Grecia), Aalborg (Danemarca), Politehnica Milano, Politehnica Torino (Italia)
+
+=== PARTENERI DIN INDUSTRIE ===
+- LIBERTY Galați, ELECTRICA Muntenia-Nord, RETEC Romania (energie)
+- EEkels/TBI, ALEWIJNSE Holding B.V. (Olanda)
+- ADAComputers, POWERSYS Ltd (IT și simulare)
+- VARD Electro Romania, Nenos Software, ByteCode School, APAN Group
+
+=== VIAȚA STUDENȚEASCĂ ===
+- Orare licență: https://aciee.ugal.ro/studenti/orare-licenta
+- Orare master: https://aciee.ugal.ro/studenti/orare-masterat
+- Programarea examenelor: https://aciee.ugal.ro/studenti/programarea-examenelor
+- Ghidul studentului 2025-2026: https://aciee.ugal.ro/studenti/ghidul-studentului
+- Regulamente: https://aciee.ugal.ro/studenti/regulamente
+- Tabere studențești: https://aciee.ugal.ro/studenti/tabere-studentesti
+- Transport studenți: https://aciee.ugal.ro/studenti/transport-studenti
+- Finalizare studii: https://aciee.ugal.ro/studenti/finalizare-studii
+- Ore consultanță și tutorat: https://aciee.ugal.ro/studenti/ore-consultanta-si-tutorat
+
+=== COMPETIȚII STUDENȚEȘTI ===
+- Hackathon FACIEE (ediția a 6-a, 2025): 10-12 decembrie 2025, premiul I până la 2.000 lei + vouchere echipamente; echipe de 3-5 membri; hardware furnizat: Raspberry Pi 4 Model B
+- Concursul de creativitate în IT "Severin Bumbaru": https://aciee.ugal.ro/studenti/concursul-de-creativitate-in-it-severin-bumbaru
+
+=== CARIERĂ ȘI ANGAJARE ===
+Pagina: https://aciee.ugal.ro/informatii/locuri-de-munca
+Absolvenții cu rezultate foarte bune sunt recrutați de companii, institute de cercetare și organizații europene. Comisia de Orientare și Îndrumare Profesională sprijină studenții în conectarea cu angajatorii.
+Oferte de muncă active: VARD Electro Romania (Tulcea și Galați), Nenos Software, ByteCode School (mentor programare, remote), APAN Group.
+
+=== CALITATE ȘI REGULAMENTE ===
+Pagina: https://aciee.ugal.ro/calitate
+- Regulamentul Activității Universitare a Studentului (RAUS 2024)
+- Metodologia de evaluare a studenților
+- Regulamentul de organizare a examenelor de finalizare a studiilor
+- Rapoarte și regulamente de asigurare a calității
+
+=== CANTINA STUDENȚEASCĂ ===
+Meniul cantinei pentru studenți se actualizează săptămânal și poate fi consultat la:
+https://campus.ugal.ro/ccps/meniu-studenti/
+Cantina este gestionată de Complexul de Cămine și Cantine al Universității "Dunărea de Jos" Galați.
+Studenții pot vedea meniul zilnic și săptămânal accesând link-ul de mai sus.
+
+=== CONTACT ===
+Pagina oficială: https://aciee.ugal.ro/contact
+- Adresă: Str. Domnească nr. 111 (intrare din Str. Științei), Galați 800201
+- Telefon: +40 336 130 236 / +40 236 470 905
+- Secretariat: Clădirea Y, etaj 1, program L-V 12:00-14:00
+- Facebook: facebook.com/faciee/
+- Instagram: @facultate_aciee

@@ -1,0 +1,73 @@
+{
+  "id": "9fd585a7",
+  "filename": "ce-este-insideugal_9fd585a7",
+  "title": "ce este InsideUgal?",
+  "messages": [
+    {
+      "role": "user",
+      "content": "ce este InsideUgal?"
+    },
+    {
+      "role": "assistant",
+      "content": "InsideUGAL este o aplicație dezvoltată de o echipă de studenți ai Universității \"Dunărea de Jos\" din Galați. Aceasta include un dashboard web și o aplicație mobilă, un backend API, module de inteligență artificială și o infrastructură dedicată.\n\nAplicația oferă diverse funcționalități, cum ar fi:\n- **Smart News Parser**: extrage date structurate din anunțurile UGAL.\n- **Modul PDF/Quiz/RAG**: asistent pentru cursuri.\n- **ChatBot**: asistent general pentru universitate.\n- **Meniu cantină**: disponibil zilnic.\n\nMai multe detalii găsești pe site-ul oficial: https://insideugal.ro/"
+    },
+    {
+      "role": "user",
+      "content": "Ce funcționalități are InsideUGAL?"
+    },
+    {
+      "role": "assistant",
+      "content": "InsideUGAL are următoarele funcționalități:\n\n*   **Centralizare informații utile**: noutăți, anunțuri.\n*   **Orar cantină**: meniul zilnic.\n*   **Hărți**.\n*   **Sesizări**.\n*   **Funcționalități AI**:\n    *   **Smart News Parser**: extrage date structurate din anunțurile UGAL.\n    *   **Modul PDF/Quiz/RAG**: asistent pentru cursuri.\n    *   **ChatBot**: asistent general pentru universitate.\n\nMai multe detalii găsești pe site-ul oficial: https://insideugal.ro/"
+    },
+    {
+      "role": "user",
+      "content": "Cum funcționează modulul de quiz din InsideUGAL?"
+    },
+    {
+      "role": "assistant",
+      "content": "Modulul de quiz din InsideUGAL funcționează în cadrul **Modulului AI — Asistent PDF (modul-marius)**, permițând studenților să:\n\n*   **Încarce cursuri în format PDF**.\n*   **Genereze automat un quiz** cu întrebări grilă (A/B/C/D) și explicații.\n*   **Exporteze quiz-ul în format PDF**.\n\nRăspunsurile și întrebările din quiz sunt generate **EXCLUSIV** pe baza conținutului materialului PDF încărcat."
+    },
+    {
+      "role": "user",
+      "content": "Ce tehnologii folosește InsideUGAL?"
+    },
+    {
+      "role": "assistant",
+      "content": "InsideUGAL utilizează o serie de tehnologii moderne, structurate pe mai multe componente:\n\n**Frontend Web (Dashboard)**\n*   **Framework**: Next.js (React)\n*   **Stilizare**: Tailwind CSS\n*   **Autentificare**: Supabase Auth\n*   **Deployment**: insideugal.ro\n\n**Frontend Mobile**\n*   **Framework**: React Native + Expo\n*   **Suport**: iOS și Android\n\n**Backend**\n*   **Framework**: FastAPI (Python)\n*   **Baza de date**: PostgreSQL prin Supabase\n*   **Autentificare**: JWT + Supabase Auth\n*   **Pattern**: Repository Pattern, async/await\n\n**Modul LLM (Inteligență Artificială)**\n*   **Model AI**: Google Gemini 2.5 Flash\n*   **Vector DB**: ChromaDB\n*   **Embeddings**: sentence-transformers / fastembed\n\n**Infrastructură**\n*   **Deployment**: Docker + Coolify\n*   **Domeniu**: insideugal.ro\n*   **Baza de date**: Supabase (PostgreSQL)\n\nMai multe detalii tehnice pot fi găsite pe GitHub: https://github.com/alexurrc18/InsideUGAL"
+    },
+    {
+      "role": "user",
+      "content": "Cine a dezvoltat InsideUGAL?"
+    },
+    {
+      "role": "assistant",
+      "content": "InsideUGAL a fost dezvoltat de o echipă de studenți ai Universității \"Dunărea de Jos\" din Galați. Echipa este organizată în 4 departamente:\n\n*   Frontend (Dashboard Web + Aplicație Mobilă)\n*   Backend (API FastAPI + Baza de date)\n*   LLM/AI (Module de inteligență artificială)\n*   Infrastructură (Docker, deployment, Supabase)\n\nMai multe detalii găsești pe site-ul oficial: https://insideugal.ro/"
+    },
+    {
+      "role": "user",
+      "content": "zi mi niste anunturi din aplicatie"
+    },
+    {
+      "role": "assistant",
+      "content": "Nu am acces direct la anunțurile specifice din aplicația InsideUGAL, deoarece contextul meu nu include o bază de date de anunțuri în timp real.\n\nAplicația InsideUGAL are un **Smart News Parser** care extrage date structurate din anunțurile UGAL, dar eu nu pot afișa conținutul acestor anunțuri.\n\nPentru a vedea cele mai recente anunțuri, te rog să verifici direct aplicația InsideUGAL sau site-ul oficial al universității: https://www.ugal.ro/"
+    },
+    {
+      "role": "user",
+      "content": "zi mi ce pdf uri sunt incarcate la implementare de ai asistant pentru studenti"
+    },
+    {
+      "role": "assistant",
+      "content": "Nu am informații despre ce PDF-uri specifice sunt preîncărcate la implementarea asistentului AI pentru studenți.\n\nModulul PDF/Quiz/RAG din InsideUGAL este conceput pentru ca **studenții să încarce propriile cursuri în format PDF** și să genereze quiz-uri sau să primească asistență pe baza conținutului încărcat de ei."
+    },
+    {
+      "role": "user",
+      "content": "zi mi despre istoricul intrebarilor"
+    },
+    {
+      "role": "assistant",
+      "content": "Nu am informații despre un \"istoric al întrebărilor\" în contextul aplicației InsideUGAL sau al funcționalităților sale.\n\nModulul AI al InsideUGAL include un ChatBot care acționează ca un asistent general pentru universitate, dar contextul furnizat nu menționează o funcționalitate de stocare sau vizualizare a istoricului întrebărilor adresate."
+    }
+  ],
+  "created_at": "2026-06-04T16:31:16.566877",
+  "updated_at": "2026-06-04T16:43:22.557300"
+}
