@@ -3,7 +3,7 @@ import { View, Text, useWindowDimensions, Pressable, Platform } from "react-nati
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Typography } from "@/constants/typography";
-import { Colors } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "react-native";
 
 const DEFAULT_IMAGE = require("@/assets/images/placeholders/1920x1080.png");
@@ -37,7 +37,7 @@ export function NewsCard({
     const { width: windowWidth } = useWindowDimensions();
     const SCREEN_WIDTH = Math.min(windowWidth, 480);
 
-    const defaultWidth = variant === "list" ? SCREEN_WIDTH - 32 : (variant === "square" ? 140 : (width || SCREEN_WIDTH * 0.85));
+    const defaultWidth = variant === "list" ? SCREEN_WIDTH - Spacing.xl3 : (variant === "square" ? 140 : (width || SCREEN_WIDTH * 0.85));
     const defaultHeight = variant === "list" ? 100 : (variant === "square" ? 140 : (height || (defaultWidth as number) / (16 / 10)));
     
     const cardImage = image || DEFAULT_IMAGE;
@@ -51,18 +51,18 @@ export function NewsCard({
                     width: width || defaultWidth, 
                     height: height || defaultHeight, 
                     marginRight, 
-                    gap: 16,
+                    gap: Spacing.lg,
                     alignItems: "center",
                     opacity: pressed ? 0.7 : 1
                 })}
             >
                 <Image
                     source={cardImage}
-                    style={{ width: height || defaultHeight, height: height || defaultHeight, borderRadius: 12 }}
+                    style={{ width: height || defaultHeight, height: height || defaultHeight, borderRadius: Spacing.lg }}
                     contentFit="cover"
                 />
                 
-                <View style={{ flex: 1, justifyContent: "center", gap: 4 }}>
+                <View style={{ flex: 1, justifyContent: "center", gap: Spacing.xs }}>
                     <Text style={[Typography.Small1, { color: theme.text, opacity: 0.6 }]}>
                         {author}
                     </Text>
@@ -85,7 +85,7 @@ export function NewsCard({
                     width: width || defaultWidth, 
                     height: height || defaultHeight, 
                     marginRight, 
-                    borderRadius: 16,
+                    borderRadius: Spacing.lg,
                     overflow: "hidden",
                     opacity: pressed ? 0.9 : 1
                 })}
@@ -110,7 +110,7 @@ export function NewsCard({
                     }}
                 />
 
-                <View style={{ flex: 1, padding: 12, justifyContent: "flex-end", alignItems: "center" }}>
+                <View style={{ flex: 1, padding: Spacing.lg, justifyContent: "flex-end", alignItems: "center" }}>
                     <Text style={[Typography.Heading6, { color: "white", textAlign: "center" }]} numberOfLines={2}>
                         {title}
                     </Text>
@@ -126,7 +126,7 @@ export function NewsCard({
                 width: width || defaultWidth, 
                 height: height || defaultHeight, 
                 marginRight, 
-                borderRadius: 12,
+                borderRadius: Spacing.lg,
                 overflow: "hidden",
                 opacity: pressed ? 0.9 : 1
             })}
@@ -151,11 +151,11 @@ export function NewsCard({
                 }}
             />
 
-            <View style={{ flex: 1, padding: 16, paddingBottom: 24, justifyContent: "flex-end", zIndex: 2 }}>
+            <View style={{ flex: 1, padding: Spacing.lg, justifyContent: "flex-end" }}>
                 <Text style={[Typography.Paragraph3, { color: "white", opacity: 0.8 }]}>
                     {date}
                 </Text>
-                <Text style={[Typography.Heading4, { color: "white", marginBottom: 4 }]}>
+                <Text style={[Typography.Heading4, { color: "white", marginBottom: Spacing.xs }]}>
                     {title}
                 </Text>
                 <Text style={[Typography.Paragraph3, { color: "white", opacity: 0.8 }]}>

@@ -1,7 +1,7 @@
 import { View, Text, FlatList, Pressable, useColorScheme } from "react-native";
 import { useRouter } from "expo-router";
 import { Typography } from "@/constants/typography";
-import { Colors, ColorScheme } from "@/constants/theme";
+import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { CAROUSEL_CARD_WIDTH, CAROUSEL_CARD_MARGIN, CarouselProps } from "./carousel.shared";
 
 export function Carousel<T>({ data, renderItem, keyExtractor, title, viewAllHref }: CarouselProps<T>) {
@@ -10,14 +10,14 @@ export function Carousel<T>({ data, renderItem, keyExtractor, title, viewAllHref
     const theme = Colors[themeName];
 
     return (
-        <View style={{ marginVertical: 15 }}>
+        <View style={{ flex: 1, marginVertical: Spacing.lg }}>
             {(title || viewAllHref) && (
                 <View style={{
                     flexDirection: "row",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    paddingHorizontal: 16,
-                    marginBottom: 12
+                    paddingHorizontal: Spacing.lg,
+                    marginBottom: Spacing.lg
                 }}>
                     {title && <Text style={[Typography.Heading3, { color: theme.text }]}>{title}</Text>}
                     {viewAllHref && (
@@ -34,7 +34,7 @@ export function Carousel<T>({ data, renderItem, keyExtractor, title, viewAllHref
                 keyExtractor={keyExtractor}
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 16 }}
+                contentContainerStyle={{ paddingHorizontal: Spacing.lg }}
                 snapToInterval={CAROUSEL_CARD_WIDTH + CAROUSEL_CARD_MARGIN}
                 decelerationRate="fast"
             />

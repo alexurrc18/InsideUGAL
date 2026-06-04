@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, ScrollView, TouchableOpacity, useColorScheme } from "react-native";
 import { Typography } from "@/constants/typography";
-import { Colors } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 
 export interface FilterItem {
     id: string | null;
@@ -38,8 +38,8 @@ export function CategoryHeader({
     const theme = Colors[themeName];
 
     return (
-        <View style={{ gap: 5, marginBottom: 8 }}>
-            <Text style={[Typography.Heading1, { color: theme.text, paddingHorizontal: 16 }]}>
+        <View style={{ gap: Spacing.xs, marginBottom: Spacing.sm }}>
+            <Text style={[Typography.Heading1, { color: theme.text, paddingHorizontal: Spacing.lg }]}>
                 {title}
             </Text>
 
@@ -47,7 +47,7 @@ export function CategoryHeader({
                 <ScrollView 
                     horizontal 
                     showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: 16, gap: 20, alignItems: "center" }}
+                    contentContainerStyle={{ paddingHorizontal: Spacing.lg, gap: Spacing.xl, alignItems: "center" }}
                 >
                     {filters.map((item) => {
                         const isSelected = selectedFilterId === item.id;
@@ -65,7 +65,7 @@ export function CategoryHeader({
                             <TouchableOpacity
                                 key={item.id ?? "all"}
                                 onPress={() => onSelectFilter(item.id)}
-                                style={{ paddingVertical: 4 }}
+                                style={{ paddingVertical: Spacing.xs }}
                             >
                                 <Text style={[
                                     isSelected ? Typography.Heading4 : Typography.Paragraph1,
