@@ -3,7 +3,7 @@ import { View, Text, ScrollView, useColorScheme } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
-import { Colors, ColorScheme } from "@/constants/theme";
+import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 
 import { Carousel, CAROUSEL_CARD_WIDTH, CAROUSEL_CARD_MARGIN } from "@/components/ui/carousel";
@@ -65,7 +65,7 @@ export default function HomeScreen() {
             contentFit="cover"
           />
 
-          <View style={{ flex: 1, padding: 16, justifyContent: "flex-end" }}>
+          <View style={{ flex: 1, padding: Spacing.lg, justifyContent: "flex-end" }}>
             <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
               Astăzi, 27 mai
             </Text>
@@ -75,7 +75,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={{paddingTop: 16, paddingBottom: insets.bottom+5, flex: 1}}>
+        <View style={{paddingTop: Spacing.lg, paddingBottom: insets.bottom + Spacing.sm, flex: 1}}>
           <Carousel
             title="Noutăți"
             data={noutati}
