@@ -1,12 +1,10 @@
 import React from "react";
-import { View, Text, Dimensions, Pressable } from "react-native";
+import { View, Text, useWindowDimensions, Pressable, Platform } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Typography } from "@/constants/typography";
 import { Colors, Spacing } from "@/constants/theme";
 import { useColorScheme } from "react-native";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const DEFAULT_IMAGE = require("@/assets/images/placeholders/1920x1080.png");
 
@@ -35,6 +33,9 @@ export function NewsCard({
 }: NewsCardProps) {
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
     const theme = Colors[themeName];
+
+    const { width: windowWidth } = useWindowDimensions();
+    const SCREEN_WIDTH = Math.min(windowWidth, 480);
 
     const defaultWidth = variant === "list" ? SCREEN_WIDTH - Spacing.xl3 : (variant === "square" ? 140 : (width || SCREEN_WIDTH * 0.85));
     const defaultHeight = variant === "list" ? 100 : (variant === "square" ? 140 : (height || (defaultWidth as number) / (16 / 10)));
@@ -84,10 +85,11 @@ export function NewsCard({
                     width: width || defaultWidth, 
                     height: height || defaultHeight, 
                     marginRight, 
-                    borderRadius: Spacing.lg, 
+                    borderRadius: Spacing.lg,
                     overflow: "hidden",
                     opacity: pressed ? 0.9 : 1
                 })}
+                {...(Platform.OS === "web" ? ({ dataSet: { card: "true" } } as any) : {})}
             >
                 <Image
                     source={cardImage}
@@ -124,10 +126,11 @@ export function NewsCard({
                 width: width || defaultWidth, 
                 height: height || defaultHeight, 
                 marginRight, 
-                borderRadius: Spacing.lg, 
+                borderRadius: Spacing.lg,
                 overflow: "hidden",
                 opacity: pressed ? 0.9 : 1
             })}
+            {...(Platform.OS === "web" ? ({ dataSet: { card: "true" } } as any) : {})}
         >
             <Image
                 source={cardImage}
