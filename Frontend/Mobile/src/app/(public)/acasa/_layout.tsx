@@ -1,4 +1,3 @@
-import React from "react";
 import { Pressable, Text, useColorScheme } from "react-native";
 import { Stack, useRouter } from "expo-router";
 
@@ -6,7 +5,6 @@ import { Colors, ColorScheme } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
-
 
 export default function LineupLayout() {
     const router = useRouter();
@@ -16,6 +14,7 @@ export default function LineupLayout() {
     return (
         <Stack screenOptions={{
             headerShadowVisible: false,
+            animation: 'none',
         }}>
 
             {/* INDEX*/}

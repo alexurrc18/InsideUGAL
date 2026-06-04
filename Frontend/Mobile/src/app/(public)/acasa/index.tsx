@@ -17,7 +17,6 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // Filtram datele pentru fiecare carusel (fără filtrare locală per facultate)
   const noutati = MOCK_DATA.events.filter(e => e.category === "Noutăți");
   const evenimente = MOCK_DATA.events.filter(e => e.category === "Evenimente");
   const facultati = MOCK_DATA.faculties;
