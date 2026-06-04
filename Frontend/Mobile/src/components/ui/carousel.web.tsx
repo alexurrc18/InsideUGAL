@@ -1,4 +1,4 @@
-import { View, Text, FlatList, Pressable, useColorScheme } from "react-native";
+import { View, Text, FlatList, Pressable, useColorScheme, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { Typography } from "@/constants/typography";
 import { Colors, ColorScheme } from "@/constants/theme";
@@ -8,6 +8,10 @@ export function Carousel<T>({ data, renderItem, keyExtractor, title, viewAllHref
     const router = useRouter();
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
     const theme = Colors[themeName];
+
+    // Fisier doar pentru web: pe ecran lat aratam bara de scroll (stilizata in global.css)
+    const { width: windowWidth } = useWindowDimensions();
+    const isDesktop = windowWidth >= 768;
 
     return (
         <View style={{ marginVertical: 15 }}>
@@ -33,10 +37,11 @@ export function Carousel<T>({ data, renderItem, keyExtractor, title, viewAllHref
                 renderItem={renderItem}
                 keyExtractor={keyExtractor}
                 horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 16 }}
+                showsHorizontalScrollIndicator={isDesktop}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: isDesktop ? 8 : 0 }}
                 snapToInterval={CAROUSEL_CARD_WIDTH + CAROUSEL_CARD_MARGIN}
                 decelerationRate="fast"
+                {...(isDesktop ? ({ dataSet: { carousel: "true" } } as any) : {})}
             />
         </View>
     );

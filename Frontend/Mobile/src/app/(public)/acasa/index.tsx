@@ -6,7 +6,8 @@ import { Image } from "expo-image";
 import { Colors, ColorScheme } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 
-import { Carousel, CAROUSEL_CARD_WIDTH, CAROUSEL_CARD_MARGIN } from "@/components/ui/carousel";
+import { Carousel } from "@/components/ui/carousel";
+import { CAROUSEL_CARD_MARGIN } from "@/components/ui/carousel.shared";
 import { NewsCard } from "@/components/ui/news-card";
 import { getFormattedDate } from "@/utils/date";
 import MOCK_DATA from "@/constants/mock-data.json";
