@@ -43,8 +43,12 @@ export default function LoginPage() {
       // Redirecționează utilizatorul după logare spre dashboard
       window.location.href = "/dashboard";
       
-    } catch (err: any) {
-      setError(err.message || "A apărut o eroare la conectare.");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("A apărut o eroare la conectare.");
+      }
     } finally {
       setLoading(false);
     }
