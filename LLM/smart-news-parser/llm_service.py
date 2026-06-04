@@ -38,7 +38,7 @@ class LLMService:
             "- materie_sau_subiect: string (Deduce subiectul principal, ex: 'Hackathon Web', 'Decontare Transport', 'Baze de Date'. NU pune null!)\n"
             "- entitate_sursa: string sau null (ex: 'Rectorat', 'ACIEE')\n"
             "- tip_eveniment: string ('proiect', 'laborator', 'partial', 'colocviu', 'examen', 'concurs', 'internship', 'bursa', 'voluntariat', 'oportunitate', 'cazare', 'anunt_general', 'administrativ')\n"
-            "- urgenta_estimata: string ('scazuta', 'medie', 'ridicata', 'critica')\n"
+            "- urgenta_estimata: string ('scazuta', 'medie', 'ridicata')\n"
             "- public_tinta: lista de stringuri (ex: ['Studenti Anul 1'])\n"
             "- deadline_absolut: string sau null (ISO 8601 YYYY-MM-DDTHH:MM:SS) - calculeaza din text raportat la data curenta.\n"
             "- locatie: string sau null\n"

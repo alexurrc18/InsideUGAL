@@ -65,7 +65,6 @@ class ImageService:
             
             image = await self.hf_client.text_to_image(
                 prompt=refined_prompt,
-                negative_prompt="text, letters, alphabet, numbers, words, typography, logo, watermark, signature, blurry, distorted, deformed, messy, bad anatomy, bad proportions, low quality, ugly artifacts, photorealistic, realistic, cluttered, busy, too many objects, complex background, chaotic, thin line art, uncolored, sketch, boring",
                 model=self.hf_model_id,
                 width=1024,
                 height=576 # Aproximativ 16:9
@@ -104,7 +103,7 @@ if __name__ == "__main__":
             return
             
         print("🚀 Testare ImageService (Hugging Face - SDXL)...")
-        service = ImageService(gemini_api_key=gemini_api_key, hf_api_key=hf_api_key)
+        service = ImageService(hf_api_key=hf_api_key)
         
         # Test mock data
         from schemas import TipEveniment, NivelUrgenta
