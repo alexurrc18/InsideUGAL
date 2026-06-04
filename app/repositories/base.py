@@ -30,7 +30,12 @@ class CRUDRepository(Generic[ModelT]):
         result = await session.execute(select(self.model).where(self.model.id == entity_id))  # type: ignore[attr-defined]
         return result.scalars().first()
 
-    async def create(self, session: AsyncSession, entity_in: BaseModel, **extra_data: Any) -> ModelT:
+    async def create(
+        self,
+        session: AsyncSession,
+        entity_in: BaseModel,
+        **extra_data: Any,
+    ) -> ModelT:
         data = schema_to_data(entity_in)
         data.update(extra_data)
         db_entity = self.model(**data)
@@ -40,7 +45,13 @@ class CRUDRepository(Generic[ModelT]):
         await session.refresh(db_entity)
         return db_entity
 
-    async def update(self, session: AsyncSession, db_entity: ModelT, entity_in: BaseModel, **extra_data: Any) -> ModelT:
+    async def update(
+        self,
+        session: AsyncSession,
+        db_entity: ModelT,
+        entity_in: BaseModel,
+        **extra_data: Any,
+    ) -> ModelT:
         data = schema_to_data(entity_in, exclude_unset=True)
         data.update(extra_data)
         for key, value in data.items():
@@ -49,6 +60,9 @@ class CRUDRepository(Generic[ModelT]):
         await session.commit()
         await session.refresh(db_entity)
         return db_entity
+
+
+
 
     async def delete(self, session: AsyncSession, db_entity: ModelT) -> None:
         await session.delete(db_entity)
