@@ -24,11 +24,20 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
-    ports:
-    - 8001:8000
     networks:
     - public
     - internal
+    labels:
+    - traefik.enable=true
+    - traefik.docker.network=coolify
+    - traefik.http.routers.insideugal-backend.rule=Host(`api.insideugal.local`)
+    - traefik.http.routers.insideugal-backend.entrypoints=https
+    - traefik.http.routers.insideugal-backend.tls=true
+    - traefik.http.routers.insideugal-backend-http.rule=Host(`api.insideugal.local`)
+    - traefik.http.routers.insideugal-backend-http.entrypoints=http
+    - traefik.http.routers.insideugal-backend-http.middlewares=insideugal-redirect-https
+    - traefik.http.routers.insideugal-backend-http.service=insideugal-backend
+    - traefik.http.services.insideugal-backend.loadbalancer.server.port=8000
   llm:
     build:
       context: ./LLM
@@ -42,13 +51,15 @@ services:
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       ALLOWED_ORIGINS: ${LLM_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
     restart: unless-stopped
+    ports:
+      - "8000:8001"
     depends_on:
       supabase-db:
         condition: service_healthy
     healthcheck:
       test:
       - CMD-SHELL
-      - python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)"
+      - python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/docs', timeout=5)"
       interval: 30s
       timeout: 5s
       retries: 3
@@ -56,11 +67,10 @@ services:
     volumes:
     - llm-uploads:/app/LLM/modul-marius/uploads
     - llm-chroma-data:/app/LLM/modul-marius/chroma_db
-    ports:
-    - 8002:8000
     networks:
-    - public
     - internal
+    labels:
+    - traefik.enable=false
   frontend:
     build:
       context: ./Frontend/Dashboard/dashboard-insideugal
@@ -71,6 +81,8 @@ services:
     - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
     - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     restart: unless-stopped
+    ports:
+      - "3000:3000"
     deploy:
       resources:
         limits:
@@ -79,13 +91,11 @@ services:
     healthcheck:
       test:
       - CMD-SHELL
-      - curl -fsS http://127.0.0.1:3000/ >/dev/null
+      - node -e "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 20s
-    ports:
-    - 3000:3000
     networks:
     - public
     - internal
@@ -125,6 +135,8 @@ services:
     - supabase-db-data:/var/lib/postgresql/data
     networks:
     - internal
+    labels:
+    - traefik.enable=false
   supabase-meta:
     image: supabase/postgres-meta:v0.95.2
     restart: unless-stopped
@@ -139,8 +151,18 @@ services:
       PG_META_DB_USER: postgres
       PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
       CRYPTO_KEY: ${PG_META_CRYPTO_KEY:-change-me}
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - node -e "fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>fetch('http://127.0.0.1:8080/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1)))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     networks:
     - internal
+    labels:
+    - traefik.enable=false
   supabase-studio:
     image: supabase/studio:2026.03.16-sha-5528817
     restart: unless-stopped
@@ -169,14 +191,21 @@ services:
       AUTH_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       SNIPPETS_MANAGEMENT_FOLDER: /tmp/snippets
       EDGE_FUNCTIONS_MANAGEMENT_FOLDER: /tmp/edge-functions
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - node -e "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     volumes:
     - ./supabase/snippets:/tmp/snippets
     - ./supabase/functions:/tmp/edge-functions
-    ports:
-    - 3001:3000
     networks:
-    - public
     - internal
+    labels:
+    - traefik.enable=false
 
   mobile:
     build:
@@ -185,16 +214,26 @@ services:
     command: npm run web -- --host lan
     restart: unless-stopped
     ports:
-      - "3002:8081"
+      - "8081:8081"
     environment:
       - NODE_ENV=development
       - CI=1
       - EXPO_NO_TELEMETRY=1
       - EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0
       - REACT_NATIVE_PACKAGER_HOSTNAME=localhost
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - node -e "fetch('http://127.0.0.1:8081').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
     networks:
-      - public
       - internal
+      - public
+    labels:
+      - traefik.enable=false
 networks:
   public:
     name: coolify
