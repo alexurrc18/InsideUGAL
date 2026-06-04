@@ -6,6 +6,9 @@
 import '@/global.css';
 
 import { Platform } from 'react-native';
+import { Spacing } from './spacing';
+
+export { Spacing };
 
 export const ColorScheme = {
   black: '#121212',
@@ -23,8 +26,10 @@ export const ColorScheme = {
 export const Colors = {
   light: {
     text: ColorScheme.black,
+    textOnDark: ColorScheme.white,
     textSecondary: ColorScheme.gray,
     background: ColorScheme.white,
+    border: ColorScheme.lightGray,
 
     primary: ColorScheme.blue,
     secondary: ColorScheme.red,
@@ -32,8 +37,10 @@ export const Colors = {
   },
   dark: {
     text: ColorScheme.white,
+    textOnDark: ColorScheme.black,
     textSecondary: ColorScheme.lightGray,
     background: ColorScheme.black,
+    border: ColorScheme.gray,
 
     primary: ColorScheme.blue,
     secondary: ColorScheme.red,
@@ -68,16 +75,6 @@ export const Fonts = Platform.select({
     mono: 'var(--font-mono)',
   },
 });
-
-export const Spacing = {
-  half: 2,
-  one: 4,
-  two: 8,
-  three: 16,
-  four: 24,
-  five: 32,
-  six: 64,
-} as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;

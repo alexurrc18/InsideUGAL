@@ -2,11 +2,11 @@ import React from "react";
 import { View, Text, FlatList, Dimensions, Pressable, useColorScheme } from "react-native";
 import { useRouter } from "expo-router";
 import { Typography } from "@/constants/typography";
-import { Colors, ColorScheme } from "@/constants/theme";
+import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 
 const { width } = Dimensions.get("window");
 export const CAROUSEL_CARD_WIDTH = width * 0.85; 
-export const CAROUSEL_CARD_MARGIN = 16;
+export const CAROUSEL_CARD_MARGIN = Spacing.lg;
 
 interface CarouselProps<T> {
     data: T[];
@@ -28,14 +28,14 @@ export function Carousel<T>({
     const theme = Colors[themeName];
 
     return (
-        <View style={{ flex: 1, marginVertical: 15 }}>
+        <View style={{ flex: 1, marginVertical: Spacing.lg }}>
             {(title || viewAllHref) && (
                 <View style={{ 
                     flexDirection: "row", 
                     justifyContent: "space-between", 
                     alignItems: "center", 
-                    paddingHorizontal: 16, 
-                    marginBottom: 12 
+                    paddingHorizontal: Spacing.lg, 
+                    marginBottom: Spacing.lg 
                 }}>
                     {title && <Text style={[Typography.Heading3, { color: theme.text }]}>{title}</Text>}
                     {viewAllHref && (
@@ -52,7 +52,7 @@ export function Carousel<T>({
                 keyExtractor={keyExtractor}
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 16 }}
+                contentContainerStyle={{ paddingHorizontal: Spacing.lg }}
                 snapToInterval={CAROUSEL_CARD_WIDTH + CAROUSEL_CARD_MARGIN}
                 decelerationRate="fast"
             />
