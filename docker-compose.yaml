@@ -198,7 +198,7 @@ services:
 networks:
   public:
     name: coolify
-    external: true
+    external: false
   internal:
     internal: true
 volumes:
