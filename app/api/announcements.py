@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth_deps import get_current_profile, get_current_user, is_role
+from app.api.auth_deps import require_roles
 from app.api.crud import ensure_exists
 from app.db.database import get_db
 from app.models import models, schemas
@@ -16,7 +16,11 @@ from app.repositories.announcement_repo import AnnouncementRepository
 
 router = APIRouter(prefix="/announcements", tags=["Announcements"])
 repo = AnnouncementRepository()
-author_roles = {schemas.UserRole.HEAD_ADMIN, schemas.UserRole.PROFESOR, schemas.UserRole.STUDENT_RESPONSABIL}
+manage_announcements = require_roles(
+    schemas.UserRole.HEAD_ADMIN,
+    schemas.UserRole.PROFESOR,
+    schemas.UserRole.STUDENT_RESPONSABIL
+)
 
 
 async def validate_announcement_refs(payload: BaseModel, db: AsyncSession) -> None:
@@ -26,10 +30,11 @@ async def validate_announcement_refs(payload: BaseModel, db: AsyncSession) -> No
 
 
 def assert_can_manage_announcement(profile, announcement: models.Announcement | None = None) -> None:
-    if not is_role(profile, author_roles):
+    if profile.role == schemas.UserRole.STUDENT_RESPONSABIL.value:
+        if announcement is not None and announcement.created_by != str(profile.id):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Student representatives can manage only their own announcements.")
+    elif profile.role not in {schemas.UserRole.PROFESOR.value, schemas.UserRole.HEAD_ADMIN.value}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Nu ai permisiuni suficiente.")
-    if announcement is not None and profile.role == schemas.UserRole.STUDENT_RESPONSABIL.value and announcement.created_by != str(profile.id):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Student representatives can manage only their own announcements.")
 
 
 @router.get("/", response_model=list[schemas.AnnouncementResponse])
@@ -54,20 +59,16 @@ async def read_announcement(announcement_id: int, session: AsyncSession = Depend
 async def create_announcement(
     announcement_in: schemas.AnnouncementCreate,
     session: AsyncSession = Depends(get_db),
-    current_user: str = Depends(get_current_user),
-    profile=Depends(get_current_profile),
+    profile=Depends(manage_announcements),
 ):
-    assert_can_manage_announcement(profile)
     await validate_announcement_refs(announcement_in, session)
-    return await repo.create_for_user(session, announcement_in, user_id=current_user)
+    return await repo.create_for_user(session, announcement_in, user_id=profile.id)
 
 
-@router.post("/upload-image/")
+@router.post("/upload-image/", dependencies=[Depends(manage_announcements)])
 async def upload_announcement_image(
     file: UploadFile = File(...),
-    profile=Depends(get_current_profile),
 ):
-    assert_can_manage_announcement(profile)
     supabase_url = os.environ.get("SUPABASE_URL")
     supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
     if not supabase_url or not supabase_key:
@@ -76,16 +77,22 @@ async def upload_announcement_image(
     safe_filename = Path(file.filename or "upload").name
     unique_filename = f"{uuid.uuid4()}-{safe_filename}"
     encoded_filename = quote(unique_filename)
-    upload_url = f"{supabase_url.rstrip('/')}/storage/v1/object/announcements/{encoded_filename}"
-    public_url = f"{supabase_url.rstrip('/')}/storage/v1/object/public/announcements/{encoded_filename}"
+    
+    upload_url = f"{supabase_url.rstrip('/')}/storage/v1/object/images/announcements/{encoded_filename}"
+    public_url = f"{supabase_url.rstrip('/')}/storage/v1/object/public/images/announcements/{encoded_filename}"
+    
     headers = {
         "apikey": supabase_key,
         "Authorization": f"Bearer {supabase_key}",
         "Content-Type": file.content_type or "application/octet-stream",
     }
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(upload_url, headers=headers, content=await file.read())
+    # FIX: Citește imaginea în memorie înainte de a face request-ul HTTP
+    file_bytes = await file.read()
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        # Trimite pachetul de biți complet către Supabase
+        response = await client.post(upload_url, headers=headers, content=file_bytes)
 
     if response.status_code >= 400:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Image upload failed.")
@@ -97,8 +104,7 @@ async def update_announcement(
     announcement_id: int,
     announcement_in: schemas.AnnouncementUpdate,
     session: AsyncSession = Depends(get_db),
-    current_user: str = Depends(get_current_user),
-    profile=Depends(get_current_profile),
+    profile=Depends(manage_announcements),
 ):
     announcement = await repo.get_by_id(session, announcement_id)
     if not announcement:
@@ -108,15 +114,14 @@ async def update_announcement(
     try:
         return await repo.update(session, announcement, announcement_in)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
 
 
 @router.delete("/{announcement_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_announcement(
     announcement_id: int,
     session: AsyncSession = Depends(get_db),
-    current_user: str = Depends(get_current_user),
-    profile=Depends(get_current_profile),
+    profile=Depends(manage_announcements),
 ):
     announcement = await repo.get_by_id(session, announcement_id)
     if not announcement:

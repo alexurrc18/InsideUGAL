@@ -20,7 +20,7 @@ async def http_exception_handler(
             "type": f"https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/{exc.status_code}",
             "title": title,
             "status": exc.status_code,
-            "detail": exc.detail,
+            "detail": str(exc.detail),
             "instance": request.url.path,
         },
         media_type="application/problem+json",
@@ -31,12 +31,12 @@ async def validation_exception_handler(
     exc: RequestValidationError,
 ) -> JSONResponse:
     return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         content={
             "type": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/422",
             "title": "Validation Error",
-            "status": status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "detail": exc.errors(),
+            "status": status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "detail": str(exc.errors()),
             "instance": request.url.path,
         },
         media_type="application/problem+json",

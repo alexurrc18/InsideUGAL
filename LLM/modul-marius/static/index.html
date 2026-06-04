@@ -265,7 +265,12 @@
       </div>
 
       <div class="card" id="summary-section">
-        <h2>Rezumat</h2>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:15px;">
+          <h2 style="margin:0;">Rezumat</h2>
+          <button onclick="exportRezumatPDF()" style="width:auto; margin:0; padding:8px 18px; font-size:14px;">
+            &#x2B73; Descarca Rezumat (PDF)
+          </button>
+        </div>
         <div id="summary-text"></div>
       </div>
 
@@ -650,6 +655,64 @@
 
     const safeName = (currentFilename || "quiz").replace(/\.pdf$/i, "").replace(/\s+/g, "_");
     doc.save(`quiz_${safeName}.pdf`);
+  }
+
+  // ── Export Rezumat PDF ───────────────────────────────────
+
+  function exportRezumatPDF() {
+    const summaryEl = document.getElementById("summary-text");
+    if (!summaryEl || !summaryEl.innerText.trim()) {
+      alert("Nu exista rezumat de exportat.");
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+
+    const marginL = 20;
+    const marginR = 20;
+    const pageW = 210;
+    const pageH = 297;
+    const maxW = pageW - marginL - marginR;
+    let y = 20;
+
+    function checkPage(needed) {
+      if (y + needed > pageH - 15) { doc.addPage(); y = 20; }
+    }
+
+    function line(text, fontSize, bold, color) {
+      doc.setFontSize(fontSize);
+      doc.setFont("helvetica", bold ? "bold" : "normal");
+      doc.setTextColor(...(color || [0, 0, 0]));
+      const lines = doc.splitTextToSize(text, maxW);
+      checkPage(lines.length * (fontSize * 0.4 + 1) + 2);
+      doc.text(lines, marginL, y);
+      y += lines.length * (fontSize * 0.4 + 1) + 2;
+    }
+
+    const filename = norm(currentFilename.replace(/\.pdf$/i, ""));
+    line("Rezumat: " + filename, 16, true, [26, 115, 232]);
+    y += 4;
+
+    const today = new Date().toLocaleDateString("ro-RO", { day: "2-digit", month: "long", year: "numeric" });
+    line("Data: " + today, 10, false, [100, 100, 100]);
+    y += 6;
+
+    doc.setDrawColor(200, 200, 200);
+    doc.line(marginL, y, pageW - marginR, y);
+    y += 8;
+
+    const rawText = summaryEl.innerText.trim();
+    rawText.split("\n").forEach(row => {
+      const trimmed = row.trim();
+      if (!trimmed) { y += 3; return; }
+      const isTitle = trimmed.startsWith("##");
+      const text = norm(trimmed.replace(/^#+\s*/, "").replace(/\*\*/g, ""));
+      line(text, isTitle ? 13 : 11, isTitle, isTitle ? [26, 115, 232] : [0, 0, 0]);
+    });
+
+    const safeName = (currentFilename || "rezumat").replace(/\.pdf$/i, "").replace(/\s+/g, "_");
+    doc.save(`rezumat_${safeName}.pdf`);
   }
 
   // ── Init ─────────────────────────────────────────────────

@@ -78,6 +78,32 @@ app.add_middleware(
     allowed_hosts=allowed_hosts,
 )
 
+# Rate Limiting Configuration
+limiter = Limiter(key_func=get_remote_address, default_limits=["60 per minute"])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
+
+# CORS Configuration
+allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+allowed_origins = [origin.strip() for origin in allowed_origins_raw.split(",") if origin.strip()]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Trusted Host Configuration
+allowed_hosts_raw = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,*.local")
+allowed_hosts = [host.strip() for host in allowed_hosts_raw.split(",") if host.strip()]
+
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=allowed_hosts,
+)
+
 @app.middleware("http")
 async def add_security_headers_middleware(request: Request, call_next):
     response = await call_next(request)
@@ -107,5 +133,3 @@ app.include_router(cafeteria_menus.router)
 app.include_router(complaints.router)
 app.include_router(announcements.router)
 app.include_router(auth.router)
-app.include_router(llm_features.router)
-app.include_router(chat.router)

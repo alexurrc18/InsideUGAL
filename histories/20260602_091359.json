@@ -1,0 +1,18 @@
+{
+  "id": "20260602_091359",
+  "title": "ai auzit de facultatea de ,,Facu…",
+  "messages": [
+    {
+      "role": "user",
+      "text": "ai auzit de facultatea de ,,Facultatea de Automatică, Calculatoare, Inginerie Electrică și Electronică,,",
+      "full_prompt": "ai auzit de facultatea de ,,Facultatea de Automatică, Calculatoare, Inginerie Electrică și Electronică,,",
+      "timestamp": "2026-06-02T09:16:12.746655"
+    },
+    {
+      "role": "model",
+      "text": "Da, am auzit de Facultatea de Automatică, Calculatoare, Inginerie Electrică și Electronică (FACIEE). Este una dintre cele mai cunoscute și prestigioase instituții de învățământ superior din România în domeniile ingineriei electrice, electronicii, automatizării și informaticii. Facultatea face parte, de regulă, din cadrul unor universități tehnice importante, cum ar fi Universitatea Politehnica din București, și oferă programe de licență, masterat și doctorat, precum și numeroase oportunităţi de cercetare și colaborare cu industria. Dacă ai întrebări specifice legate de programele de studii, admitere sau alte aspecte, te pot ajuta cu informații suplimentare.",
+      "timestamp": "2026-06-02T09:16:12.746660"
+    }
+  ],
+  "created": "2026-06-02T09:13:59.090974"
+}

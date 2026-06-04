@@ -1,4 +1,3 @@
-import React from "react";
 import { Pressable, Text, useColorScheme } from "react-native";
 import { Stack, useRouter } from "expo-router";
 
@@ -6,7 +5,6 @@ import { Colors, ColorScheme } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
-
 
 export default function LineupLayout() {
     const router = useRouter();
@@ -16,6 +14,7 @@ export default function LineupLayout() {
     return (
         <Stack screenOptions={{
             headerShadowVisible: false,
+            animation: 'none',
         }}>
 
             {/* INDEX*/}
@@ -34,8 +33,8 @@ export default function LineupLayout() {
                 headerTitle: "",
                 headerLeft: () => (
                   <Pressable onPress={() => router.back()} style={{ marginHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 4 }}>
-                    <BackIcon />
-                    <Text style={[Typography.Paragraph1, { color: theme.text }]}>Mergi înapoi</Text>
+                    <BackIcon width={24} height={24} color={ColorScheme.white} />
+                    <Text style={[Typography.Paragraph1, { color: theme.background }]}>Mergi înapoi</Text>
                   </Pressable>
                 ),
               }}
@@ -48,9 +47,9 @@ export default function LineupLayout() {
                 headerTransparent: true,
                 headerTitle: "",
                 headerLeft: () => (
-                  <Pressable onPress={() => router.back()} style={{ marginHorizontal: 16, flexDirection: "row", alignItems: "center" }}>
-                    <BackIcon />
-                    <Text style={[Typography.Paragraph1, { color: theme.text }]}>Mergi înapoi</Text>
+                  <Pressable onPress={() => router.back()} style={{ marginHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <BackIcon width={24} height={24} color={ColorScheme.white} />
+                    <Text style={[Typography.Paragraph1, { color: ColorScheme.white }]}>Mergi înapoi</Text>
                   </Pressable>
                 ),
               }}
