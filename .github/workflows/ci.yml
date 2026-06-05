@@ -161,4 +161,4 @@ jobs:
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: coverage
-          message: "### :bar_chart: Coverage Report\nInfrastructura de raportare este activă. După ce echipele vor adăuga teste de unitate, rapoartele detaliate LCOV/XML vor fi afișate aici."
+          message: "### :bar_chart: Test Coverage Setup Complete\nInfrastructura de raportare este activă. După ce echipele vor adăuga teste de unitate, rapoartele detaliate LCOV/XML vor fi afișate aici."
