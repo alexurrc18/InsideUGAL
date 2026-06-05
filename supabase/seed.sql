@@ -1,9 +1,25 @@
--- 1. INSERARE CONTURI DE TEST ÎN AUTH.USERS (Fără IF EXISTS, inserare directă și sigură)
-INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at) 
-VALUES
-    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'admin@ugal.ro', crypt('parola123', gen_salt('bf')), NOW(), '{"provider":"email","providers":["email"]}', '{"first_name":"Admin","last_name":"Sistem","username":"admin_test"}', NOW(), NOW()),
-    ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'student@ugal.ro', crypt('parola123', gen_salt('bf')), NOW(), '{"provider":"email","providers":["email"]}', '{"first_name":"Student","last_name":"Test","username":"student_test"}', NOW(), NOW())
-ON CONFLICT (id) DO NOTHING;
+-- 1. INSERARE CONTURI DE TEST ÎN AUTH.USERS ȘI AUTH.IDENTITIES (Cu blocul tău DO $$)
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'auth' AND tablename = 'users') THEN
+        INSERT INTO auth.users (
+            instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+            confirmation_token, recovery_token, email_change_token_new, email_change,
+            phone_change, phone_change_token, email_change_token_current, reauthentication_token,
+            created_at, updated_at, raw_app_meta_data, raw_user_meta_data, is_super_admin
+        ) VALUES
+        ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'admin@ugal.ro', extensions.crypt('Parola123!', extensions.gen_salt('bf')), NOW(), '', '', '', '', '', '', '', '', NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', FALSE),
+        ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated', 'student@ugal.ro', extensions.crypt('Parola123!', extensions.gen_salt('bf')), NOW(), '', '', '', '', '', '', '', '', NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', FALSE)
+        ON CONFLICT (id) DO NOTHING;
+
+        INSERT INTO auth.identities (
+            id, user_id, provider_id, identity_data, provider, created_at, updated_at
+        ) VALUES
+        (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', '{"sub":"00000000-0000-0000-0000-000000000001","email":"admin@ugal.ro"}'::jsonb, 'email', NOW(), NOW()),
+        (gen_random_uuid(), '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000002', '{"sub":"00000000-0000-0000-0000-000000000002","email":"student@ugal.ro"}'::jsonb, 'email', NOW(), NOW())
+        ON CONFLICT (provider_id, provider) DO NOTHING;
+    END IF;
+END $$;
 
 -- 2. INSERARE EXPLICITĂ ÎN PROFILES (Garantează că Anunțurile și Sesizările găsesc ID-urile)
 INSERT INTO public.profiles (id, username, first_name, last_name, email, role, is_active) VALUES
@@ -53,7 +69,7 @@ INSERT INTO public.menu_products (menu_id, product_id) VALUES
 (1, 1), (1, 2), (1, 3), (1, 4),
 (2, 1), (2, 5),
 (3, 2), (3, 3), (3, 4)
-ON CONFLICT ON CONSTRAINT menu_products_pkey DO NOTHING;
+ON CONFLICT (menu_id, product_id) DO NOTHING;
 
 -- 8. ANUNȚURI DE TEST
 INSERT INTO public.announcements (id, type, created_by, title, content, faculty_id, location_name, start_date) VALUES
