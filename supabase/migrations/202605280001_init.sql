@@ -9,8 +9,9 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
         CREATE TYPE public.user_role AS ENUM ('STUDENT', 'STUDENT_RESPONSABIL', 'PROFESOR', 'HEAD_CANTINA', 'HEAD_FACULTATI', 'HEAD_ADMIN');
     END IF;
+    -- AICI AM ADĂUGAT 'solutionat'
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'complaint_status') THEN
-        CREATE TYPE public.complaint_status AS ENUM ('in_asteptare', 'in_lucru', 'finalizat', 'respins');
+        CREATE TYPE public.complaint_status AS ENUM ('in_asteptare', 'in_lucru', 'finalizat', 'respins', 'solutionat');
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'post_type') THEN
         CREATE TYPE public.post_type AS ENUM ('NOUTATE', 'EVENIMENT');
