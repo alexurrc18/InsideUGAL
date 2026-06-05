@@ -103,8 +103,9 @@ export default function DashboardCalendar({ events = [] }: DashboardCalendarProp
   const startMonth = useMemo(() => new Date(today.getFullYear() - 6, 0, 1), [today]);
   const endMonth = useMemo(() => new Date(today.getFullYear() + 6, 11, 31), [today]);
 
-  const CustomDayButton = useMemo(() => {
-    return (props: DayButtonProps) => <EventDayButton {...props} eventDates={eventDates} />;
+  const EventDayButton = useMemo(() => {
+    return ({ day, modifiers, className, style, ...props }: DayButtonProps) => {
+    };
   }, [eventDates]);
 
   return (
