@@ -7,7 +7,7 @@ import Modal from '../components/ui/Modal';
 interface Dish {
   id: string;
   name: string;
-  category: string; // Am schimbat în string pentru a permite categorii noi
+  category: string; 
   description: string;
   price: string;
   nutritionalValues: string;
@@ -18,41 +18,28 @@ interface Dish {
 const DAYS = ['Toate preparatele', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri'];
 
 const initialDishes: Dish[] = [
-  // --- SECȚIUNEA: MENIUL ZILEI ---
   { id: 'c1', name: 'Meniu zilei', category: 'Meniul Zilei', description: 'Conține: Borș de zarzavat (420 ml), Cartofi prăjiți (150g), Mici(40g), Pâine(75g)', price: '14 RON', nutritionalValues: '1450 kcal | P: 51.5g | C: 105g | G: 87.5g', weight: 'Set', availableDays: [] },
-  
-  // --- SECȚIUNEA: CIORBE ȘI SUPE ---
   { id: 'c2', name: 'Borș de zarzavat', category: 'Ciorbe și Supe', description: 'Mix de legume (morcov, ceapă, țelină, ardei gras, rădăcină de pătrunjel și păstârnac), borș proaspăt , ulei, roșii sau bulion, verdeață (leuștean, pătrunjel) și sare.', price: '4,40 RON', nutritionalValues: '140 kcal | P: 3g | C: 15g | G: 6g', weight: '420ml', availableDays: [] },
   { id: 'c3', name: 'Ciorbă de burtă', category: 'Ciorbe și Supe', description: 'Apă, burtă de vită, SMÂNTÂNĂ, OUĂ, morcov, ceapă, rădăcină de ȚELINĂ, rădăcină de pătrunjel, oțet, usturoi, sare.', price: '12 RON', nutritionalValues: '450 kcal | P: 25g | C: 8g | G: 28g', weight: '420ml', availableDays: [] },
-  
-  // --- SECȚIUNEA: GARNITURI ---
   { id: 'c4', name: 'Piure', category: 'Garnituri', description: 'Cartofi, LAPTE, MARGARINĂ, sare.', price: '1,90 RON', nutritionalValues: '220 kcal | P: 4g | C: 32g | G: 8g', weight: '200g', availableDays: [] },
   { id: 'c5', name: 'Amestec mexican', category: 'Garnituri', description: 'Amestec mexican (produs congelat) (morcov, porumb dulce, mazăre, fasole verde/galbenă, ardei gras verde/ galben), MARGARINĂ, ulei, sare, verdeață.', price: '3,70 RON', nutritionalValues: '120 kcal | P: 4g | C: 18g | G: 4g', weight: '150g', availableDays: [] },
   { id: 'c6', name: 'Pilaf', category: 'Garnituri', description: 'Orez, morcov, ulei, MARGARINĂ, delikat de legume.', price: '1,00 RON', nutritionalValues: '260 kcal | P: 4,5g | C: 46g | G: 6g', weight: '200g', availableDays: [] },
   { id: 'c7', name: 'Varză la cuptor', category: 'Garnituri', description: 'Varză albă, borș, ceapă, morcov, pastă de tomate, rădăcină de ȚELINĂ, roșii în bulion, ulei, suc de roșii delikat de legume.', price: '4,50 RON', nutritionalValues: '160 kcal | P: 3g | C: 14g | G: 10g', weight: '200g', availableDays: [] },
   { id: 'c8', name: 'Cartofi prăjiți', category: 'Garnituri', description: 'Cartofi(congelați), ulei, sare.', price: '4,50 RON', nutritionalValues: '480 kcal | P: 5g | C: 58g | G: 25g', weight: '150g', availableDays: [] },
-  
-  // --- SECȚIUNEA: PREPARATE CARNE ---
   { id: 'c9', name: 'Ceafă de porc la tavă cu sos tomate', category: 'Preparate Carne', description: 'Ceafă de porc, suc de roșii, pastă de tomate, condiment de porc, boia de ardei dulce, boia de ardei iute, cimbru, usturoi, ulei.', price: '8,80 RON', nutritionalValues: '240 kcal | P: 19g | C: 3g | G: 17g', weight: '100 g', availableDays: [] },
   { id: 'c10', name: 'Crispy de pui', category: 'Preparate Carne', description: 'Piept de pui, ulei, FĂINĂ DE GRÂU, FULGI DE PORUMB, OUĂ, sare.', price: '7,50 RON', nutritionalValues: '210 kcal | P: 14g | C: 12g | G: 11g', weight: '70g', availableDays: [] },
   { id: 'c11', name: 'Tochitură de porc', category: 'Preparate Carne', description: 'Gulaș de porc, mămăligă (apă, FĂINĂ DE PORUMB, sare, ulei), TELEMEA, OUĂ, usturoi, delikat de legume, ulei, piper.', price: '9,90 RON', nutritionalValues: '680 kcal | P: 42g | C: 16g | G: 50g', weight: '150/100/50 g', availableDays: [] },
   { id: 'c12', name: 'Mici', category: 'Preparate Carne', description: 'Mici (carne de porc,sare iodată, bicarbonat de sodiu, antioxidant:acid I-ascorbic, condimente: piper, usturoi,cimbru, boia de ardei iute).', price: '3,20 RON', nutritionalValues: '120 kcal | P: 6.5g | C: 0.5g | G: 10g', weight: '40g', availableDays: [] },
   { id: 'c13', name: 'Piept de pui la grătar', category: 'Preparate Carne', description: 'Piept de pui, ulei, sare.', price: '7,40 RON', nutritionalValues: '135 kcal | P: 26g | C: 0g | G: 3.2g', weight: '90 g', availableDays: [] },
   { id: 'c14', name: 'Șnițel de porc', category: 'Preparate Carne', description: 'Pulpă de porc, FĂINĂ DE GRÂU, OU, ulei, sare,piper.', price: '4,60 RON', nutritionalValues: '250 kcal | P: 21g | C: 9g | G: 14g', weight: '90 g', availableDays: [] },
-  
-  // --- SECȚIUNEA: SALATE/SOSURI ---
   { id: 'c15', name: 'Salată de castraveți', category: 'Salate/Sosuri', description: 'Castraveți, apă, oțet din alcool, sare, MUȘTAR BOABE, mărar.', price: '2,20 RON', nutritionalValues: '45 kcal | P: 0.6g | C: 2.5g | G: 3.5g', weight: '100 g', availableDays: [] },
   { id: 'c16', name: 'Salată de gogoșari', category: 'Salate/Sosuri', description: 'Gogoșari, apă, oțet din alcool, sare, zahăr', price: '3,50 RON', nutritionalValues: '30 kcal | P: 0.7g | C: 6g | G: 0.3g', weight: '100 g', availableDays: [] },
   { id: 'c17', name: 'Salată de varză', category: 'Salate/Sosuri', description: 'Varză albă, oțet, ulei, piper, sare', price: '1,30 RON', nutritionalValues: '60 kcal | P: 1.2g | C: 5g | G: 4g', weight: '100 g', availableDays: [] },
   { id: 'c18', name: 'Salată de morcovi cu țelină', category: 'Salate/Sosuri', description: 'Morcov, ȚELINĂ, ulei, oțet, sare, piper.', price: '1,70 RON', nutritionalValues: '75 kcal | P: 1g | C: 8g | G: 4.5g', weight: '100 g', availableDays: [] },
   { id: 'c19', name: 'Salată de murături asortate', category: 'Salate/Sosuri', description: 'Apă, varză, castraveți, morcovi, ardei roșu, roșii, ardei iute,migdale, sare (5%), agenți de îngroșare a acidității: acid acetic, acid citric, conservant: sorbat de potasiu.', price: '3,40 RON', nutritionalValues: '18 kcal | P: 0.6g | C: 3.5g | G: 0.1g', weight: '100 g', availableDays: [] },
   { id: 'c20', name: 'Salată asortată de roșii', category: 'Salate/Sosuri', description: 'Roșii proaspete, castraveți verzi,ardei kapia,ceapă, sare, piper, ulei.', price: '4,90 RON', nutritionalValues: '70 kcal | P: 1.3g | C: 6g | G: 4.5g', weight: '150 g', availableDays: [] },
-  
-  // --- SECȚIUNEA: PÂINE ---
   { id: 'c21', name: 'Mămăligă', category: 'Pâine', description: 'Apă, FĂINĂ DE PORUMB, sare.', price: '0.50 RON', nutritionalValues: '240 kcal', weight: '150 g', availableDays: [] },
   { id: 'c23', name: 'Chiflă', category: 'Pâine', description: 'FĂINĂ DE GRÂU, sare, zahăr, margarină vegetală, drojdie, apă, ameliorator.', price: '1.50 RON', nutritionalValues: '215 kcal | P: 7g | C: 43g | G: 1.2g', weight: '75 g', availableDays: [] },
-
-  // --- SECȚIUNEA: DESERT ---
   { id: 'c24', name: 'Budincă cu brânză', category: 'Desert', description: 'LAPTE, TELEMEA, SPAGHETE, zahăr, OUĂ, SMÂNTÂNĂ, GRIȘ, MARGARINĂ, zahăr vanilat .', price: '7,20 RON', nutritionalValues: '390 kcal | P: 18.5g | C: 42g | G: 16g', weight: '250g', availableDays: [] }
 ];
 
@@ -62,7 +49,7 @@ export default function Page() {
   const [activeModal, setActiveModal] = useState<'add' | 'edit' | null>(null);
   const [selectedItem, setSelectedItem] = useState<Dish | null>(null);
   const [formState, setFormState] = useState<Partial<Dish>>({});
-  const [customCategory, setCustomCategory] = useState(''); // State nou pentru categoria manuală
+  const [customCategory, setCustomCategory] = useState('');
 
   const filteredData = data; 
 
@@ -134,7 +121,7 @@ export default function Page() {
           <button type="button" className="text-blue-600 hover:underline cursor-pointer font-medium" onClick={() => { 
             setSelectedItem(item); 
             setFormState({...item}); 
-            setCustomCategory(''); // Resetăm la editare
+            setCustomCategory(''); 
             setActiveModal('edit'); 
           }}>Editare</button>
           <button type="button" className="text-red-500 hover:underline cursor-pointer font-medium" onClick={() => setData(data.filter(d => d.id !== item.id))}>Ștergere</button>
