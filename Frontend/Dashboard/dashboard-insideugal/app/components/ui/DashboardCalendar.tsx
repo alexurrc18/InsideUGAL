@@ -43,6 +43,38 @@ function parseDateKey(dateKey: string) {
   return new Date(`${dateKey}T00:00:00`);
 }
 
+const EventDayButton = ({ day, modifiers, className, style, ...props }: DayButtonProps) => {
+  const hasEvent = !!modifiers.hasEvent;
+  const selectedClasses = modifiers.selected
+    ? "bg-brand text-white hover:bg-brand"
+    : "";
+  const selectedStyle: CSSProperties | undefined = modifiers.selected
+    ? {
+        backgroundColor: "var(--brand)",
+        borderColor: "var(--brand)",
+        borderRadius: "0.25rem",
+        color: "#ffffff",
+      }
+    : undefined;
+
+  return (
+    <button
+      {...props}
+      style={{ ...style, ...selectedStyle }}
+      className={`${className ?? ""} ${selectedClasses} ${hasEvent ? "relative" : ""} h-[2.25rem] w-[2.25rem] rounded-sm`}
+    >
+      <span className="relative z-10">{day.date.getDate()}</span>
+      {hasEvent && (
+        <span
+          className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${
+            modifiers.selected ? "bg-white" : "bg-brand"
+          }`}
+        />
+      )}
+    </button>
+  );
+};
+
 export default function DashboardCalendar({ events = [] }: DashboardCalendarProps) {
   const today = useMemo(() => new Date(), []);
   const todayKey = toDateKey(today);
@@ -70,37 +102,40 @@ export default function DashboardCalendar({ events = [] }: DashboardCalendarProp
   const startMonth = useMemo(() => new Date(today.getFullYear() - 6, 0, 1), [today]);
   const endMonth = useMemo(() => new Date(today.getFullYear() + 6, 11, 31), [today]);
 
-  const EventDayButton = ({ day, modifiers, className, style, ...props }: DayButtonProps) => {
-    const hasEvent = eventDates.has(toDateKey(day.date));
-    const selectedClasses = modifiers.selected
-      ? "bg-brand text-white hover:bg-brand"
-      : "";
-    const selectedStyle: CSSProperties | undefined = modifiers.selected
+  const EventDayButton = useMemo(() => {
+    return function EventDayButton({ day, modifiers, className, style, ...props }: DayButtonProps) {
+      const hasEvent = eventDates.has(toDateKey(day.date));
+      const selectedClasses = modifiers.selected
+        ? "bg-brand text-white hover:bg-brand"
+        : "";
+      const selectedStyle: CSSProperties | undefined = modifiers.selected
         ? {
-          backgroundColor: "var(--brand)",
-          borderColor: "var(--brand)",
-          borderRadius: "0.25rem",
-          color: "#ffffff",
-        }
-      : undefined;
+            backgroundColor: "var(--brand)",
+            borderColor: "var(--brand)",
+            borderRadius: "0.25rem",
+            color: "#ffffff",
+          }
+        : undefined;
 
-    return (
-      <button
-        {...props}
-        style={{ ...style, ...selectedStyle }}
-        className={`${className ?? ""} ${selectedClasses} ${hasEvent ? "relative" : ""} h-[2.25rem] w-[2.25rem] rounded-sm`}
-      >
-        <span className="relative z-10">{day.date.getDate()}</span>
-        {hasEvent && (
-          <span
-            className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${
-              modifiers.selected ? "bg-white" : "bg-brand"
-            }`}
-          />
-        )}
-      </button>
-    );
-  };
+      return (
+        <button
+          type="button"
+          {...props}
+          style={{ ...style, ...selectedStyle }}
+          className={`${className ?? ""} ${selectedClasses} ${hasEvent ? "relative" : ""} h-[2.25rem] w-[2.25rem] rounded-sm`}
+        >
+          <span className="relative z-10">{day.date.getDate()}</span>
+          {hasEvent && (
+            <span
+              className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${
+                modifiers.selected ? "bg-white" : "bg-brand"
+              }`}
+            />
+          )}
+        </button>
+      );
+    };
+  }, [eventDates]);
 
   return (
     <Card>
@@ -113,7 +148,6 @@ export default function DashboardCalendar({ events = [] }: DashboardCalendarProp
           selected={selectedDate}
           onSelect={setSelectedDate}
           captionLayout="dropdown"
-          // Am eliminat navLayout="after" pentru a permite poziționarea corectă a săgeților în margini
           startMonth={startMonth}
           endMonth={endMonth}
           fixedWeeks

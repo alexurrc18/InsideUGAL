@@ -6,11 +6,15 @@ create table if not exists document_chunks (
   id bigserial primary key,
   pdf_id uuid not null,
   content text not null,
+  -- Folosim 384 de dimensiuni pentru modelul all-MiniLM-L6-v2
   embedding vector(384) 
 );
 
+-- Securitate: Activăm Row Level Security (RLS) pentru a bloca accesul direct din frontend
+alter table document_chunks enable row level security;
+
 -- 3. Adăugăm un index pentru căutări ultra-rapide
-create index if not exists document_chunks_embedding_idx on document_chunks using hnsw (embedding vector_cosine_ops);
+create index on document_chunks using hnsw (embedding vector_cosine_ops);
 
 -- 4. Creăm o funcție (RPC) pentru a căuta similarități din Python
 create or replace function match_document_chunks (
@@ -38,6 +42,3 @@ begin
   limit match_count;
 end;
 $$;
-
--- 5. Forțăm API-ul Supabase să memoreze noua funcție
-NOTIFY pgrst, 'reload schema';

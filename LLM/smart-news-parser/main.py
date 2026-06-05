@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 
 from schemas import AnnouncementRequest, ExtractedAnnouncementInfo
 from llm_service import LLMService
+from image_service import ImageService, ImageGenerationResult
+from huggingface_hub.errors import HfHubHTTPError
 
 # ---------------------------------------------------------
 # 0. CONFIGURARE LOGGING
@@ -31,9 +33,13 @@ if not API_KEY:
 
 # Curatare cheie
 API_KEY = API_KEY.strip().strip("'").strip('"')
+HF_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
+if HF_API_KEY:
+    HF_API_KEY = HF_API_KEY.strip().strip("'").strip('"')
 
-# Serviciu LLM
-llm_service = LLMService(api_key=API_KEY)
+# Serviciu LLM si Image
+llm_service = LLMService(hf_api_key=HF_API_KEY)
+image_service = ImageService(hf_api_key=HF_API_KEY)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -77,11 +83,46 @@ async def extract_announcement_info(request: AnnouncementRequest):
         logger.info(f"📥 Primire cerere extractie info-anunt: {request.text[:50]}...")
         result = await llm_service.extract_announcement_info(request.text)
         return result
+    except HfHubHTTPError as e:
+        logger.error(f"❌ Eroare HF API la procesarea anuntului: {e}", exc_info=True)
+        if e.response is not None and e.response.status_code == 429:
+            raise HTTPException(status_code=429, detail="API rate limit exceeded. Please try again later.")
+        raise HTTPException(status_code=500, detail=f"Eroare la analiza AI: {str(e)}")
     except Exception as e:
-        logger.error(f"❌ Eroare la procesarea anuntului: {str(e)}", exc_info=True)
+        error_msg = str(e)
+        logger.error(f"❌ Eroare la procesarea anuntului: {error_msg}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Eroare la analiza AI: {str(e)}"
+            detail=f"Eroare la analiza AI: {error_msg}"
+        )
+
+@app.post("/api/v1/generate-banner", response_model=ImageGenerationResult)
+async def generate_banner(info: ExtractedAnnouncementInfo):
+    """
+    Endpoint care primeste datele structurate ale unui anunt
+    si genereaza o imagine de banner bazata pe ele.
+    """
+    try:
+        tip = info.tip_eveniment.value if hasattr(info.tip_eveniment, 'value') else info.tip_eveniment
+        logger.info(f"🎨 Primire cerere generare banner pentru eveniment tip: {tip}")
+        result = await image_service.generate_announcement_banner(info)
+        
+        if not result.success:
+            raise HTTPException(status_code=500, detail=result.error_message)
+            
+        return result
+    except HTTPException:
+        raise
+    except HfHubHTTPError as e:
+        logger.error(f"❌ Eroare HF API la generarea banner-ului: {e}", exc_info=True)
+        if e.response is not None and e.response.status_code == 429:
+            raise HTTPException(status_code=429, detail="API rate limit exceeded. Please try again later.")
+        raise HTTPException(status_code=500, detail=f"Eroare interna la generarea imaginii: {str(e)}")
+    except Exception as e:
+        logger.error(f"❌ Eroare la generarea banner-ului: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Eroare interna la generarea imaginii: {str(e)}"
         )
 
 if __name__ == "__main__":
