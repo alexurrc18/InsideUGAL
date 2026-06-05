@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, useColorScheme } from "react-native";
-import { Colors } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 
 export interface MenuItemProps {
@@ -18,14 +18,14 @@ export function MenuItem({ name, price, description, isLast = false }: MenuItemP
     <View 
       style={{ 
         paddingVertical: 0, 
-        gap: 5
+        gap: Spacing.xs
       }}
     >
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
         <Text style={[Typography.Heading5, { color: theme.text, flex: 1 }]}>
           {name}
         </Text>
-        <Text style={[Typography.Heading5, { color: theme.primary, marginLeft: 8 }]}>
+        <Text style={[Typography.Heading5, { color: theme.primary, marginLeft: Spacing.sm }]}>
           {price} RON
         </Text>
       </View>

@@ -6,7 +6,7 @@ import uuid
 import logging
 from pathlib import Path
 from importlib.util import spec_from_file_location, module_from_spec
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
@@ -120,8 +120,20 @@ async def extract_announcement_info(request: smart_news_schemas.AnnouncementRequ
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+def process_pdf_background(pdf_path: str, pdf_id: str):
+    """Functie care ruleaza in background pentru a procesa si indexa PDF-ul."""
+    try:
+        logger.info("BG_TASK: Pornire indexare RAG pentru pdf_id=%s", pdf_id)
+        mod_marius_functions.load_pdf_into_rag(pdf_path, pdf_id)
+        logger.info("BG_TASK: Indexare RAG finalizata pentru pdf_id=%s", pdf_id)
+    except Exception as exc:
+        logger.error("BG_TASK: Eroare la indexare RAG pentru %s: %s", pdf_id, exc)
+    # Aici s-ar putea adauga logica de stergere a fisierului local dupa procesare
+    # daca fisierul ar fi fost salvat in prealabil in Supabase Storage.
+
+
 @app.post("/api/v1/upload-pdf")
-async def upload_pdf(pdf: UploadFile = File(...)):
+async def upload_pdf(background_tasks: BackgroundTasks, pdf: UploadFile = File(...)):
     if not pdf.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Fisierul trebuie sa fie PDF.")
 
@@ -131,12 +143,13 @@ async def upload_pdf(pdf: UploadFile = File(...)):
     try:
         with pdf_path.open("wb") as f:
             f.write(await pdf.read())
-
-        _, language = mod_marius_functions.load_pdf_into_rag(str(pdf_path), pdf_id)
-        return {"pdf_id": pdf_id, "language": language, "message": "PDF incarcat si indexat in vector DB."}
     except Exception as exc:
         logger.error("Eroare la incarcare PDF: %s", exc)
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail="Eroare la salvarea fisierului local.")
+        
+    background_tasks.add_task(process_pdf_background, str(pdf_path), pdf_id)
+
+    return {"pdf_id": pdf_id, "message": "PDF-ul a fost primit si va fi procesat in background."}
 
 
 @app.post("/api/v1/ask", response_model=mod_marius_schemas.AnswerQuestionOutput)
