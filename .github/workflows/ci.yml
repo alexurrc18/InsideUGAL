@@ -7,37 +7,12 @@ on:
       - main
 
 jobs:
-  changes:
-    runs-on: ubuntu-latest
-    outputs:
-      frontend: ${{ steps.filter.outputs.frontend }}
-      backend: ${{ steps.filter.outputs.backend }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Path Filter
-        uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            frontend:
-              - 'Frontend/**'
-              - 'package.json'
-              - 'package-lock.json'
-            backend:
-              - 'app/**'
-              - 'backend/**'
-              - 'Backend/**'
-              - 'requirements.txt'
-
   frontend:
     name: Frontend
-    needs: [changes]
-    if: ${{ needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: ["20", "22"]
+        node-version: ["22"]
     defaults:
       run:
         working-directory: Frontend/Dashboard/dashboard-insideugal
@@ -65,8 +40,6 @@ jobs:
 
   backend:
     name: Backend
-    needs: [changes]
-    if: ${{ needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -111,8 +84,6 @@ jobs:
 
   security-scan:
     name: Container Security Scan
-    needs: [changes]
-    if: ${{ needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -134,8 +105,6 @@ jobs:
 
   semgrep-scan:
     name: Security Scan (SAST)
-    needs: [changes]
-    if: ${{ needs.changes.outputs.frontend == 'true' || needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
