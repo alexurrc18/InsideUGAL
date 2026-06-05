@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { View, ScrollView, useColorScheme } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors, Spacing } from "@/constants/theme";
+import { Colors, Spacing, WebSidePadding } from "@/constants/theme";
 import { CategoryHeader } from "@/components/ui/category-header";
 import { Expandable } from "@/components/ui/expandable";
 import { MenuItem } from "@/components/ui/menu-item";
@@ -31,12 +31,12 @@ export default function CantinaScreen() {
       { id: "joi", title: "Joi" },
       { id: "vineri", title: "Vineri" },
     ];
-    
+
     const now = new Date();
     let dayIndex = now.getDay();
     const isWeekend = dayIndex === 0 || dayIndex === 6;
     const effectiveDayIndex = isWeekend ? 1 : dayIndex;
-    
+
     const startIndex = effectiveDayIndex - 1;
     const sortedDays = [
       ...allDays.slice(startIndex),
@@ -50,33 +50,61 @@ export default function CantinaScreen() {
   }, []);
 
   const [selectedDay, setSelectedDay] = useState<string>(daysFilter[0].id);
+  const [openCategory, setOpenCategory] = useState<string | null>("Meniul Zilei");
 
   const currentMenu = DAILY_SCHEDULE[selectedDay] || DAILY_SCHEDULE["luni"];
 
+  // La click pe o categorie noua: inchide-o intai pe cea deschisa, apoi deschide-o pe cea noua (secvential).
+  const handleToggle = (category: string) => {
+    if (openCategory === category) {
+      setOpenCategory(null);
+    } else if (openCategory === null) {
+      setOpenCategory(category);
+    } else {
+      setOpenCategory(null);
+      setTimeout(() => setOpenCategory(category), 520);
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView 
-        style={{ flex: 1 }} 
-        contentContainerStyle={{ 
+      <ScrollView
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
           paddingBottom: insets.bottom + Spacing.xxl,
-          paddingTop: insets.top + Spacing.xxl 
+          paddingTop: insets.top + 100,
         }}
       >
-        <CategoryHeader 
-          title="Cantina" 
+        <View style={{ width: "100%", paddingHorizontal: WebSidePadding }}>
+        <CategoryHeader
+          title="Cantina"
           filters={daysFilter}
           selectedFilterId={selectedDay}
-          onSelectFilter={(id) => id && setSelectedDay(id)}
+          onSelectFilter={(id) => { if (id) { setSelectedDay(id); setOpenCategory(null); } }}
         />
 
-        <View style={{ gap: Spacing.sm }}>
-          {Object.entries(currentMenu).map(([category, productIds]) => (
-            <Expandable key={category} title={category} initialExpanded={category === "Meniul Zilei"}>
+        <View style={{
+          borderWidth: 1,
+          borderColor: theme.border,
+          borderRadius: Spacing.lg,
+          overflow: "hidden",
+          marginHorizontal: Spacing.lg,
+        }}>
+          {Object.entries(currentMenu).map(([category, productIds], catIndex) => (
+            <View
+              key={`${selectedDay}-${category}`}
+              style={catIndex > 0 ? {
+                borderTopWidth: 1,
+                borderTopColor: theme.border,
+              } : undefined}
+            >
+            <Expandable title={category} expanded={openCategory === category} onToggle={() => handleToggle(category)}>
               <View style={{ gap: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: Spacing.sm }}>
                 {productIds.map((id, index) => {
                   const product = PRODUCT_DATABASE[id];
                   return product ? (
-                    <MenuItem 
+                    <MenuItem
                       key={id}
                       name={product.name}
                       price={product.price}
@@ -87,7 +115,9 @@ export default function CantinaScreen() {
                 })}
               </View>
             </Expandable>
+            </View>
           ))}
+        </View>
         </View>
       </ScrollView>
     </View>

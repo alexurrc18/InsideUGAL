@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Text, ScrollView, useColorScheme } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Colors, Spacing } from "@/constants/theme";
+import { Colors, Spacing, WebSidePadding } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { NewsCard } from "@/components/ui/news-card";
 import { CategoryHeader, FilterItem } from "@/components/ui/category-header";
@@ -28,17 +28,17 @@ export default function CategoryScreen() {
   ];
 
   // Filtram datele din JSON pe baza categoriei primite ca parametru și a facultății selectate
-  const filteredData = categoryTitle === "Facultăți" 
-    ? MOCK_DATA.faculties 
-    : MOCK_DATA.events.filter(e => 
-        (e as any).category === categoryTitle && 
+  const filteredData = categoryTitle === "Facultăți"
+    ? MOCK_DATA.faculties
+    : MOCK_DATA.events.filter(e =>
+        (e as any).category === categoryTitle &&
         (!selectedFacultyId || (e as any).facultyId === selectedFacultyId || !(e as any).facultyId)
       );
 
   const handlePress = (item: any) => {
     let type = categoryTitle === "Evenimente" ? "Eveniment" : "Anunț";
     if (categoryTitle === "Facultăți") type = "Facultate";
-    
+
     router.push({
         pathname: "/(public)/acasa/vizualizare",
         params: {
@@ -62,14 +62,15 @@ export default function CategoryScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView 
-        style={{ flex: 1 }} 
-        contentContainerStyle={{ 
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
           paddingBottom: insets.bottom + Spacing.xxl
         }}
       >
-        <View style={{ paddingTop: insets.top + 50, marginBottom: Spacing.lg }}>
-            <CategoryHeader 
+        <View style={{ width: "100%", paddingHorizontal: WebSidePadding }}>
+        <View style={{ paddingTop: insets.top + 140, marginBottom: Spacing.lg }}>
+            <CategoryHeader
                 title={(categoryTitle as string) || "Categorie"}
                 filters={categoryTitle === "Facultăți" ? undefined : facultyFilters}
                 selectedFilterId={selectedFacultyId}
@@ -79,7 +80,7 @@ export default function CategoryScreen() {
 
         <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>
           {filteredData.map((item) => (
-              <NewsCard 
+              <NewsCard
                   key={item.id}
                   variant="list"
                   title={item.title}
@@ -96,7 +97,7 @@ export default function CategoryScreen() {
                 Nu există elemente în această categorie.
             </Text>
         )}
-
+        </View>
       </ScrollView>
     </View>
   );

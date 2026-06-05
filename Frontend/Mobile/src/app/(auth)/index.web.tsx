@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { View, Text, Pressable, useColorScheme, TextInput, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from "react-native";
+import { View, Text, Pressable, useColorScheme, TextInput, KeyboardAvoidingView, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
-import { Colors, Fonts, Spacing } from "@/constants/theme";
+import { Colors, Fonts, Spacing, WebSidePadding } from "@/constants/theme";
 import CloseIcon from "@/assets/icons/svg/x.svg";
 import { Typography } from "@/constants/typography";
 
@@ -16,7 +16,7 @@ export default function LoginScreen() {
 
     const validate = () => {
         const newErrors: { email?: string; password?: string } = {};
-        
+
         if (!email) {
             newErrors.email = "Email-ul este obligatoriu.";
         } else if (!/\S+@\S+\.\S+/.test(email)) {
@@ -41,15 +41,14 @@ export default function LoginScreen() {
 
     return (
         <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={{ flex: 1, backgroundColor: theme.background }}
         >
             <ScrollView
-                contentContainerStyle={{ flexGrow: 1 }}
+                contentContainerStyle={{ flexGrow: 1, maxWidth: 480, alignSelf: 'center', width: '100%' }}
                 bounces={false}
                 keyboardShouldPersistTaps="handled"
             >
-                <View style={{ flex: 1, padding: Spacing.xxl }}>
+                <View style={{ flex: 1, paddingTop: Spacing.xxl, paddingBottom: Spacing.xxl, paddingHorizontal: WebSidePadding }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: Spacing.xl }}>
                         <Pressable onPress={() => router.back()} style={{ padding: Spacing.sm }}>
                             <CloseIcon width={24} height={24} color={theme.text} />
@@ -57,9 +56,9 @@ export default function LoginScreen() {
                     </View>
 
 
-                    <View style={{ marginBottom: Spacing.xl4 }}>
-                        <Text style={[Typography.Heading2, { color: theme.text }]}>Autentificare</Text>
-                        <Text style={[Typography.Paragraph2, { color: theme.textSecondary, marginTop: Spacing.xs }]}>
+                    <View style={{ marginBottom: Spacing.xl4, alignItems: 'center' }}>
+                        <Text style={[Typography.Heading2, { color: theme.text, textAlign: 'center' }]}>Autentificare</Text>
+                        <Text style={[Typography.Paragraph2, { color: theme.textSecondary, marginTop: Spacing.xs, textAlign: 'center' }]}>
                             Introdu datele pentru a intra în cont
                         </Text>
                     </View>
@@ -82,7 +81,7 @@ export default function LoginScreen() {
                                 }}
                                 placeholder="exemplu@ugal.ro"
                                 placeholderTextColor={theme.textSecondary}
-                                style={{ 
+                                style={{
                                     height: 56,
                                     borderWidth: 1,
                                     borderRadius: Spacing.md,
@@ -114,7 +113,7 @@ export default function LoginScreen() {
                                 placeholder="••••••••"
                                 placeholderTextColor={theme.textSecondary}
                                 secureTextEntry
-                                style={{ 
+                                style={{
                                     height: 56,
                                     borderWidth: 1,
                                     borderRadius: Spacing.md,
