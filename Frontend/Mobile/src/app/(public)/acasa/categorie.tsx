@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, useColorScheme } from "react-native";
+import { View, Text, ScrollView, useColorScheme, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Colors, Spacing } from "@/constants/theme";
+import { Colors, Spacing, WebSidePadding } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { NewsCard } from "@/components/ui/news-card";
 import { CategoryHeader, FilterItem } from "@/components/ui/category-header";
@@ -68,7 +68,8 @@ export default function CategoryScreen() {
           paddingBottom: insets.bottom + Spacing.xxl
         }}
       >
-        <View style={{ paddingTop: insets.top + 50, marginBottom: Spacing.lg }}>
+        <View style={{ width: "100%", paddingHorizontal: Platform.OS === "web" ? WebSidePadding : 0 }}>
+        <View style={{ paddingTop: insets.top + (Platform.OS === "web" ? 140 : 50), marginBottom: Spacing.lg }}>
             <CategoryHeader 
                 title={(categoryTitle as string) || "Categorie"}
                 filters={categoryTitle === "Facultăți" ? undefined : facultyFilters}
@@ -96,7 +97,7 @@ export default function CategoryScreen() {
                 Nu există elemente în această categorie.
             </Text>
         )}
-
+        </View>
       </ScrollView>
     </View>
   );

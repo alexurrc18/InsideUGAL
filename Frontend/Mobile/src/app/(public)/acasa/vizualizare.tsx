@@ -1,8 +1,8 @@
-import { View, Text, ScrollView, useColorScheme, Linking, TouchableOpacity, Alert } from "react-native";
+import { View, Text, ScrollView, useColorScheme, Linking, TouchableOpacity, Alert, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
-import { Colors, ColorScheme, Spacing } from "@/constants/theme";
+import { Colors, ColorScheme, Spacing, WebSidePadding } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { getFormattedDate, getReadingTime } from "@/utils/date";
 
@@ -61,17 +61,19 @@ function VizualizareScreen() {
                         contentFit="cover"
                     />
 
-                    <View style={{ flex: 1, padding: Spacing.lg, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.3)" }}>
+                    <View style={{ flex: 1, paddingTop: Spacing.lg, paddingBottom: Spacing.lg, paddingHorizontal: Platform.OS === "web" ? WebSidePadding : Spacing.lg, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.3)" }}>
+                        <View style={{ width: "100%" }}>
                         <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
                             {category || (tipPagina === "Facultate" ? "Facultate" : "Categorie")}
                         </Text>
                         <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
                             {title || "Titlu"}
                         </Text>
+                        </View>
                     </View>
                 </View>
 
-                <View style={{ padding: Spacing.lg, gap: Spacing.xxl }}>
+                <View style={{ padding: Spacing.lg, paddingHorizontal: Platform.OS === "web" ? WebSidePadding : Spacing.lg, gap: Spacing.xxl }}>
                     {tipPagina !== "Facultate" && (
                         <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>
                             {dateDisplay || "Dată necunoscută"}
