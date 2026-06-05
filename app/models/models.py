@@ -1,3 +1,4 @@
+import uuid
 from geoalchemy2 import Geometry
 from sqlalchemy import (
     Boolean,
@@ -36,13 +37,14 @@ class Profile(Base, TimestampMixin):
     __tablename__ = "profiles"
     __table_args__ = {"schema": "public"}
 
-    id = Column(UUID(as_uuid=False), primary_key=True)
+    # MODIFICAT AICI: Am adăugat default-ul pentru generarea automată din Python
+    id = Column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4()))
     username = Column(String(100), unique=True)
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     email = Column(String(255), unique=True, nullable=False)
     
-    # MODIFICAT AICI
+    # MODIFICAT AICI (dinainte)
     role = Column(ENUM('STUDENT', 'STUDENT_RESPONSABIL', 'PROFESOR', 'HEAD_CANTINA', 'HEAD_FACULTATI', 'HEAD_ADMIN', name='user_role', create_type=False), nullable=False, server_default="STUDENT")
     
     is_active = Column(Boolean, nullable=False, default=True)
@@ -123,7 +125,7 @@ class Complaint(Base, TimestampMixin):
     description = Column(Text, nullable=False)
     image_url = Column(Text)
     
-    # MODIFICAT AICI
+    # MODIFICAT AICI (dinainte)
     status = Column(ENUM('in_asteptare', 'in_lucru', 'finalizat', 'respins', name='complaint_status', create_type=False), nullable=False, server_default="in_asteptare")
 
     user = relationship("Profile", back_populates="complaints")
@@ -136,7 +138,7 @@ class Announcement(Base, TimestampMixin):
 
     id = Column(Integer, primary_key=True)
     
-    # MODIFICAT AICI
+    # MODIFICAT AICI (dinainte)
     type = Column(ENUM('NOUTATE', 'EVENIMENT', name='post_type', create_type=False), nullable=False, server_default="NOUTATE")
     
     created_by = Column(UUID(as_uuid=False), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)

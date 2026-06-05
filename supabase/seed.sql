@@ -1,10 +1,22 @@
 DO $$ 
 BEGIN
     IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'auth' AND tablename = 'users') THEN
-        INSERT INTO auth.users (id) VALUES
-            ('00000000-0000-0000-0000-000000000001'),
-            ('00000000-0000-0000-0000-000000000002')
+        INSERT INTO auth.users (
+            instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+            confirmation_token, recovery_token, email_change_token_new, email_change,
+            phone_change, phone_change_token, email_change_token_current, reauthentication_token,
+            created_at, updated_at, raw_app_meta_data, raw_user_meta_data, is_super_admin
+        ) VALUES
+        ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'admin@ugal.ro', extensions.crypt('Parola123!', extensions.gen_salt('bf')), NOW(), '', '', '', '', '', '', '', '', NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', FALSE),
+        ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated', 'student@ugal.ro', extensions.crypt('Parola123!', extensions.gen_salt('bf')), NOW(), '', '', '', '', '', '', '', '', NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', FALSE)
         ON CONFLICT (id) DO NOTHING;
+
+        INSERT INTO auth.identities (
+            id, user_id, provider_id, identity_data, provider, created_at, updated_at
+        ) VALUES
+        (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', format('{"sub":"%s","email":"%s"}', '00000000-0000-0000-0000-000000000001', 'admin@ugal.ro')::jsonb, 'email', NOW(), NOW()),
+        (gen_random_uuid(), '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000002', format('{"sub":"%s","email":"%s"}', '00000000-0000-0000-0000-000000000002', 'student@ugal.ro')::jsonb, 'email', NOW(), NOW())
+        ON CONFLICT DO NOTHING;
     END IF;
 END $$;
 

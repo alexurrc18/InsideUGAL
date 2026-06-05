@@ -42,7 +42,8 @@ class ProfileBase(BaseModel):
 
 
 class ProfileCreate(ProfileBase):
-    id: UUID
+    # MODIFICAT AICI: Am permis ca ID-ul să fie adăugat dinamic de cod
+    id: Optional[UUID] = None
 
 
 class ProfileUpdate(BaseModel):
@@ -136,6 +137,7 @@ def _parse_point_coordinates(coordinates: object) -> Optional[Coordinates]:
 
         byte_order = "<" if data[0] == 1 else ">"
         geometry_type = struct.unpack(f"{byte_order}I", data[1:5])[0]
+        geometry_type = int(geometry_type)
         base_geometry_type = geometry_type & 0x000000FF
         if base_geometry_type != 1:
             return None
@@ -317,6 +319,7 @@ class AnnouncementBase(BaseModel):
             self.start_date = None
             self.end_date = None
             self.location_name = None
+            return self
         return self
 
 
