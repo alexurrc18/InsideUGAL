@@ -9,7 +9,9 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 logger = logging.getLogger("smart-news-parser")
 
 class LLMService:
-    def __init__(self, hf_api_key: str | None = None):
+    def __init__(self, hf_api_key: str):
+        if not hf_api_key:
+            raise ValueError("HUGGINGFACE_API_KEY este obligatoriu pentru LLMService.")
         self.hf_client = AsyncInferenceClient(token=hf_api_key)
         self.model_id = 'meta-llama/Meta-Llama-3-8B-Instruct'
         self._cache = {}

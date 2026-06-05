@@ -3,6 +3,7 @@ import base64
 import logging
 import io
 from huggingface_hub import AsyncInferenceClient
+from huggingface_hub.errors import HfHubHTTPError
 from pydantic import BaseModel
 from schemas import ExtractedAnnouncementInfo
 
@@ -15,7 +16,9 @@ class ImageGenerationResult(BaseModel):
     error_message: str | None = None
 
 class ImageService:
-    def __init__(self, hf_api_key: str | None = None):
+    def __init__(self, hf_api_key: str):
+        if not hf_api_key:
+            raise ValueError("HUGGINGFACE_API_KEY este obligatoriu pentru ImageService.")
         self.hf_client = AsyncInferenceClient(token=hf_api_key)
         self.hf_text_model_id = 'meta-llama/Llama-3.3-70B-Instruct'
         self.hf_model_id = "black-forest-labs/FLUX.1-schnell"
@@ -70,6 +73,11 @@ class ImageService:
                 height=576 # Aproximativ 16:9
             )
             
+            from PIL import Image
+            if not isinstance(image, Image.Image):
+                raise ValueError(f"Hugging Face a returnat un obiect de tip neasteptat: {type(image)}. Se astepta PIL.Image.Image")
+
+            
             # Conversie din PIL Image in Bytes
             buffered = io.BytesIO()
             image.save(buffered, format="JPEG")
@@ -83,6 +91,9 @@ class ImageService:
                 image_base64=f"data:image/jpeg;base64,{base64_encoded}"
             )
 
+        except HfHubHTTPError as e:
+            logger.error(f"❌ Eroare API la generarea imaginii: {e}")
+            raise e
         except Exception as e:
             logger.error(f"❌ Eroare la generarea imaginii: {e}")
             return ImageGenerationResult(success=False, error_message=str(e))

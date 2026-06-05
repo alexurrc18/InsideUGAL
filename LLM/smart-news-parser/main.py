@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from schemas import AnnouncementRequest, ExtractedAnnouncementInfo
 from llm_service import LLMService
 from image_service import ImageService, ImageGenerationResult
+from huggingface_hub.errors import HfHubHTTPError
 
 # ---------------------------------------------------------
 # 0. CONFIGURARE LOGGING
@@ -82,11 +83,14 @@ async def extract_announcement_info(request: AnnouncementRequest):
         logger.info(f"📥 Primire cerere extractie info-anunt: {request.text[:50]}...")
         result = await llm_service.extract_announcement_info(request.text)
         return result
+    except HfHubHTTPError as e:
+        logger.error(f"❌ Eroare HF API la procesarea anuntului: {e}", exc_info=True)
+        if e.response is not None and e.response.status_code == 429:
+            raise HTTPException(status_code=429, detail="API rate limit exceeded. Please try again later.")
+        raise HTTPException(status_code=500, detail=f"Eroare la analiza AI: {str(e)}")
     except Exception as e:
         error_msg = str(e)
         logger.error(f"❌ Eroare la procesarea anuntului: {error_msg}", exc_info=True)
-        if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
-            raise HTTPException(status_code=429, detail="API rate limit exceeded. Please try again later.")
         raise HTTPException(
             status_code=500,
             detail=f"Eroare la analiza AI: {error_msg}"
@@ -104,13 +108,16 @@ async def generate_banner(info: ExtractedAnnouncementInfo):
         result = await image_service.generate_announcement_banner(info)
         
         if not result.success:
-            if "429" in result.error_message or "RESOURCE_EXHAUSTED" in result.error_message:
-                raise HTTPException(status_code=429, detail="API rate limit exceeded. Please try again later.")
             raise HTTPException(status_code=500, detail=result.error_message)
             
         return result
     except HTTPException:
         raise
+    except HfHubHTTPError as e:
+        logger.error(f"❌ Eroare HF API la generarea banner-ului: {e}", exc_info=True)
+        if e.response is not None and e.response.status_code == 429:
+            raise HTTPException(status_code=429, detail="API rate limit exceeded. Please try again later.")
+        raise HTTPException(status_code=500, detail=f"Eroare interna la generarea imaginii: {str(e)}")
     except Exception as e:
         logger.error(f"❌ Eroare la generarea banner-ului: {str(e)}", exc_info=True)
         raise HTTPException(
