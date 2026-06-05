@@ -7,3 +7,40 @@
   --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
   --font-serif: Georgia, 'Times New Roman', serif;
 }
+
+/* Bara de scroll a caruselelor pe desktop web: subțire, colorată, doar orizontală */
+[data-carousel] {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent; /* Firefox: ascunsa implicit */
+}
+[data-carousel]:hover {
+  scrollbar-color: #00479E transparent; /* Firefox: apare la hover */
+}
+[data-carousel]::-webkit-scrollbar {
+  height: 6px;
+}
+[data-carousel]::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-carousel]::-webkit-scrollbar-thumb {
+  background-color: transparent; /* ascunsa implicit */
+  border-radius: 3px;
+}
+[data-carousel]:hover::-webkit-scrollbar-thumb {
+  background-color: #00479E; /* apare la hover pe carusel */
+}
+[data-carousel]::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Hover „focus" pe carduri (doar desktop web): zoom + umbră + întunecarea colțurilor */
+[data-card] {
+  transition: transform 180ms ease;
+}
+[data-card]:hover {
+  transform: scale(1.03);
+}

@@ -75,6 +75,5 @@ package-lock.json
 .DS_Store
 Thumbs.db
 
-# --- Local dev (not tracked on main) ---
-LLM/ChatBot - Marius /
-LLM/ChatBot AI/histories/
+# --- Supabase ---
+supabase/snippets/

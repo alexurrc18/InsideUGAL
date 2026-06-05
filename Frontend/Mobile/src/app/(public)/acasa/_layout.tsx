@@ -1,7 +1,7 @@
 import { Pressable, Text, useColorScheme } from "react-native";
 import { Stack, useRouter } from "expo-router";
 
-import { Colors, ColorScheme } from "@/constants/theme";
+import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
@@ -32,7 +32,7 @@ export default function LineupLayout() {
                 headerTransparent: true,
                 headerTitle: "",
                 headerLeft: () => (
-                  <Pressable onPress={() => router.back()} style={{ marginHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <Pressable onPress={() => router.back()} style={{ marginHorizontal: Spacing.lg, flexDirection: "row", alignItems: "center", gap: Spacing.xs }}>
                     <BackIcon width={24} height={24} color={ColorScheme.white} />
                     <Text style={[Typography.Paragraph1, { color: theme.background }]}>Mergi înapoi</Text>
                   </Pressable>
@@ -47,7 +47,7 @@ export default function LineupLayout() {
                 headerTransparent: true,
                 headerTitle: "",
                 headerLeft: () => (
-                  <Pressable onPress={() => router.back()} style={{ marginHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <Pressable onPress={() => router.back()} style={{ marginHorizontal: Spacing.lg, flexDirection: "row", alignItems: "center", gap: Spacing.xs }}>
                     <BackIcon width={24} height={24} color={ColorScheme.white} />
                     <Text style={[Typography.Paragraph1, { color: ColorScheme.white }]}>Mergi înapoi</Text>
                   </Pressable>
