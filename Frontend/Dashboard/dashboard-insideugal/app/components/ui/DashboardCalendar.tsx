@@ -71,7 +71,7 @@ export default function DashboardCalendar({ events = [] }: DashboardCalendarProp
   const endMonth = useMemo(() => new Date(today.getFullYear() + 6, 11, 31), [today]);
 
   const EventDayButton = useMemo(() => {
-    const Component = ({ day, modifiers, className, style, ...props }: DayButtonProps) => {
+    return function EventDayButton({ day, modifiers, className, style, ...props }: DayButtonProps) {
       const hasEvent = eventDates.has(toDateKey(day.date));
       const selectedClasses = modifiers.selected
         ? "bg-brand text-white hover:bg-brand"
@@ -103,8 +103,6 @@ export default function DashboardCalendar({ events = [] }: DashboardCalendarProp
         </button>
       );
     };
-    Component.displayName = "EventDayButton";
-    return Component;
   }, [eventDates]);
 
   return (
