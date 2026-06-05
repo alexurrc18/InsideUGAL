@@ -126,7 +126,7 @@ export default function DashboardCalendar({ events = [] }: DashboardCalendarProp
           locale={ro}
           weekStartsOn={1}
           modifiers={{ hasEvent: eventDays }}
-          components={{ DayButton: CustomDayButton }}
+          components={{ DayButton: EventDayButton }}
         />
 
         <div className="mt-5 space-y-3">
