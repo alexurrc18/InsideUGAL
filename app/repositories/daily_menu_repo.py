@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -11,7 +13,11 @@ class DailyMenuRepository(CRUDRepository[DailyMenu]):
     model = DailyMenu
 
     async def get_all(self, session: AsyncSession, day_of_week: int | None = None) -> list[DailyMenu]:
-        query = select(DailyMenu).options(selectinload(DailyMenu.products)).order_by(DailyMenu.day_of_week.asc())
+        query = (
+            select(DailyMenu)
+            .options(selectinload(DailyMenu.products))
+            .order_by(DailyMenu.day_of_week.asc())
+        )
         if day_of_week is not None:
             query = query.where(DailyMenu.day_of_week == day_of_week)
 
@@ -20,7 +26,9 @@ class DailyMenuRepository(CRUDRepository[DailyMenu]):
 
     async def get_by_id(self, session: AsyncSession, menu_id: int) -> DailyMenu | None:
         result = await session.execute(
-            select(DailyMenu).options(selectinload(DailyMenu.products)).where(DailyMenu.id == menu_id)
+            select(DailyMenu)
+            .options(selectinload(DailyMenu.products))
+            .where(DailyMenu.id == menu_id)
         )
         return result.scalars().unique().first()
 
@@ -36,9 +44,16 @@ class DailyMenuRepository(CRUDRepository[DailyMenu]):
             raise ValueError(f"Products not found: {missing_ids}")
         return products
 
-    async def create(self, session: AsyncSession, menu_in: DailyMenuCreate) -> DailyMenu:
-        data = schema_to_data(menu_in)
+    async def create(
+        self,
+        session: AsyncSession,
+        entity_in: DailyMenuCreate,
+        **extra_data: Any,
+    ) -> DailyMenu:
+        data = schema_to_data(entity_in)
         product_ids = data.pop("product_ids", [])
+        data.update(extra_data)
+
         db_menu = DailyMenu(**data)
         db_menu.products = await self._load_products(session, product_ids)
 
@@ -47,15 +62,24 @@ class DailyMenuRepository(CRUDRepository[DailyMenu]):
         await session.refresh(db_menu, ["products"])
         return db_menu
 
-    async def update(self, session: AsyncSession, db_menu: DailyMenu, menu_in: DailyMenuUpdate) -> DailyMenu:
-        data = schema_to_data(menu_in, exclude_unset=True)
+    async def update(
+        self,
+        session: AsyncSession,
+        db_entity: DailyMenu,
+        entity_in: DailyMenuUpdate,
+        **extra_data: Any,
+    ) -> DailyMenu:
+        data = schema_to_data(entity_in, exclude_unset=True)
         product_ids = data.pop("product_ids", None)
+        data.update(extra_data)
+
         for key, value in data.items():
-            setattr(db_menu, key, value)
+            setattr(db_entity, key, value)
 
         if product_ids is not None:
-            db_menu.products = await self._load_products(session, product_ids)
+            db_entity.products = await self._load_products(session, product_ids)
 
         await session.commit()
-        await session.refresh(db_menu, ["products"])
-        return db_menu
+        await session.refresh(db_entity, ["products"])
+        return db_entity
+

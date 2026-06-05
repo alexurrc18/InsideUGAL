@@ -31,18 +31,34 @@ def _serialize_location_data(location_in: LocationCreate | LocationUpdate, *, ex
 class LocationRepository(CRUDRepository[Location]):
     model = Location
 
-    async def create(self, session: AsyncSession, location_in: LocationCreate) -> Location:
-        db_location = Location(**_serialize_location_data(location_in, exclude_unset=False))
+    async def create(
+        self,
+        session: AsyncSession,
+        entity_in: LocationCreate,
+        **extra_data: Any,
+    ) -> Location:
+        data = _serialize_location_data(entity_in, exclude_unset=False)
+        data.update(extra_data)
+        db_location = Location(**data)
+
         session.add(db_location)
         await session.commit()
         await session.refresh(db_location)
         return db_location
 
-    async def update(self, session: AsyncSession, db_location: Location, location_in: LocationUpdate) -> Location:
-        data = _serialize_location_data(location_in, exclude_unset=True)
+    async def update(
+        self,
+        session: AsyncSession,
+        db_entity: Location,
+        entity_in: LocationUpdate,
+        **extra_data: Any,
+    ) -> Location:
+        data = _serialize_location_data(entity_in, exclude_unset=True)
+        data.update(extra_data)
         for key, value in data.items():
-            setattr(db_location, key, value)
+            setattr(db_entity, key, value)
 
         await session.commit()
-        await session.refresh(db_location)
-        return db_location
+        await session.refresh(db_entity)
+        return db_entity
+

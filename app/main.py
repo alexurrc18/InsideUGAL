@@ -33,7 +33,7 @@ from app.api.errors import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Definire handler personalizat pentru Rate Limit (soluție pentru versiuni noi slowapi)
+# Definire handler personalizat pentru Rate Limit
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     return JSONResponse(
         status_code=429,
@@ -48,7 +48,7 @@ app = FastAPI(
         Exception: global_exception_handler,
         StarletteHTTPException: http_exception_handler,
         RequestValidationError: validation_exception_handler,
-    }
+    },
 )
 
 # Rate Limiting Configuration
@@ -60,9 +60,7 @@ app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 allowed_origins_raw = os.getenv(
     "ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
 )
-allowed_origins = [
-    origin.strip() for origin in allowed_origins_raw.split(",") if origin.strip()
-]
+allowed_origins = [origin.strip() for origin in allowed_origins_raw.split(",") if origin.strip()]
 
 app.add_middleware(
     CORSMiddleware,
@@ -81,16 +79,16 @@ app.add_middleware(
     allowed_hosts=allowed_hosts,
 )
 
+
 @app.middleware("http")
 async def add_security_headers_middleware(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers[
-        "Strict-Transport-Security"
-    ] = "max-age=31536000; includeSubDomains"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
+
 
 @app.middleware("http")
 async def add_request_id_middleware(request: Request, call_next):
@@ -106,6 +104,7 @@ async def add_request_id_middleware(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Request-ID"] = request_id
     return response
+
 
 app.include_router(profiles.router)
 app.include_router(faculties.router)

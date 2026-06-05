@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,35 +26,41 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         result = await session.execute(query)
         return list(result.scalars().all())
 
-    async def create_for_user(self, session: AsyncSession, announcement_in: AnnouncementCreate, user_id: str) -> Announcement:
+    async def create_for_user(
+        self,
+        session: AsyncSession,
+        announcement_in: AnnouncementCreate,
+        user_id: str,
+    ) -> Announcement:
         return await self.create(session, announcement_in, created_by=user_id)
 
     async def update(
         self,
         session: AsyncSession,
-        db_announcement: Announcement,
-        announcement_in: AnnouncementUpdate,
-        **extra_data,
+        db_entity: Announcement,
+        entity_in: AnnouncementUpdate,
+        **extra_data: Any,
     ) -> Announcement:
-        data = schema_to_data(announcement_in, exclude_unset=True)
+        data = schema_to_data(entity_in, exclude_unset=True)
         data.update(extra_data)
 
-        announcement_type = data.get("type", db_announcement.type)
+        announcement_type = data.get("type", db_entity.type)
         if announcement_type == "NOUTATE":
             data["start_date"] = None
             data["end_date"] = None
             data["location_name"] = None
         elif announcement_type == "EVENIMENT":
-            start_date = data.get("start_date", db_announcement.start_date)
-            end_date = data.get("end_date", db_announcement.end_date)
+            start_date = data.get("start_date", db_entity.start_date)
+            end_date = data.get("end_date", db_entity.end_date)
             if start_date is None:
                 raise ValueError("start_date is required for EVENIMENT announcements.")
             if end_date is not None and end_date < start_date:
                 raise ValueError("end_date must be after start_date.")
 
         for key, value in data.items():
-            setattr(db_announcement, key, value)
+            setattr(db_entity, key, value)
 
         await session.commit()
-        await session.refresh(db_announcement)
-        return db_announcement
+        await session.refresh(db_entity)
+        return db_entity
+
