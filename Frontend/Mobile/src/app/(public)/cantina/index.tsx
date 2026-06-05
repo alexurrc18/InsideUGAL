@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { View, ScrollView, useColorScheme } from "react-native";
+import { View, ScrollView, useColorScheme, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Spacing } from "@/constants/theme";
 import { CategoryHeader } from "@/components/ui/category-header";
@@ -50,28 +50,56 @@ export default function CantinaScreen() {
   }, []);
 
   const [selectedDay, setSelectedDay] = useState<string>(daysFilter[0].id);
+  const [openCategory, setOpenCategory] = useState<string | null>("Meniul Zilei");
 
   const currentMenu = DAILY_SCHEDULE[selectedDay] || DAILY_SCHEDULE["luni"];
 
+  // La click pe o categorie noua: inchide-o intai pe cea deschisa, apoi deschide-o pe cea noua (secvential).
+  const handleToggle = (category: string) => {
+    if (openCategory === category) {
+      setOpenCategory(null);
+    } else if (openCategory === null) {
+      setOpenCategory(category);
+    } else {
+      setOpenCategory(null);
+      setTimeout(() => setOpenCategory(category), 520);
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView 
-        style={{ flex: 1 }} 
-        contentContainerStyle={{ 
+      <ScrollView
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={Platform.OS !== "web"}
+        contentContainerStyle={{
           paddingBottom: insets.bottom + Spacing.xxl,
-          paddingTop: insets.top + Spacing.xxl 
+          paddingTop: insets.top + (Platform.OS === "web" ? 100 : Spacing.xxl),
         }}
       >
-        <CategoryHeader 
+        <View style={{ width: "100%", maxWidth: 1200, alignSelf: "center" }}>
+        <CategoryHeader
           title="Cantina" 
           filters={daysFilter}
           selectedFilterId={selectedDay}
-          onSelectFilter={(id) => id && setSelectedDay(id)}
+          onSelectFilter={(id) => { if (id) { setSelectedDay(id); setOpenCategory(null); } }}
         />
 
-        <View style={{ gap: Spacing.sm }}>
-          {Object.entries(currentMenu).map(([category, productIds]) => (
-            <Expandable key={category} title={category} initialExpanded={category === "Meniul Zilei"}>
+        <View style={Platform.OS === "web" ? {
+          borderWidth: 1,
+          borderColor: theme.border,
+          borderRadius: Spacing.lg,
+          overflow: "hidden",
+          marginHorizontal: Spacing.lg,
+        } : { gap: Spacing.sm }}>
+          {Object.entries(currentMenu).map(([category, productIds], catIndex) => (
+            <View
+              key={`${selectedDay}-${category}`}
+              style={Platform.OS === "web" && catIndex > 0 ? {
+                borderTopWidth: 1,
+                borderTopColor: theme.border,
+              } : undefined}
+            >
+            <Expandable title={category} expanded={openCategory === category} onToggle={() => handleToggle(category)}>
               <View style={{ gap: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: Spacing.sm }}>
                 {productIds.map((id, index) => {
                   const product = PRODUCT_DATABASE[id];
@@ -87,7 +115,9 @@ export default function CantinaScreen() {
                 })}
               </View>
             </Expandable>
+            </View>
           ))}
+        </View>
         </View>
       </ScrollView>
     </View>
