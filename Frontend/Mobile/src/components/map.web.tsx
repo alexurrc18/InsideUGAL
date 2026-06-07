@@ -4,7 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import MockData from '@/constants/mock-data.json';
 import { Config } from '@/constants/config';
 import { Colors } from '@/constants/theme';
-import { getBuildingLetter } from '@/utils/map-helper';
+import { getBuildingLetter, cleanMapStyle } from '@/utils/map-helper';
 import { createRoot } from 'react-dom/client';
 import { MapPin } from './map-pin';
 
@@ -25,6 +25,7 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect }: M
   const [defaultPitch, setDefaultPitch] = useState<number | undefined>(undefined);
   const [defaultBearing, setDefaultBearing] = useState<number | undefined>(undefined);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapStyle, setMapStyle] = useState<any>(null);
   const cameraInitialized = useRef(false);
 
   useEffect(() => {
@@ -35,16 +36,20 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect }: M
         if (style.zoom) setDefaultZoom(style.zoom);
         if (style.pitch !== undefined) setDefaultPitch(style.pitch);
         if (style.bearing !== undefined) setDefaultBearing(style.bearing);
+        setMapStyle(cleanMapStyle(style));
       })
-      .catch(err => console.error('Failed to fetch MapTiler style:', err));
+      .catch(err => {
+        console.error('Failed to fetch MapTiler style:', err);
+        setMapStyle(Config.MAPTILER_STYLE_URL);
+      });
   }, []);
 
   useEffect(() => {
-    if (map.current || !mapContainer.current) return;
+    if (!mapStyle || map.current || !mapContainer.current) return;
 
     const m = new maplibregl.Map({
       container: mapContainer.current,
-      style: Config.MAPTILER_STYLE_URL,
+      style: mapStyle,
       antialias: true
     } as any);
 
@@ -66,7 +71,7 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect }: M
       map.current = null;
       setMapLoaded(false);
     };
-  }, []);
+  }, [mapStyle]);
 
   useEffect(() => {
     if (!map.current || !defaultCenter || cameraInitialized.current) return;
@@ -126,6 +131,14 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect }: M
       markersRef.current.push(marker);
     });
   }, [mapLoaded, selectedFacultyId, defaultCenter, defaultZoom, themeName]);
+
+  if (!mapStyle) {
+    return (
+      <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8F9FA', borderRadius: '16px' }}>
+        <span style={{ color: '#121212' }}>Se încarcă harta...</span>
+      </div>
+    );
+  }
 
   return (
     <div 

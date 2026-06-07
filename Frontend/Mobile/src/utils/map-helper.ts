@@ -71,3 +71,44 @@ export function isFacilityOpen(name: string, date: Date = new Date()): boolean {
 
   return true;
 }
+
+export function cleanMapStyle(style: any): any {
+  if (!style) return style;
+
+  if (style.sources) {
+    Object.keys(style.sources).forEach((sourceId) => {
+      const src = style.sources[sourceId];
+      if (src && (src.type === 'vector' || src.type === 'raster')) {
+        if (!src.tiles && !src.url) {
+          delete style.sources[sourceId];
+        }
+      }
+    });
+  }
+
+  if (style.layers) {
+    style.layers.forEach((layer: any) => {
+      if (layer.layout) {
+        if (layer.layout['icon-overlap'] !== undefined) {
+          if (layer.layout['icon-overlap'] === 'always') {
+            layer.layout['icon-allow-overlap'] = true;
+          } else if (layer.layout['icon-overlap'] === 'never') {
+            layer.layout['icon-allow-overlap'] = false;
+          }
+          delete layer.layout['icon-overlap'];
+        }
+
+        if (layer.layout['text-overlap'] !== undefined) {
+          if (layer.layout['text-overlap'] === 'always') {
+            layer.layout['text-allow-overlap'] = true;
+          } else if (layer.layout['text-overlap'] === 'never') {
+            layer.layout['text-allow-overlap'] = false;
+          }
+          delete layer.layout['text-overlap'];
+        }
+      }
+    });
+  }
+
+  return style;
+}

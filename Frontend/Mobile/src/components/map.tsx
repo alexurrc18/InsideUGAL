@@ -19,6 +19,7 @@ import { Colors } from '@/constants/theme';
 import { Spacing } from '@/constants/spacing';
 import { Config } from '@/constants/config';
 import { MapPin } from './map-pin';
+import { cleanMapStyle } from '@/utils/map-helper';
 
 interface MapProps {
   themeName: 'light' | 'dark';
@@ -34,6 +35,7 @@ const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect }: MapProp
   const [defaultZoom, setDefaultZoom] = useState<number | undefined>(undefined);
   const [defaultPitch, setDefaultPitch] = useState<number | undefined>(undefined);
   const [defaultBearing, setDefaultBearing] = useState<number | undefined>(undefined);
+  const [mapStyle, setMapStyle] = useState<any>(null);
   const cameraInitialized = useRef(false);
 
   useEffect(() => {
@@ -44,8 +46,12 @@ const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect }: MapProp
         if (style.zoom) setDefaultZoom(style.zoom);
         if (style.pitch !== undefined) setDefaultPitch(style.pitch);
         if (style.bearing !== undefined) setDefaultBearing(style.bearing);
+        setMapStyle(cleanMapStyle(style));
       })
-      .catch(err => console.error('Failed to fetch MapTiler style:', err));
+      .catch(err => {
+        console.error('Failed to fetch MapTiler style:', err);
+        setMapStyle(Config.MAPTILER_STYLE_URL);
+      });
   }, []);
 
   const visibleBuildings = useMemo(() => {
@@ -69,10 +75,10 @@ const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect }: MapProp
     }
   }, [defaultCenter, defaultZoom, defaultPitch, defaultBearing]);
 
-  if (!MapLibre) {
+  if (!MapLibre || !mapStyle) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text>Eroare încărcare modul hartă.</Text>
+        <Text>{!MapLibre ? 'Eroare încărcare modul hartă.' : 'Se încarcă harta...'}</Text>
       </View>
     );
   }
@@ -81,7 +87,7 @@ const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect }: MapProp
     <View style={{ flex: 1, borderRadius: Spacing.lg, overflow: 'hidden' }}>
       <MapLibre
         style={{ flex: 1 }}
-        mapStyle={Config.MAPTILER_STYLE_URL}
+        mapStyle={typeof mapStyle === 'object' ? JSON.stringify(mapStyle) : mapStyle}
         logo={false}
         attribution={false}
       >
