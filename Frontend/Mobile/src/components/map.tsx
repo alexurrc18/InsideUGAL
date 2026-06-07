@@ -55,8 +55,10 @@ const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect }: MapProp
   }, []);
 
   const visibleBuildings = useMemo(() => {
-    if (!selectedFacultyId) return MockData.buildings;
-    return MockData.buildings.filter(b => b.facultyId === selectedFacultyId);
+    const list = !selectedFacultyId
+      ? MockData.buildings
+      : MockData.buildings.filter(b => b.facultyId === selectedFacultyId);
+    return [...list].sort((a, b) => b.lat - a.lat);
   }, [selectedFacultyId]);
 
   useEffect(() => {
@@ -101,28 +103,33 @@ const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect }: MapProp
           } : undefined}
         />
 
-        {visibleBuildings.map(b => (
-          <Marker
-            key={b.id}
-            id={b.id}
-            lngLat={[b.lng, b.lat]}
-            anchor="bottom"
-            onPress={() => {
-              if (cameraRef.current) {
-                try {
-                  cameraRef.current.setStop({
-                    center: [b.lng, b.lat],
-                    zoom: defaultZoom,
-                  });
-                } catch (e) {
-                  console.warn('Map camera setStop on marker press error:', e);
+        {visibleBuildings.map(b => {
+          const zIndex = Math.round((90 - b.lat) * 1000000);
+          return (
+            <Marker
+              key={b.id}
+              id={b.id}
+              lngLat={[b.lng, b.lat]}
+              anchor="bottom"
+              onPress={() => {
+                if (cameraRef.current) {
+                  try {
+                    cameraRef.current.setStop({
+                      center: [b.lng, b.lat],
+                      zoom: defaultZoom,
+                    });
+                  } catch (e) {
+                    console.warn('Map camera setStop on marker press error:', e);
+                  }
                 }
-              }
-            }}
-          >
-            <MapPin name={b.name} facultyId={b.facultyId} />
-          </Marker>
-        ))}
+              }}
+            >
+              <View style={{ zIndex }}>
+                <MapPin name={b.name} facultyId={b.facultyId} />
+              </View>
+            </Marker>
+          );
+        })}
       </MapLibre>
     </View>
   );

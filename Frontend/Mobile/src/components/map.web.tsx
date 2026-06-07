@@ -99,13 +99,15 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect }: M
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
-    const visibleBuildings = selectedFacultyId
+    const list = selectedFacultyId
       ? MockData.buildings.filter(b => b.facultyId === selectedFacultyId)
       : MockData.buildings;
+    const visibleBuildings = [...list].sort((a, b) => b.lat - a.lat);
 
     visibleBuildings.forEach(b => {
       const el = document.createElement('div');
       el.style.cursor = 'pointer';
+      el.style.zIndex = Math.round((90 - b.lat) * 1000000).toString();
 
       const root = createRoot(el);
       root.render(<MapPin name={b.name} facultyId={b.facultyId} />);
