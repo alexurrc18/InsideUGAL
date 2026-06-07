@@ -18,7 +18,6 @@ export default function CategoryScreen() {
 
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
 
-  // Pregătim filtrele pentru facultăți (folosim noua interfață FilterItem)
   const facultyFilters: FilterItem[] = [
     { id: null, title: "Toate Facultățile", abbreviation: "Toate Facultățile" },
     ...MOCK_DATA.faculties.map(f => ({
@@ -27,7 +26,6 @@ export default function CategoryScreen() {
     }))
   ];
 
-  // Filtram datele din JSON pe baza categoriei primite ca parametru și a facultății selectate
   const filteredData = categoryTitle === "Facultăți" 
     ? MOCK_DATA.faculties 
     : categoryTitle === "Facilități"

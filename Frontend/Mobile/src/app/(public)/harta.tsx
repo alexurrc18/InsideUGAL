@@ -12,34 +12,16 @@ export default function HartaScreen() {
   const themeName = (useColorScheme() ?? 'light') as keyof typeof Colors;
   const theme = Colors[themeName];
 
-  const facultyFilters = useMemo(() => {
-    const abbreviations: Record<string, string> = {
-      'f1': 'ACIEE',
-      'f2': 'Inginerie',
-      'f3': 'FEAA',
-      'f4': 'Medicină',
-      'f5': 'Litere',
-      'f6': 'Sport',
-      'f7': 'FSED'
-    };
-
-    const list: Array<{ id: string | null; title: string }> = [
-      { id: null, title: 'Toate locațiile' },
-      { id: 'f8', title: 'Facilități' }
-    ];
-
-    MockData.faculties.forEach(f => {
-      list.push({
-        id: f.id,
-        title: abbreviations[f.id] || f.title
-      });
-    });
-
-    return list;
-  }, []);
+  const facultyFilters = useMemo(() => [
+    { id: null, title: 'Toate locațiile' },
+    { id: 'f8', title: 'Facilități' },
+    ...MockData.faculties.map(f => ({
+      id: f.id,
+      title: f.title
+    }))
+  ], []);
 
   const handleSelectFilter = useCallback((id: string | null) => {
-    // If the same filter is clicked again, deselect it
     setSelectedFacultyId(prev => prev === id ? null : id);
   }, []);
 
@@ -50,7 +32,7 @@ export default function HartaScreen() {
       paddingTop: insets.top + Spacing.md
     }}>
       <CategoryHeader 
-        title='Facultăți'
+        title='Hartă'
         filters={facultyFilters}
         selectedFilterId={selectedFacultyId}
         onSelectFilter={handleSelectFilter}
