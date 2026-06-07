@@ -19,7 +19,7 @@ export const MapPin = ({ name, facultyId }: MapPinProps) => {
   const letter = getBuildingLetter(name);
   const isFacility = facultyId === 'f8';
   const open = isFacility ? isFacilityOpen(name) : true;
-  const pinColor = isFacility ? (open ? theme.secondary : '#9CA3AF') : theme.primary;
+  const pinColor = isFacility ? (open ? theme.secondary : theme.textSecondary) : theme.primary;
 
   const renderContent = () => {
     if (!isFacility) {
