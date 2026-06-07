@@ -30,6 +30,8 @@ export default function CategoryScreen() {
   // Filtram datele din JSON pe baza categoriei primite ca parametru și a facultății selectate
   const filteredData = categoryTitle === "Facultăți" 
     ? MOCK_DATA.faculties.filter(f => f.id !== 'f8') 
+    : categoryTitle === "Facilități"
+    ? MOCK_DATA.facilities
     : MOCK_DATA.events.filter(e => 
         (e as any).category === categoryTitle && 
         (!selectedFacultyId || (e as any).facultyId === selectedFacultyId || !(e as any).facultyId)
@@ -38,6 +40,7 @@ export default function CategoryScreen() {
   const handlePress = (item: any) => {
     let type = categoryTitle === "Evenimente" ? "Eveniment" : "Anunț";
     if (categoryTitle === "Facultăți") type = "Facultate";
+    if (categoryTitle === "Facilități") type = "Facilitate";
     
     router.push({
         pathname: "/(public)/acasa/vizualizare",
@@ -55,6 +58,7 @@ export default function CategoryScreen() {
             address: item.address,
             phone: item.phone,
             website: item.website,
+            schedule: item.schedule,
             date: item.date_start || item.date
         }
     });
@@ -71,7 +75,7 @@ export default function CategoryScreen() {
         <View style={{ paddingTop: insets.top + 50, marginBottom: Spacing.lg }}>
             <CategoryHeader 
                 title={(categoryTitle as string) || "Categorie"}
-                filters={categoryTitle === "Facultăți" ? undefined : facultyFilters}
+                filters={categoryTitle === "Facultăți" || categoryTitle === "Facilități" ? undefined : facultyFilters}
                 selectedFilterId={selectedFacultyId}
                 onSelectFilter={setSelectedFacultyId}
             />

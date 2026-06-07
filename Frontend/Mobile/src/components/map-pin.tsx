@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { useTheme } from '@/hooks/use-theme';
-import { getBuildingLetter } from '@/utils/map-helper';
+import { getBuildingLetter, isFacilityOpen } from '@/utils/map-helper';
 
 import ForkKnifeIcon from '@/assets/icons/svg/fork-knife.svg';
 import BookIcon from '@/assets/icons/svg/book.svg';
 import ApartmentIcon from '@/assets/icons/svg/apartment.svg';
 import PlusBigIcon from '@/assets/icons/svg/plus-big.svg';
+import HandshakeIcon from '@/assets/icons/svg/handshake.svg';
 
 interface MapPinProps {
   name: string;
@@ -17,7 +18,8 @@ export const MapPin = ({ name, facultyId }: MapPinProps) => {
   const theme = useTheme();
   const letter = getBuildingLetter(name);
   const isFacility = facultyId === 'f8';
-  const pinColor = isFacility ? theme.secondary : theme.primary;
+  const open = isFacility ? isFacilityOpen(name) : true;
+  const pinColor = isFacility ? (open ? theme.secondary : '#9CA3AF') : theme.primary;
 
   const renderContent = () => {
     if (!isFacility) {
@@ -38,6 +40,9 @@ export const MapPin = ({ name, facultyId }: MapPinProps) => {
     if (lower.includes('cămin') || lower.includes('camin') || lower.includes('dorm')) {
       return <ApartmentIcon width={18} height={18} fill="#FFFFFF" />;
     }
+    if (lower.includes('consiliere')) {
+      return <HandshakeIcon width={18} height={18} fill="#FFFFFF" />;
+    }
     if (lower.includes('medic') || lower.includes('cabinet') || lower.includes('sănătate') || lower.includes('sanatate') || lower.includes('doctor')) {
       return <PlusBigIcon width={18} height={18} fill="#FFFFFF" />;
     }
@@ -56,9 +61,10 @@ export const MapPin = ({ name, facultyId }: MapPinProps) => {
         justifyContent: 'center',
         shadowColor: '#000000',
         shadowOffset: { width: 0, height: 1.5 },
-        shadowOpacity: 0.15,
+        shadowOpacity: open ? 0.15 : 0.05,
         shadowRadius: 2.5,
-        elevation: 3,
+        elevation: open ? 3 : 1,
+        opacity: open ? 1 : 0.6,
       }}
     >
       <View
