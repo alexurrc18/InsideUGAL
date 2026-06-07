@@ -20,7 +20,7 @@ export default function HomeScreen() {
 
   const noutati = MOCK_DATA.events.filter(e => e.category === "Noutăți");
   const evenimente = MOCK_DATA.events.filter(e => e.category === "Evenimente");
-  const facultati = MOCK_DATA.faculties.filter(f => f.id !== 'f8');
+  const facultati = MOCK_DATA.faculties;
   const facilitati = MOCK_DATA.facilities;
 
   const handleFacilityPress = (facility: any) => {

@@ -21,7 +21,7 @@ export default function CategoryScreen() {
   // Pregătim filtrele pentru facultăți (folosim noua interfață FilterItem)
   const facultyFilters: FilterItem[] = [
     { id: null, title: "Toate Facultățile", abbreviation: "Toate Facultățile" },
-    ...MOCK_DATA.faculties.filter(f => f.id !== 'f8').map(f => ({
+    ...MOCK_DATA.faculties.map(f => ({
         id: f.id,
         title: f.title
     }))
@@ -29,7 +29,7 @@ export default function CategoryScreen() {
 
   // Filtram datele din JSON pe baza categoriei primite ca parametru și a facultății selectate
   const filteredData = categoryTitle === "Facultăți" 
-    ? MOCK_DATA.faculties.filter(f => f.id !== 'f8') 
+    ? MOCK_DATA.faculties 
     : categoryTitle === "Facilități"
     ? MOCK_DATA.facilities
     : MOCK_DATA.events.filter(e => 

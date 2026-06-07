@@ -20,25 +20,15 @@ export default function HartaScreen() {
       'f4': 'Medicină',
       'f5': 'Litere',
       'f6': 'Sport',
-      'f7': 'FSED',
-      'f8': 'Facilități'
+      'f7': 'FSED'
     };
 
-    const facilitati = MockData.faculties.find(f => f.id === 'f8');
-    const otherFaculties = MockData.faculties.filter(f => f.id !== 'f8');
-
     const list: Array<{ id: string | null; title: string }> = [
-      { id: null, title: 'Toate locațiile' }
+      { id: null, title: 'Toate locațiile' },
+      { id: 'f8', title: 'Facilități' }
     ];
 
-    if (facilitati) {
-      list.push({
-        id: facilitati.id,
-        title: abbreviations[facilitati.id] || facilitati.title
-      });
-    }
-
-    otherFaculties.forEach(f => {
+    MockData.faculties.forEach(f => {
       list.push({
         id: f.id,
         title: abbreviations[f.id] || f.title

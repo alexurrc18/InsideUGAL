@@ -157,17 +157,6 @@
       "lat": 45.446075,
       "lng": 28.052172,
       "content": "Facultatea de Științe ale Educației a UGAL oferă programe de studii în domeniul științelor educației."
-    },
-    {
-      "id": "f8",
-      "title": "Facilități",
-      "image": "https://images.unsplash.com/photo-1568605114967-8130f3a36994?q=80&w=1000",
-      "address": "Galați",
-      "phone": "+40 236 413 602",
-      "website": "https://ugal.ro",
-      "lat": 45.445947,
-      "lng": 28.052919,
-      "content": "Servicii și facilități studențești, inclusiv cantina și biblioteca."
     }
   ],
   "facilities": [
