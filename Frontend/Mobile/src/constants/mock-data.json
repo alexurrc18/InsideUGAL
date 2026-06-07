@@ -88,6 +88,8 @@
       "address": "Str. Domnească nr. 111, Corp Y, Galați",
       "phone": "+40 236 460 182",
       "website": "https://aciee.ugal.ro",
+      "lat": 45.447579,
+      "lng": 28.053333,
       "content": "Facultatea de Automatică, Calculatoare, Inginerie Electrică și Electronică (ACIEE) este un centru de excelență în formarea specialiștilor în tehnologie și inovație."
     },
     {
@@ -97,6 +99,8 @@
       "address": "Str. Domnească nr. 47, Galați",
       "phone": "+40 236 413 602",
       "website": "https://ing.ugal.ro",
+      "lat": 45.442300,
+      "lng": 28.051500,
       "content": "Pregătim viitorii ingineri în domenii variate."
     },
     {
@@ -106,6 +110,8 @@
       "address": "Str. Nicolae Bălcescu nr. 59-61, Galați",
       "phone": "+40 236 411 037",
       "website": "https://feaaa.ugal.ro",
+      "lat": 45.438500,
+      "lng": 28.056000,
       "content": "Facultatea de Economie și Administrarea Afacerilor oferă programe competitive pentru viitorii lideri în business și administrație publică."
     },
     {
@@ -115,6 +121,8 @@
       "address": "Str. Eroilor nr. 35, Galați",
       "phone": "+40 236 307 002",
       "website": "https://med.ugal.ro",
+      "lat": 45.440200,
+      "lng": 28.052800,
       "content": "Misiunea noastră este formarea de medici și farmaciști dedicați sănătății publice, prin educație de înaltă calitate și cercetare."
     },
     {
@@ -124,6 +132,8 @@
       "address": "Str. Domnească nr. 111, Corp A, Galați",
       "phone": "+40 236 413 602",
       "website": "https://litere.ugal.ro",
+      "lat": 45.447500,
+      "lng": 28.055500,
       "content": "Explorăm limbile și literaturile lumii, comunicarea și studiile culturale într-un mediu academic vibrant."
     },
     {
@@ -133,7 +143,31 @@
       "address": "Str. Gării nr. 63-65, Galați",
       "phone": "+40 236 460 464",
       "website": "https://fefs.ugal.ro",
+      "lat": 45.443700,
+      "lng": 28.047800,
       "content": "Promovăm performanța sportivă și un stil de viață sănătos prin programe de licență și masterat de prestigiu."
+    },
+    {
+      "id": "f7",
+      "title": "Facultatea de Științe ale Educației",
+      "image": "https://fsed.ugal.ro/wp-content/uploads/2026/03/Facultatea-de-Stiinte-ale-Educatiei-fundal-tranparent.png",
+      "address": "Str. Domnească nr. 111, Galați",
+      "phone": "+40 236 413 602",
+      "website": "https://fsed.ugal.ro",
+      "lat": 45.446075,
+      "lng": 28.052172,
+      "content": "Facultatea de Științe ale Educației a UGAL oferă programe de studii în domeniul științelor educației."
+    },
+    {
+      "id": "f8",
+      "title": "Facilități",
+      "image": "https://images.unsplash.com/photo-1568605114967-8130f3a36994?q=80&w=1000",
+      "address": "Galați",
+      "phone": "+40 236 413 602",
+      "website": "https://ugal.ro",
+      "lat": 45.445947,
+      "lng": 28.052919,
+      "content": "Servicii și facilități studențești, inclusiv cantina și biblioteca."
     }
   ],
   "cafeteria": {
@@ -197,5 +231,20 @@
         "Desert": ["d2"]
       }
     }
-  }
+  },
+  "buildings": [
+    { "id": "b1_f1", "name": "Corp D", "facultyId": "f1", "lat": 45.44663581608561, "lng": 28.053739626065855, "description": "Săli de curs pentru ACIEE și Inginerie." },
+    { "id": "b1_f2", "name": "Corp D", "facultyId": "f2", "lat": 45.44663581608561, "lng": 28.053739626065855, "description": "Săli de curs pentru ACIEE și Inginerie." },
+    { "id": "b2", "name": "Corp Y", "facultyId": "f1", "lat": 45.44568720923874, "lng": 28.052315584193785, "description": "Corp de laboratoare pentru ACIEE." },
+    { "id": "b3_f1", "name": "Corp D (Domnească)", "facultyId": "f1", "lat": 45.44607531932204, "lng": 28.05217216305528, "description": "Corp cursuri ACIEE și FSED." },
+    { "id": "b3_f7", "name": "Corp D (Domnească)", "facultyId": "f7", "lat": 45.44607531932204, "lng": 28.05217216305528, "description": "Corp cursuri ACIEE și FSED." },
+    { "id": "b4", "name": "Corp AN", "facultyId": "f2", "lat": 45.44765020036014, "lng": 28.052403939544824, "description": "Corp cursuri și laboratoare Inginerie." },
+    { "id": "b5", "name": "Corp AS", "facultyId": "f5", "lat": 45.44738271605321, "lng": 28.053381815696792, "description": "Corp cursuri Litere." },
+    { "id": "b6", "name": "Cantina", "facultyId": "f8", "lat": 45.44594707286737, "lng": 28.05291927006465, "description": "Cantina studențească UGAL." },
+    { "id": "b7", "name": "Biblioteca", "facultyId": "f8", "lat": 45.44341234931661, "lng": 28.051097219829987, "description": "Biblioteca centrală UGAL." },
+    { "id": "b8", "name": "Cămin", "facultyId": "f8", "lat": 45.45365478878798, "lng": 28.049177227199827, "description": "Cămin studențesc UGAL." },
+    { "id": "b9", "name": "Cămin", "facultyId": "f8", "lat": 45.45363201449475, "lng": 28.051472620037092, "description": "Cămin studențesc UGAL." },
+    { "id": "b10", "name": "Cantina", "facultyId": "f8", "lat": 45.45401401467006, "lng": 28.04871101471388, "description": "Cantină studențească." },
+    { "id": "b11", "name": "Cantina", "facultyId": "f8", "lat": 45.43866135907757, "lng": 28.055868563973917, "description": "Cantină studențească." }
+  ]
 }
