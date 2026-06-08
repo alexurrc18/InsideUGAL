@@ -60,6 +60,10 @@ class ProfileResponse(ProfileBase):
 # ==========================================
 # FACULTIES & LOCATIONS
 # ==========================================
+class Coordinates(BaseModel):
+    latitude: float
+    longitude: float
+
 class FacultyBase(BaseModel):
     name: str
     abbreviation: Optional[str] = None
@@ -90,6 +94,7 @@ class FacultyResponse(FacultyBase):
 class LocationBase(BaseModel):
     name: str
     faculty_id: Optional[int] = None
+    coordinates: Optional[Coordinates] = None
 
 class LocationCreate(LocationBase):
     pass
@@ -97,6 +102,7 @@ class LocationCreate(LocationBase):
 class LocationUpdate(BaseModel):
     name: Optional[str] = None
     faculty_id: Optional[int] = None
+    coordinates: Optional[Coordinates] = None
 
 class LocationResponse(LocationBase):
     id: int
