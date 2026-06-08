@@ -1,16 +1,19 @@
 "use client";
 import { useState } from "react";
-import Map, { Marker } from "react-map-gl/maplibre";
+import Map, { Marker, MapLayerMouseEvent } from "react-map-gl/maplibre";
 import { Config } from "../../lib/config";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 export default function MapComponent({ onLocationSelect }: { onLocationSelect: (lat: number, lng: number) => void }) {
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
 
-  const handleMapClick = (e: { lngLat: { lat: number; lng: number } }) => {
-    const { lat, lng } = e.lngLat;
-    setPosition({ lat, lng });
-    onLocationSelect(lat, lng);
+  const handleMapClick = (e: MapLayerMouseEvent) => {
+    // Verificăm dacă lngLat există pe eveniment pentru a evita erorile de runtime
+    if (e.lngLat) {
+      const { lat, lng } = e.lngLat;
+      setPosition({ lat, lng });
+      onLocationSelect(lat, lng);
+    }
   };
 
   return (

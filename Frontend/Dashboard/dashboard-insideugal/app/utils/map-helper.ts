@@ -69,16 +69,21 @@ export function isFacilityOpen(name: string, date: Date = new Date()): boolean {
   return true;
 }
 
+// Aici erau erorile de tip "any" la argument și return type
 export function cleanMapStyle(style: MapStyle): MapStyle {
   if (!style) return style;
+  
   if (style.sources) {
     Object.keys(style.sources).forEach((sourceId) => {
       const src = style.sources![sourceId];
       if (src && (src.type === 'vector' || src.type === 'raster')) {
-        if (!src.tiles && !src.url) delete style.sources![sourceId];
+        if (!src.tiles && !src.url) {
+          delete style.sources![sourceId];
+        }
       }
     });
   }
+  
   if (style.layers) {
     style.layers.forEach((layer) => {
       if (layer.layout) {
@@ -93,5 +98,6 @@ export function cleanMapStyle(style: MapStyle): MapStyle {
       }
     });
   }
+  
   return style;
 }
