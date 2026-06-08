@@ -1,8 +1,9 @@
 # app/models/schemas.py
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
+from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 
 # ==========================================
@@ -21,7 +22,7 @@ class ComplaintStatus(str, Enum):
     in_lucru = "in_lucru"
     finalizat = "finalizat"
     respins = "respins"
-    solutionat = "solutionat" # adăugat recent în issue
+    solutionat = "solutionat"
 
 class PostType(str, Enum):
     NOUTATE = "NOUTATE"
@@ -40,7 +41,6 @@ class ProfileBase(BaseModel):
     is_active: bool = True
 
 class ProfileCreate(ProfileBase):
-    # ID-ul este opțional pentru că la SSO/Supabase Auth se generează automat
     id: Optional[UUID] = None
 
 class ProfileUpdate(BaseModel):
@@ -54,7 +54,6 @@ class ProfileResponse(ProfileBase):
     id: UUID
     created_at: datetime
     updated_at: datetime
-
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -139,6 +138,52 @@ class AnnouncementUpdate(BaseModel):
 class AnnouncementResponse(AnnouncementBase):
     id: int
     created_by: UUID
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ==========================================
+# PRODUCTS (PRODUSE CANTINĂ)
+# ==========================================
+class ProductBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    quantity: str
+    price: Decimal
+
+class ProductCreate(ProductBase):
+    pass
+
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    quantity: Optional[str] = None
+    price: Optional[Decimal] = None
+
+class ProductResponse(ProductBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ==========================================
+# DAILY MENUS (MENIUL ZILEI)
+# ==========================================
+class DailyMenuBase(BaseModel):
+    day_of_week: int
+
+class DailyMenuCreate(DailyMenuBase):
+    product_ids: List[int] = [] 
+
+class DailyMenuUpdate(BaseModel):
+    day_of_week: Optional[int] = None
+    product_ids: Optional[List[int]] = None
+
+class DailyMenuResponse(DailyMenuBase):
+    id: int
+    products: List[ProductResponse] = []
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
