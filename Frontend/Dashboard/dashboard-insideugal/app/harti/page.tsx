@@ -81,6 +81,7 @@ export default function HartiPage() {
       key: "id",
       render: (item) => (
         <button
+          type="button"
           onClick={() => setCladiri(cladiri.filter(x => x.id !== item.id))}
           className="text-rose-600 hover:text-rose-700 text-xs font-medium"
         >
@@ -96,6 +97,7 @@ export default function HartiPage() {
       <div className="flex justify-between items-center">
         <div className="flex gap-2 p-1 bg-background border border-border rounded-xl">
           <button
+            type="button"
             onClick={() => setTab("locatii")}
             className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
               tab === "locatii" ? "bg-sidebar text-white" : "text-muted hover:text-foreground"
@@ -104,6 +106,7 @@ export default function HartiPage() {
             Locații
           </button>
           <button
+            type="button"
             onClick={() => setTab("harta")}
             className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
               tab === "harta" ? "bg-sidebar text-white" : "text-muted hover:text-foreground"
@@ -114,6 +117,7 @@ export default function HartiPage() {
         </div>
 
         <button
+          type="button"
           onClick={() => setShowModal(true)}
           className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
         >
@@ -206,12 +210,14 @@ export default function HartiPage() {
 
           <div className="flex justify-end gap-2 pt-4 border-t border-border">
             <button
+              type="button"
               onClick={() => setShowModal(false)}
               className="px-4 py-2 text-sm font-medium text-muted hover:text-foreground transition-colors"
             >
               Anulează
             </button>
             <button
+              type="button"
               onClick={handleSave}
               className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
             >
