@@ -1,23 +1,14 @@
 // ── State ──────────────────────────────────────────────────────────────────
-let currentConvId = null;
-let pendingImageData = null;   // base64 data URL al imaginii selectate
-const userId = new URLSearchParams(window.location.search).get("user_id") || null;
+let pendingImageData = null;
 
 // ── DOM refs ────────────────────────────────────────────────────────────────
-const messagesEl   = document.getElementById("chat-messages");
-const inputEl      = document.getElementById("user-input");
-const sendBtn      = document.getElementById("send-btn");
-const newChatBtn   = document.getElementById("new-chat-btn");
-const sidebarList  = document.getElementById("sidebar-list");
-const sidebar      = document.getElementById("sidebar");
-const toggleBtn    = document.getElementById("sidebar-toggle");
-const imgInput     = document.getElementById("img-input");
-const imgPreview   = document.getElementById("img-preview");
+const messagesEl     = document.getElementById("chat-messages");
+const inputEl        = document.getElementById("user-input");
+const sendBtn        = document.getElementById("send-btn");
+const imgInput       = document.getElementById("img-input");
+const imgPreview     = document.getElementById("img-preview");
 const imgPreviewWrap = document.getElementById("img-preview-wrap");
-const imgClearBtn  = document.getElementById("img-clear");
-
-// ── Sidebar toggle ──────────────────────────────────────────────────────────
-toggleBtn.addEventListener("click", () => sidebar.classList.toggle("collapsed"));
+const imgClearBtn    = document.getElementById("img-clear");
 
 // ── Image upload ─────────────────────────────────────────────────────────────
 imgInput.addEventListener("change", () => {
@@ -39,112 +30,10 @@ imgClearBtn.addEventListener("click", () => {
   imgPreview.src = "";
 });
 
-// ── Sidebar: carcă lista de conversații ─────────────────────────────────────
-async function loadSidebar() {
-  const url = userId ? `/conversations?user_id=${userId}` : "/conversations";
-  const res  = await fetch(url);
-  const list = await res.json();
-
-  if (list.length === 0) {
-    sidebarList.innerHTML = `<div class="sidebar-empty">Nicio conversație salvată încă.<br>Scrie primul mesaj!</div>`;
-    return;
-  }
-
-  sidebarList.innerHTML = list.map(c => `
-    <div class="conv-item ${c.id === currentConvId ? "active" : ""}" data-id="${c.id}">
-      <div class="conv-info">
-        <div class="conv-title">${escHtml(c.title)}</div>
-        <div class="conv-date">${formatDate(c.updated_at)}</div>
-      </div>
-      <button class="conv-delete" data-id="${c.id}" title="Șterge">✕</button>
-    </div>
-  `).join("");
-
-  sidebarList.querySelectorAll(".conv-item").forEach(el => {
-    el.addEventListener("click", (e) => {
-      if (e.target.classList.contains("conv-delete")) return;
-      openConversation(el.dataset.id);
-    });
-  });
-
-  sidebarList.querySelectorAll(".conv-delete").forEach(btn => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      deleteConversation(btn.dataset.id);
-    });
-  });
-}
-
-// ── Deschide o conversație existentă ────────────────────────────────────────
-async function openConversation(convId) {
-  const url = userId ? `/conversations/${convId}?user_id=${userId}` : `/conversations/${convId}`;
-  const res  = await fetch(url);
-  const conv = await res.json();
-
-  currentConvId = conv.id;
-  renderMessages(conv.messages);
-  await loadSidebar();
-  scrollToBottom();
-
-  if (window.innerWidth <= 640) sidebar.classList.add("collapsed");
-}
-
-// ── Afișează mesajele unei conversații ──────────────────────────────────────
-function renderMessages(messages) {
-  messagesEl.innerHTML = "";
-
-  if (messages.length === 0) {
-    renderWelcome();
-    return;
-  }
-
-  messages.forEach(m => addMessage(m.content, m.role, false, false, null));
-}
-
-function renderWelcome() {
-  messagesEl.innerHTML = `
-    <div class="message bot-message">
-      <div class="message-avatar">🎓</div>
-      <div class="message-bubble">
-        <p>Bună ziua! Sunt asistentul virtual al <strong>FACIEE</strong> din Galați.</p>
-        <p>Te pot ajuta cu informații despre:</p>
-        <ul>
-          <li>📚 Programe de studiu (Licență &amp; Master)</li>
-          <li>📝 Admitere și dosare</li>
-          <li>💰 Taxe și burse</li>
-          <li>🔬 Laboratoare și infrastructură</li>
-          <li>📞 Contact și secretariat</li>
-        </ul>
-        <p>Cu ce te pot ajuta?</p>
-      </div>
-    </div>`;
-}
-
-// ── Conversație nouă ─────────────────────────────────────────────────────────
-newChatBtn.addEventListener("click", () => {
-  currentConvId = null;
-  renderWelcome();
-  loadSidebar();
-  inputEl.focus();
-  if (window.innerWidth <= 640) sidebar.classList.add("collapsed");
-});
-
-// ── Șterge conversație ──────────────────────────────────────────────────────
-async function deleteConversation(convId) {
-  const url = userId ? `/conversations/${convId}?user_id=${userId}` : `/conversations/${convId}`;
-  await fetch(url, { method: "DELETE" });
-  if (currentConvId === convId) {
-    currentConvId = null;
-    renderWelcome();
-  }
-  await loadSidebar();
-}
-
 // ── Trimitere mesaj cu streaming ─────────────────────────────────────────────
 async function sendMessage(text) {
   if (!text.trim() && !pendingImageData) return;
 
-  // Șterge sugestiile existente la fiecare mesaj nou
   document.getElementById("ai-suggestions")?.remove();
 
   addMessage(text, "user", false, true, pendingImageData);
@@ -152,21 +41,18 @@ async function sendMessage(text) {
   const imageToSend = pendingImageData;
   pendingImageData = null;
 
-  // setLoading + showTyping cât mai devreme — înainte de orice DOM care poate arunca
   inputEl.value = "";
   autoResize();
   setLoading(true);
   showTyping();
 
   try {
-    // Cleanup imagine — cu null-guard pentru siguranță
     if (imgInput) imgInput.value = "";
     if (imgPreviewWrap) imgPreviewWrap.style.display = "none";
     if (imgPreview) imgPreview.src = "";
 
-    const body = { message: text, conv_id: currentConvId };
+    const body = { message: text };
     if (imageToSend) body.image_data = imageToSend;
-    if (userId) body.user_id = userId;
 
     const res = await fetch("/chat", {
       method: "POST",
@@ -174,7 +60,6 @@ async function sendMessage(text) {
       body: JSON.stringify(body),
     });
 
-    // Eroare înainte de stream (ex: 503)
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       removeTyping();
@@ -182,7 +67,6 @@ async function sendMessage(text) {
       return;
     }
 
-    // NU scoatem typing-ul încă — îl scoatem doar când vine primul token
     let bubble = null;
     let rawText = "";
 
@@ -205,7 +89,6 @@ async function sendMessage(text) {
         try {
           const chunk = JSON.parse(dataStr);
           if (chunk.token) {
-            // Primul token — scoatem typing-ul și creăm bula de răspuns
             if (!bubble) {
               removeTyping();
               bubble = createStreamBubble();
@@ -215,7 +98,6 @@ async function sendMessage(text) {
             scrollToBottom();
           }
           if (chunk.done) {
-            currentConvId = chunk.conv_id;
             if (bubble && chunk.sources?.length) {
               const botWrapper = bubble.closest(".bot-message");
               if (botWrapper) showSources(botWrapper, chunk.sources);
@@ -223,13 +105,11 @@ async function sendMessage(text) {
             if (chunk.suggestions?.length) {
               showSuggestions(chunk.suggestions);
             }
-            await loadSidebar();
           }
         } catch { /* ignoră chunk-uri parțiale */ }
       }
     }
 
-    // Dacă am primit done fără niciun token (fallback FAQ)
     if (!bubble) removeTyping();
   } catch {
     removeTyping();
@@ -308,7 +188,6 @@ function showSuggestions(questions) {
     btn.textContent = q;
     btn.addEventListener("click", () => {
       div.remove();
-      // setTimeout(0) asigură că sendMessage pornește după ce event loop-ul curent e gol
       setTimeout(() => sendMessage(q), 0);
     });
     div.appendChild(btn);
@@ -368,62 +247,44 @@ function formatText(raw) {
   for (const raw of lines) {
     const line = raw.trim();
 
-    // Separator ---
-    if (/^-{3,}$/.test(line)) {
-      closeList();
-      html += `<hr class="chunk-sep">`;
-      continue;
-    }
+    if (/^-{3,}$/.test(line)) { closeList(); html += `<hr class="chunk-sep">`; continue; }
+    if (!line) { if (!inOl && !inUl) html += `<div class="msg-spacer"></div>`; continue; }
 
-    // Linie goală
-    if (!line) {
-      if (!inOl && !inUl) html += `<div class="msg-spacer"></div>`;
-      continue;
-    }
-
-    // Markdown headers ##
     const mH2 = line.match(/^#{2,3}\s+(.*)/);
     if (mH2) { closeList(); html += `<div class="msg-h2">${inline(mH2[1])}</div>`; continue; }
 
-    // Bold **text**
     const mBold = line.match(/^\*\*(.*)\*\*$/);
     if (mBold) { closeList(); html += `<div class="msg-h2">${inline(mBold[1])}</div>`; continue; }
 
-    // Secțiune tip "A. Titlu" sau "A) Titlu"
     const mSec = line.match(/^([A-E][\.\)]\s+)(.+)/);
     if (mSec) { closeList(); html += `<div class="msg-section"><span class="msg-sec-lbl">${mSec[1]}</span>${inline(mSec[2])}</div>`; continue; }
 
-    // Titlu tip "TEMATICA..." sau "PROGRAM..." (toate caps, > 6 chars)
     if (/^[A-ZĂÂÎȘȚ\s]{6,}$/.test(line) && line.length < 80) {
       closeList(); html += `<div class="msg-h2">${inline(line)}</div>`; continue;
     }
 
-    // Listă numerotată "1. text" sau "10. text"
     const mOl = line.match(/^(\d+)\.\s+(.*)/);
     if (mOl) {
-      if (inUl) { html += "</ul>"; inUl = false; }  // închide ul dacă era deschis
-      if (!inOl) { html += `<ol>`; inOl = true; }   // deschide ol O singură dată
+      if (inUl) { html += "</ul>"; inUl = false; }
+      if (!inOl) { html += `<ol>`; inOl = true; }
       html += `<li>${inline(mOl[2])}</li>`;
       continue;
     }
 
-    // Listă cu buline "- text" sau "• text"
     const mUl = line.match(/^[-•*]\s+(.*)/);
     if (mUl) {
-      if (inOl) { html += "</ol>"; inOl = false; }  // închide ol dacă era deschis
-      if (!inUl) { html += `<ul>`; inUl = true; }   // deschide ul O singură dată
+      if (inOl) { html += "</ol>"; inOl = false; }
+      if (!inUl) { html += `<ul>`; inUl = true; }
       html += `<li>${inline(mUl[1])}</li>`;
       continue;
     }
 
-    // Linie cu "Cheie: valoare"
     const mKv = line.match(/^([^:]{3,30}):\s+(.+)/);
     if (mKv && !inOl && !inUl) {
       html += `<p><strong>${inline(mKv[1])}:</strong> ${inline(mKv[2])}</p>`;
       continue;
     }
 
-    // Text normal
     closeList();
     html += `<p>${inline(line)}</p>`;
   }
@@ -443,16 +304,6 @@ function escHtml(s) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function formatDate(iso) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const today = new Date();
-  if (d.toDateString() === today.toDateString()) {
-    return d.toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" });
-  }
-  return d.toLocaleDateString("ro-RO", { day: "2-digit", month: "2-digit" });
-}
-
 // ── Event listeners ──────────────────────────────────────────────────────────
 sendBtn.addEventListener("click", () => sendMessage(inputEl.value));
 
@@ -465,6 +316,3 @@ inputEl.addEventListener("input", autoResize);
 document.querySelectorAll(".quick-btn").forEach(btn => {
   btn.addEventListener("click", () => sendMessage(btn.dataset.q));
 });
-
-// ── Init ─────────────────────────────────────────────────────────────────────
-loadSidebar();
