@@ -5,7 +5,7 @@ import logging
 import asyncio
 from datetime import datetime
 from pydantic import ValidationError
-from schemas import ExtractedAnnouncementInfo
+from parser_schemas import ExtractedAnnouncementInfo
 
 # Add modul-marius/functions to path to import llm_functions
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "modul-marius", "functions")))
@@ -33,16 +33,16 @@ class LLMService:
             "Cheile necesare:\n"
             "- materie_sau_subiect: string (ex: 'Hackathon', 'Decontare Transport')\n"
             "- entitate_sursa: string sau null (ex: 'Rectorat', 'ACIEE')\n"
-            "- tip_eveniment: string ('proiect', 'laborator', 'partial', 'colocviu', 'examen', 'concurs', 'internship', 'bursa', 'voluntariat', 'oportunitate', 'cazare', 'anunt_general', 'administrativ')\n"
+            "- tip_eveniment: string ('proiect', 'laborator', 'partial', 'colocviu', 'examen', 'concurs', 'internship', 'bursa', 'voluntariat', 'oportunitate', 'cazare', 'anunt_general', 'administrativ', 'admitere')\n"
             "- urgenta_estimata: string ('scazuta', 'medie', 'ridicata')\n"
             "- public_tinta: lista de stringuri\n"
             "- deadline_absolut: string sau null (ISO 8601 YYYY-MM-DDTHH:MM:SS) - calculeaza din text raportat la data curenta.\n"
             "- locatie: string sau null\n"
-            "- rezumat_notificare: string\n"
+            "- rezumat_notificare: string (pentru push notification pe telefon: scurt, uman, direct la subiect, maxim 1-2 propozitii, FARA fraze robotice gen 'Anuntul detaliaza' sau 'Acest document')\n"
             "- actiuni_extrase: lista de stringuri\n"
             "- penalizari_sau_reguli: lista de stringuri\n"
             "- linkuri_utile: lista de stringuri\n"
-            "- taguri_cheie: lista de stringuri\n\n"
+            "- taguri_cheie: lista de stringuri (EXTRAGE DOAR 2-4 TAGURI ESENTIALE, nu aglomera lista!)\n\n"
             f"Analizeaza acum urmatorul anunt:\n{text}"
         )
 
@@ -63,7 +63,8 @@ class LLMService:
             # Normalize data before Pydantic validation
             if not result_dict.get('materie_sau_subiect'):
                 result_dict['materie_sau_subiect'] = "Nespecificat"
-            if not result_dict.get('tip_eveniment'):
+            valid_types = ['proiect', 'laborator', 'partial', 'colocviu', 'examen', 'concurs', 'internship', 'bursa', 'voluntariat', 'oportunitate', 'cazare', 'anunt_general', 'administrativ', 'admitere']
+            if result_dict.get('tip_eveniment') not in valid_types:
                 result_dict['tip_eveniment'] = "anunt_general"
             if not result_dict.get('urgenta_estimata'):
                 result_dict['urgenta_estimata'] = "medie"

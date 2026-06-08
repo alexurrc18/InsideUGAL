@@ -35,15 +35,15 @@ from schemas import (
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-2.5-flash-lite"
 TEMPERATURE = 0.7
 TIMEOUT_S = 30
 
 _client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 _embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://dummy.supabase.co")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "dummy")
 supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Se închide după 5 erori consecutive, se resetează după 60s

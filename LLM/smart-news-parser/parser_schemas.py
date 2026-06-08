@@ -18,6 +18,7 @@ class TipEveniment(str, Enum):
     CAZARE = "cazare"
     ANUNT_GENERAL = "anunt_general"
     ADMINISTRATIV = "administrativ"
+    ADMITERE = "admitere"
 
 class NivelUrgenta(str, Enum):
     RIDICATA = "ridicata"

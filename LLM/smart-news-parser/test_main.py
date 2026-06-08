@@ -2,7 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, patch
 from main import app
-from schemas import ExtractedAnnouncementInfo
+from parser_schemas import ExtractedAnnouncementInfo
 
 client = TestClient(app)
 
