@@ -8,6 +8,7 @@ import { Typography } from "@/constants/typography";
 import { NewsCard } from "@/components/ui/news-card";
 import { CategoryHeader, FilterItem } from "@/components/ui/category-header";
 import { getFormattedDate } from "@/utils/date";
+import { useT } from "@/i18n/use-t";
 import MOCK_DATA from "@/constants/mock-data.json";
 
 export default function CategoryScreen() {
@@ -16,12 +17,20 @@ export default function CategoryScreen() {
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const t = useT();
 
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
 
+  // Titlul vine ca parametru (cheie de date: "Noutăți"/"Evenimente"/"Facultăți") -> il traducem pentru afisare.
+  const titleText =
+    categoryTitle === "Noutăți" ? t("home.news")
+    : categoryTitle === "Evenimente" ? t("home.events")
+    : categoryTitle === "Facultăți" ? t("home.faculties")
+    : (categoryTitle as string) || t("category.default");
+
   // Pregătim filtrele pentru facultăți (folosim noua interfață FilterItem)
   const facultyFilters: FilterItem[] = [
-    { id: null, title: "Toate Facultățile", abbreviation: "Toate Facultățile" },
+    { id: null, title: t("category.allFaculties"), abbreviation: t("category.allFaculties") },
     ...MOCK_DATA.faculties.map(f => ({
         id: f.id,
         title: f.title
@@ -72,7 +81,7 @@ export default function CategoryScreen() {
         <View style={{ width: "100%", paddingHorizontal: WebSidePadding }}>
         <View style={{ paddingTop: insets.top + 140, marginBottom: Spacing.lg }}>
             <CategoryHeader
-                title={(categoryTitle as string) || "Categorie"}
+                title={titleText}
                 filters={categoryTitle === "Facultăți" ? undefined : facultyFilters}
                 selectedFilterId={selectedFacultyId}
                 onSelectFilter={setSelectedFacultyId}
@@ -95,7 +104,7 @@ export default function CategoryScreen() {
 
         {filteredData.length === 0 && (
             <Text style={[Typography.Paragraph1, { color: theme.text, textAlign: "center", marginTop: 40 }]}>
-                Nu există elemente în această categorie.
+                {t("category.empty")}
             </Text>
         )}
         </View>

@@ -5,11 +5,13 @@ import { useRouter } from "expo-router";
 import { Colors, Fonts, Spacing, WebSidePadding } from "@/constants/theme";
 import CloseIcon from "@/assets/icons/svg/x.svg";
 import { Typography } from "@/constants/typography";
+import { useT } from "@/i18n/use-t";
 
 export default function LoginScreen() {
     const router = useRouter();
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
     const theme = Colors[themeName];
+    const t = useT();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -19,15 +21,15 @@ export default function LoginScreen() {
         const newErrors: { email?: string; password?: string } = {};
 
         if (!email) {
-            newErrors.email = "Email-ul este obligatoriu.";
+            newErrors.email = t("auth.errEmailRequired");
         } else if (!/\S+@\S+\.\S+/.test(email)) {
-            newErrors.email = "Formatul email-ului este invalid.";
+            newErrors.email = t("auth.errEmailInvalid");
         }
 
         if (!password) {
-            newErrors.password = "Parola este obligatorie.";
+            newErrors.password = t("auth.errPasswordRequired");
         } else if (password.length < 6) {
-            newErrors.password = "Parola trebuie să aibă cel puțin 6 caractere.";
+            newErrors.password = t("auth.errPasswordShort");
         }
 
         setErrors(newErrors);
@@ -58,9 +60,9 @@ export default function LoginScreen() {
 
 
                     <View style={{ marginBottom: Spacing.xl4, alignItems: 'center' }}>
-                        <Text style={[Typography.Heading2, { color: theme.text, textAlign: 'center' }]}>Autentificare</Text>
+                        <Text style={[Typography.Heading2, { color: theme.text, textAlign: 'center' }]}>{t("auth.login")}</Text>
                         <Text style={[Typography.Paragraph2, { color: theme.textSecondary, marginTop: Spacing.xs, textAlign: 'center' }]}>
-                            Introdu datele pentru a intra în cont
+                            {t("auth.subtitle")}
                         </Text>
                     </View>
 
@@ -73,14 +75,14 @@ export default function LoginScreen() {
 
                         {/* Email Input */}
                         <View style={{ gap: Spacing.sm }}>
-                            <Text style={[Typography.Paragraph2, { color: theme.text, fontWeight: '500' }]}>Email</Text>
+                            <Text style={[Typography.Paragraph2, { color: theme.text, fontWeight: '500' }]}>{t("auth.email")}</Text>
                             <TextInput
                                 value={email}
                                 onChangeText={(text) => {
                                     setEmail(text);
                                     if (errors.email) setErrors({ ...errors, email: undefined });
                                 }}
-                                placeholder="exemplu@ugal.ro"
+                                placeholder={t("auth.emailPlaceholder")}
                                 placeholderTextColor={theme.textSecondary}
                                 style={{
                                     height: 56,
@@ -104,7 +106,7 @@ export default function LoginScreen() {
 
                         {/* Password Input */}
                         <View style={{ gap: Spacing.sm }}>
-                            <Text style={[Typography.Paragraph2, { color: theme.text, fontWeight: '500' }]}>Parolă</Text>
+                            <Text style={[Typography.Paragraph2, { color: theme.text, fontWeight: '500' }]}>{t("auth.password")}</Text>
                             <TextInput
                                 value={password}
                                 onChangeText={(text) => {
@@ -144,7 +146,7 @@ export default function LoginScreen() {
                             })}
                             onPress={handleLogin}
                         >
-                            <Text style={[Typography.Heading4, { color: 'white' }]}>Autentificare</Text>
+                            <Text style={[Typography.Heading4, { color: 'white' }]}>{t("auth.login")}</Text>
                         </Pressable>
                     </View>
                 </View>

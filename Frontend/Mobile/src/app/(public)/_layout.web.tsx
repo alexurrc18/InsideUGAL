@@ -1,10 +1,13 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { View } from 'react-native';
-import { ColorScheme, WebSidePadding } from "@/constants/theme";
+import { ColorScheme, Spacing, WebSidePadding } from "@/constants/theme";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { LanguageToggle } from "@/components/ui/language-toggle";
+import { useT } from "@/i18n/use-t";
 
 export default function TabLayout() {
     const activeColor = ColorScheme.white;
+    const t = useT();
 
     // ThemeProvider e montat in root-ul web (_layout.web.tsx), deasupra tuturor grupurilor.
     return (
@@ -25,7 +28,7 @@ export default function TabLayout() {
                         }}
                         renderingMode="template"
                     />
-                    <NativeTabs.Trigger.Label>Acasă</NativeTabs.Trigger.Label>
+                    <NativeTabs.Trigger.Label>{t("tabs.home")}</NativeTabs.Trigger.Label>
                 </NativeTabs.Trigger>
 
                 <NativeTabs.Trigger name="harta">
@@ -36,7 +39,7 @@ export default function TabLayout() {
                         }}
                         renderingMode="template"
                     />
-                    <NativeTabs.Trigger.Label>Hartă</NativeTabs.Trigger.Label>
+                    <NativeTabs.Trigger.Label>{t("tabs.map")}</NativeTabs.Trigger.Label>
                 </NativeTabs.Trigger>
 
                 <NativeTabs.Trigger name="cantina">
@@ -47,7 +50,7 @@ export default function TabLayout() {
                         }}
                         renderingMode="template"
                     />
-                    <NativeTabs.Trigger.Label>Cantină</NativeTabs.Trigger.Label>
+                    <NativeTabs.Trigger.Label>{t("tabs.canteen")}</NativeTabs.Trigger.Label>
                 </NativeTabs.Trigger>
 
                 <NativeTabs.Trigger name="sesizari">
@@ -58,7 +61,7 @@ export default function TabLayout() {
                         }}
                         renderingMode="template"
                     />
-                    <NativeTabs.Trigger.Label>Sesizări</NativeTabs.Trigger.Label>
+                    <NativeTabs.Trigger.Label>{t("tabs.reports")}</NativeTabs.Trigger.Label>
                 </NativeTabs.Trigger>
 
                 <NativeTabs.Trigger name="more">
@@ -69,12 +72,13 @@ export default function TabLayout() {
                         }}
                         renderingMode="template"
                     />
-                    <NativeTabs.Trigger.Label>Mai multe</NativeTabs.Trigger.Label>
+                    <NativeTabs.Trigger.Label>{t("tabs.more")}</NativeTabs.Trigger.Label>
                 </NativeTabs.Trigger>
             </NativeTabs>
 
-            {/* Buton de tema, flotant sus-dreapta, aliniat cu bara (top: 24) */}
-            <View style={{ position: "absolute", top: 24, right: WebSidePadding, zIndex: 10 }}>
+            {/* Butoane limba + tema, flotant sus-dreapta, aliniate cu bara (top: 24) */}
+            <View style={{ position: "absolute", top: 24, right: WebSidePadding, zIndex: 10, flexDirection: "row", alignItems: "center", gap: Spacing.sm }}>
+                <LanguageToggle />
                 <ThemeToggle />
             </View>
         </>

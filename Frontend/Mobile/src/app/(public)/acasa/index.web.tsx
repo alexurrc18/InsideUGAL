@@ -11,6 +11,7 @@ import { Carousel } from "@/components/ui/carousel";
 import { CAROUSEL_CARD_MARGIN } from "@/components/ui/carousel.shared";
 import { NewsCard } from "@/components/ui/news-card";
 import { getFormattedDate } from "@/utils/date";
+import { useT } from "@/i18n/use-t";
 import MOCK_DATA from "@/constants/mock-data.json";
 
 export default function HomeScreen() {
@@ -18,6 +19,7 @@ export default function HomeScreen() {
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const t = useT();
 
   const noutati = MOCK_DATA.events.filter(e => e.category === "Noutăți");
   const evenimente = MOCK_DATA.events.filter(e => e.category === "Evenimente");
@@ -69,17 +71,17 @@ export default function HomeScreen() {
 
           <View style={{ flex: 1, padding: Spacing.lg, paddingHorizontal: WebSidePadding + Spacing.lg, justifyContent: "flex-end" }}>
             <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
-              Astăzi, 27 mai
+              {t("home.today")}
             </Text>
             <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
-              Descoperă
+              {t("home.discover")}
             </Text>
           </View>
         </View>
 
         <View style={{paddingTop: Spacing.lg, paddingBottom: insets.bottom + Spacing.sm, flex: 1, paddingHorizontal: WebSidePadding}}>
           <Carousel
-            title="Noutăți"
+            title={t("home.news")}
             data={noutati}
             keyExtractor={(item) => item.id}
             viewAllHref="/(public)/acasa/categorie?title=Noutăți"
@@ -95,7 +97,7 @@ export default function HomeScreen() {
             )}
           />
           <Carousel
-            title="Evenimente"
+            title={t("home.events")}
             data={evenimente}
             keyExtractor={(item) => item.id}
             viewAllHref="/(public)/acasa/categorie?title=Evenimente"
@@ -111,7 +113,7 @@ export default function HomeScreen() {
             )}
           />
           <Carousel
-            title="Facultăți"
+            title={t("home.faculties")}
             data={facultati}
             keyExtractor={(item) => item.id}
             viewAllHref="/(public)/acasa/categorie?title=Facultăți"

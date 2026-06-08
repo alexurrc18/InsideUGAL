@@ -6,6 +6,7 @@ import { Image } from "expo-image";
 import { Colors, ColorScheme, Spacing, WebSidePadding } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { getFormattedDate, getReadingTime } from "@/utils/date";
+import { useT } from "@/i18n/use-t";
 
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
 import LocationIcon from "@/assets/icons/svg/location.svg";
@@ -34,16 +35,17 @@ function VizualizareScreen() {
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
     const theme = Colors[themeName];
     const insets = useSafeAreaInsets();
+    const t = useT();
 
     const tipPagina = type || "Eveniment";
 
     const handleCall = () => {
         Alert.alert(
-            "Contact Facultate",
-            `Doriți să apelați numărul ${phone}?`,
+            t("view.callTitle"),
+            `${t("view.callMessage")} ${phone}?`,
             [
-                { text: "Anulează", style: "cancel" },
-                { text: "Sună", onPress: () => Linking.openURL(`tel:${phone}`) }
+                { text: t("view.cancel"), style: "cancel" },
+                { text: t("view.call"), onPress: () => Linking.openURL(`tel:${phone}`) }
             ]
         );
     };
@@ -65,10 +67,10 @@ function VizualizareScreen() {
                     <View style={{ flex: 1, paddingTop: Spacing.lg, paddingBottom: Spacing.lg, paddingHorizontal: WebSidePadding, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.3)" }}>
                         <View style={{ width: "100%" }}>
                         <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
-                            {category || (tipPagina === "Facultate" ? "Facultate" : "Categorie")}
+                            {category || (tipPagina === "Facultate" ? t("view.faculty") : t("view.category"))}
                         </Text>
                         <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
-                            {title || "Titlu"}
+                            {title || t("view.title")}
                         </Text>
                         </View>
                     </View>
@@ -77,14 +79,14 @@ function VizualizareScreen() {
                 <View style={{ padding: Spacing.lg, paddingHorizontal: WebSidePadding, gap: Spacing.xxl }}>
                     {tipPagina !== "Facultate" && (
                         <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>
-                            {dateDisplay || "Dată necunoscută"}
+                            {dateDisplay || t("view.unknownDate")}
                         </Text>
                     )}
 
                     {tipPagina === "Eveniment" && (
                         <View style={{ gap: Spacing.md }}>
                             <Text style={[Typography.Heading4, { color: theme.text }]}>
-                                Informații eveniment
+                                {t("view.eventInfo")}
                             </Text>
 
                             <View style={{ gap: Spacing.md }}>
@@ -92,10 +94,10 @@ function VizualizareScreen() {
                                     <CalendarIcon width={24} height={24} color={theme.primary} />
                                     <View>
                                         <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                            De pe {date_start || "N/A"} {time_start || ""}
+                                            {t("view.from")} {date_start || "N/A"} {time_start || ""}
                                         </Text>
                                         <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                            Până la {date_end || "N/A"} {time_end || ""}
+                                            {t("view.to")} {date_end || "N/A"} {time_end || ""}
                                         </Text>
                                     </View>
                                 </View>
@@ -103,7 +105,7 @@ function VizualizareScreen() {
                                     <LocationIcon width={24} height={24} color={theme.primary} />
                                     <View>
                                         <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                            {location || "Locație nespecificată"}
+                                            {location || t("view.noLocation")}
                                         </Text>
                                     </View>
                                 </View>
@@ -114,16 +116,16 @@ function VizualizareScreen() {
                     {tipPagina === "Facultate" && (
                         <View style={{ gap: Spacing.md }}>
                             <Text style={[Typography.Heading4, { color: theme.text }]}>
-                                Contact și Locație
+                                {t("view.contactLocation")}
                             </Text>
 
                             <View style={{ gap: Spacing.lg }}>
                                 <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                     <LocationIcon width={24} height={24} color={theme.primary} />
                                     <View style={{ flex: 1 }}>
-                                        <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Adresă</Text>
+                                        <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>{t("view.address")}</Text>
                                         <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                            {address || "Nespecificată"}
+                                            {address || t("view.notSpecified")}
                                         </Text>
                                     </View>
                                 </View>
@@ -132,7 +134,7 @@ function VizualizareScreen() {
                                     <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                         <PhoneIcon width={24} height={24} color={theme.primary} />
                                         <View style={{ flex: 1 }}>
-                                            <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Telefon</Text>
+                                            <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>{t("view.phone")}</Text>
                                             <TouchableOpacity onPress={handleCall}>
                                                 <Text style={[Typography.Heading5, { color: theme.text }]}>
                                                     {phone}
@@ -146,7 +148,7 @@ function VizualizareScreen() {
                                     <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                         <WebsiteIcon width={24} height={24} color={theme.primary} />
                                         <View style={{ flex: 1 }}>
-                                            <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Website</Text>
+                                            <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>{t("view.website")}</Text>
                                             <TouchableOpacity onPress={() => Linking.openURL(website as string)}>
                                                 <Text style={[Typography.Heading5, { color: theme.secondary }]}>
                                                     {website}
@@ -161,10 +163,10 @@ function VizualizareScreen() {
 
                     <View style={{ gap: Spacing.md }}>
                         <Text style={[Typography.Heading4, { color: theme.text }]}>
-                            {tipPagina === "Eveniment" ? "Despre eveniment" : tipPagina === "Facultate" ? "Despre facultate" : "Detalii anunț"}
+                            {tipPagina === "Eveniment" ? t("view.aboutEvent") : tipPagina === "Facultate" ? t("view.aboutFaculty") : t("view.announcementDetails")}
                         </Text>
                         <Text style={[Typography.Paragraph2, { color: theme.text, lineHeight: 25 }]}>
-                            {content || "Conținutul nu este disponibil."}
+                            {content || t("view.noContent")}
                         </Text>
                     </View>
                 </View>

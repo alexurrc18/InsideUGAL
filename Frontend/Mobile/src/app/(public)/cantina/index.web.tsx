@@ -6,6 +6,7 @@ import { Colors, Spacing, WebSidePadding } from "@/constants/theme";
 import { CategoryHeader } from "@/components/ui/category-header";
 import { Expandable } from "@/components/ui/expandable";
 import { MenuItem } from "@/components/ui/menu-item";
+import { useT } from "@/i18n/use-t";
 import MockData from "@/constants/mock-data.json";
 
 // 1. Definiție Produs
@@ -23,15 +24,11 @@ export default function CantinaScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
+  const t = useT();
 
-  const daysFilter = useMemo(() => {
-    const allDays = [
-      { id: "luni", title: "Luni" },
-      { id: "marti", title: "Marți" },
-      { id: "miercuri", title: "Miercuri" },
-      { id: "joi", title: "Joi" },
-      { id: "vineri", title: "Vineri" },
-    ];
+  // Ordinea zilelor (incepe cu ziua curenta) — logica stabila, fara titluri.
+  const sortedDayIds = useMemo(() => {
+    const allDays = ["luni", "marti", "miercuri", "joi", "vineri"];
 
     const now = new Date();
     let dayIndex = now.getDay();
@@ -39,18 +36,16 @@ export default function CantinaScreen() {
     const effectiveDayIndex = isWeekend ? 1 : dayIndex;
 
     const startIndex = effectiveDayIndex - 1;
-    const sortedDays = [
-      ...allDays.slice(startIndex),
-      ...allDays.slice(0, startIndex),
-    ];
-
-    return sortedDays.map((day, index) => ({
-      ...day,
-      title: index === 0 ? "Azi" : day.title,
-    }));
+    return [...allDays.slice(startIndex), ...allDays.slice(0, startIndex)];
   }, []);
 
-  const [selectedDay, setSelectedDay] = useState<string>(daysFilter[0].id);
+  // Titlurile se traduc la fiecare render -> reactioneaza la schimbarea limbii.
+  const daysFilter = sortedDayIds.map((id, index) => ({
+    id,
+    title: index === 0 ? t("days.today") : t(`days.${id}`),
+  }));
+
+  const [selectedDay, setSelectedDay] = useState<string>(sortedDayIds[0]);
   const [openCategory, setOpenCategory] = useState<string | null>("Meniul Zilei");
 
   const currentMenu = DAILY_SCHEDULE[selectedDay] || DAILY_SCHEDULE["luni"];
@@ -79,7 +74,7 @@ export default function CantinaScreen() {
       >
         <View style={{ width: "100%", paddingHorizontal: WebSidePadding }}>
         <CategoryHeader
-          title="Cantina"
+          title={t("canteen.title")}
           filters={daysFilter}
           selectedFilterId={selectedDay}
           onSelectFilter={(id) => { if (id) { setSelectedDay(id); setOpenCategory(null); } }}
