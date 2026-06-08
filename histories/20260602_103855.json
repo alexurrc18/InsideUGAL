@@ -1,0 +1,18 @@
+{
+  "id": "20260602_103855",
+  "title": "cat de bun e ugal? ce iti poate …",
+  "messages": [
+    {
+      "role": "user",
+      "text": "cat de bun e ugal? ce iti poate oferii?",
+      "full_prompt": "[ÎNTREBAREA UTILIZATORULUI]:\ncat de bun e ugal? ce iti poate oferii?",
+      "timestamp": "2026-06-02T10:39:32.751593"
+    },
+    {
+      "role": "model",
+      "text": "Universitatea „Dunărea de Jos” din Galaţi (UGAL) este una dintre cele mai vechi și respectate instituții de învățământ superior din România, cu o tradiție de peste 150 de ani. Iată câteva aspecte cheie prin care UGAL îţi poate oferi beneficii importante:\n\n| Domeniu | Ce îţi oferă UGAL |\n|---|---|\n| **Facultăţi diverse** | Peste 10 facultăţi (Facultatea de Inginerie Electrică, Facultatea de Litere, Facultatea de Medicină, Facultatea de Științe Economice, Facultatea de Drept, Facultatea de Stiinţe, etc.) care acoperă profiluri tehnice, umaniste, sociale și medicale. |\n| **Program de studii acreditat** | Toate programele de licență, master și doctorat sunt acreditate de ARACIS, garantând calitatea învățământului. |\n| **Corpul didactic** | Profesori cu experiență academică și profesională, mulți dintre ei implicaţi în proiecte de cercetare naționale și internaționale. |\n| **Cercetare și inovare** | Laboratoare moderne, centre de cercetare și parteneriate cu mediul industrial, ce permit studenților să participe la proiecte aplicate și să publice lucrări științifice. |\n| **Facilităţi pentru studenți** | <ul><li>Camere în campusurile din Țiglina, Barieră și Campusul Științei (cămine moderne, Wi‑Fi, săli de studiu). </li><li>Cantină cu meniu variat și prețuri accesibile.</li><li>Bibliotecă centrală și biblioteci de specialitate, cu acces online la baze de date internaționale.</li></ul> |\n| **Suport financiar** | Burse de merit, burse sociale, posibilitatea de a accesa credite pentru studii și programul de job‑sharing pentru studenții care doresc să lucreze în timpul studiilor. |\n| **Viață studențească** | Asociații de elevi, cluburi culturale, sportive și de voluntariat; evenimente academice, conferințe și târguri de joburi. |\n| **Orientare spre carieră** | Biroul de Carieră oferă consiliere, stagii de practică în companii și acces la platforme de recrutare. |\n| **Internaționalizare** | Programe de mobilitate Erasmus+, acorduri cu universităţi din UE și din alte părţi ale lumii, posibilitatea de a urma cursuri în limba engleză. |\n\nÎn ansamblu, UGAL îţi pune la dispoziție un mediu academic solid, acces la resurse moderne și numeroase oportunităţi pentru dezvoltarea profesională și personală. Pentru informaţii detaliate despre un program specific sau despre admitere, te invităm să accesezi site‑ul oficial **www.ugal.ro** sau să contactezi secretariatul facultăţii de interes.",
+      "timestamp": "2026-06-02T10:39:32.751603"
+    }
+  ],
+  "created": "2026-06-02T10:38:55.645442"
+}

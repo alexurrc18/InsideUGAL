@@ -4,6 +4,7 @@ from enum import Enum
 import re
 import struct
 from uuid import UUID
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator, model_validator
 
@@ -30,7 +31,9 @@ class PostType(str, Enum):
 
 
 class ProfileBase(BaseModel):
-    username: str | None = None
+    model_config = ConfigDict(extra="ignore")
+
+    username: Optional[str] = None
     first_name: str
     last_name: str
     email: str
@@ -43,12 +46,14 @@ class ProfileCreate(ProfileBase):
 
 
 class ProfileUpdate(BaseModel):
-    username: str | None = None
-    first_name: str | None = None
-    last_name: str | None = None
-    email: str | None = None
-    role: UserRole | None = None
-    is_active: bool | None = None
+    model_config = ConfigDict(extra="ignore")
+
+    username: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    role: Optional[UserRole] = None
+    is_active: Optional[bool] = None
 
 
 class ProfileResponse(ProfileBase):
@@ -60,10 +65,15 @@ class ProfileResponse(ProfileBase):
 
 
 class FacultyBase(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     name: str
-    address: str | None = None
-    phone: str | None = None
-    website_url: str | None = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    website_url: Optional[str] = None
+    abbreviation: Optional[str] = None
+    description: Optional[str] = None
+    dormitory_url: Optional[str] = None
 
 
 class FacultyCreate(FacultyBase):
@@ -71,10 +81,15 @@ class FacultyCreate(FacultyBase):
 
 
 class FacultyUpdate(BaseModel):
-    name: str | None = None
-    address: str | None = None
-    phone: str | None = None
-    website_url: str | None = None
+    model_config = ConfigDict(extra="ignore")
+
+    name: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    website_url: Optional[str] = None
+    abbreviation: Optional[str] = None
+    description: Optional[str] = None
+    dormitory_url: Optional[str] = None
 
 
 class FacultyResponse(FacultyBase):
@@ -86,6 +101,8 @@ class FacultyResponse(FacultyBase):
 
 
 class CategoryBase(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     name: str
 
 
@@ -94,7 +111,7 @@ class CategoryCreate(CategoryBase):
 
 
 class CategoryUpdate(BaseModel):
-    name: str | None = None
+    name: Optional[str] = None
 
 
 class CategoryResponse(CategoryBase):
@@ -104,11 +121,13 @@ class CategoryResponse(CategoryBase):
 
 
 class Coordinates(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     lat: float
     lon: float
 
 
-def _parse_point_coordinates(coordinates: object) -> Coordinates | None:
+def _parse_point_coordinates(coordinates: object) -> Optional[Coordinates]:
     raw_data = getattr(coordinates, "data", None)
     if raw_data is not None:
         data = bytes.fromhex(raw_data) if isinstance(raw_data, str) else bytes(raw_data)
@@ -139,9 +158,11 @@ def _parse_point_coordinates(coordinates: object) -> Coordinates | None:
 
 
 class LocationBase(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     name: str
-    coordinates: Coordinates | None = None
-    faculty_id: int | None = None
+    coordinates: Optional[Coordinates] = None
+    faculty_id: Optional[int] = None
 
 
 class LocationCreate(LocationBase):
@@ -149,9 +170,11 @@ class LocationCreate(LocationBase):
 
 
 class LocationUpdate(BaseModel):
-    name: str | None = None
-    coordinates: Coordinates | None = None
-    faculty_id: int | None = None
+    model_config = ConfigDict(extra="ignore")
+
+    name: Optional[str] = None
+    coordinates: Optional[Coordinates] = None
+    faculty_id: Optional[int] = None
 
 
 class LocationResponse(LocationBase):
@@ -163,7 +186,7 @@ class LocationResponse(LocationBase):
 
     @field_validator("coordinates", mode="before")
     @classmethod
-    def validate_coordinates(cls, coordinates: object) -> Coordinates | None:
+    def validate_coordinates(cls, coordinates: object) -> Optional[Coordinates]:
         if coordinates is None or isinstance(coordinates, Coordinates):
             return coordinates
         if isinstance(coordinates, dict):
@@ -171,15 +194,22 @@ class LocationResponse(LocationBase):
         return _parse_point_coordinates(coordinates)
 
     @field_serializer("coordinates")
-    def serialize_coordinates(self, coordinates: Coordinates | None) -> dict[str, float] | None:
+    def serialize_coordinates(self, coordinates: Optional[Coordinates]) -> Optional[dict[str, float]]:
         return None if coordinates is None else coordinates.model_dump()
 
 
 class ProductBase(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     name: str
-    description: str | None = None
+    description: Optional[str] = None
     quantity: str
     price: Decimal = Field(gt=0)
+
+    @field_validator("price", mode="before")
+    @classmethod
+    def parse_price(cls, v):
+        return Decimal(str(v)) if not isinstance(v, Decimal) else v
 
 
 class ProductCreate(ProductBase):
@@ -187,10 +217,12 @@ class ProductCreate(ProductBase):
 
 
 class ProductUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
-    quantity: str | None = None
-    price: Decimal | None = Field(default=None, gt=0)
+    model_config = ConfigDict(extra="ignore")
+
+    name: Optional[str] = None
+    description: Optional[str] = None
+    quantity: Optional[str] = None
+    price: Optional[Decimal] = Field(default=None, gt=0)
 
 
 class ProductResponse(ProductBase):
@@ -202,6 +234,8 @@ class ProductResponse(ProductBase):
 
 
 class DailyMenuBase(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     day_of_week: int = Field(ge=1, le=7)
     product_ids: list[int] = Field(default_factory=list)
 
@@ -211,8 +245,10 @@ class DailyMenuCreate(DailyMenuBase):
 
 
 class DailyMenuUpdate(BaseModel):
-    day_of_week: int | None = Field(default=None, ge=1, le=7)
-    product_ids: list[int] | None = None
+    model_config = ConfigDict(extra="ignore")
+
+    day_of_week: Optional[int] = Field(default=None, ge=1, le=7)
+    product_ids: Optional[list[int]] = None
 
 
 class DailyMenuResponse(BaseModel):
@@ -226,10 +262,12 @@ class DailyMenuResponse(BaseModel):
 
 
 class ComplaintBase(BaseModel):
-    location_id: int | None = None
+    model_config = ConfigDict(extra="ignore")
+
+    location_id: Optional[int] = None
     title: str
     description: str
-    image_url: str | None = None
+    image_url: Optional[str] = None
     status: ComplaintStatus = ComplaintStatus.in_asteptare
 
 
@@ -238,11 +276,13 @@ class ComplaintCreate(ComplaintBase):
 
 
 class ComplaintUpdate(BaseModel):
-    location_id: int | None = None
-    title: str | None = None
-    description: str | None = None
-    image_url: str | None = None
-    status: ComplaintStatus | None = None
+    model_config = ConfigDict(extra="ignore")
+
+    location_id: Optional[int] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    status: Optional[ComplaintStatus] = None
 
 
 class ComplaintResponse(ComplaintBase):
@@ -255,14 +295,16 @@ class ComplaintResponse(ComplaintBase):
 
 
 class AnnouncementBase(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     type: PostType = PostType.NOUTATE
-    title: str | None = None
+    title: Optional[str] = None
     content: str
-    image_url: str | None = None
-    faculty_id: int | None = None
-    location_name: str | None = None
-    start_date: datetime | None = None
-    end_date: datetime | None = None
+    image_url: Optional[str] = None
+    faculty_id: Optional[int] = None
+    location_name: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
 
     @model_validator(mode="after")
     def validate_post_type_fields(self):
@@ -283,14 +325,16 @@ class AnnouncementCreate(AnnouncementBase):
 
 
 class AnnouncementUpdate(BaseModel):
-    type: PostType | None = None
-    title: str | None = None
-    content: str | None = None
-    image_url: str | None = None
-    faculty_id: int | None = None
-    location_name: str | None = None
-    start_date: datetime | None = None
-    end_date: datetime | None = None
+    model_config = ConfigDict(extra="ignore")
+
+    type: Optional[PostType] = None
+    title: Optional[str] = None
+    content: Optional[str] = None
+    image_url: Optional[str] = None
+    faculty_id: Optional[int] = None
+    location_name: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
 
 
 class AnnouncementResponse(AnnouncementBase):

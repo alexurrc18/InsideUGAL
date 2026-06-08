@@ -1,46 +1,28 @@
-import React from "react";
-import { View, Text, FlatList, Dimensions, Pressable, useColorScheme } from "react-native";
+import { View, Text, FlatList, Pressable, useColorScheme } from "react-native";
 import { useRouter } from "expo-router";
 import { Typography } from "@/constants/typography";
-import { Colors, ColorScheme } from "@/constants/theme";
+import { Colors, ColorScheme, Spacing } from "@/constants/theme";
+import { CAROUSEL_CARD_WIDTH, CAROUSEL_CARD_MARGIN, CarouselProps } from "./carousel.shared";
 
-const { width } = Dimensions.get("window");
-export const CAROUSEL_CARD_WIDTH = width * 0.85; 
-export const CAROUSEL_CARD_MARGIN = 16;
-
-interface CarouselProps<T> {
-    data: T[];
-    renderItem: ({ item, index }: { item: T; index: number }) => React.ReactElement;
-    keyExtractor: (item: T, index: number) => string;
-    title?: string;
-    viewAllHref?: string;
-}
-
-export function Carousel<T>({ 
-    data, 
-    renderItem, 
-    keyExtractor, 
-    title, 
-    viewAllHref 
-}: CarouselProps<T>) {
+export function Carousel<T>({ data, renderItem, keyExtractor, title, viewAllHref }: CarouselProps<T>) {
     const router = useRouter();
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
     const theme = Colors[themeName];
 
     return (
-        <View style={{ flex: 1, marginVertical: 15 }}>
+        <View style={{ flex: 1, marginVertical: Spacing.lg }}>
             {(title || viewAllHref) && (
-                <View style={{ 
-                    flexDirection: "row", 
-                    justifyContent: "space-between", 
-                    alignItems: "center", 
-                    paddingHorizontal: 16, 
-                    marginBottom: 12 
+                <View style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    paddingHorizontal: Spacing.lg,
+                    marginBottom: Spacing.lg
                 }}>
                     {title && <Text style={[Typography.Heading3, { color: theme.text }]}>{title}</Text>}
                     {viewAllHref && (
                         <Pressable onPress={() => router.push(viewAllHref as any)}>
-                            <Text style={[Typography.Paragraph2, { color: ColorScheme.blue }]}>Vezi mai multe &gt;</Text>
+                            <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>Vezi mai multe &gt;</Text>
                         </Pressable>
                     )}
                 </View>
@@ -52,7 +34,7 @@ export function Carousel<T>({
                 keyExtractor={keyExtractor}
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 16 }}
+                contentContainerStyle={{ paddingHorizontal: Spacing.lg }}
                 snapToInterval={CAROUSEL_CARD_WIDTH + CAROUSEL_CARD_MARGIN}
                 decelerationRate="fast"
             />

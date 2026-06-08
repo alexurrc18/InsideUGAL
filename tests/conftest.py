@@ -8,9 +8,19 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-TEST_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@127.0.0.1:55005/postgres"
+TEST_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@127.0.0.1:54399/postgres"
+SUPABASE_URL = "http://127.0.0.1:54325"
+SUPABASE_JWT_SECRET = "test-supabase-jwt-secret"
+SUPABASE_JWT_AUDIENCE = "authenticated"
+SUPABASE_ANON_KEY = "test-anon-key"
+SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key"
 
-os.environ.setdefault("DATABASE_URL", TEST_DATABASE_URL)
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL
+os.environ["SUPABASE_URL"] = SUPABASE_URL
+os.environ["SUPABASE_JWT_SECRET"] = SUPABASE_JWT_SECRET
+os.environ["SUPABASE_JWT_AUDIENCE"] = SUPABASE_JWT_AUDIENCE
+os.environ["SUPABASE_ANON_KEY"] = SUPABASE_ANON_KEY
+os.environ["SUPABASE_SERVICE_ROLE_KEY"] = SUPABASE_SERVICE_ROLE_KEY
 
 from app.db.database import get_db  # noqa: E402
 from app.main import app  # noqa: E402
@@ -34,7 +44,7 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
 @pytest_asyncio.fixture
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
     async with test_engine.connect() as connection:
-        transaction = await connection.begin()
+        await connection.begin()
         TestingSessionLocal = async_sessionmaker(
             bind=connection,
             class_=AsyncSession,
@@ -42,13 +52,12 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
             join_transaction_mode="create_savepoint",
         )
 
-        async with TestingSessionLocal() as session:
-            try:
-                yield session
-            finally:
-                await session.rollback()
-
-        await transaction.rollback()
+        session = TestingSessionLocal()
+        try:
+            yield session
+        finally:
+            await session.close()
+            await connection.rollback()
 
 
 @pytest_asyncio.fixture

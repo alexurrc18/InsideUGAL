@@ -17,13 +17,13 @@ import {
 } from "lucide-react";
 
 const menuItems = [
-  { label: "Acasa", href: "/", icon: Home },
-  { label: "Noutati", href: "/noutati", icon: Newspaper },
+  { label: "Acasă", href: "/", icon: Home },
+  { label: "Noutăți", href: "/noutati", icon: Newspaper },
   { label: "Evenimente", href: "/evenimente", icon: Calendar },
-  { label: "Facultati", href: "/facultati", icon: GraduationCap },
-  { label: "Harti", href: "/harti", icon: MapPin },
-  { label: "Sesizari", href: "/sesizari", icon: AlertTriangle },
-  { label: "Cantina", href: "/cantina", icon: Utensils },
+  { label: "Facultăți", href: "/facultati", icon: GraduationCap },
+  { label: "Hărți", href: "/harti", icon: MapPin },
+  { label: "Sesizări", href: "/sesizari", icon: AlertTriangle },
+  { label: "Cantină", href: "/cantina", icon: Utensils },
   { label: "Conturi", href: "/conturi", icon: Users },
 ];
 
@@ -33,41 +33,46 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`sticky top-0 h-screen flex-shrink-0 flex flex-col justify-between bg-sidebar text-text-main pt-6 pb-6 select-none border-r border-white/5 overflow-hidden transition-[width] duration-200 ${
-        collapsed ? "w-20 px-3" : "w-72 px-8"
+      className={`sticky top-0 h-screen flex-shrink-0 flex flex-col justify-between overflow-hidden border-r border-white/10 bg-sidebar text-white select-none transition-[width] duration-200 ${
+        collapsed ? "w-20 px-3 py-4" : "w-72 px-4 py-4"
       }`}
     >
-      <div className="flex flex-col flex-1 min-h-0">
-        <div className={`relative flex mb-6 w-full flex-shrink-0 ${collapsed ? "justify-center" : "justify-center"}`}>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className={`mb-6 flex items-center gap-3 ${collapsed ? "justify-center" : "justify-between"}`}>
           {!collapsed && (
-            <div className="min-w-0 flex flex-col items-center text-center">
+            <Link href="/" className="flex min-w-0 items-center gap-3">
               <Image
                 src="/logo_alb.png"
                 alt="Inside UGAL"
-                width={72}
-                height={72}
-                className="mb-3 h-[72px] w-[72px] object-contain"
+                width={44}
+                height={44}
+                className="h-11 w-11 flex-shrink-0 rounded-md object-contain"
               />
-              <h2 className="text-xl font-bold tracking-tight text-text-main uppercase font-sans whitespace-nowrap">
-                Inside UGAL
-              </h2>
-            </div>
+              <span className="min-w-0">
+                <span className="block truncate text-xl font-semibold leading-6">
+                  Inside UGAL
+                </span>
+              </span>
+            </Link>
           )}
 
           <button
             type="button"
-            aria-label={collapsed ? "Arata sidebarul" : "Ascunde sidebarul"}
+            aria-label={collapsed ? "Arată sidebarul" : "Ascunde sidebarul"}
             aria-expanded={!collapsed}
             onClick={() => setCollapsed((current) => !current)}
-            className={`h-10 w-10 flex items-center justify-center rounded-md text-text-muted transition-colors duration-150 hover:bg-white/10 hover:text-text-main ${
-              collapsed ? "" : "absolute -right-6 -top-4"
-            }`}
+            className="flex h-9 w-9 items-center justify-center rounded-md text-sidebar-muted transition-colors hover:bg-white/10 hover:text-white"
           >
-            <Menu size={22} />
+            <Menu size={18} />
           </button>
         </div>
 
-        <nav className={`flex-1 overflow-y-auto space-y-1.5 custom-scrollbar ${collapsed ? "" : "pr-1"}`}>
+        {!collapsed && (
+          <div className="mb-2 px-3 text-xs font-medium text-sidebar-muted">
+          </div>
+        )}
+
+        <nav className="custom-scrollbar flex-1 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;
@@ -77,31 +82,25 @@ export default function Sidebar() {
                 key={item.href}
                 href={item.href}
                 title={collapsed ? item.label : undefined}
-                className={`flex items-center gap-4 px-4 py-2.5 rounded-md font-semibold text-base transition-all duration-150 border w-full group ${
+                className={`group flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors ${
                   collapsed ? "justify-center" : ""
                 } ${
                   active
-                    ? "bg-white/20 border-white/20 text-text-main shadow-sm"
-                    : "bg-transparent border-transparent text-text-muted hover:bg-white/10 hover:text-text-main"
+                    ? "bg-sidebar-active text-white"
+                    : "text-sidebar-muted hover:bg-white/10 hover:text-white"
                 }`}
               >
-                <div
-                  className={`transition-opacity duration-150 flex-shrink-0 ${
-                    active ? "opacity-100" : "opacity-60 group-hover:opacity-100"
-                  }`}
-                >
-                  <Icon size={20} />
-                </div>
-                {!collapsed && <span className="tracking-wide whitespace-nowrap">{item.label}</span>}
+                <Icon size={18} className="flex-shrink-0" />
+                {!collapsed && <span className="truncate">{item.label}</span>}
               </Link>
             );
           })}
         </nav>
       </div>
 
-      <div className="w-full pt-4 border-t border-white/10 flex-shrink-0 mt-3">
-        <div className="text-center text-xs font-medium text-text-muted opacity-40 w-full">
-          <span>{collapsed ? "v1.0" : "v1.0 - 2026"}</span>
+      <div className="mt-4 border-t border-white/10 pt-4">
+        <div className={`text-xs text-sidebar-muted ${collapsed ? "text-center" : "px-3"}`}>
+          {collapsed ? "v1" : "v1.0 - 2026"}
         </div>
       </div>
     </aside>
