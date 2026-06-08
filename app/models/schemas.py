@@ -22,7 +22,7 @@ class ComplaintStatus(str, Enum):
     in_lucru = "in_lucru"
     finalizat = "finalizat"
     respins = "respins"
-    solutionat = "solutionat"
+    solutionat = "solutionat" # adăugat recent în issue
 
 class PostType(str, Enum):
     NOUTATE = "NOUTATE"
@@ -41,6 +41,7 @@ class ProfileBase(BaseModel):
     is_active: bool = True
 
 class ProfileCreate(ProfileBase):
+    # ID-ul este opțional pentru că la SSO/Supabase Auth se generează automat
     id: Optional[UUID] = None
 
 class ProfileUpdate(BaseModel):

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, Pressable, useColorScheme } from "react-native";
+import { View, Text, Pressable } from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import ChevronIcon from "@/assets/icons/svg/chevron-left.svg";
