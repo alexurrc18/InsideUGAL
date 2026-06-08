@@ -1,0 +1,18 @@
+{
+  "id": "20260602_104220",
+  "title": "salut, ce mai zici?",
+  "messages": [
+    {
+      "role": "user",
+      "text": "salut, ce mai zici?",
+      "full_prompt": "[ÎNTREBAREA UTILIZATORULUI]:\nsalut, ce mai zici?",
+      "timestamp": "2026-06-02T10:44:16.585625"
+    },
+    {
+      "role": "model",
+      "text": "Salut! Sunt bine, mulțumesc că ai întrebat. Cu ce te pot ajuta în legătură cu Universitatea „Dunărea de Jos” din Galați?",
+      "timestamp": "2026-06-02T10:44:16.585633"
+    }
+  ],
+  "created": "2026-06-02T10:42:20.046110"
+}

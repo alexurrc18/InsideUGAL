@@ -1,9 +1,11 @@
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from unittest.mock import MagicMock, AsyncMock, patch
 
 from app.models import schemas
-from tests.integration_helpers import create_faculty, create_location, create_profile
+from tests.integration_helpers import create_auth_user, create_faculty, create_location, create_profile
 
 
 @pytest.mark.asyncio
@@ -166,3 +168,139 @@ async def test_create_complaint_rejects_missing_location_reference(
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Location not found."
+
+
+@pytest.mark.asyncio
+async def test_update_complaint_returns_404_for_missing_complaint(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    student = await create_profile(db_session, role=schemas.UserRole.STUDENT)
+
+    response = await client.patch(
+        "/complaints/999999",
+        json={"title": "Updated title"},
+        headers=student.headers,
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Complaint not found."
+
+
+@pytest.mark.asyncio
+async def test_update_complaint_returns_403_for_non_owner_non_staff(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    owner = await create_profile(db_session, role=schemas.UserRole.STUDENT)
+    attacker = await create_profile(db_session, role=schemas.UserRole.STUDENT)
+
+    create_response = await client.post(
+        "/complaints/",
+        json={"title": "Owner issue", "description": "Private."},
+        headers=owner.headers,
+    )
+    assert create_response.status_code == 201
+    complaint_id = create_response.json()["id"]
+
+    update_response = await client.patch(
+        f"/complaints/{complaint_id}",
+        json={"title": "Hacked"},
+        headers=attacker.headers,
+    )
+
+    assert update_response.status_code == 403
+    assert update_response.json()["detail"] == "Nu ai permisiuni suficiente."
+
+
+@pytest.mark.asyncio
+async def test_staff_can_update_complaint_status_and_fields(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    student = await create_profile(db_session, role=schemas.UserRole.STUDENT)
+    staff = await create_profile(db_session, role=schemas.UserRole.HEAD_ADMIN)
+    location = await create_location(db_session)
+
+    create_response = await client.post(
+        "/complaints/",
+        json={
+            "location_id": location.id,
+            "title": "Original title",
+            "description": "Original description.",
+        },
+        headers=student.headers,
+    )
+    assert create_response.status_code == 201
+    complaint_id = create_response.json()["id"]
+
+    update_response = await client.patch(
+        f"/complaints/{complaint_id}",
+        json={
+            "title": "Updated title",
+            "description": "Updated description.",
+            "status": schemas.ComplaintStatus.finalizat.value,
+        },
+        headers=staff.headers,
+    )
+
+    assert update_response.status_code == 200
+    updated = update_response.json()
+    assert updated["title"] == "Updated title"
+    assert updated["description"] == "Updated description."
+    assert updated["status"] == schemas.ComplaintStatus.finalizat.value
+
+
+@pytest.mark.asyncio
+async def test_upload_complaint_image_success(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    student = await create_profile(db_session, role=schemas.UserRole.STUDENT)
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"image_url": "http://127.0.0.1:54325/storage/v1/object/public/complaints/test.jpg"}
+
+    mock_client = MagicMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.post = AsyncMock(return_value=mock_response)
+
+    with patch("app.api.complaints.httpx.AsyncClient", return_value=mock_client) as mock_client_cls:
+        response = await client.post(
+            "/complaints/upload-image/",
+            headers=student.headers,
+            files={"file": ("test.jpg", b"fake-image-bytes", "image/jpeg")},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["image_url"].endswith("test.jpg")
+    mock_client.post.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_upload_complaint_image_failure_returns_502(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    student = await create_profile(db_session, role=schemas.UserRole.STUDENT)
+
+    mock_response = MagicMock()
+    mock_response.status_code = 400
+    mock_response.text.return_value = "Bad Request"
+
+    mock_client = MagicMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.post = AsyncMock(return_value=mock_response)
+
+    with patch("app.api.complaints.httpx.AsyncClient", return_value=mock_client):
+        response = await client.post(
+            "/complaints/upload-image/",
+            headers=student.headers,
+            files={"file": ("test.jpg", b"fake-image-bytes", "image/jpeg")},
+        )
+
+    assert response.status_code == 502
+    assert response.json()["detail"] == "Image upload failed."

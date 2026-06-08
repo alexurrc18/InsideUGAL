@@ -7,9 +7,10 @@ pytest==7.4.3
 pytest-asyncio==0.20.3
 flask
 pdfplumber
-chromadb
+supabase
 sentence-transformers
 tenacity
 pybreaker
 requests
 langdetect
+python-multipart

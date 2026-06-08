@@ -1,45 +1,46 @@
 @import "tailwindcss";
 
 :root {
-  /* Nuanțele tale exacte din imagine */
-  --blue-dark: #003a70; /* Albastru închis (Sidebar) */
-  --blue-light: #e3f2fd; /* Albastru deschis (Pagina din dreapta) */
-
-  /* Culori pentru text și elemente active */
-  --text-white: #ffffff;
-  --text-muted: #cbd5e1;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --muted: #64748b;
+  --sidebar: #003a70;
+  --sidebar-active: rgba(255, 255, 255, 0.16);
+  --sidebar-muted: #cbd5e1;
+  --brand: #003a70;
 }
 
 @theme inline {
-  /* SUPRASCRIEM clasa nativă de background din Tailwind v4 */
-  /* Când vei folosi clasa nativă "bg-background", ea va avea culoarea ta deschisă */
-  --color-background: var(--blue-light);
-
-  /* Definim clasa simplă pentru sidebar */
-  --color-sidebar: var(--blue-dark);
-
-  /* Definim culorile pentru text */
-  --color-text-main: var(--text-white);
-  --color-text-muted: var(--text-muted);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-brand: var(--brand);
 }
 
-/* Aplicăm configurarea pe tot ecranul */
 body {
-  background-color: var(--blue-light);
-  color: var(--text-white);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   margin: 0;
   padding: 0;
 }
 
-/* Stil pentru o bară de scroll discretă în interiorul meniului */
 .custom-scrollbar::-webkit-scrollbar {
   width: 5px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.24);
   border-radius: 9999px;
 }

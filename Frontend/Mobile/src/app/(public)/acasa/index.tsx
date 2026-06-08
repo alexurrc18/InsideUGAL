@@ -3,11 +3,13 @@ import { View, Text, ScrollView, useColorScheme } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
-import { Colors, ColorScheme } from "@/constants/theme";
+import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 
-import { Carousel, CAROUSEL_CARD_WIDTH, CAROUSEL_CARD_MARGIN } from "@/components/ui/carousel";
+import { Carousel } from "@/components/ui/carousel";
+import { CAROUSEL_CARD_MARGIN } from "@/components/ui/carousel.shared";
 import { NewsCard } from "@/components/ui/news-card";
+import { getFormattedDate } from "@/utils/date";
 import MOCK_DATA from "@/constants/mock-data.json";
 
 export default function HomeScreen() {
@@ -16,10 +18,9 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // Filtram datele pentru fiecare carusel
   const noutati = MOCK_DATA.events.filter(e => e.category === "Noutăți");
   const evenimente = MOCK_DATA.events.filter(e => e.category === "Evenimente");
-  const facultati = MOCK_DATA.faculties; // Folosim noua lista de facultati
+  const facultati = MOCK_DATA.faculties;
 
   const handlePress = (item: any) => {
     router.push({
@@ -34,19 +35,30 @@ export default function HomeScreen() {
             date_start: item.date_start,
             date_end: item.date_end,
             time_start: item.time_start,
-            time_end: item.time_end
+            time_end: item.time_end,
+            date: item.date_start || item.date
         }
     });
   };
 
   const handleFacultyPress = (faculty: any) => {
-    // Logica pentru pagina de facultate (va fi implementata ulterior)
-    console.log("Faculty pressed:", faculty.title);
+    router.push({
+        pathname: "/(public)/acasa/vizualizare",
+        params: {
+            type: "Facultate",
+            title: faculty.title,
+            content: faculty.content,
+            image: faculty.image,
+            address: faculty.address,
+            phone: faculty.phone,
+            website: faculty.website
+        }
+    });
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView style={{ flex: 1, gap: 16 }} contentContainerStyle={{ flexGrow: 1 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
         <View style={{ width: "100%", height: 285 }}>
           <Image
             source={require("@/assets/images/campus-stiintei.png")}
@@ -54,7 +66,7 @@ export default function HomeScreen() {
             contentFit="cover"
           />
 
-          <View style={{ flex: 1, padding: 16, justifyContent: "flex-end" }}>
+          <View style={{ flex: 1, padding: Spacing.lg, justifyContent: "flex-end", width: "100%", maxWidth: 1200, alignSelf: "center" }}>
             <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
               Astăzi, 27 mai
             </Text>
@@ -64,7 +76,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={{paddingBottom: insets.bottom+5, flex: 1}}>
+        <View style={{paddingTop: Spacing.lg, paddingBottom: insets.bottom + Spacing.sm, flex: 1, width: "100%", maxWidth: 1200, alignSelf: "center"}}>
           <Carousel
             title="Noutăți"
             data={noutati}
@@ -73,7 +85,7 @@ export default function HomeScreen() {
             renderItem={({ item, index }) => (
               <NewsCard
                 title={item.title}
-                date={item.date}
+                date={getFormattedDate(item.date)}
                 author={item.author}
                 image={item.image}
                 marginRight={index === noutati.length - 1 ? 0 : CAROUSEL_CARD_MARGIN}
@@ -89,7 +101,7 @@ export default function HomeScreen() {
             renderItem={({ item, index }) => (
               <NewsCard
                 title={item.title}
-                date={item.date_start || item.date}
+                date={getFormattedDate(item.date_start || item.date)}
                 author={item.author}
                 image={item.image}
                 marginRight={index === evenimente.length - 1 ? 0 : CAROUSEL_CARD_MARGIN}

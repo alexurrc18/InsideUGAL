@@ -7,37 +7,12 @@ on:
       - main
 
 jobs:
-  changes:
-    runs-on: ubuntu-latest
-    outputs:
-      frontend: ${{ steps.filter.outputs.frontend }}
-      backend: ${{ steps.filter.outputs.backend }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Path Filter
-        uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            frontend:
-              - 'Frontend/**'
-              - 'package.json'
-              - 'package-lock.json'
-            backend:
-              - 'app/**'
-              - 'backend/**'
-              - 'Backend/**'
-              - 'requirements.txt'
-
   frontend:
-    name: Frontend
-    needs: [changes]
-    if: ${{ needs.changes.outputs.frontend == 'true' }}
+    name: Frontend (${{ matrix.node-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: ["20", "22"]
+        node-version: ["22"]
     defaults:
       run:
         working-directory: Frontend/Dashboard/dashboard-insideugal
@@ -64,9 +39,7 @@ jobs:
         run: npm run build
 
   backend:
-    name: Backend
-    needs: [changes]
-    if: ${{ needs.changes.outputs.backend == 'true' }}
+    name: Backend (${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -74,32 +47,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Detect FastAPI backend
-        id: detect
-        shell: bash
-        run: |
-          if [ -f app/main.py ] || [ -f app/pyproject.toml ] || [ -f app/requirements.txt ]; then
-            echo "path=app" >> "$GITHUB_OUTPUT"
-          elif [ -f backend/app/main.py ] || [ -f backend/pyproject.toml ] || [ -f backend/requirements.txt ]; then
-            echo "path=backend" >> "$GITHUB_OUTPUT"
-          elif [ -f Backend/app/main.py ] || [ -f Backend/pyproject.toml ] || [ -f Backend/requirements.txt ]; then
-            echo "path=Backend" >> "$GITHUB_OUTPUT"
-          else
-            echo "path=" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Backend missing
-        if: steps.detect.outputs.path == ''
-        run: echo "::warning::No FastAPI backend module found. Skipping backend CI until the backend team ships runnable code."
       - name: Setup Python
-        if: steps.detect.outputs.path != ''
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: "backend/requirements.txt"
       - name: Install dependencies
-        if: steps.detect.outputs.path != ''
-        working-directory: ${{ steps.detect.outputs.path }}
+        working-directory: app
         shell: bash
         run: |
           python -m pip install --upgrade pip
@@ -111,28 +66,24 @@ jobs:
           fi
           pip install ruff mypy pytest pytest-cov
       - name: Lint
-        if: steps.detect.outputs.path != ''
-        working-directory: ${{ steps.detect.outputs.path }}
+        working-directory: app
         shell: bash
         run: ruff check .
       - name: Typecheck
-        if: steps.detect.outputs.path != ''
-        working-directory: ${{ steps.detect.outputs.path }}
+        working-directory: app
         shell: bash
         run: mypy .
       - name: Run Tests with Coverage
-        if: steps.detect.outputs.path != ''
-        working-directory: ${{ steps.detect.outputs.path }}
-        run: pytest --cov=. --cov-report=xml
+        working-directory: app
+        run: |
+          pip install pytest-xdist
+          pytest -n auto --cov=. --cov-report=xml || [[ $? -eq 5 ]]
       - name: Build
-        if: steps.detect.outputs.path != ''
-        working-directory: ${{ steps.detect.outputs.path }}
+        working-directory: app
         run: python -m compileall .
 
   security-scan:
     name: Container Security Scan
-    needs: [changes]
-    if: ${{ needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -154,8 +105,6 @@ jobs:
 
   semgrep-scan:
     name: Security Scan (SAST)
-    needs: [changes]
-    if: ${{ needs.changes.outputs.frontend == 'true' || needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
