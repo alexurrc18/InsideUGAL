@@ -140,7 +140,7 @@ export default function Page() {
           >
             Editare
           </button>
-          <button type="button" className="text-green-600 hover:text-green-800 font-medium hover:underline cursor-pointer" onClick={() => alert(`Shared: ${item.title}`)}>Share</button>
+          <button type="button" className="text-green-600 hover:text-green-800 font-medium hover:underline cursor-pointer" onClick={() => console.info(`Shared: ${item.title}`)}>Share</button>
           <button type="button" className="text-red-500 hover:text-red-700 font-medium hover:underline cursor-pointer" onClick={() => setData(data.filter(a => a.id !== item.id))}>Ștergere</button>
         </div>
       )
@@ -215,7 +215,7 @@ export default function Page() {
   };
 
   const handleAiGenerate = () => {
-    alert("Generare imagine AI... (Legătură LLM viitoare)");
+    console.info("Generare imagine AI... (Legătură LLM viitoare)");
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -335,7 +335,7 @@ export default function Page() {
                 <div className="flex flex-col gap-1.5">
                   {selectedItem.pdfFiles.map((file, idx) => (
                     <div key={idx}>
-                      <a href={file.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-100 transition-all">
+                      <a href={file.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-100 transition-all">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                         </svg>
@@ -349,7 +349,7 @@ export default function Page() {
 
             {selectedItem.eventLink && (
               <div className="pt-2 border-t border-border">
-                <a href={selectedItem.eventLink} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline inline-flex items-center gap-1 font-medium">
+                <a href={selectedItem.eventLink?.startsWith('http') ? selectedItem.eventLink : '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline inline-flex items-center gap-1 font-medium">
                   Link către eveniment →
                 </a>
               </div>

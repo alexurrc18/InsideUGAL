@@ -1,4 +1,9 @@
 // app/data/announcements.ts
+export type PdfFile = {
+  name: string;
+  url: string;
+};
+
 export interface Announcement {
   id: string;
   title: string;
@@ -7,6 +12,7 @@ export interface Announcement {
   publishDate: string;
   thumbnail?: string;
   eventLink?: string;
+  pdfFiles?: PdfFile[];
 }
 
 export const mockAnnouncements: Announcement[] = [

@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, useColorScheme, Pressable } from "react-native";
+import { View, Text, Pressable } from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
@@ -13,11 +14,11 @@ export default function MoreScreen() {
   const router = useRouter();
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top + Spacing.md }}>
+    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top + Spacing.xxl }}>
       <CategoryHeader title="Mai multe" />
-      
+
       <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.lg }}>
-        <Pressable 
+        <Pressable
           onPress={() => router.push("/(auth)")}
           style={({ pressed }) => ({
             opacity: pressed ? 0.6 : 1,
