@@ -2,12 +2,11 @@ import os
 import sys
 import uuid
 import json
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 sys.path.insert(0, os.path.dirname(__file__))
 
 from flask import Flask, request, jsonify, send_from_directory
-from functions.llm_functions import load_pdf_into_rag, generate_summary, generate_quiz, answer_question
+from functions.llm_functions import load_pdf_into_rag, generate_summary, answer_question
 import supabase_logger
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), "static"))
@@ -65,11 +64,7 @@ def upload():
 
     try:
         _, language = load_pdf_into_rag(pdf_path, pdf_id)
-        with ThreadPoolExecutor(max_workers=2) as pool:
-            f_summary = pool.submit(generate_summary, pdf_id, language)
-            f_quiz = pool.submit(generate_quiz, pdf_id, language)
-            summary = f_summary.result()
-            quiz = f_quiz.result()
+        summary = generate_summary(pdf_id, language)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -80,11 +75,10 @@ def upload():
         "uploaded_at": datetime.utcnow().isoformat(),
         "language": language,
         "summary": summary,
-        "quiz": quiz,
     })
     save_metadata(metadata)
 
-    return jsonify({"summary": summary, "quiz": quiz, "pdf_id": pdf_id, "filename": file.filename})
+    return jsonify({"summary": summary, "pdf_id": pdf_id, "filename": file.filename})
 
 
 @app.route("/ask", methods=["POST"])
@@ -104,17 +98,6 @@ def ask():
     supabase_logger.log_question(pdf_id, question, answer)
     return jsonify({"answer": answer})
 
-
-@app.route("/score", methods=["POST"])
-def save_score():
-    data = request.get_json()
-    pdf_id = data.get("pdf_id", "").strip()
-    correct = data.get("correct")
-    total = data.get("total")
-    if not pdf_id or correct is None or total is None:
-        return jsonify({"error": "Date incomplete"}), 400
-    supabase_logger.log_quiz_score(pdf_id, int(correct), int(total))
-    return jsonify({"ok": True})
 
 
 if __name__ == "__main__":
