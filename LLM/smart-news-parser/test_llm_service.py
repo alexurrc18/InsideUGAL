@@ -1,7 +1,15 @@
 import pytest
 import json
 import asyncio
-from unittest.mock import patch
+import sys
+from unittest.mock import patch, MagicMock
+
+# Mock the entire llm_functions module before importing llm_service
+# This prevents an import shadowing issue where llm_functions tries to import schemas
+# and accidentally gets smart-news-parser/schemas.py instead of modul-marius/schemas.py
+sys.modules['llm_functions'] = MagicMock()
+sys.modules['llm_functions']._call = MagicMock()
+
 from pydantic import ValidationError
 from llm_service import LLMService
 from schemas import ExtractedAnnouncementInfo, TipEveniment, NivelUrgenta
