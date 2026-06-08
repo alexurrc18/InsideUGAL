@@ -25,7 +25,7 @@ class NivelUrgenta(str, Enum):
     SCAZUTA = "scazuta"
 
 class AnnouncementRequest(BaseModel):
-    text: str = Field(..., min_length=10, max_length=5000, description="Textul brut al anuntului")
+    text: str = Field(..., min_length=10, max_length=15000, description="Textul brut al anuntului")
 
 class GeminiAnnouncementInfo(BaseModel):
     """Schema extinsa pentru datele extrase direct de LLM, adaptata pentru UGAL/Facultati"""

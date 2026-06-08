@@ -2,69 +2,90 @@ import os
 import json
 import logging
 from datetime import datetime
-from google import genai
-from google.genai import types
-from schemas import GeminiAnnouncementInfo, ExtractedAnnouncementInfo
+from huggingface_hub import AsyncInferenceClient
+from schemas import ExtractedAnnouncementInfo
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger("smart-news-parser")
 
 class LLMService:
-    def __init__(self, api_key: str):
-        self.client = genai.Client(api_key=api_key)
-        self.model_id = 'gemini-2.5-flash'
+    def __init__(self, hf_api_key: str):
+        if not hf_api_key:
+            raise ValueError("HUGGINGFACE_API_KEY este obligatoriu pentru LLMService.")
+        self.hf_client = AsyncInferenceClient(token=hf_api_key)
+        self.model_id = 'meta-llama/Meta-Llama-3-8B-Instruct'
+        self._cache = {}
 
     async def extract_announcement_info(self, text: str) -> ExtractedAnnouncementInfo:
+        text_key = text.strip().lower()
+        if text_key in self._cache:
+            logger.info("✅ Rezultat gasit in cache. Se returneaza fara apel AI.")
+            cached_data = self._cache[text_key].model_dump()
+            return ExtractedAnnouncementInfo(**cached_data)
+
         now = datetime.now().strftime("%Y-%m-%d %H:%M")
         
         prompt_system = (
             "Esti un expert in analiza de text academic pentru Universitatea 'Dunarea de Jos' din Galati (UGAL).\n"
             f"DATA CURENTA: {now}\n\n"
             "MISIUNE:\n"
-            "Extrage date structurate REALE din anuntul oferit. NU folosi placeholder-e precum 'string', 'n/a' sau valori default din schema. Daca o informatie lipseste complet, pune null sau lista vida [].\n\n"
-            "REGULI DE ANALIZA:\n"
-            "1. ENTITATE SURSA: Identifica cine a postat (ex: 'Rectorat', 'ACIEE', 'FSEAA', 'Directia Camine').\n"
-            "2. PUBLIC TINTA: Cine trebuie sa actioneze (ex: ['Studenti Anul 1', 'Masteranzi']).\n"
-            "3. TIP EVENIMENT: Alege strict din: 'proiect', 'laborator', 'partial', 'colocviu', 'examen', 'concurs', 'internship', 'bursa', 'voluntariat', 'oportunitate', 'cazare', 'anunt_general', 'administrativ'.\n"
-            "4. LOCATIE: Sali, corpuri sau platforme (ex: 'B21', 'Moodle', 'Secretariat ACIEE').\n"
-            "5. DEADLINE (REGULI STRICTE):\n"
-            "   - Daca exista o data clara (ex: '30 mai'), calculeaza YYYY-MM-DD 23:59.\n"
-            "   - Daca exista o data si o ora (ex: '15 iunie ora 14'), calculeaza YYYY-MM-DD 14:00.\n"
-            "   - DATE RELATIVE: Daca scrie 'pana vineri', calculeaza data primei zile de vineri care urmeaza dupa DATA CURENTA.\n"
-            "   - LIPSA DATA: Daca anuntul NU mentioneaza niciun termen limita sau perioada, pune obligatoriu null.\n"
-            "   - CONTRADICTII: Daca apar doua date diferite pentru aceeasi actiune, alege data cea mai apropiata de DATA CURENTA (cea mai urgenta) si mentioneaza conflictul in 'penalizari_sau_reguli'.\n"
-            "   - AN TRECUT: Daca anuntul mentioneaza un an trecut (ex: 2024) dar suntem in 2026, presupune ca este o greseala de editare si calculeaza pentru anul curent sau viitor astfel incat deadline-ul sa fie in viitor.\n"
-            "6. REZUMAT: Max 80 caractere, stil telegrafic.\n\n"
-            "EXEMPLU REZULTAT:\n"
-            "Text: 'Vino la Internship la Liberty! Depune CV pana pe 30 mai.'\n"
-            "JSON: {\"materie_sau_subiect\": \"Internship Liberty\", \"entitate_sursa\": \"Liberty Galati\", \"tip_eveniment\": \"internship\", \"public_tinta\": [\"Toti studentii\"], \"deadline_absolut\": \"2026-05-30 23:59\", \"rezumat_notificare\": \"Internship Liberty - depunere CV pana pe 30.05\", \"actiuni_extrase\": [\"Depune CV\"], \"taguri_cheie\": [\"Cariera\", \"Liberty\"]}"
+            "Extrage date structurate REALE din anuntul oferit. Returneaza STRICT un obiect JSON valabil.\n"
+            "NU folosi placeholder-e. Daca o informatie lipseste complet, pune null sau lista vida []. NU include text in afara de JSON.\n\n"
+            "Cheile necesare (valori implicite):\n"
+            "- materie_sau_subiect: string (Deduce subiectul principal, ex: 'Hackathon Web', 'Decontare Transport', 'Baze de Date'. NU pune null!)\n"
+            "- entitate_sursa: string sau null (ex: 'Rectorat', 'ACIEE')\n"
+            "- tip_eveniment: string ('proiect', 'laborator', 'partial', 'colocviu', 'examen', 'concurs', 'internship', 'bursa', 'voluntariat', 'oportunitate', 'cazare', 'anunt_general', 'administrativ')\n"
+            "- urgenta_estimata: string ('scazuta', 'medie', 'ridicata')\n"
+            "- public_tinta: lista de stringuri (ex: ['Studenti Anul 1'])\n"
+            "- deadline_absolut: string sau null (ISO 8601 YYYY-MM-DDTHH:MM:SS) - calculeaza din text raportat la data curenta.\n"
+            "- locatie: string sau null\n"
+            "- rezumat_notificare: string\n"
+            "- actiuni_extrase: lista de stringuri\n"
+            "- taguri_cheie: lista de stringuri\n"
+            "- penalizari_sau_reguli: lista de stringuri\n"
         )
 
         try:
-            response = await self.client.aio.models.generate_content(
-                model=self.model_id,
-                contents=f"{prompt_system}\n\nAnalizeaza acum urmatorul anunt:\n{text}",
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    response_schema=GeminiAnnouncementInfo,
-                    temperature=0.1
-                ),
+            messages = [
+                {"role": "system", "content": prompt_system},
+                {"role": "user", "content": f"Analizeaza acum urmatorul anunt:\n{text}"}
+            ]
+            
+            response = await self.hf_client.chat_completion(
+                model="meta-llama/Llama-3.3-70B-Instruct",
+                messages=messages,
+                max_tokens=1024,
+                temperature=0.1
             )
+            
+            raw_text = response.choices[0].message.content.strip()
+            
+            # Use regex to find the JSON object within the text, ignoring conversational wrappers
+            import re
+            json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
+            if json_match:
+                raw_text = json_match.group(0)
 
-            if hasattr(response, 'parsed') and isinstance(response.parsed, GeminiAnnouncementInfo):
-                result_dict = response.parsed.model_dump()
-            else:
-                # Fallback pt cazul in care 'parsed' nu e disponibil direct
-                raw_text = response.text
-                if raw_text.startswith("```json"):
-                    raw_text = raw_text.split("```json")[1].split("```")[0].strip()
-                result_dict = json.loads(raw_text)
+            if not raw_text:
+                raise ValueError("LLM returned an empty response.")
+                
+            result_dict = json.loads(raw_text)
 
-            # Validare anti-placeholders
-            for key, value in result_dict.items():
-                if value == "string":
-                    result_dict[key] = None
-                if isinstance(value, list) and "string" in value:
-                    result_dict[key] = [v for v in value if v != "string"]
+            # Normalize data before Pydantic validation
+            if not result_dict.get('materie_sau_subiect'):
+                result_dict['materie_sau_subiect'] = "Nespecificat"
+            if not result_dict.get('entitate_sursa'):
+                result_dict['entitate_sursa'] = "UGAL"
+            if not result_dict.get('rezumat_notificare'):
+                result_dict['rezumat_notificare'] = "Anunt important"
+            if not result_dict.get('tip_eveniment'):
+                result_dict['tip_eveniment'] = "anunt_general"
+            if not result_dict.get('urgenta_estimata'):
+                result_dict['urgenta_estimata'] = "medie"
+                
+            for list_field in ['public_tinta', 'actiuni_extrase', 'taguri_cheie', 'penalizari_sau_reguli', 'linkuri_utile']:
+                if result_dict.get(list_field) is None:
+                    result_dict[list_field] = []
 
             return ExtractedAnnouncementInfo(**result_dict)
 

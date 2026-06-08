@@ -5,7 +5,6 @@ import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from typing import Dict, Tuple
 
-import chromadb
 import pdfplumber
 import pybreaker
 from langdetect import detect as langdetect_detect, LangDetectException
@@ -14,6 +13,7 @@ from google import genai
 from google.genai import errors as genai_errors
 from pydantic import ValidationError
 from sentence_transformers import SentenceTransformer
+from supabase import create_client, Client
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -41,8 +41,10 @@ TIMEOUT_S = 30
 
 _client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 _embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-_chroma_path = os.path.join(os.path.dirname(__file__), "..", "chroma_db")
-_chroma = chromadb.PersistentClient(path=_chroma_path)
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Se închide după 5 erori consecutive, se resetează după 60s
 _breaker = pybreaker.CircuitBreaker(fail_max=5, reset_timeout=60)
@@ -176,27 +178,39 @@ def chunk_text(text: str, max_words: int = 200, overlap_words: int = 30) -> list
 
 
 def store_in_vector_db(chunks: list, pdf_id: str):
-    collection = _chroma.get_or_create_collection(name=pdf_id)
     embeddings = _embedding_model.encode(chunks).tolist()
-    collection.add(
-        documents=chunks,
-        embeddings=embeddings,
-        ids=[f"{pdf_id}_chunk_{i}" for i in range(len(chunks))],
-    )
-    return collection
+
+    data = []
+    for i, chunk in enumerate(chunks):
+        data.append({
+            "pdf_id": pdf_id,
+            "content": chunk,
+            "embedding": embeddings[i]
+        })
+        
+    supabase_client.table("document_chunks").insert(data).execute()
+    return True
 
 
 def query_relevant_chunks(query: str, pdf_id: str, n_results: int = 5) -> list:
-    collection = _chroma.get_or_create_collection(name=pdf_id)
     query_embedding = _embedding_model.encode([query]).tolist()
-    results = collection.query(query_embeddings=query_embedding, n_results=n_results)
-    return results["documents"][0]
+
+    response = supabase_client.rpc(
+        "match_document_chunks",
+        {
+            "query_embedding": query_embedding[0],
+            "match_count": n_results,
+            "filter_pdf_id": pdf_id
+        }
+    ).execute()
+    
+    return [item["content"] for item in response.data]
 
 
 def delete_pdf_from_rag(pdf_id: str) -> None:
-    """Sterge colectia ChromaDB asociata unui PDF (garbage collection vectorial)."""
+    """Sterge fragmentele din pgvector asociate unui PDF (garbage collection vectorial)."""
     try:
-        _chroma.delete_collection(name=pdf_id)
+        supabase_client.table("document_chunks").delete().eq("pdf_id", pdf_id).execute()
     except Exception:
         pass
 

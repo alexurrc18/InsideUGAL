@@ -1,13 +1,12 @@
 import React, { useState, useMemo } from "react";
 import { View, ScrollView, useColorScheme } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { CategoryHeader } from "@/components/ui/category-header";
 import { Expandable } from "@/components/ui/expandable";
 import { MenuItem } from "@/components/ui/menu-item";
 import MockData from "@/constants/mock-data.json";
 
-// 1. Definiție Produs
 interface Product {
   id: string;
   name: string;
@@ -58,8 +57,8 @@ export default function CantinaScreen() {
       <ScrollView 
         style={{ flex: 1 }} 
         contentContainerStyle={{ 
-          paddingBottom: insets.bottom + 20,
-          paddingTop: insets.top + 20 
+          paddingBottom: insets.bottom + Spacing.xxl,
+          paddingTop: insets.top + Spacing.md 
         }}
       >
         <CategoryHeader 
@@ -69,10 +68,10 @@ export default function CantinaScreen() {
           onSelectFilter={(id) => id && setSelectedDay(id)}
         />
 
-        <View style={{ gap: 10 }}>
+        <View style={{ gap: Spacing.sm }}>
           {Object.entries(currentMenu).map(([category, productIds]) => (
             <Expandable key={category} title={category} initialExpanded={category === "Meniul Zilei"}>
-              <View style={{ gap: 15, paddingTop: 5, paddingBottom: 10 }}>
+              <View style={{ gap: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: Spacing.sm }}>
                 {productIds.map((id, index) => {
                   const product = PRODUCT_DATABASE[id];
                   return product ? (

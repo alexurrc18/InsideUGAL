@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Text, ScrollView, useColorScheme } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Colors } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { NewsCard } from "@/components/ui/news-card";
 import { CategoryHeader, FilterItem } from "@/components/ui/category-header";
@@ -18,7 +18,6 @@ export default function CategoryScreen() {
 
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
 
-  // Pregătim filtrele pentru facultăți (folosim noua interfață FilterItem)
   const facultyFilters: FilterItem[] = [
     { id: null, title: "Toate Facultățile", abbreviation: "Toate Facultățile" },
     ...MOCK_DATA.faculties.map(f => ({
@@ -27,9 +26,10 @@ export default function CategoryScreen() {
     }))
   ];
 
-  // Filtram datele din JSON pe baza categoriei primite ca parametru și a facultății selectate
   const filteredData = categoryTitle === "Facultăți" 
     ? MOCK_DATA.faculties 
+    : categoryTitle === "Facilități"
+    ? MOCK_DATA.facilities
     : MOCK_DATA.events.filter(e => 
         (e as any).category === categoryTitle && 
         (!selectedFacultyId || (e as any).facultyId === selectedFacultyId || !(e as any).facultyId)
@@ -38,6 +38,7 @@ export default function CategoryScreen() {
   const handlePress = (item: any) => {
     let type = categoryTitle === "Evenimente" ? "Eveniment" : "Anunț";
     if (categoryTitle === "Facultăți") type = "Facultate";
+    if (categoryTitle === "Facilități") type = "Facilitate";
     
     router.push({
         pathname: "/(public)/acasa/vizualizare",
@@ -55,6 +56,7 @@ export default function CategoryScreen() {
             address: item.address,
             phone: item.phone,
             website: item.website,
+            schedule: item.schedule,
             date: item.date_start || item.date
         }
     });
@@ -65,19 +67,19 @@ export default function CategoryScreen() {
       <ScrollView 
         style={{ flex: 1 }} 
         contentContainerStyle={{ 
-          paddingBottom: insets.bottom + 20
+          paddingBottom: insets.bottom + Spacing.xxl
         }}
       >
-        <View style={{ paddingTop: insets.top + 50, marginBottom: 16 }}>
+        <View style={{ paddingTop: insets.top + 50, marginBottom: Spacing.lg }}>
             <CategoryHeader 
                 title={(categoryTitle as string) || "Categorie"}
-                filters={categoryTitle === "Facultăți" ? undefined : facultyFilters}
+                filters={categoryTitle === "Facultăți" || categoryTitle === "Facilități" ? undefined : facultyFilters}
                 selectedFilterId={selectedFacultyId}
                 onSelectFilter={setSelectedFacultyId}
             />
         </View>
 
-        <View style={{ gap: 20, paddingHorizontal: 16 }}>
+        <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>
           {filteredData.map((item) => (
               <NewsCard 
                   key={item.id}

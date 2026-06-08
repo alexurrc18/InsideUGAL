@@ -2,7 +2,7 @@ import { View, Text, ScrollView, useColorScheme, Linking, TouchableOpacity, Aler
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
-import { Colors, ColorScheme } from "@/constants/theme";
+import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { getFormattedDate, getReadingTime } from "@/utils/date";
 
@@ -27,6 +27,7 @@ function VizualizareScreen() {
         address,
         phone,
         website,
+        schedule,
         date
     } = useLocalSearchParams();
     
@@ -38,7 +39,7 @@ function VizualizareScreen() {
 
     const handleCall = () => {
         Alert.alert(
-            "Contact Facultate",
+            tipPagina === "Facultate" ? "Contact Facultate" : "Contact Facilitate",
             `Doriți să apelați numărul ${phone}?`,
             [
                 { text: "Anulează", style: "cancel" },
@@ -53,7 +54,7 @@ function VizualizareScreen() {
 
     return (
         <View style={{ flex: 1, backgroundColor: theme.background }}>
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 20 }}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + Spacing.xl }}>
                 <View style={{ width: "100%", height: 320 }}>
                     <Image
                         source={image ? { uri: image as string } : require("@/assets/images/campus-stiintei.png")}
@@ -61,9 +62,9 @@ function VizualizareScreen() {
                         contentFit="cover"
                     />
 
-                    <View style={{ flex: 1, padding: 16, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.3)" }}>
+                    <View style={{ flex: 1, padding: Spacing.lg, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.3)" }}>
                         <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
-                            {category || (tipPagina === "Facultate" ? "Facultate" : "Categorie")}
+                            {category || (tipPagina === "Facultate" ? "Facultate" : tipPagina === "Facilitate" ? "Facilitate" : "Categorie")}
                         </Text>
                         <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
                             {title || "Titlu"}
@@ -71,21 +72,21 @@ function VizualizareScreen() {
                     </View>
                 </View>
 
-                <View style={{ padding: 16, gap: 24 }}>
-                    {tipPagina !== "Facultate" && (
+                <View style={{ padding: Spacing.lg, gap: Spacing.xxl }}>
+                    {tipPagina !== "Facultate" && tipPagina !== "Facilitate" && (
                         <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>
                             {dateDisplay || "Dată necunoscută"}
                         </Text>
                     )}
                     
                     {tipPagina === "Eveniment" && (
-                        <View style={{ gap: 12 }}>
+                        <View style={{ gap: Spacing.md }}>
                             <Text style={[Typography.Heading4, { color: theme.text }]}>
                                 Informații eveniment
                             </Text>
 
-                            <View style={{ gap: 12 }}>
-                                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                            <View style={{ gap: Spacing.md }}>
+                                <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                     <CalendarIcon width={24} height={24} color={theme.primary} />
                                     <View>
                                         <Text style={[Typography.Heading5, { color: theme.text }]}>
@@ -96,7 +97,7 @@ function VizualizareScreen() {
                                         </Text>
                                     </View>
                                 </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                                <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                     <LocationIcon width={24} height={24} color={theme.primary} />
                                     <View>
                                         <Text style={[Typography.Heading5, { color: theme.text }]}>
@@ -108,14 +109,14 @@ function VizualizareScreen() {
                         </View>
                     )}
 
-                    {tipPagina === "Facultate" && (
-                        <View style={{ gap: 12 }}>
+                    {(tipPagina === "Facultate" || tipPagina === "Facilitate") && (
+                        <View style={{ gap: Spacing.md }}>
                             <Text style={[Typography.Heading4, { color: theme.text }]}>
                                 Contact și Locație
                             </Text>
 
-                            <View style={{ gap: 16 }}>
-                                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                            <View style={{ gap: Spacing.lg }}>
+                                <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                     <LocationIcon width={24} height={24} color={theme.primary} />
                                     <View style={{ flex: 1 }}>
                                         <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Adresă</Text>
@@ -126,7 +127,7 @@ function VizualizareScreen() {
                                 </View>
                                 
                                 {phone && (
-                                    <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                                    <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                         <PhoneIcon width={24} height={24} color={theme.primary} />
                                         <View style={{ flex: 1 }}>
                                             <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Telefon</Text>
@@ -140,7 +141,7 @@ function VizualizareScreen() {
                                 )}
 
                                 {website && (
-                                    <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                                    <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                         <WebsiteIcon width={24} height={24} color={theme.primary} />
                                         <View style={{ flex: 1 }}>
                                             <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Website</Text>
@@ -152,13 +153,25 @@ function VizualizareScreen() {
                                         </View>
                                     </View>
                                 )}
+
+                                {schedule && (
+                                    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: Spacing.md }}>
+                                        <CalendarIcon width={24} height={24} color={theme.primary} style={{ marginTop: 2 }} />
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Program</Text>
+                                            <Text style={[Typography.Heading5, { color: theme.text }]}>
+                                                {schedule}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                )}
                             </View>
                         </View>
                     )}
 
-                    <View style={{ gap: 12 }}>
+                    <View style={{ gap: Spacing.md }}>
                         <Text style={[Typography.Heading4, { color: theme.text }]}>
-                            {tipPagina === "Eveniment" ? "Despre eveniment" : tipPagina === "Facultate" ? "Despre facultate" : "Detalii anunț"}
+                            {tipPagina === "Eveniment" ? "Despre eveniment" : tipPagina === "Facultate" ? "Despre facultate" : tipPagina === "Facilitate" ? "Despre facilitate" : "Detalii anunț"}
                         </Text>
                         <Text style={[Typography.Paragraph2, { color: theme.text, lineHeight: 25 }]}>
                             {content || "Conținutul nu este disponibil."}
