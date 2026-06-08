@@ -21,6 +21,23 @@ export default function HomeScreen() {
   const noutati = MOCK_DATA.events.filter(e => e.category === "Noutăți");
   const evenimente = MOCK_DATA.events.filter(e => e.category === "Evenimente");
   const facultati = MOCK_DATA.faculties;
+  const facilitati = MOCK_DATA.facilities;
+
+  const handleFacilityPress = (facility: any) => {
+    router.push({
+        pathname: "/(public)/acasa/vizualizare",
+        params: {
+            type: "Facilitate",
+            title: facility.title,
+            content: facility.content,
+            image: facility.image,
+            address: facility.address,
+            phone: facility.phone,
+            website: facility.website,
+            schedule: facility.schedule
+        }
+    });
+  };
 
   const handlePress = (item: any) => {
     router.push({
@@ -121,6 +138,21 @@ export default function HomeScreen() {
                 image={item.image}
                 marginRight={index === facultati.length - 1 ? 0 : CAROUSEL_CARD_MARGIN}
                 onPress={() => handleFacultyPress(item)}
+              />
+            )}
+          />
+          <Carousel
+            title="Facilități"
+            data={facilitati}
+            keyExtractor={(item) => item.id}
+            viewAllHref="/(public)/acasa/categorie?title=Facilități"
+            renderItem={({ item, index }) => (
+              <NewsCard
+                variant="square"
+                title={item.title}
+                image={item.image}
+                marginRight={index === facilitati.length - 1 ? 0 : CAROUSEL_CARD_MARGIN}
+                onPress={() => handleFacilityPress(item)}
               />
             )}
           />

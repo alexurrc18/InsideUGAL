@@ -27,6 +27,7 @@ function VizualizareScreen() {
         address,
         phone,
         website,
+        schedule,
         date
     } = useLocalSearchParams();
     
@@ -38,7 +39,7 @@ function VizualizareScreen() {
 
     const handleCall = () => {
         Alert.alert(
-            "Contact Facultate",
+            tipPagina === "Facultate" ? "Contact Facultate" : "Contact Facilitate",
             `Doriți să apelați numărul ${phone}?`,
             [
                 { text: "Anulează", style: "cancel" },
@@ -63,7 +64,7 @@ function VizualizareScreen() {
 
                     <View style={{ flex: 1, padding: Spacing.lg, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.3)" }}>
                         <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
-                            {category || (tipPagina === "Facultate" ? "Facultate" : "Categorie")}
+                            {category || (tipPagina === "Facultate" ? "Facultate" : tipPagina === "Facilitate" ? "Facilitate" : "Categorie")}
                         </Text>
                         <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
                             {title || "Titlu"}
@@ -72,7 +73,7 @@ function VizualizareScreen() {
                 </View>
 
                 <View style={{ padding: Spacing.lg, gap: Spacing.xxl }}>
-                    {tipPagina !== "Facultate" && (
+                    {tipPagina !== "Facultate" && tipPagina !== "Facilitate" && (
                         <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>
                             {dateDisplay || "Dată necunoscută"}
                         </Text>
@@ -108,7 +109,7 @@ function VizualizareScreen() {
                         </View>
                     )}
 
-                    {tipPagina === "Facultate" && (
+                    {(tipPagina === "Facultate" || tipPagina === "Facilitate") && (
                         <View style={{ gap: Spacing.md }}>
                             <Text style={[Typography.Heading4, { color: theme.text }]}>
                                 Contact și Locație
@@ -152,13 +153,25 @@ function VizualizareScreen() {
                                         </View>
                                     </View>
                                 )}
+
+                                {schedule && (
+                                    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: Spacing.md }}>
+                                        <CalendarIcon width={24} height={24} color={theme.primary} style={{ marginTop: 2 }} />
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Program</Text>
+                                            <Text style={[Typography.Heading5, { color: theme.text }]}>
+                                                {schedule}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                )}
                             </View>
                         </View>
                     )}
 
                     <View style={{ gap: Spacing.md }}>
                         <Text style={[Typography.Heading4, { color: theme.text }]}>
-                            {tipPagina === "Eveniment" ? "Despre eveniment" : tipPagina === "Facultate" ? "Despre facultate" : "Detalii anunț"}
+                            {tipPagina === "Eveniment" ? "Despre eveniment" : tipPagina === "Facultate" ? "Despre facultate" : tipPagina === "Facilitate" ? "Despre facilitate" : "Detalii anunț"}
                         </Text>
                         <Text style={[Typography.Paragraph2, { color: theme.text, lineHeight: 25 }]}>
                             {content || "Conținutul nu este disponibil."}
