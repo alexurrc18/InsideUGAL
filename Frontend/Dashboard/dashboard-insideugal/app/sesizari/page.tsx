@@ -26,7 +26,7 @@ const initialTickets: TicketItem[] = [
     building: "Corpul G",
     status: "In lucru",
     createdBy: "user-curent",
-    authorName: "Andrei P",
+    authorName: "Andrei Popescu",
     date: "2026-06-08"
   },
   {
@@ -36,7 +36,7 @@ const initialTickets: TicketItem[] = [
     building: "Corpul A",
     status: "In asteptare",
     createdBy: "alt-user",
-    authorName: "Elena I",
+    authorName: "Elena Ionescu",
     date: "2026-06-07"
   },
   {
@@ -46,7 +46,7 @@ const initialTickets: TicketItem[] = [
     building: "Corpul G",
     status: "Inchis",
     createdBy: "user-curent",
-    authorName: "Andrei P",
+    authorName: "Andrei Popescu",
     date: "2026-06-05"
   }
 ];
@@ -93,31 +93,51 @@ export default function SesizariPage() {
     {
       header: 'Titlu',
       key: 'title',
-      render: (item) => (
-        <div className={`space-y-1 ${item.status === 'Inchis' || item.status === 'Respins' ? 'text-slate-400' : ''}`}>
-          <p className="font-semibold text-slate-900">{item.title}</p>
-          <p className="text-xs text-slate-500 line-clamp-1">{item.description}</p>
-        </div>
-      )
+      render: (item) => {
+        const isClosed = item.status === 'Inchis' || item.status === 'Respins';
+        return (
+          <div className={`space-y-1 ${isClosed ? 'opacity-50 text-slate-400' : ''}`}>
+            <p className="font-semibold text-slate-900">{item.title}</p>
+            <p className="text-xs text-slate-500 line-clamp-1">{item.description}</p>
+          </div>
+        );
+      }
     },
     {
       header: 'Locație Clădire',
       key: 'building',
-      render: (item) => <span className={item.status === 'Inchis' || item.status === 'Respins' ? 'text-slate-400' : 'text-slate-700 font-medium'}>{item.building}</span>
+      render: (item) => {
+        const isClosed = item.status === 'Inchis' || item.status === 'Respins';
+        return (
+          <span className={isClosed ? 'opacity-50 text-slate-400' : 'text-slate-700 font-medium'}>
+            {item.building}
+          </span>
+        );
+      }
     },
     {
       header: 'Depus de',
       key: 'authorName',
-      render: (item) => (
-        <span className="text-slate-600">
-          {currentUser.role === 'admin' ? item.authorName : '---'}
-        </span>
-      )
+      render: (item) => {
+        const isClosed = item.status === 'Inchis' || item.status === 'Respins';
+        return (
+          <span className={`text-slate-600 ${isClosed ? 'opacity-50' : ''}`}>
+            {currentUser.role === 'admin' ? item.authorName : '---'}
+          </span>
+        );
+      }
     },
     {
       header: 'Dată',
       key: 'date',
-      render: (item) => <span className="text-slate-500 text-xs whitespace-nowrap">{item.date}</span>
+      render: (item) => {
+        const isClosed = item.status === 'Inchis' || item.status === 'Respins';
+        return (
+          <span className={`text-slate-500 text-xs whitespace-nowrap ${isClosed ? 'opacity-50' : ''}`}>
+            {item.date}
+          </span>
+        );
+      }
     },
     {
       header: 'Status',
@@ -227,7 +247,6 @@ export default function SesizariPage() {
         <Table 
           data={filteredTickets} 
           columns={columns} 
-          rowClassName={(item) => item.status === 'Inchis' || item.status === 'Respins' ? 'opacity-60 bg-slate-50/40' : ''} 
         />
       </div>
 
