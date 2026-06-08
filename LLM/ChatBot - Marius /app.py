@@ -15,7 +15,6 @@ from scraper import scrape_faciee, scrape_all
 from google import genai
 from google.genai import types as genai_types
 import pybreaker
-import hashlib
 import cache as llm_cache
 import backend_client
 
@@ -43,31 +42,8 @@ MODELS = [
     "meta-llama/llama-3.3-70b-instruct:free",
 ]
 
-def _knowledge_hash() -> str:
-    """Hash-ul tuturor fișierelor din knowledge/ — dacă se schimbă, RAG se rebuilduiește."""
-    kdir = os.path.join(os.path.dirname(__file__), "knowledge")
-    h = hashlib.sha256()
-    for fname in sorted(os.listdir(kdir)):
-        if fname.endswith(".txt"):
-            with open(os.path.join(kdir, fname), "rb") as f:
-                h.update(fname.encode() + f.read())
-    return h.hexdigest()
-
-KNOWLEDGE_HASH_FILE = os.path.join(os.path.dirname(__file__), ".knowledge_hash")
-
 print("Se încarcă indexul RAG...")
 rag = RAGEngine()
-
-# Rebuild dacă knowledge files s-au schimbat
-current_hash = _knowledge_hash()
-stored_hash  = open(KNOWLEDGE_HASH_FILE).read().strip() if os.path.exists(KNOWLEDGE_HASH_FILE) else ""
-if current_hash != stored_hash:
-    print("[RAG] Fișiere knowledge noi/modificate — rebuild index...")
-    rag.rebuild()
-    with open(KNOWLEDGE_HASH_FILE, "w") as f:
-        f.write(current_hash)
-    print(f"[RAG] Rebuild complet — {rag.collection.count()} chunk-uri.")
-
 print(f"RAG gata — {rag.collection.count()} chunk-uri indexate.")
 
 RESCRAPE_INTERVAL_HOURS = 1  # re-scrape automat la fiecare oră

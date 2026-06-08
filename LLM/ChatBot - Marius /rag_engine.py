@@ -1,10 +1,14 @@
 import os
 import re
+import time
 import requests
+from dotenv import load_dotenv
 from google import genai
 from google.genai import types as genai_types
 
-KNOWLEDGE_DIR = os.path.join(os.path.dirname(__file__), "knowledge")
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+
 EMBEDDING_MODEL = "gemini-embedding-001"
 EMBEDDING_DIMS = 384
 
@@ -15,12 +19,22 @@ _gemini = genai.Client(api_key=os.getenv("GEMINI_API_KEY", ""))
 
 
 def _embed(texts: list[str]) -> list[list[float]]:
-    result = _gemini.models.embed_content(
-        model=EMBEDDING_MODEL,
-        contents=texts,
-        config=genai_types.EmbedContentConfig(output_dimensionality=EMBEDDING_DIMS),
-    )
-    return [e.values for e in result.embeddings]
+    for attempt in range(5):
+        try:
+            result = _gemini.models.embed_content(
+                model=EMBEDDING_MODEL,
+                contents=texts,
+                config=genai_types.EmbedContentConfig(output_dimensionality=EMBEDDING_DIMS),
+            )
+            return [e.values for e in result.embeddings]
+        except Exception as e:
+            if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                wait = 60 * (attempt + 1)
+                print(f"[RAG] 429 quota — aștept {wait}s și reîncerc ({attempt+1}/5)...")
+                time.sleep(wait)
+            else:
+                raise
+    raise RuntimeError("[RAG] Quota Gemini epuizată după 5 reîncercări.")
 
 
 def _sb_headers() -> dict:
@@ -43,7 +57,6 @@ class _CollectionProxy:
 class RAGEngine:
     def __init__(self):
         self.collection = _CollectionProxy(self)
-        self._index_files()
 
     # ── Supabase helpers ──────────────────────────────────────────────────────
 
@@ -74,10 +87,15 @@ class RAGEngine:
     def _upsert(self, docs: list[str], ids: list[str], metas: list[dict]):
         if not docs:
             return
-        # Embed in batches of 100 (Gemini API limit)
         embeddings: list[list[float]] = []
-        for i in range(0, len(docs), 100):
-            embeddings.extend(_embed(docs[i:i + 100]))
+        total_batches = (len(docs) + 9) // 10
+        for i in range(0, len(docs), 10):
+            batch_no = i // 10 + 1
+            batch = docs[i:i + 10]
+            print(f"[RAG] Embed batch {batch_no}/{total_batches} ({len(batch)} chunk-uri)...")
+            embeddings.extend(_embed(batch))
+            if i + 10 < len(docs):
+                time.sleep(4)
 
         rows = [
             {
@@ -96,50 +114,6 @@ class RAGEngine:
                 json=rows[i:i + 50],
                 timeout=30,
             )
-
-    # ── Chunking ──────────────────────────────────────────────────────────────
-
-    def _chunks_from_file(self, path: str) -> list[str]:
-        with open(path, "r", encoding="utf-8") as f:
-            text = f.read()
-        raw = re.split(r"={3,}", text)
-        chunks = []
-        for part in raw:
-            part = part.strip()
-            if len(part) < 40:
-                continue
-            if len(part) > 900:
-                lines = part.splitlines()
-                buf, buf_len = [], 0
-                for line in lines:
-                    buf.append(line)
-                    buf_len += len(line)
-                    if buf_len > 700:
-                        chunks.append("\n".join(buf).strip())
-                        buf, buf_len = [], 0
-                if buf:
-                    chunks.append("\n".join(buf).strip())
-            else:
-                chunks.append(part)
-        return [c for c in chunks if len(c) > 30]
-
-    def _index_files(self):
-        existing = self._get_existing_ids()
-        docs, ids, metas = [], [], []
-        idx = 0
-        for fname in sorted(os.listdir(KNOWLEDGE_DIR)):
-            if not fname.endswith(".txt"):
-                continue
-            for chunk in self._chunks_from_file(os.path.join(KNOWLEDGE_DIR, fname)):
-                cid = f"file_{fname}_{idx}"
-                if cid not in existing:
-                    docs.append(chunk)
-                    ids.append(cid)
-                    metas.append({"source": fname, "type": "file"})
-                idx += 1
-        if docs:
-            print(f"[RAG] Indexez {len(docs)} chunk-uri noi în Supabase...")
-            self._upsert(docs, ids, metas)
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -164,7 +138,6 @@ class RAGEngine:
             params={"id": "gte.1"},
             timeout=30,
         )
-        self._index_files()
 
     def query_with_sources(self, question: str, n_results: int = 5) -> tuple[str, list[str]]:
         try:

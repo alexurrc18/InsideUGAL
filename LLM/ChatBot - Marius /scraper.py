@@ -1,8 +1,14 @@
 import re
 import time
+import warnings
 import requests
+import urllib3
 import fitz  # PyMuPDF
 from bs4 import BeautifulSoup
+
+# ugal.ro și admitere.ugal.ro au certificat SSL nerecunoscut pe Mac —
+# dezactivăm verificarea doar pentru scraping intern, nu pentru prod
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 BASE_URL  = "https://aciee.ugal.ro"
 UGAL_URL  = "https://www.ugal.ro"
@@ -53,6 +59,12 @@ PAGES = [
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; FACIEEBot/1.0)"
+}
+
+VERIFY_SSL = {
+    "https://aciee.ugal.ro": True,
+    "https://www.ugal.ro": False,
+    "https://www.admitere.ugal.ro": False,
 }
 
 def _clean_html(soup: BeautifulSoup, source_url: str) -> str:
@@ -220,10 +232,11 @@ ADM_PAGES = [
 def _scrape_site(base: str, pages: list[str], prefix: str) -> list[dict]:
     chunks = []
     chunk_idx = 0
+    ssl_verify = next((v for k, v in VERIFY_SSL.items() if base.startswith(k)), True)
     for path in pages:
         url = base + path
         try:
-            resp = requests.get(url, headers=HEADERS, timeout=12)
+            resp = requests.get(url, headers=HEADERS, timeout=12, verify=ssl_verify)
             if resp.status_code != 200:
                 continue
             soup = BeautifulSoup(resp.text, "html.parser")
