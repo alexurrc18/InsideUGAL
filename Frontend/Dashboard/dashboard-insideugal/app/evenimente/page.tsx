@@ -140,7 +140,7 @@ export default function Page() {
           >
             Editare
           </button>
-          <button type="button" className="text-green-600 hover:text-green-800 font-medium hover:underline cursor-pointer" onClick={() => alert(`Shared: ${item.title}`)}>Share</button>
+          <button type="button" className="text-green-600 hover:text-green-800 font-medium hover:underline cursor-pointer" onClick={() => console.info(`Shared: ${item.title}`)}>Share</button>
           <button type="button" className="text-red-500 hover:text-red-700 font-medium hover:underline cursor-pointer" onClick={() => setData(data.filter(a => a.id !== item.id))}>Ștergere</button>
         </div>
       )
@@ -215,7 +215,7 @@ export default function Page() {
   };
 
   const handleAiGenerate = () => {
-    alert("Generare imagine AI... (Legătură LLM viitoare)");
+    console.info("Generare imagine AI... (Legătură LLM viitoare)");
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -243,52 +243,50 @@ export default function Page() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Evenimente viitoare</h1>
-          <p className="text-sm text-muted">Gestionează și filtrează evenimentele programate în campus.</p>
-        </div>
+      {/* Aliniere: Filtrul împins în stânga, Butonul împins în dreapta */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 relative" ref={dropdownRef}>
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Filtrează:</span>
-            
-            <button
-              type="button"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center justify-between min-w-[140px] border border-border px-4 py-2.5 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-slate-700"
-            >
-              <span>{selectedFaculty}</span>
-              <svg className={`w-4 h-4 ml-2 text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {isDropdownOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-48 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
-                {allFilterOptions.map(faculty => (
-                  <div
-                    key={faculty}
-                    onClick={() => { setSelectedFaculty(faculty); setIsDropdownOpen(false); }}
-                    className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedFaculty === faculty ? 'bg-blue-50 text-blue-600 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
-                  >
-                    <span>{faculty}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <button 
-            type="button" 
-            onClick={() => { setFormState({ faculties: [], pdfFiles: [] }); setNewFacultyInput(''); setActiveModal('add'); }} 
-            className="bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-bold cursor-pointer hover:opacity-90 transition-all shadow-md"
+        {/* Filtrul în stânga */}
+        <div className="flex items-center gap-2 relative" ref={dropdownRef}>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Filtrează:</span>
+          
+          <button
+            type="button"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="flex items-center justify-between min-w-[140px] border border-border px-4 py-2.5 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-slate-700"
           >
-            + Adaugă
+            <span>{selectedFaculty}</span>
+            <svg className={`w-4 h-4 ml-2 text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
           </button>
+
+          {isDropdownOpen && (
+            <div className="absolute left-0 top-full mt-1.5 w-48 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
+              {allFilterOptions.map(faculty => (
+                <div
+                  key={faculty}
+                  onClick={() => { setSelectedFaculty(faculty); setIsDropdownOpen(false); }}
+                  className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedFaculty === faculty ? 'bg-blue-50 text-blue-600 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
+                >
+                  <span>{faculty}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Butonul în dreapta */}
+        <button 
+          type="button" 
+          onClick={() => { setFormState({ faculties: [], pdfFiles: [] }); setNewFacultyInput(''); setActiveModal('add'); }} 
+          className="bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-bold cursor-pointer hover:opacity-90 transition-all shadow-md self-end sm:self-auto"
+        >
+          + Adaugă
+        </button>
       </div>
       
+      {/* Structură Tabel */}
       <div className="bg-card border border-border rounded-2xl shadow-xs overflow-hidden">
         <Table 
           data={filteredData} 
@@ -300,6 +298,7 @@ export default function Page() {
         />
       </div>
 
+      {/* Modal Vizualizare Detalii */}
       <Modal isOpen={activeModal === 'details'} onClose={() => setActiveModal(null)} title="Vizualizare Anunț">
         {selectedItem && (
           <div className="space-y-4 text-sm text-foreground">
@@ -336,7 +335,7 @@ export default function Page() {
                 <div className="flex flex-col gap-1.5">
                   {selectedItem.pdfFiles.map((file, idx) => (
                     <div key={idx}>
-                      <a href={file.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-100 transition-all">
+                      <a href={file.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-100 transition-all">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                         </svg>
@@ -350,7 +349,7 @@ export default function Page() {
 
             {selectedItem.eventLink && (
               <div className="pt-2 border-t border-border">
-                <a href={selectedItem.eventLink} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline inline-flex items-center gap-1 font-medium">
+                <a href={selectedItem.eventLink?.startsWith('http') ? selectedItem.eventLink : '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline inline-flex items-center gap-1 font-medium">
                   Link către eveniment →
                 </a>
               </div>
@@ -359,6 +358,7 @@ export default function Page() {
         )}
       </Modal>
 
+      {/* Modal Adăugare / Editare */}
       <Modal isOpen={activeModal === 'add' || activeModal === 'edit'} onClose={() => setActiveModal(null)} title={activeModal === 'edit' ? "Editare Anunț" : "Adăugare Eveniment Nou"}>
         <form onSubmit={handleSave} className="space-y-4 text-sm">
           <div>
