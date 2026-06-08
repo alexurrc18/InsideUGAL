@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Text, ScrollView, useColorScheme } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Colors } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { NewsCard } from "@/components/ui/news-card";
 import { CategoryHeader, FilterItem } from "@/components/ui/category-header";
@@ -65,10 +65,10 @@ export default function CategoryScreen() {
       <ScrollView 
         style={{ flex: 1 }} 
         contentContainerStyle={{ 
-          paddingBottom: insets.bottom + 20
+          paddingBottom: insets.bottom + Spacing.xxl
         }}
       >
-        <View style={{ paddingTop: insets.top + 50, marginBottom: 16 }}>
+        <View style={{ paddingTop: insets.top + 50, marginBottom: Spacing.lg }}>
             <CategoryHeader 
                 title={(categoryTitle as string) || "Categorie"}
                 filters={categoryTitle === "Facultăți" ? undefined : facultyFilters}
@@ -77,7 +77,7 @@ export default function CategoryScreen() {
             />
         </View>
 
-        <View style={{ gap: 20, paddingHorizontal: 16 }}>
+        <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>
           {filteredData.map((item) => (
               <NewsCard 
                   key={item.id}

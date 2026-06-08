@@ -4,9 +4,10 @@ import os
 import sys
 import uuid
 import logging
+import tempfile
 from pathlib import Path
 from importlib.util import spec_from_file_location, module_from_spec
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
@@ -90,9 +91,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-UPLOAD_FOLDER = MODUL_MARIUS / "uploads"
-UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
-
 
 @app.get("/")
 def health_check():
@@ -111,7 +109,7 @@ def health_check():
 
 
 @app.post("/api/v1/extract-announcement-info", response_model=smart_news_schemas.ExtractedAnnouncementInfo)
-async def extract_announcement_info(request: smart_news_schemas.AnnouncementRequest):
+async def extract_announcement_info(request: smart_news_schemas.AnnouncementRequest):  # type: ignore
     try:
         logger.info("Primire cerere extractie info-anunt.")
         return await llm_service.extract_announcement_info(request.text)
@@ -120,27 +118,53 @@ async def extract_announcement_info(request: smart_news_schemas.AnnouncementRequ
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+def process_pdf_background(pdf_path: str, pdf_id: str):
+    """Functie care ruleaza in background pentru a procesa si indexa PDF-ul."""
+    try:
+        logger.info("BG_TASK: Pornire indexare RAG pentru pdf_id=%s", pdf_id)
+        mod_marius_functions.load_pdf_into_rag(pdf_path, pdf_id)
+        logger.info("BG_TASK: Indexare RAG finalizata pentru pdf_id=%s", pdf_id)
+    except Exception as exc:
+        logger.error("BG_TASK: Eroare la indexare RAG pentru %s: %s", pdf_id, exc)
+    finally:
+        # Curățăm mereu fișierul temporar local, indiferent dacă procesarea a reușit sau a eșuat
+        path_obj = Path(pdf_path)
+        if path_obj.exists():
+            path_obj.unlink()
+
+
 @app.post("/api/v1/upload-pdf")
-async def upload_pdf(pdf: UploadFile = File(...)):
+async def upload_pdf(background_tasks: BackgroundTasks, pdf: UploadFile = File(...)):
     if not pdf.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Fisierul trebuie sa fie PDF.")
 
     pdf_id = str(uuid.uuid4())
-    pdf_path = UPLOAD_FOLDER / f"{pdf_id}.pdf"
+    file_bytes = await pdf.read()
 
+    # 1. Salvăm PDF-ul fizic în Supabase Storage
     try:
-        with pdf_path.open("wb") as f:
-            f.write(await pdf.read())
-
-        _, language = mod_marius_functions.load_pdf_into_rag(str(pdf_path), pdf_id)
-        return {"pdf_id": pdf_id, "language": language, "message": "PDF incarcat si indexat in vector DB."}
+        mod_marius_functions.supabase_client.storage.from_("documents").upload(
+            path=f"{pdf_id}.pdf",
+            file=file_bytes,
+            file_options={"content-type": "application/pdf"}
+        )
     except Exception as exc:
-        logger.error("Eroare la incarcare PDF: %s", exc)
-        raise HTTPException(status_code=500, detail=str(exc))
+        logger.error("Eroare la upload in Supabase Storage: %s", exc)
+        raise HTTPException(status_code=500, detail="Eroare la salvarea fisierului in cloud.")
+        
+    # 2. Creăm un fișier temporar doar pentru AI, care se va șterge singur după
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    temp_file.write(file_bytes)
+    temp_file.close()
+
+    # 3. Trimitem task-ul asincron (folosind calea fișierului temporar)
+    background_tasks.add_task(process_pdf_background, temp_file.name, pdf_id)
+
+    return {"pdf_id": pdf_id, "message": "PDF-ul a fost primit si va fi procesat in background."}
 
 
 @app.post("/api/v1/ask", response_model=mod_marius_schemas.AnswerQuestionOutput)
-async def ask_question(request: mod_marius_schemas.AnswerQuestionInput):
+async def ask_question(request: mod_marius_schemas.AnswerQuestionInput):  # type: ignore
     try:
         answer = mod_marius_functions.answer_question(request.question, request.pdf_id)
         return mod_marius_schemas.AnswerQuestionOutput(answer=answer)
@@ -150,7 +174,7 @@ async def ask_question(request: mod_marius_schemas.AnswerQuestionInput):
 
 
 @app.post("/api/v1/summary", response_model=mod_marius_schemas.GenerateSummaryOutput)
-async def summary(request: mod_marius_schemas.GenerateSummaryInput):
+async def summary(request: mod_marius_schemas.GenerateSummaryInput):  # type: ignore
     try:
         summary_text = mod_marius_functions.generate_summary(request.pdf_id)
         return mod_marius_schemas.GenerateSummaryOutput(summary=summary_text)
@@ -160,7 +184,7 @@ async def summary(request: mod_marius_schemas.GenerateSummaryInput):
 
 
 @app.post("/api/v1/quiz", response_model=mod_marius_schemas.GenerateQuizOutput)
-async def quiz(request: mod_marius_schemas.GenerateQuizInput):
+async def quiz(request: mod_marius_schemas.GenerateQuizInput):  # type: ignore
     try:
         quiz_responses = mod_marius_functions.generate_quiz(request.pdf_id)
         return mod_marius_schemas.GenerateQuizOutput(questions=quiz_responses)
@@ -171,18 +195,18 @@ async def quiz(request: mod_marius_schemas.GenerateQuizInput):
 
 @app.delete("/api/v1/delete-pdf/{pdf_id}")
 async def delete_pdf(pdf_id: str):
-    """Sterge fisierul fizic din uploads/ si vectorii din ChromaDB."""
-    pdf_path = UPLOAD_FOLDER / f"{pdf_id}.pdf"
-
-    if pdf_path.exists():
-        pdf_path.unlink()
-        logger.info("Fisier sters: %s", pdf_path)
+    """Sterge fisierul fizic din Supabase Storage si vectorii din pgvector."""
+    try:
+        mod_marius_functions.supabase_client.storage.from_("documents").remove([f"{pdf_id}.pdf"])
+        logger.info("Fisier sters din Supabase Storage: %s", pdf_id)
+    except Exception as exc:
+        logger.warning("Nu am putut sterge fisierul din Storage pentru %s: %s", pdf_id, exc)
 
     try:
         mod_marius_functions.delete_pdf_from_rag(pdf_id)
-        logger.info("Colectie ChromaDB stearsa pentru pdf_id=%s", pdf_id)
+        logger.info("Vectori stersi din pgvector pentru pdf_id=%s", pdf_id)
     except Exception as exc:
-        logger.warning("Nu am putut sterge colectia ChromaDB pentru %s: %s", pdf_id, exc)
+        logger.warning("Nu am putut sterge vectorii pentru %s: %s", pdf_id, exc)
 
     return {"ok": True, "pdf_id": pdf_id}
 

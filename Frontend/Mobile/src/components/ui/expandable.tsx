@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, Pressable, useColorScheme } from "react-native";
-import { Colors } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import ChevronIcon from "@/assets/icons/svg/chevron-left.svg";
 
@@ -8,15 +8,23 @@ interface ExpandableProps {
   title: string;
   children: React.ReactNode;
   initialExpanded?: boolean;
+  expanded?: boolean;
+  onToggle?: () => void;
 }
 
-export function Expandable({ title, children, initialExpanded = false }: ExpandableProps) {
-  const [isExpanded, setIsExpanded] = useState(initialExpanded);
+export function Expandable({ title, children, initialExpanded = false, expanded, onToggle }: ExpandableProps) {
+  const [internalExpanded, setInternalExpanded] = useState(initialExpanded);
+  const isControlled = expanded !== undefined;
+  const isExpanded = isControlled ? expanded : internalExpanded;
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
-  
+
   const toggleExpand = () => {
-    setIsExpanded(!isExpanded);
+    if (isControlled) {
+      onToggle?.();
+    } else {
+      setInternalExpanded((v) => !v);
+    }
   };
 
   return (
@@ -28,9 +36,9 @@ export function Expandable({ title, children, initialExpanded = false }: Expanda
             flexDirection: "row",
             justifyContent: "space-between",
             alignItems: "center",
-            paddingTop: 12,
+            paddingTop: Spacing.lg,
             paddingBottom: 0,
-            paddingHorizontal: 16,
+            paddingHorizontal: Spacing.lg,
           }, 
           { opacity: pressed ? 0.7 : 1 }
         ]}
@@ -48,7 +56,7 @@ export function Expandable({ title, children, initialExpanded = false }: Expanda
       </Pressable>
       
       {isExpanded && (
-        <View style={{ paddingHorizontal: 16, paddingTop: 2, overflow: "hidden" }}>
+        <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.xxs, overflow: "hidden" }}>
           {children}
         </View>
       )}
