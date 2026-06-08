@@ -29,6 +29,8 @@ OPENROUTER_URL     = "https://openrouter.ai/api/v1/chat/completions"
 GEMINI_API_KEY     = os.getenv("GEMINI_API_KEY", "").strip().strip("'").strip('"')
 GEMINI_MODEL       = "gemini-2.5-flash"
 CONVERSATIONS_DIR  = os.path.join(os.path.dirname(__file__), "conversations")
+SUPABASE_URL       = os.getenv("SUPABASE_URL", "").rstrip("/")
+SUPABASE_KEY       = os.getenv("SUPABASE_SERVICE_KEY", "") or os.getenv("SUPABASE_KEY", "")
 
 _gemini_client  = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 _gemini_breaker = pybreaker.CircuitBreaker(fail_max=5, reset_timeout=60)
@@ -44,7 +46,7 @@ MODELS = [
 def _knowledge_hash() -> str:
     """Hash-ul tuturor fișierelor din knowledge/ — dacă se schimbă, RAG se rebuilduiește."""
     kdir = os.path.join(os.path.dirname(__file__), "knowledge")
-    h = hashlib.md5()
+    h = hashlib.sha256()
     for fname in sorted(os.listdir(kdir)):
         if fname.endswith(".txt"):
             with open(os.path.join(kdir, fname), "rb") as f:
@@ -122,19 +124,19 @@ def _generate_suggestions(question: str, answer: str) -> list[str]:
         prompt = (
             f"Pe baza acestei conversații despre UGAL, propune 3 întrebări scurte de follow-up în română.\n"
             f"Întrebarea: {question}\nRăspunsul (extras): {answer[:300]}\n\n"
-            "Răspunde cu exact 3 întrebări, câte una pe linie, fără numerotare sau prefix."
+            "Răspunde cu exact 3 sugestii scurte și complete, câte una pe linie, fără numerotare sau prefix."
         )
         resp = _gemini_client.models.generate_content(
             model=GEMINI_MODEL,
             contents=prompt,
-            config=genai_types.GenerateContentConfig(temperature=0.7, max_output_tokens=150),
+            config=genai_types.GenerateContentConfig(temperature=0.7, max_output_tokens=300),
         )
         lines = [
             ln.strip().lstrip("0123456789.-) ").strip()
             for ln in (resp.text or "").strip().splitlines()
             if ln.strip()
         ]
-        return [q for q in lines if 10 < len(q) < 120][:3]
+        return [q for q in lines if 10 < len(q) < 150][:3]
     except Exception:
         return []
 
@@ -235,6 +237,89 @@ def list_conversations():
 def make_title(text):
     title = text.strip()[:50]
     return title + ("…" if len(text.strip()) > 50 else "")
+
+# ── Supabase — istoricul conversațiilor per cont ─────────────────────────────
+
+def _sb_headers():
+    return {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+    }
+
+def _sb_save_conv(conv: dict, user_id: str):
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return
+    try:
+        requests.post(
+            f"{SUPABASE_URL}/rest/v1/chatbot_conversations",
+            headers={**_sb_headers(), "Prefer": "resolution=merge-duplicates,return=minimal"},
+            json={
+                "id": conv["id"],
+                "user_id": user_id,
+                "title": conv.get("title", "Conversație nouă"),
+                "messages": conv.get("messages", []),
+                "updated_at": conv.get("updated_at", datetime.now().isoformat()),
+            },
+            timeout=5,
+        )
+    except Exception as e:
+        print(f"[Supabase] save_conv: {e}")
+
+def _sb_list_convs(user_id: str) -> list:
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return []
+    try:
+        resp = requests.get(
+            f"{SUPABASE_URL}/rest/v1/chatbot_conversations"
+            f"?user_id=eq.{user_id}&order=updated_at.desc&limit=50"
+            f"&select=id,title,updated_at,messages",
+            headers=_sb_headers(),
+            timeout=5,
+        )
+        if resp.status_code == 200:
+            return resp.json() or []
+    except Exception:
+        pass
+    return []
+
+def _sb_get_conv(conv_id: str, user_id: str) -> dict | None:
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return None
+    try:
+        resp = requests.get(
+            f"{SUPABASE_URL}/rest/v1/chatbot_conversations"
+            f"?id=eq.{conv_id}&user_id=eq.{user_id}&limit=1",
+            headers=_sb_headers(),
+            timeout=5,
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            return data[0] if data else None
+    except Exception:
+        pass
+    return None
+
+def _sb_delete_conv(conv_id: str, user_id: str):
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return
+    try:
+        requests.delete(
+            f"{SUPABASE_URL}/rest/v1/chatbot_conversations"
+            f"?id=eq.{conv_id}&user_id=eq.{user_id}",
+            headers=_sb_headers(),
+            timeout=5,
+        )
+    except Exception as e:
+        print(f"[Supabase] delete_conv: {e}")
+
+def _save_conv(conv: dict, user_id: str | None, old_filename: str | None = None):
+    """Salvează în Supabase dacă user_id e prezent, altfel local."""
+    if user_id:
+        conv["updated_at"] = datetime.now().isoformat()
+        _sb_save_conv(conv, user_id)
+    else:
+        save_conversation(conv, old_filename=old_filename)
 
 # ── Meniu cantină (fetch live) ──────────────────────────────────────────────
 
@@ -369,6 +454,15 @@ def rebuild_rag():
 
 @app.route("/conversations", methods=["GET"])
 def get_conversations():
+    user_id = request.args.get("user_id")
+    if user_id:
+        convs = _sb_list_convs(user_id)
+        return jsonify([{
+            "id": c["id"],
+            "title": c.get("title", "Conversație nouă"),
+            "updated_at": c.get("updated_at", ""),
+            "message_count": len(c.get("messages") or []),
+        } for c in convs])
     return jsonify(list_conversations())
 
 @app.route("/conversations", methods=["POST"])
@@ -387,6 +481,12 @@ def create_conversation():
 
 @app.route("/conversations/<conv_id>", methods=["GET"])
 def get_conversation(conv_id):
+    user_id = request.args.get("user_id")
+    if user_id:
+        conv = _sb_get_conv(conv_id, user_id)
+        if conv:
+            return jsonify(conv)
+        return jsonify({"error": "Nu există"}), 404
     conv = load_conversation(conv_id)
     if not conv:
         return jsonify({"error": "Nu există"}), 404
@@ -394,9 +494,13 @@ def get_conversation(conv_id):
 
 @app.route("/conversations/<conv_id>", methods=["DELETE"])
 def delete_conversation(conv_id):
-    fpath = find_conv_file(conv_id)
-    if fpath and os.path.exists(fpath):
-        os.remove(fpath)
+    user_id = request.args.get("user_id")
+    if user_id:
+        _sb_delete_conv(conv_id, user_id)
+    else:
+        fpath = find_conv_file(conv_id)
+        if fpath and os.path.exists(fpath):
+            os.remove(fpath)
     return jsonify({"status": "ok"})
 
 @app.route("/chat", methods=["POST"])
@@ -405,11 +509,17 @@ def chat():
     user_message = data.get("message", "").strip()
     conv_id = data.get("conv_id")
     image_data = data.get("image_data")  # base64 data URL, opțional
+    user_id = data.get("user_id")        # UUID utilizator logat, opțional
 
     if not user_message:
         return jsonify({"error": "Mesaj gol"}), 400
 
-    conv = load_conversation(conv_id) if conv_id else None
+    # Încarcă conversația: din Supabase dacă user_id prezent, altfel local
+    if conv_id:
+        conv = _sb_get_conv(conv_id, user_id) if user_id else load_conversation(conv_id)
+    else:
+        conv = None
+
     old_filename = None
 
     if not conv:
@@ -424,12 +534,13 @@ def chat():
             "updated_at": datetime.now().isoformat(),
         }
     elif conv["title"] == "Conversație nouă":
-        old_filename = conv.get("filename", conv["id"])
+        if not user_id:
+            old_filename = conv.get("filename", conv["id"])
+            conv["filename"] = make_filename(make_title(user_message), conv["id"])
         conv["title"] = make_title(user_message)
-        conv["filename"] = make_filename(conv["title"], conv["id"])
 
-    # Asigură că fișierele vechi (fără câmpul filename) sunt compatibile
-    if "filename" not in conv:
+    # Compatibilitate fișiere vechi fără câmpul filename
+    if not user_id and "filename" not in conv:
         conv["filename"] = conv["id"]
 
     conv["messages"].append({"role": "user", "content": user_message})
@@ -552,7 +663,7 @@ def chat():
                 if token:
                     yield f"data: {json.dumps({'token': token})}\n\n"
             conv["messages"].append({"role": "assistant", "content": cached_resp})
-            save_conversation(conv, old_filename=old_filename)
+            _save_conv(conv, user_id, old_filename)
             suggestions = _generate_suggestions(user_message, cached_resp)
             yield f"data: {json.dumps({'done': True, 'conv_id': conv['id'], 'title': conv['title'], 'sources': sources, 'suggestions': suggestions})}\n\n"
             return
@@ -573,7 +684,7 @@ def chat():
                 if assistant_message:
                     llm_cache.set(cache_key, assistant_message)
                     conv["messages"].append({"role": "assistant", "content": assistant_message})
-                    save_conversation(conv, old_filename=old_filename)
+                    _save_conv(conv, user_id, old_filename)
                 suggestions = _generate_suggestions(user_message, assistant_message)
                 yield f"data: {json.dumps({'done': True, 'conv_id': conv['id'], 'title': conv['title'], 'sources': sources, 'suggestions': suggestions})}\n\n"
             return
@@ -596,7 +707,7 @@ def chat():
                     full_content.append(token)
                     yield f"data: {json.dumps({'token': token})}\n\n"
             conv["messages"].append({"role": "assistant", "content": answer})
-            save_conversation(conv, old_filename=old_filename)
+            _save_conv(conv, user_id, old_filename)
             suggestions = _generate_suggestions(user_message, answer)
             yield f"data: {json.dumps({'done': True, 'conv_id': conv['id'], 'title': conv['title'], 'sources': sources, 'suggestions': suggestions})}\n\n"
             return
@@ -623,7 +734,7 @@ def chat():
             assistant_message = "".join(full_content)
             if assistant_message:
                 conv["messages"].append({"role": "assistant", "content": assistant_message})
-                save_conversation(conv, old_filename=old_filename)
+                _save_conv(conv, user_id, old_filename)
             suggestions = _generate_suggestions(user_message, assistant_message)
             yield f"data: {json.dumps({'done': True, 'conv_id': conv['id'], 'title': conv['title'], 'sources': sources, 'suggestions': suggestions})}\n\n"
 
@@ -684,4 +795,4 @@ def webhook_supabase():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=os.getenv("FLASK_DEBUG", "false").lower() == "true", port=5000)

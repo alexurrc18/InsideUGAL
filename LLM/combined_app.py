@@ -9,11 +9,13 @@ from pathlib import Path
 from importlib.util import spec_from_file_location, module_from_spec
 from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent
 SMART_NEWS_PARSER = BASE_DIR / "smart-news-parser"
-MODUL_MARIUS = BASE_DIR / "modul-marius"
+MODUL_MARIUS      = BASE_DIR / "modul-marius"
+CHATBOT_MARIUS    = BASE_DIR / "ChatBot - Marius "
 
 # Load environment variables from the LLM root .env
 env_path = BASE_DIR / ".env"
@@ -69,6 +71,12 @@ if old_schemas is None:
 else:
     sys.modules["schemas"] = old_schemas
 
+campus_chat_service = load_module(
+    "campus_chat_service",
+    CHATBOT_MARIUS / "campus_chat_service.py",
+    extra_paths=[CHATBOT_MARIUS],
+)
+
 API_KEY = os.getenv("GEMINI_API_KEY")
 if not API_KEY:
     raise ValueError("GEMINI_API_KEY este necesar pentru LLM combined service.")
@@ -80,8 +88,8 @@ llm_service = smart_news_service.LLMService(api_key=API_KEY)
 
 app = FastAPI(
     title="InsideUGAL LLM Integrated Service",
-    description="Serviciu FastAPI care combină extragerea de task-uri UGAL și funcționalitățile PDF/quiz/RAG.",
-    version="1.0.0"
+    description="Serviciu FastAPI care combină extragerea de task-uri UGAL, funcționalitățile PDF/RAG și asistentul virtual campus.",
+    version="2.0.0"
 )
 app.add_middleware(
     CORSMiddleware,
@@ -102,8 +110,8 @@ def health_check():
             "/api/v1/upload-pdf",
             "/api/v1/ask",
             "/api/v1/summary",
-            "/api/v1/quiz",
             "/api/v1/delete-pdf/{pdf_id}",
+            "/api/v1/campus-chat",
         ],
     }
 
@@ -183,16 +191,6 @@ async def summary(request: mod_marius_schemas.GenerateSummaryInput):  # type: ig
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-@app.post("/api/v1/quiz", response_model=mod_marius_schemas.GenerateQuizOutput)
-async def quiz(request: mod_marius_schemas.GenerateQuizInput):  # type: ignore
-    try:
-        quiz_responses = mod_marius_functions.generate_quiz(request.pdf_id)
-        return mod_marius_schemas.GenerateQuizOutput(questions=quiz_responses)
-    except Exception as exc:
-        logger.error("Eroare la generare quiz: %s", exc)
-        raise HTTPException(status_code=500, detail=str(exc))
-
-
 @app.delete("/api/v1/delete-pdf/{pdf_id}")
 async def delete_pdf(pdf_id: str):
     """Sterge fisierul fizic din Supabase Storage si vectorii din pgvector."""
@@ -209,6 +207,66 @@ async def delete_pdf(pdf_id: str):
         logger.warning("Nu am putut sterge vectorii pentru %s: %s", pdf_id, exc)
 
     return {"ok": True, "pdf_id": pdf_id}
+
+
+# ── Campus Chat (Asistentul Virtual InsideUGAL) ──────────────────────────────
+
+class CampusChatRequest(BaseModel):
+    question: str
+    conv_id: str | None = None
+    user_id: str | None = None
+
+
+class CampusChatResponse(BaseModel):
+    answer: str
+    conv_id: str
+    title: str
+    sources: list[str]
+    suggestions: list[str]
+
+
+@app.post("/api/v1/campus-chat", response_model=CampusChatResponse)
+async def campus_chat(request: CampusChatRequest):
+    """
+    Asistentul Virtual InsideUGAL — răspunde la întrebări despre UGAL.
+
+    **Request body:**
+    ```json
+    {
+      "question": "Ce specializări are FACIEE?",
+      "conv_id": "abc12345",
+      "user_id": "uuid-din-supabase-auth"
+    }
+    ```
+    `conv_id` și `user_id` sunt opționale — fără ele se crează o conversație anonimă.
+
+    **Response:**
+    ```json
+    {
+      "answer": "FACIEE oferă specializările...",
+      "conv_id": "abc12345",
+      "title": "Ce specializări are FACIEE?",
+      "sources": ["faciee_specializari.txt"],
+      "suggestions": ["Care sunt condițiile de admitere?", "..."]
+    }
+    ```
+    """
+    if not request.question.strip():
+        raise HTTPException(status_code=400, detail="Câmpul 'question' nu poate fi gol.")
+    try:
+        result = campus_chat_service.campus_chat(
+            question=request.question,
+            conv_id=request.conv_id,
+            user_id=request.user_id,
+        )
+        if "error" in result:
+            raise HTTPException(status_code=500, detail=result["error"])
+        return CampusChatResponse(**result)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Eroare campus-chat: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 if __name__ == "__main__":

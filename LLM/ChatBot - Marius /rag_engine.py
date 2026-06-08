@@ -1,114 +1,103 @@
 import os
 import re
-import chromadb
-from rank_bm25 import BM25Okapi
+import requests
+from google import genai
+from google.genai import types as genai_types
 
 KNOWLEDGE_DIR = os.path.join(os.path.dirname(__file__), "knowledge")
-CHROMA_DIR    = os.path.join(os.path.dirname(__file__), ".chroma")
+EMBEDDING_MODEL = "gemini-embedding-001"
+EMBEDDING_DIMS = 384
 
-# ── Embedding function multilingvă ──────────────────────────────────────────
-# Folosim fastembed direct (chromadb 1.5.9 nu mai expune FastEmbedEmbeddingFunction)
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "") or os.getenv("SUPABASE_KEY", "")
 
-class _MultilingualEmbeddingFn:
-    """Wrapper chromadb-compatibil peste fastembed TextEmbedding."""
-    MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-
-    def __init__(self):
-        from fastembed import TextEmbedding
-        self._model = TextEmbedding(self.MODEL)
-        print(f"[RAG] Model embedding: {self.MODEL}")
-
-    def name(self) -> str:
-        return "multilingual-minilm-l12-v2"
-
-    def __call__(self, input: list) -> list:
-        return [e.tolist() for e in self._model.embed(input)]
+_gemini = genai.Client(api_key=os.getenv("GEMINI_API_KEY", ""))
 
 
-# ── Query expansion ──────────────────────────────────────────────────────────
-
-QUERY_EXPANSIONS = {
-    "automatică":   ["automatică", "AIA", "automatica", "inginerie sisteme", "SA"],
-    "calculatoare": ["calculatoare", "CTI", "informatică", "computer", "IT"],
-    "electrică":    ["electrică", "inginerie electrică", "IE", "IEC", "electromecanică", "IESCE"],
-    "electronică":  ["electronică", "ETC", "RST", "telecomunicații", "EA", "ETTI"],
-    "admitere":     ["admitere", "înscriere", "candidat", "dosar", "bacalaureat", "bac", "media"],
-    "bursă":        ["bursă", "burse", "scholarship", "performanță", "social", "ajutor social"],
-    "examen":       ["examen", "examene", "sesiune", "programare examene", "colocviu", "restanță"],
-    "orar":         ["orar", "program", "schedule", "cursuri", "ore", "laboratoare"],
-    "master":       ["master", "masterat", "TIA", "SICA", "UEESR", "EPSAC", "PIAM", "SEA"],
-    "taxă":         ["taxă", "taxe", "cost", "plată", "fee", "reducere"],
-    "contact":      ["contact", "secretariat", "adresă", "telefon", "email", "biroul"],
-    "practică":     ["practică", "stagiu", "internship", "proiect"],
-    "erasmus":      ["erasmus", "mobilitate", "exchange", "internațional", "schimb"],
-    "licență":      ["licență", "diplomă", "absolvire", "lucrare", "proiect final"],
-    "cămin":        ["cămin", "cazare", "dormitor", "campus", "căminul"],
-    "bibliotecă":   ["bibliotecă", "cărți", "resurse", "e-learning"],
-    "înmatriculare":["înmatriculare", "matricolă", "student", "dosar student"],
-    "concurs":      ["concurs", "hackathon", "competiție", "olimpiadă", "premiu"],
-}
-
-_STOPWORDS_RO = {
-    "si", "in", "cu", "la", "de", "din", "pe", "un", "o", "a", "al", "ale",
-    "sa", "se", "ca", "ce", "va", "fi", "au", "am", "ai", "el", "ea", "ei",
-    "eu", "nu", "da", "sau", "ori", "dar", "ci", "tot", "mai", "dupa", "spre",
-    "prin", "pana", "fara", "are", "este", "era", "vor", "pot", "care", "cat",
-}
+def _embed(texts: list[str]) -> list[list[float]]:
+    result = _gemini.models.embed_content(
+        model=EMBEDDING_MODEL,
+        contents=texts,
+        config=genai_types.EmbedContentConfig(output_dimensionality=EMBEDDING_DIMS),
+    )
+    return [e.values for e in result.embeddings]
 
 
-def _expand_query(question: str) -> str:
-    q_lower = question.lower()
-    extras = []
-    for key, synonyms in QUERY_EXPANSIONS.items():
-        if any(s.lower() in q_lower for s in synonyms):
-            extras.extend(synonyms[:4])
-    return (question + " " + " ".join(set(extras))).strip() if extras else question
+def _sb_headers() -> dict:
+    return {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+    }
 
 
-# ── RAGEngine ────────────────────────────────────────────────────────────────
+class _CollectionProxy:
+    """Proxy backward-compat pentru rag.collection.count() din app.py."""
+    def __init__(self, engine):
+        self._engine = engine
+
+    def count(self) -> int:
+        return self._engine.count()
+
 
 class RAGEngine:
-    # Nou collection name forțează rebuild cu embeddings multilingve corecte
-    COLLECTION_NAME = "faciee_v2"
-
     def __init__(self):
-        self.client = chromadb.PersistentClient(path=CHROMA_DIR)
-
-        try:
-            self.ef = _MultilingualEmbeddingFn()
-        except Exception as e:
-            from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
-            self.ef = DefaultEmbeddingFunction()
-            print(f"[RAG] Fallback la model default: {e}")
-
-        self.collection = self.client.get_or_create_collection(
-            name=self.COLLECTION_NAME,
-            embedding_function=self.ef,
-            metadata={"hnsw:space": "cosine"},
-        )
-
-        self._bm25: BM25Okapi | None = None
-        self._bm25_docs: list[str] = []
-
+        self.collection = _CollectionProxy(self)
         self._index_files()
-        self._build_bm25()
 
-    # ── BM25 ─────────────────────────────────────────────────────────────────
+    # ── Supabase helpers ──────────────────────────────────────────────────────
 
-    def _build_bm25(self):
-        docs = self.collection.get().get("documents") or []
+    def count(self) -> int:
+        try:
+            r = requests.get(
+                f"{SUPABASE_URL}/rest/v1/chatbot_chunks",
+                headers={**_sb_headers(), "Prefer": "count=exact"},
+                params={"select": "id"},
+                timeout=10,
+            )
+            return int(r.headers.get("Content-Range", "0/0").split("/")[-1])
+        except Exception:
+            return 0
+
+    def _get_existing_ids(self) -> set:
+        try:
+            r = requests.get(
+                f"{SUPABASE_URL}/rest/v1/chatbot_chunks",
+                headers=_sb_headers(),
+                params={"select": "chunk_id", "limit": 50000},
+                timeout=20,
+            )
+            return {row["chunk_id"] for row in r.json()} if r.ok else set()
+        except Exception:
+            return set()
+
+    def _upsert(self, docs: list[str], ids: list[str], metas: list[dict]):
         if not docs:
             return
-        self._bm25_docs = docs
-        self._bm25 = BM25Okapi([self._tokenize_ro(d) for d in docs])
+        # Embed in batches of 100 (Gemini API limit)
+        embeddings: list[list[float]] = []
+        for i in range(0, len(docs), 100):
+            embeddings.extend(_embed(docs[i:i + 100]))
 
-    @staticmethod
-    def _tokenize_ro(text: str) -> list[str]:
-        text = text.lower().translate(str.maketrans("ăâîșțĂÂÎȘȚ", "aaistaaist"))
-        tokens = re.findall(r"[a-z0-9]+", text)
-        return [t for t in tokens if t not in _STOPWORDS_RO and len(t) > 1]
+        rows = [
+            {
+                "chunk_id": ids[i],
+                "content": docs[i],
+                "source": metas[i].get("source", ""),
+                "type": metas[i].get("type", "file"),
+                "embedding": embeddings[i],
+            }
+            for i in range(len(docs))
+        ]
+        for i in range(0, len(rows), 50):
+            requests.post(
+                f"{SUPABASE_URL}/rest/v1/chatbot_chunks",
+                headers={**_sb_headers(), "Prefer": "resolution=merge-duplicates"},
+                json=rows[i:i + 50],
+                timeout=30,
+            )
 
-    # ── Indexare fișiere locale ───────────────────────────────────────────────
+    # ── Chunking ──────────────────────────────────────────────────────────────
 
     def _chunks_from_file(self, path: str) -> list[str]:
         with open(path, "r", encoding="utf-8") as f:
@@ -135,10 +124,10 @@ class RAGEngine:
         return [c for c in chunks if len(c) > 30]
 
     def _index_files(self):
-        existing = set(self.collection.get()["ids"])
+        existing = self._get_existing_ids()
         docs, ids, metas = [], [], []
         idx = 0
-        for fname in os.listdir(KNOWLEDGE_DIR):
+        for fname in sorted(os.listdir(KNOWLEDGE_DIR)):
             if not fname.endswith(".txt"):
                 continue
             for chunk in self._chunks_from_file(os.path.join(KNOWLEDGE_DIR, fname)):
@@ -149,14 +138,15 @@ class RAGEngine:
                     metas.append({"source": fname, "type": "file"})
                 idx += 1
         if docs:
-            self.collection.upsert(documents=docs, ids=ids, metadatas=metas)
+            print(f"[RAG] Indexez {len(docs)} chunk-uri noi în Supabase...")
+            self._upsert(docs, ids, metas)
 
-    # ── Ingest din scraper ────────────────────────────────────────────────────
+    # ── Public API ────────────────────────────────────────────────────────────
 
     def ingest(self, chunks: list[dict]):
         if not chunks:
             return
-        existing = set(self.collection.get()["ids"])
+        existing = self._get_existing_ids()
         docs, ids, metas = [], [], []
         for c in chunks:
             if c["id"] not in existing:
@@ -164,131 +154,51 @@ class RAGEngine:
                 ids.append(c["id"])
                 metas.append({"source": c["source"], "type": c["type"]})
         if docs:
-            for i in range(0, len(docs), 100):
-                self.collection.upsert(
-                    documents=docs[i:i+100],
-                    ids=ids[i:i+100],
-                    metadatas=metas[i:i+100],
-                )
-            print(f"[RAG] +{len(docs)} chunk-uri. Total: {self.collection.count()}")
-            self._build_bm25()
+            self._upsert(docs, ids, metas)
+            print(f"[RAG] +{len(docs)} chunk-uri ingerate.")
 
     def rebuild(self):
-        self.client.delete_collection(self.collection.name)
-        self.collection = self.client.get_or_create_collection(
-            name=self.COLLECTION_NAME,
-            embedding_function=self.ef,
-            metadata={"hnsw:space": "cosine"},
+        requests.delete(
+            f"{SUPABASE_URL}/rest/v1/chatbot_chunks",
+            headers=_sb_headers(),
+            params={"id": "gte.1"},
+            timeout=30,
         )
-        self._bm25 = None
-        self._bm25_docs = []
         self._index_files()
 
-    # ── Query hibrid cu RRF ───────────────────────────────────────────────────
-
-    def _run_query(self, q_text: str, n_fetch: int) -> tuple[list[str], list[str]]:
-        """Rulează o singură căutare, returnează (docs, sources)."""
-        sem_docs, sem_sources = [], []
-        try:
-            sem = self.collection.query(query_texts=[q_text], n_results=n_fetch)
-            sem_docs   = sem.get("documents",  [[]])[0]
-            sem_metas  = sem.get("metadatas",  [[]])[0]
-            sem_sources = [m.get("source", "") for m in sem_metas]
-        except Exception:
-            pass
-        return sem_docs, sem_sources
-
-    def _rrf_merge(self, rrf: dict, docs: list[str], sources: list[str],
-                   weight: float = 1.0, k: int = 60):
-        """Adaugă docs în dicționarul RRF cu ponderea dată."""
-        for rank, (doc, src) in enumerate(zip(docs, sources)):
-            key = doc[:120]
-            entry = rrf.setdefault(key, {"doc": doc, "score": 0.0, "source": src})
-            entry["score"] += weight / (k + rank + 1)
-
-    def _make_variants(self, question: str) -> list[tuple[str, float]]:
-        """Generează variante de query cu ponderi diferite."""
-        expanded = _expand_query(question)
-        keywords = " ".join(t for t in self._tokenize_ro(question) if len(t) > 3)
-        variants = [(question, 1.0), (expanded, 0.8)]
-        if keywords and keywords != question:
-            variants.append((keywords, 0.6))
-        return variants
-
     def query_with_sources(self, question: str, n_results: int = 5) -> tuple[str, list[str]]:
-        """Multi-query hibrid — returnează (text_context, [surse_unice])."""
-        count = self.collection.count()
-        if count == 0:
+        try:
+            q_emb = _embed([question])[0]
+            r = requests.post(
+                f"{SUPABASE_URL}/rest/v1/rpc/match_chatbot_chunks",
+                headers=_sb_headers(),
+                json={"query_embedding": q_emb, "match_count": n_results},
+                timeout=15,
+            )
+            rows = r.json() if r.ok else []
+        except Exception as e:
+            print(f"[RAG] Query error: {e}")
             return "", []
 
-        n_fetch  = min(n_results * 3, count)
-        variants = self._make_variants(question)
-        rrf: dict[str, dict] = {}
+        if not rows or not isinstance(rows, list):
+            return "", []
 
-        # 1. Multi-query semantic + surse
-        for q_text, weight in variants:
-            docs, sources = self._run_query(q_text, n_fetch)
-            self._rrf_merge(rrf, docs, sources, weight=weight)
+        chunks, sources, seen_src = [], [], set()
+        for row in rows:
+            content = self._clean_chunk(row.get("content", ""))
+            if content and len(content) > 30:
+                chunks.append(content)
+            src = row.get("source", "")
+            if src and src not in seen_src:
+                seen_src.add(src)
+                sources.append(src)
 
-        # 2. BM25 pe query-ul expandat
-        expanded = _expand_query(question)
-        if self._bm25 and self._bm25_docs:
-            tokens = self._tokenize_ro(expanded)
-            if tokens:
-                scores = self._bm25.get_scores(tokens)
-                top    = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
-                bm25_docs = [(self._bm25_docs[i], scores[i]) for i in top[:n_fetch] if scores[i] > 0]
-                for rank, (doc, _) in enumerate(bm25_docs):
-                    key = doc[:120]
-                    entry = rrf.setdefault(key, {"doc": doc, "score": 0.0, "source": ""})
-                    entry["score"] += 0.7 / (60 + rank + 1)
-
-        # 3. Acronim boost
-        for kw in re.findall(r"\b[A-ZĂÂÎȘȚ]{2,6}\b", question)[:3]:
-            try:
-                kr = self.collection.query(
-                    query_texts=[question], n_results=2,
-                    where_document={"$contains": kw},
-                )
-                for doc in kr.get("documents", [[]])[0]:
-                    key = doc[:120]
-                    rrf.setdefault(key, {"doc": doc, "score": 0.0, "source": ""})["score"] += 0.5
-            except Exception:
-                pass
-
-        # 4. Re-ranking: boost chunks cu overlap mare față de întrebarea originală
-        q_tokens = set(self._tokenize_ro(question))
-        if q_tokens:
-            for item in rrf.values():
-                chunk_tokens = set(self._tokenize_ro(item["doc"][:600]))
-                overlap = len(q_tokens & chunk_tokens) / len(q_tokens)
-                item["score"] *= (1 + 0.4 * overlap)
-
-        # 5. Sortare RRF → top-N unici
-        ranked = sorted(rrf.values(), key=lambda x: x["score"], reverse=True)
-        unique, seen, sources_seen, all_sources = [], set(), set(), []
-        for item in ranked:
-            clean = self._clean_chunk(item["doc"])
-            if not clean or len(clean) < 40:
-                continue
-            key = clean[:120]
-            if key not in seen:
-                seen.add(key)
-                unique.append(clean)
-                src = item.get("source", "")
-                if src and src not in sources_seen:
-                    sources_seen.add(src)
-                    all_sources.append(src)
-            if len(unique) >= n_results:
-                break
-
-        result = "\n\n---\n\n".join(unique)
+        result = "\n\n---\n\n".join(chunks)
         if result and result[-1] not in ".!?:»\n":
             result += "..."
-        return result, all_sources
+        return result, sources
 
     def query(self, question: str, n_results: int = 5) -> str:
-        """Backward compatible — returnează doar textul."""
         text, _ = self.query_with_sources(question, n_results)
         return text
 

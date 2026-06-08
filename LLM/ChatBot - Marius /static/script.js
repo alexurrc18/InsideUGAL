@@ -1,6 +1,7 @@
 // ── State ──────────────────────────────────────────────────────────────────
 let currentConvId = null;
 let pendingImageData = null;   // base64 data URL al imaginii selectate
+const userId = new URLSearchParams(window.location.search).get("user_id") || null;
 
 // ── DOM refs ────────────────────────────────────────────────────────────────
 const messagesEl   = document.getElementById("chat-messages");
@@ -40,7 +41,8 @@ imgClearBtn.addEventListener("click", () => {
 
 // ── Sidebar: carcă lista de conversații ─────────────────────────────────────
 async function loadSidebar() {
-  const res  = await fetch("/conversations");
+  const url = userId ? `/conversations?user_id=${userId}` : "/conversations";
+  const res  = await fetch(url);
   const list = await res.json();
 
   if (list.length === 0) {
@@ -75,7 +77,8 @@ async function loadSidebar() {
 
 // ── Deschide o conversație existentă ────────────────────────────────────────
 async function openConversation(convId) {
-  const res  = await fetch(`/conversations/${convId}`);
+  const url = userId ? `/conversations/${convId}?user_id=${userId}` : `/conversations/${convId}`;
+  const res  = await fetch(url);
   const conv = await res.json();
 
   currentConvId = conv.id;
@@ -128,7 +131,8 @@ newChatBtn.addEventListener("click", () => {
 
 // ── Șterge conversație ──────────────────────────────────────────────────────
 async function deleteConversation(convId) {
-  await fetch(`/conversations/${convId}`, { method: "DELETE" });
+  const url = userId ? `/conversations/${convId}?user_id=${userId}` : `/conversations/${convId}`;
+  await fetch(url, { method: "DELETE" });
   if (currentConvId === convId) {
     currentConvId = null;
     renderWelcome();
@@ -162,6 +166,7 @@ async function sendMessage(text) {
 
     const body = { message: text, conv_id: currentConvId };
     if (imageToSend) body.image_data = imageToSend;
+    if (userId) body.user_id = userId;
 
     const res = await fetch("/chat", {
       method: "POST",

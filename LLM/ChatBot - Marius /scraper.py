@@ -254,27 +254,11 @@ def scrape_admitere() -> list[dict]:
     return _scrape_site(ADM_URL, ADM_PAGES, "adm")
 
 
-INSIDEUGAL_URL   = "https://insideugal.ro"
-INSIDEUGAL_PAGES = [
-    "/",
-    "/about",
-    "/features",
-    "/contact",
-]
-
-
-def scrape_insideugal() -> list[dict]:
-    """Scrape-uiește site-ul InsideUGAL pentru info despre aplicație."""
-    print(f"[Scraper] InsideUGAL — {len(INSIDEUGAL_PAGES)} pagini...")
-    return _scrape_site(INSIDEUGAL_URL, INSIDEUGAL_PAGES, "insideugal")
-
-
 def scrape_all() -> list[dict]:
-    """Scrape-uiește toate sursele: FACIEE + UGAL general + Admitere + InsideUGAL."""
+    """Scrape-uiește toate sursele: FACIEE + UGAL general + Admitere."""
     chunks = []
     chunks += scrape_faciee()
     chunks += scrape_ugal_general()
     chunks += scrape_admitere()
-    chunks += scrape_insideugal()
     print(f"[Scraper] Total: {len(chunks)} chunk-uri din toate sursele.")
     return chunks
