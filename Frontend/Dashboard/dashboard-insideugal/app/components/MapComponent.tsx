@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Map, { Marker, MapLayerMouseEvent } from "react-map-gl/maplibre";
-import { Config } from "@/lib/site-config";
+import { Config } from "../../lib/site-config";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 export default function MapComponent({ onLocationSelect }: { onLocationSelect: (lat: number, lng: number) => void }) {

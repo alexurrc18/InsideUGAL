@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Map, { Marker, Popup } from "react-map-gl/maplibre";
-import { Config } from "@/lib/site-config";
+import { Config } from "../../lib/site-config";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { MapPin } from "./MapPin";
 
