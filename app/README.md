@@ -3,7 +3,7 @@
 ## Purpose
 
 Backend logic for the **InsideUGAL** platform, built with **FastAPI**.  
-It exposes REST endpoints for managing academic profiles, complaints, announcements, locations, products, daily menus and cafeteria menus, all backed by a PostgreSQL database and integrated with Supabase (auth + storage).
+It exposes REST endpoints for managing academic profiles, complaints, announcements, locations, products, daily menus and cafeteria menus, all backed by a PostgreSQL database and integrated with Supabase (auth + storage). It also integrează serviciile Asistentului Virtual (RAG) pentru asistența studenților pe baza regulamentelor din campus.
 
 ## Architecture
 

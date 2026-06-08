@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import time
@@ -9,8 +10,8 @@ import pybreaker
 from langdetect import detect as langdetect_detect, LangDetectException
 from dotenv import load_dotenv
 from google import genai
-from google.genai import types as genai_types
 from google.genai import errors as genai_errors
+from google.genai import types as genai_types
 from pydantic import ValidationError
 from supabase import create_client, Client
 from tenacity import (
@@ -32,11 +33,11 @@ from schemas import (
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
-GEMINI_MODEL     = "gemini-2.5-flash"
-EMBEDDING_MODEL  = "gemini-embedding-001"
-EMBEDDING_DIMS   = 384   # compatibil cu coloana vector(384) din Supabase
-TEMPERATURE      = 0.7
-TIMEOUT_S        = 30
+GEMINI_MODEL = "gemini-2.5-flash"
+EMBEDDING_MODEL = os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-001")
+EMBEDDING_DIMS = 384
+TEMPERATURE = 0.7
+TIMEOUT_S = 30
 
 _client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
@@ -44,19 +45,8 @@ SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
 supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# Se închide după 5 erori consecutive, se resetează după 60s
 _breaker = pybreaker.CircuitBreaker(fail_max=5, reset_timeout=60)
-
-
-# ── Embeddings cu Gemini ──────────────────────────────────
-
-def _embed(texts: list[str]) -> list[list[float]]:
-    """Generează embeddings cu Gemini text-embedding-004 (384 dims)."""
-    result = _client.models.embed_content(
-        model=EMBEDDING_MODEL,
-        contents=texts,
-        config=genai_types.EmbedContentConfig(output_dimensionality=EMBEDDING_DIMS),
-    )
-    return [e.values for e in result.embeddings]
 
 
 # ── LLM call cu timeout + circuit breaker + retry ────────
@@ -127,7 +117,7 @@ def extract_text_from_pdf(pdf_path: str) -> str:
 
 
 def detect_language(text: str) -> str:
-    """Detectează limba documentului automat. Returnează codul ISO (ex: 'ro', 'en')."""
+    """Detectează limba PDF-ului automat. Returnează codul ISO (ex: 'ro', 'en', 'fr')."""
     try:
         return langdetect_detect(text[:3000])
     except LangDetectException:
@@ -135,10 +125,13 @@ def detect_language(text: str) -> str:
 
 
 def chunk_text(text: str, max_words: int = 200, overlap_words: int = 30) -> list:
-    """Chunking inteligent: paragraf → propoziție → cuvinte ca fallback."""
+    """Chunking inteligent: paragraf → propoziție → cuvinte ca fallback.
+    Păstrează contextul semantic nealterat față de tăierea brutală la N cuvinte.
+    """
     import re
 
     paragraphs = [p.strip() for p in re.split(r"\n{2,}", text) if p.strip()]
+
     raw_chunks: list[str] = []
 
     for para in paragraphs:
@@ -148,6 +141,7 @@ def chunk_text(text: str, max_words: int = 200, overlap_words: int = 30) -> list
         if len(words) <= max_words:
             raw_chunks.append(para)
         else:
+            # Paragraful e prea lung — împarte în propoziții
             sentences = re.split(r"(?<=[.!?])\s+", para)
             current: list[str] = []
             for sent in sentences:
@@ -160,13 +154,18 @@ def chunk_text(text: str, max_words: int = 200, overlap_words: int = 30) -> list
                     if len(sent_words) <= max_words:
                         current = sent_words
                     else:
+                        # Propoziție uriașă — fallback word split
                         for i in range(0, len(sent_words), max_words):
                             raw_chunks.append(" ".join(sent_words[i : i + max_words]))
                         current = []
             if current:
                 raw_chunks.append(" ".join(current))
 
-    if not raw_chunks or overlap_words <= 0 or len(raw_chunks) == 1:
+    if not raw_chunks:
+        return raw_chunks
+
+    # Aplică overlap semantic între chunk-uri consecutive
+    if overlap_words <= 0 or len(raw_chunks) == 1:
         return raw_chunks
 
     overlapped = [raw_chunks[0]]
@@ -178,30 +177,49 @@ def chunk_text(text: str, max_words: int = 200, overlap_words: int = 30) -> list
 
 
 def store_in_vector_db(chunks: list, pdf_id: str):
-    embeddings = _embed(chunks)
-    data = [
-        {"pdf_id": pdf_id, "content": chunk, "embedding": emb}
-        for chunk, emb in zip(chunks, embeddings)
-    ]
+    embeddings = []
+    for chunk in chunks:
+        resp = _client.models.embed_content(
+            model=EMBEDDING_MODEL,
+            contents=chunk,
+            config=genai_types.EmbedContentConfig(output_dimensionality=EMBEDDING_DIMS),
+        )
+        embeddings.append(resp.embeddings[0].values)
+
+    data = []
+    for i, chunk in enumerate(chunks):
+        data.append({
+            "pdf_id": pdf_id,
+            "content": chunk,
+            "embedding": embeddings[i]
+        })
+        
     supabase_client.table("document_chunks").insert(data).execute()
     return True
 
 
 def query_relevant_chunks(query: str, pdf_id: str, n_results: int = 5) -> list:
-    query_embedding = _embed([query])[0]
+    resp = _client.models.embed_content(
+        model=EMBEDDING_MODEL,
+        contents=query,
+        config=genai_types.EmbedContentConfig(output_dimensionality=EMBEDDING_DIMS),
+    )
+    query_embedding = resp.embeddings[0].values
+
     response = supabase_client.rpc(
         "match_document_chunks",
         {
             "query_embedding": query_embedding,
             "match_count": n_results,
-            "filter_pdf_id": pdf_id,
+            "filter_pdf_id": pdf_id
         }
     ).execute()
+    
     return [item["content"] for item in response.data]
 
 
 def delete_pdf_from_rag(pdf_id: str) -> None:
-    """Șterge fragmentele din pgvector asociate unui PDF."""
+    """Sterge fragmentele din pgvector asociate unui PDF (garbage collection vectorial)."""
     try:
         supabase_client.table("document_chunks").delete().eq("pdf_id", pdf_id).execute()
     except Exception:
@@ -224,15 +242,14 @@ def answer_question(question: str, pdf_id: str, language: str = "ro") -> str:
     chunks = query_relevant_chunks(inp.question, inp.pdf_id, n_results=8)
     context = "\n\n".join(chunks)
     prompt = (
-        "Ești un asistent administrativ al Universității \"Dunărea de Jos\" din Galați (UGAL).\n"
-        "Ajuți studenții să înțeleagă regulamentele, documentele și procedurile administrative.\n"
-        "Răspunde în aceeași limbă în care este scris documentul de mai jos.\n"
+        "Raspunde in aceeasi limba in care este scris materialul de mai jos.\n"
+        "Esti Asistentul Virtual InsideUGAL. Rolul tau este sa ajuti studentii sa inteleaga regulamentele si documentele administrative ale UGAL.\n"
         "Reguli:\n"
-        "- Răspunde EXCLUSIV pe baza informațiilor din document.\n"
-        "- Nu inventa informații care nu sunt în document.\n"
-        "- Dacă documentul nu conține informații relevante pentru întrebare, spune asta clar.\n"
-        "- Fii direct și precis — studentul are nevoie de informații concrete.\n\n"
-        f"Document:\n{context}\n\nÎntrebare: {inp.question}"
+        "- Raspunde EXCLUSIV pe baza informatiilor din materialul administrativ furnizat.\n"
+        "- Daca nu cunosti raspunsul pe baza documentelor, directioneaza studentul catre secretariat si fii mereu politicos.\n"
+        "- Nu inventa informatii care nu sunt in material.\n"
+        "- Daca materialul nu contine absolut nimic relevant pentru intrebare, spune politicos ca nu ai informatia in baza de date.\n\n"
+        f"Material:\n{context}\n\nIntrebare: {inp.question}"
     )
 
     for attempt in range(2):
@@ -250,25 +267,25 @@ def generate_summary(pdf_id: str, language: str = "ro") -> str:
     inp = GenerateSummaryInput(pdf_id=pdf_id)
 
     chunks = query_relevant_chunks(
-        "regulament proceduri administrative informatii generale", inp.pdf_id, n_results=8
+        "rezumat general curs introducere concepte principale", inp.pdf_id, n_results=8
     )
     context = "\n\n".join(chunks)
     prompt = (
-        "Ești un asistent administrativ al Universității \"Dunărea de Jos\" din Galați (UGAL).\n"
-        "Răspunde în aceeași limbă în care este scris documentul de mai jos.\n"
-        "Creează un rezumat structurat al documentului, respectând EXACT acest format:\n\n"
-        "## Idei principale\n"
-        "- [maxim 5 idei cheie, fiecare pe un rând]\n\n"
-        "## Reguli / proceduri importante\n"
-        "- **Regulă/Procedură**: descriere scurtă și clară\n"
-        "- [repetă pentru fiecare regulă sau procedură importantă]\n\n"
-        "## Pași de urmat\n"
-        "[2-3 fraze cu cele mai importante acțiuni pe care studentul trebuie să le întreprindă]\n\n"
+        "Esti Asistentul Virtual InsideUGAL.\n"
+        "Raspunde in aceeasi limba in care este scris materialul de mai jos.\n"
+        "Creeaza un rezumat structurat al acestui document administrativ/regulament, respectand EXACT acest format:\n\n"
+        "## Reguli stricte si proceduri\n"
+        "- [maxim 5 reguli cheie extrase din text]\n\n"
+        "## Informatii utile\n"
+        "- **Informatie**: explicatie scurta si clara\n"
+        "- [repeta pentru fiecare detaliu important]\n\n"
+        "## Pasi de urmat (daca se aplica)\n"
+        "[2-3 fraze cu pasii pe care studentul trebuie sa ii urmeze conform procedurii]\n\n"
         "Reguli:\n"
-        "- Folosește limbaj simplu, fără jargon inutil\n"
-        "- Fii concis — studentul trebuie să înțeleagă în 2 minute\n"
-        "- Nu copia fraze din document, reformulează cu cuvinte proprii\n\n"
-        f"Document:\n{context}"
+        "- Foloseste limbaj simplu, fara jargon inutil\n"
+        "- Fii concis — studentul trebuie sa inteleaga in 2 minute\n"
+        "- Nu copia fraze din material, reformuleaza cu cuvinte proprii\n\n"
+        f"Material:\n{context}"
     )
 
     for attempt in range(2):

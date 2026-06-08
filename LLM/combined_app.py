@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent
 SMART_NEWS_PARSER = BASE_DIR / "smart-news-parser"
 MODUL_MARIUS      = BASE_DIR / "modul-marius"
-CHATBOT_MARIUS    = BASE_DIR / "ChatBot - Marius "
+CHATBOT_MARIUS    = BASE_DIR / "ChatBot-Marius"
 
 # Load environment variables from the LLM root .env
 env_path = BASE_DIR / ".env"
@@ -172,7 +172,7 @@ async def upload_pdf(background_tasks: BackgroundTasks, pdf: UploadFile = File(.
 
 
 @app.post("/api/v1/ask", response_model=mod_marius_schemas.AnswerQuestionOutput)
-async def ask_question(request: mod_marius_schemas.AnswerQuestionInput):  # type: ignore
+def ask_question(request: mod_marius_schemas.AnswerQuestionInput):  # type: ignore
     try:
         answer = mod_marius_functions.answer_question(request.question, request.pdf_id)
         return mod_marius_schemas.AnswerQuestionOutput(answer=answer)
@@ -182,7 +182,7 @@ async def ask_question(request: mod_marius_schemas.AnswerQuestionInput):  # type
 
 
 @app.post("/api/v1/summary", response_model=mod_marius_schemas.GenerateSummaryOutput)
-async def summary(request: mod_marius_schemas.GenerateSummaryInput):  # type: ignore
+def summary(request: mod_marius_schemas.GenerateSummaryInput):  # type: ignore
     try:
         summary_text = mod_marius_functions.generate_summary(request.pdf_id)
         return mod_marius_schemas.GenerateSummaryOutput(summary=summary_text)
@@ -222,7 +222,7 @@ class CampusChatResponse(BaseModel):
 
 
 @app.post("/api/v1/campus-chat", response_model=CampusChatResponse)
-async def campus_chat(request: CampusChatRequest):
+def campus_chat(request: CampusChatRequest):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Câmpul 'question' nu poate fi gol.")
     try:
