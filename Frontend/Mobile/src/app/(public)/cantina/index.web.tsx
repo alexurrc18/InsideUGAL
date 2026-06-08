@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { View, ScrollView, useColorScheme } from "react-native";
+import { View, ScrollView } from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Spacing, WebSidePadding } from "@/constants/theme";
 import { CategoryHeader } from "@/components/ui/category-header";

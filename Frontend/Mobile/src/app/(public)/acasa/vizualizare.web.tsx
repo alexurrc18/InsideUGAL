@@ -1,4 +1,5 @@
-import { View, Text, ScrollView, useColorScheme, Linking, TouchableOpacity, Alert } from "react-native";
+import { View, Text, ScrollView, Linking, TouchableOpacity, Alert } from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
