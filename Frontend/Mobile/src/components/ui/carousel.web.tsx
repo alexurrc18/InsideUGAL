@@ -1,4 +1,5 @@
-import { View, Text, FlatList, Pressable, useColorScheme, useWindowDimensions } from "react-native";
+import { View, Text, FlatList, Pressable, useWindowDimensions } from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useRouter } from "expo-router";
 import { Typography } from "@/constants/typography";
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
