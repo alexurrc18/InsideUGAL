@@ -95,7 +95,7 @@ export default function CantinaScreen() {
                 borderTopColor: theme.border,
               } : undefined}
             >
-            <Expandable title={category} expanded={openCategory === category} onToggle={() => handleToggle(category)}>
+            <Expandable title={t(`canteen.cat.${category}`) || category} expanded={openCategory === category} onToggle={() => handleToggle(category)}>
               <View style={{ gap: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: Spacing.sm }}>
                 {productIds.map((id, index) => {
                   const product = PRODUCT_DATABASE[id];

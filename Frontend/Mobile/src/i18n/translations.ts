@@ -6,7 +6,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   // Tab-uri (navbar)
   "tabs.home":     { ro: "Acasă",     en: "Home" },
   "tabs.map":      { ro: "Hartă",     en: "Map" },
-  "tabs.canteen":  { ro: "Cantină",   en: "Canteen" },
+  "tabs.canteen":  { ro: "Cantină",   en: "Cafeteria" },
   "tabs.reports":  { ro: "Sesizări",  en: "Reports" },
   "tabs.more":     { ro: "Mai multe", en: "More" },
 
@@ -24,13 +24,20 @@ export const translations: Record<string, Record<Lang, string>> = {
   "more.title": { ro: "Mai multe", en: "More" },
 
   // Cantina
-  "canteen.title":   { ro: "Cantina",  en: "Canteen" },
+  "canteen.title":   { ro: "Cantina",  en: "Cafeteria" },
   "days.today":      { ro: "Azi",      en: "Today" },
   "days.luni":       { ro: "Luni",     en: "Monday" },
   "days.marti":      { ro: "Marți",    en: "Tuesday" },
   "days.miercuri":   { ro: "Miercuri", en: "Wednesday" },
   "days.joi":        { ro: "Joi",      en: "Thursday" },
   "days.vineri":     { ro: "Vineri",   en: "Friday" },
+
+  "canteen.cat.Meniul Zilei":     { ro: "Meniul Zilei",     en: "Daily Menu" },
+  "canteen.cat.Ciorbe și Supe":   { ro: "Ciorbe și Supe",   en: "Soups & Broths" },
+  "canteen.cat.Preparate Carne":  { ro: "Preparate Carne",  en: "Meat Dishes" },
+  "canteen.cat.Salate / Sosuri":  { ro: "Salate / Sosuri",  en: "Salads / Sauces" },
+  "canteen.cat.Garnituri":        { ro: "Garnituri",        en: "Side Dishes" },
+  "canteen.cat.Desert":           { ro: "Desert",           en: "Dessert" },
 
   // Pagina de categorie
   "category.default":      { ro: "Categorie",          en: "Category" },
