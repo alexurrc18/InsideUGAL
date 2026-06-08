@@ -17,11 +17,11 @@ export function MapPin({ name, facultyId }: MapPinProps) {
     if (!isFacility) {
       return <span style={{ color: 'white', fontSize: 13, fontWeight: 'bold' }}>{letter}</span>;
     }
-    if (lower.includes('cantina')) return <img src="/assets/icons/fork-knife.svg" width={18} height={18} style={{ filter: 'brightness(0) invert(1)' }} />;
-if (lower.includes('biblioteca')) return <img src="/assets/icons/book.svg" width={18} height={18} style={{ filter: 'brightness(0) invert(1)' }} />;
-if (lower.includes('cămin') || lower.includes('camin') || lower.includes('dorm')) return <img src="/assets/icons/apartment.svg" width={18} height={18} style={{ filter: 'brightness(0) invert(1)' }} />;
-if (lower.includes('consiliere')) return <img src="/assets/icons/handshake.svg" width={18} height={18} style={{ filter: 'brightness(0) invert(1)' }} />;
-if (lower.includes('medic') || lower.includes('cabinet') || lower.includes('sănătate') || lower.includes('sanatate') || lower.includes('doctor')) return <img src="/assets/icons/plus-big.svg" width={18} height={18} style={{ filter: 'brightness(0) invert(1)' }} />;
+    if (lower.includes('cantina')) return <img src="/assets/icons/fork-knife.svg" width={18} height={18} alt="" style={{ filter: 'brightness(0) invert(1)' }} />;
+    if (lower.includes('biblioteca')) return <img src="/assets/icons/book.svg" width={18} height={18} alt="" style={{ filter: 'brightness(0) invert(1)' }} />;
+    if (lower.includes('cămin') || lower.includes('camin') || lower.includes('dorm')) return <img src="/assets/icons/apartment.svg" width={18} height={18} alt="" style={{ filter: 'brightness(0) invert(1)' }} />;
+    if (lower.includes('consiliere')) return <img src="/assets/icons/handshake.svg" width={18} height={18} alt="" style={{ filter: 'brightness(0) invert(1)' }} />;
+    if (lower.includes('medic') || lower.includes('cabinet') || lower.includes('sănătate') || lower.includes('sanatate') || lower.includes('doctor')) return <img src="/assets/icons/plus-big.svg" width={18} height={18} alt="" style={{ filter: 'brightness(0) invert(1)' }} />;
     return <span style={{ color: 'white', fontSize: 13, fontWeight: 'bold' }}>{letter}</span>;
   };
 

@@ -7,11 +7,11 @@ import "maplibre-gl/dist/maplibre-gl.css";
 export default function MapComponent({ onLocationSelect }: { onLocationSelect: (lat: number, lng: number) => void }) {
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
 
-  const handleMapClick = (e: any) => {
-    const { lat, lng } = e.lngLat;
-    setPosition({ lat, lng });
-    onLocationSelect(lat, lng);
-  };
+  const handleMapClick = (e: { lngLat: { lat: number; lng: number } }) => {
+  const { lat, lng } = e.lngLat;
+  setPosition({ lat, lng });
+  onLocationSelect(lat, lng);
+};
 
   return (
     <Map

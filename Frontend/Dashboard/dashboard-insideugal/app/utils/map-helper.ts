@@ -1,3 +1,25 @@
+interface MapSource {
+  type?: string;
+  tiles?: unknown;
+  url?: unknown;
+}
+
+interface MapLayer {
+  layout?: {
+    'icon-overlap'?: string;
+    'icon-allow-overlap'?: boolean;
+    'text-overlap'?: string;
+    'text-allow-overlap'?: boolean;
+    [key: string]: unknown;
+  };
+}
+
+interface MapStyle {
+  sources?: Record<string, MapSource>;
+  layers?: MapLayer[];
+  [key: string]: unknown;
+}
+
 export function getBuildingLetter(name: string): string {
   const clean = name.trim();
   if (clean.startsWith('Corp ')) {
@@ -47,18 +69,18 @@ export function isFacilityOpen(name: string, date: Date = new Date()): boolean {
   return true;
 }
 
-export function cleanMapStyle(style: any): any {
+export function cleanMapStyle(style: MapStyle): MapStyle {
   if (!style) return style;
   if (style.sources) {
     Object.keys(style.sources).forEach((sourceId) => {
-      const src = style.sources[sourceId];
+      const src = style.sources![sourceId];
       if (src && (src.type === 'vector' || src.type === 'raster')) {
-        if (!src.tiles && !src.url) delete style.sources[sourceId];
+        if (!src.tiles && !src.url) delete style.sources![sourceId];
       }
     });
   }
   if (style.layers) {
-    style.layers.forEach((layer: any) => {
+    style.layers.forEach((layer) => {
       if (layer.layout) {
         if (layer.layout['icon-overlap'] !== undefined) {
           layer.layout['icon-allow-overlap'] = layer.layout['icon-overlap'] === 'always';
