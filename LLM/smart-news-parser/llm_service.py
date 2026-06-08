@@ -5,31 +5,15 @@ from datetime import datetime
 from google import genai
 from google.genai import types
 from schemas import GeminiAnnouncementInfo, ExtractedAnnouncementInfo
-from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger("smart-news-parser")
 
 class LLMService:
     def __init__(self, api_key: str):
         self.client = genai.Client(api_key=api_key)
-        self.model_id = 'gemini-3.5-flash'
-        self._cache = {}
+        self.model_id = 'gemini-2.5-flash'
 
-    @retry(
-        stop=stop_after_attempt(3), 
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        reraise=True
-    )
     async def extract_announcement_info(self, text: str) -> ExtractedAnnouncementInfo:
-        # Verificare in cache pentru a economisi timp si request-uri
-        text_key = text.strip().lower()
-        if text_key in self._cache:
-            logger.info("✅ Rezultat gasit in cache. Se returneaza fara apel AI.")
-            # Returnam o copie ca sa ne asiguram ca ID-ul si data_generare se recalculeaza sau raman sigure, 
-            # desi pt simplitate putem returna fix obiectul generat (insa ExtractedAnnouncementInfo isi genereaza singur UUID-ul la instantiere)
-            cached_data = self._cache[text_key].model_dump()
-            return ExtractedAnnouncementInfo(**cached_data)
-
         now = datetime.now().strftime("%Y-%m-%d %H:%M")
         
         prompt_system = (
@@ -58,9 +42,8 @@ class LLMService:
         try:
             response = await self.client.aio.models.generate_content(
                 model=self.model_id,
-                contents=f"Analizeaza acum urmatorul anunt:\n{text}",
+                contents=f"{prompt_system}\n\nAnalizeaza acum urmatorul anunt:\n{text}",
                 config=types.GenerateContentConfig(
-                    system_instruction=prompt_system,
                     response_mime_type="application/json",
                     response_schema=GeminiAnnouncementInfo,
                     temperature=0.1
@@ -71,14 +54,9 @@ class LLMService:
                 result_dict = response.parsed.model_dump()
             else:
                 # Fallback pt cazul in care 'parsed' nu e disponibil direct
-                raw_text = response.text.strip()
+                raw_text = response.text
                 if raw_text.startswith("```json"):
-                    raw_text = raw_text[7:]
-                if raw_text.startswith("```"):
-                    raw_text = raw_text[3:]
-                if raw_text.endswith("```"):
-                    raw_text = raw_text[:-3]
-                raw_text = raw_text.strip()
+                    raw_text = raw_text.split("```json")[1].split("```")[0].strip()
                 result_dict = json.loads(raw_text)
 
             # Validare anti-placeholders
@@ -88,9 +66,7 @@ class LLMService:
                 if isinstance(value, list) and "string" in value:
                     result_dict[key] = [v for v in value if v != "string"]
 
-            result_obj = ExtractedAnnouncementInfo(**result_dict)
-            self._cache[text_key] = result_obj
-            return result_obj
+            return ExtractedAnnouncementInfo(**result_dict)
 
         except Exception as e:
             logger.error(f"Eroare LLMService: {str(e)}")
