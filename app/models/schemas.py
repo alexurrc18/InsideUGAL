@@ -87,6 +87,23 @@ class LocationResponse(LocationBase):
 
 
 # ==========================================
+# CATEGORIES (CATEGORII)
+# ==========================================
+class CategoryBase(BaseModel):
+    name: str
+
+class CategoryCreate(CategoryBase):
+    pass
+
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = None
+
+class CategoryResponse(CategoryBase):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ==========================================
 # COMPLAINTS (SESIZĂRI)
 # ==========================================
 class ComplaintBase(BaseModel):
