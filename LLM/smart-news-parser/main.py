@@ -38,7 +38,7 @@ if HF_API_KEY:
     HF_API_KEY = HF_API_KEY.strip().strip("'").strip('"')
 
 # Serviciu LLM si Image
-llm_service = LLMService(hf_api_key=HF_API_KEY)
+llm_service = LLMService()
 image_service = ImageService(hf_api_key=HF_API_KEY)
 
 @asynccontextmanager
