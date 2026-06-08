@@ -1,28 +1,34 @@
 "use client";
 import { useState } from "react";
-import { APIProvider, Map as GoogleMap, AdvancedMarker } from "@vis.gl/react-google-maps";
+import Map, { Marker } from "react-map-gl/maplibre";
+import { Config } from "../../lib/config";
+import "maplibre-gl/dist/maplibre-gl.css";
 
 export default function MapComponent({ onLocationSelect }: { onLocationSelect: (lat: number, lng: number) => void }) {
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
 
   const handleMapClick = (e: any) => {
-    const newLat = e.detail.latLng.lat;
-    const newLng = e.detail.latLng.lng;
-    setPosition({ lat: newLat, lng: newLng });
-    onLocationSelect(newLat, newLng);
+    const { lat, lng } = e.lngLat;
+    setPosition({ lat, lng });
+    onLocationSelect(lat, lng);
   };
 
   return (
-    <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
-      <GoogleMap
-        defaultCenter={{ lat: 45.4353, lng: 28.0501 }}
-        defaultZoom={14}
-        mapId="map"
-        onClick={handleMapClick}
-        style={{ height: "100%", width: "100%" }}
-      >
-        {position && <AdvancedMarker position={position} />}
-      </GoogleMap>
-    </APIProvider>
+    <Map
+      initialViewState={{ 
+  longitude: 28.0525, 
+  latitude: 45.4450, 
+  zoom: 15,
+  pitch: 45,
+  bearing: -10
+}}
+      style={{ width: "100%", height: "100%" }}
+      mapStyle={Config.MAPTILER_STYLE_URL}
+      onClick={handleMapClick}
+    >
+      {position && (
+        <Marker longitude={position.lng} latitude={position.lat} />
+      )}
+    </Map>
   );
 }

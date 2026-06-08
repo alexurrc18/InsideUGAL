@@ -5,15 +5,16 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com;
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-    img-src 'self' blob: data: https://*.supabase.co https://maps.googleapis.com https://maps.gstatic.com;
-    font-src 'self' data: https://fonts.gstatic.com;
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com https://*.maptiler.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.maptiler.com;
+    img-src 'self' blob: data: https://*.supabase.co https://maps.googleapis.com https://maps.gstatic.com https://*.maptiler.com;
+    font-src 'self' data: https://fonts.gstatic.com https://*.maptiler.com;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
     frame-ancestors 'none';
-    connect-src 'self' https://*.supabase.co https://maps.googleapis.com https://maps.gstatic.com;
+    connect-src 'self' https://*.supabase.co https://maps.googleapis.com https://maps.gstatic.com https://*.maptiler.com https://api.maptiler.com;
+    worker-src blob:;
     upgrade-insecure-requests;
 `.replace(/\s{2,}/g, ' ').trim();
 

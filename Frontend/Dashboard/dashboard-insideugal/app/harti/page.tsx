@@ -5,6 +5,7 @@ import Table, { Column } from "../components/ui/Table";
 import Modal from "../components/ui/Modal";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import MapView from "../components/MapView";
+import MapComponent from "../components/MapComponent";
 
 interface Cladire {
   id: number;
@@ -16,24 +17,20 @@ interface Cladire {
 }
 
 const initialCladiri: Cladire[] = [
-  {
-    id: 1,
-    denumire: "Corpul D - Facultatea de Inginerie",
-    adresa: "Str. Domnească nr. 111",
-    lat: "45.4475",
-    lng: "28.0519",
-    facultate: "Inginerie",
-  },
-  {
-    id: 2,
-    denumire: "Corpul G - Rectorat",
-    adresa: "Str. Domnească nr. 47",
-    lat: "45.4371",
-    lng: "28.0552",
-    facultate: "Toate",
-  },
+  { id: 1, denumire: "Corp D", adresa: "Str. Domnească nr. 111", lat: "45.44663581608561", lng: "28.053739626065855", facultate: "f1" },
+  { id: 2, denumire: "Corp Y", adresa: "Str. Domnească nr. 111, Corp Y", lat: "45.44568720923874", lng: "28.052315584193785", facultate: "f1" },
+  { id: 3, denumire: "Corp G (Domnească)", adresa: "Str. Domnească nr. 111", lat: "45.44607531932204", lng: "28.05217216305528", facultate: "f1" },
+  { id: 4, denumire: "Corp AN", adresa: "Str. Domnească nr. 111", lat: "45.44765020036014", lng: "28.052403939544824", facultate: "f2" },
+  { id: 5, denumire: "Corp AS", adresa: "Str. Domnească nr. 111", lat: "45.44738271605321", lng: "28.053381815696792", facultate: "f5" },
+  { id: 6, denumire: "Cantina Corp J", adresa: "Str. Domnească nr. 111", lat: "45.44594707286737", lng: "28.05291927006465", facultate: "f8" },
+  { id: 7, denumire: "Biblioteca", adresa: "Str. Domnească nr. 111", lat: "45.44341234931661", lng: "28.051097219829987", facultate: "f8" },
+  { id: 8, denumire: "Cămin", adresa: "Galați", lat: "45.45365478878798", lng: "28.049177227199827", facultate: "f8" },
+  { id: 9, denumire: "Cămin", adresa: "Galați", lat: "45.45363201449475", lng: "28.051472620037092", facultate: "f8" },
+  { id: 10, denumire: "Cantina Cămine", adresa: "Galați", lat: "45.45401401467006", lng: "28.04871101471388", facultate: "f8" },
+  { id: 11, denumire: "Cantina Universitate", adresa: "Galați", lat: "45.43887442628822", lng: "28.056094396753004", facultate: "f8" },
+  { id: 12, denumire: "Centrul de Consiliere", adresa: "Str. Domnească nr. 47", lat: "45.43843053625073", lng: "28.056011430581535", facultate: "f8" },
+  { id: 13, denumire: "Cabinet Medical", adresa: "Str. Domnească nr. 111", lat: "45.45335468796397", lng: "28.05171517115972", facultate: "f8" },
 ];
-
 export default function HartiPage() {
   const [tab, setTab] = useState<"locatii" | "harta">("locatii");
   const [showModal, setShowModal] = useState(false);
@@ -136,7 +133,7 @@ export default function HartiPage() {
         </Card>
       ) : (
         <div className="h-[600px] rounded-2xl overflow-hidden border border-border">
-          <MapView />
+          <MapView cladiri={cladiri} />
         </div>
       )}
 
@@ -197,6 +194,14 @@ export default function HartiPage() {
                 onChange={e => setFormState({...formState, facultate: e.target.value})}
               />
             </div>
+          </div>
+
+          <div style={{ height: "300px" }} className="rounded-lg overflow-hidden border border-border">
+            <MapComponent 
+              onLocationSelect={(lat, lng) => 
+                setFormState({ ...formState, lat: lat.toFixed(6), lng: lng.toFixed(6) })
+              } 
+            />
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t border-border">

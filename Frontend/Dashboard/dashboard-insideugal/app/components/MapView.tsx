@@ -1,6 +1,9 @@
 "use client";
-import { APIProvider, Map as GoogleMap, AdvancedMarker, InfoWindow } from "@vis.gl/react-google-maps";
 import { useState } from "react";
+import Map, { Marker, Popup } from "react-map-gl/maplibre";
+import { Config } from "../../lib/config";
+import "maplibre-gl/dist/maplibre-gl.css";
+import { MapPin } from "./MapPin";
 
 interface Cladire {
   id: number;
@@ -15,23 +18,38 @@ export default function MapView({ cladiri }: { cladiri: Cladire[] }) {
   const [selected, setSelected] = useState<Cladire | null>(null);
 
   return (
-    <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
-      <GoogleMap defaultCenter={{ lat: 45.4353, lng: 28.0501 }} defaultZoom={14} mapId="map" style={{ height: "100%", width: "100%" }}>
-        {cladiri.map((c) => (
-          c.lat && c.lng && (
-            <AdvancedMarker
-              key={c.id}
-              position={{ lat: parseFloat(c.lat), lng: parseFloat(c.lng) }}
-              onClick={() => setSelected(c)}
-            />
-          )
-        ))}
-        {selected && (
-          <InfoWindow position={{ lat: parseFloat(selected.lat), lng: parseFloat(selected.lng) }} onCloseClick={() => setSelected(null)}>
-            <div><strong>{selected.denumire}</strong><p>{selected.adresa}</p></div>
-          </InfoWindow>
-        )}
-      </GoogleMap>
-    </APIProvider>
+    <Map
+      initialViewState={{ 
+  longitude: 28.0525, 
+  latitude: 45.4450, 
+  zoom: 15,
+  pitch: 45,
+  bearing: -10
+}}
+      style={{ width: "100%", height: "100%" }}
+      mapStyle={Config.MAPTILER_STYLE_URL}
+    >
+      {cladiri.map((c) => (
+        c.lat && c.lng && (
+          <Marker
+            key={c.id}
+            longitude={parseFloat(c.lng)}
+            latitude={parseFloat(c.lat)}
+            onClick={() => setSelected(c)}
+          >
+            <MapPin name={c.denumire} facultyId={c.facultate} />
+          </Marker>
+        )
+      ))}
+      {selected && (
+        <Popup
+          longitude={parseFloat(selected.lng)}
+          latitude={parseFloat(selected.lat)}
+          onClose={() => setSelected(null)}
+        >
+          <div><strong>{selected.denumire}</strong><p>{selected.adresa}</p></div>
+        </Popup>
+      )}
+    </Map>
   );
 }
