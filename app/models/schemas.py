@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
+from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 
 # ==========================================
@@ -54,15 +55,30 @@ class ProfileResponse(ProfileBase):
     id: UUID
     created_at: datetime
     updated_at: datetime
-
     model_config = ConfigDict(from_attributes=True)
 
 
 # ==========================================
 # FACULTIES & LOCATIONS
 # ==========================================
+class Coordinates(BaseModel):
+    latitude: float
+    longitude: float
+
 class FacultyBase(BaseModel):
     name: str
+    abbreviation: Optional[str] = None
+    description: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    website_url: Optional[str] = None
+    dormitory_url: Optional[str] = None
+
+class FacultyCreate(FacultyBase):
+    pass
+
+class FacultyUpdate(BaseModel):
+    name: Optional[str] = None
     abbreviation: Optional[str] = None
     description: Optional[str] = None
     address: Optional[str] = None
@@ -79,11 +95,37 @@ class FacultyResponse(FacultyBase):
 class LocationBase(BaseModel):
     name: str
     faculty_id: Optional[int] = None
+    coordinates: Optional[Coordinates] = None
+
+class LocationCreate(LocationBase):
+    pass
+
+class LocationUpdate(BaseModel):
+    name: Optional[str] = None
+    faculty_id: Optional[int] = None
+    coordinates: Optional[Coordinates] = None
 
 class LocationResponse(LocationBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ==========================================
+# CATEGORIES (CATEGORII)
+# ==========================================
+class CategoryBase(BaseModel):
+    name: str
+
+class CategoryCreate(CategoryBase):
+    pass
+
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = None
+
+class CategoryResponse(CategoryBase):
+    id: int
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -139,6 +181,52 @@ class AnnouncementUpdate(BaseModel):
 class AnnouncementResponse(AnnouncementBase):
     id: int
     created_by: UUID
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ==========================================
+# PRODUCTS (PRODUSE CANTINĂ)
+# ==========================================
+class ProductBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    quantity: str
+    price: Decimal
+
+class ProductCreate(ProductBase):
+    pass
+
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    quantity: Optional[str] = None
+    price: Optional[Decimal] = None
+
+class ProductResponse(ProductBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ==========================================
+# DAILY MENUS (MENIUL ZILEI)
+# ==========================================
+class DailyMenuBase(BaseModel):
+    day_of_week: int
+
+class DailyMenuCreate(DailyMenuBase):
+    product_ids: List[int] = [] 
+
+class DailyMenuUpdate(BaseModel):
+    day_of_week: Optional[int] = None
+    product_ids: Optional[List[int]] = None
+
+class DailyMenuResponse(DailyMenuBase):
+    id: int
+    products: List[ProductResponse] = []
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
