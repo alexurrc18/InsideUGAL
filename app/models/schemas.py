@@ -69,6 +69,18 @@ class FacultyBase(BaseModel):
     website_url: Optional[str] = None
     dormitory_url: Optional[str] = None
 
+class FacultyCreate(FacultyBase):
+    pass
+
+class FacultyUpdate(BaseModel):
+    name: Optional[str] = None
+    abbreviation: Optional[str] = None
+    description: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    website_url: Optional[str] = None
+    dormitory_url: Optional[str] = None
+
 class FacultyResponse(FacultyBase):
     id: int
     created_at: datetime
@@ -77,6 +89,13 @@ class FacultyResponse(FacultyBase):
 
 class LocationBase(BaseModel):
     name: str
+    faculty_id: Optional[int] = None
+
+class LocationCreate(LocationBase):
+    pass
+
+class LocationUpdate(BaseModel):
+    name: Optional[str] = None
     faculty_id: Optional[int] = None
 
 class LocationResponse(LocationBase):
