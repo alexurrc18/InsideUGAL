@@ -7,7 +7,6 @@ import { Expandable } from "@/components/ui/expandable";
 import { MenuItem } from "@/components/ui/menu-item";
 import MockData from "@/constants/mock-data.json";
 
-// 1. Definiție Produs
 interface Product {
   id: string;
   name: string;
@@ -59,7 +58,7 @@ export default function CantinaScreen() {
         style={{ flex: 1 }} 
         contentContainerStyle={{ 
           paddingBottom: insets.bottom + Spacing.xxl,
-          paddingTop: insets.top + Spacing.xxl 
+          paddingTop: insets.top + Spacing.md 
         }}
       >
         <CategoryHeader 
