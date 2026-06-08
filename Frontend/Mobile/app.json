@@ -9,7 +9,11 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.InsideUGAL.mobile"
+      "bundleIdentifier": "com.InsideUGAL.mobile",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Aplica\u021bia are nevoie de loca\u021bie pentru a afi\u0219a pozi\u021bia ta pe hart\u0103.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Aplica\u021bia are nevoie de loca\u021bie pentru a afi\u0219a pozi\u021bia ta pe hart\u0103."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -33,6 +37,23 @@
           "android": {
             "image": "./assets/images/splash-icon.png",
             "imageWidth": 76
+          }
+        }
+      ],
+      [
+        "@maplibre/maplibre-react-native",
+        {
+          "ios": {
+            "nativeVersion": "6.26.0"
+          }
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static",
+            "deploymentTarget": "16.4"
           }
         }
       ]
