@@ -213,52 +213,20 @@ async def delete_pdf(pdf_id: str):
 
 class CampusChatRequest(BaseModel):
     question: str
-    conv_id: str | None = None
-    user_id: str | None = None
 
 
 class CampusChatResponse(BaseModel):
     answer: str
-    conv_id: str
-    title: str
     sources: list[str]
     suggestions: list[str]
 
 
 @app.post("/api/v1/campus-chat", response_model=CampusChatResponse)
 async def campus_chat(request: CampusChatRequest):
-    """
-    Asistentul Virtual InsideUGAL — răspunde la întrebări despre UGAL.
-
-    **Request body:**
-    ```json
-    {
-      "question": "Ce specializări are FACIEE?",
-      "conv_id": "abc12345",
-      "user_id": "uuid-din-supabase-auth"
-    }
-    ```
-    `conv_id` și `user_id` sunt opționale — fără ele se crează o conversație anonimă.
-
-    **Response:**
-    ```json
-    {
-      "answer": "FACIEE oferă specializările...",
-      "conv_id": "abc12345",
-      "title": "Ce specializări are FACIEE?",
-      "sources": ["faciee_specializari.txt"],
-      "suggestions": ["Care sunt condițiile de admitere?", "..."]
-    }
-    ```
-    """
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Câmpul 'question' nu poate fi gol.")
     try:
-        result = campus_chat_service.campus_chat(
-            question=request.question,
-            conv_id=request.conv_id,
-            user_id=request.user_id,
-        )
+        result = campus_chat_service.campus_chat(question=request.question)
         if "error" in result:
             raise HTTPException(status_code=500, detail=result["error"])
         return CampusChatResponse(**result)
