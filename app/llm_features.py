@@ -1,7 +1,6 @@
 import os
-import logging
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,58 +8,14 @@ from app.api.auth_deps import get_current_profile
 from app.db.database import get_db
 from app.models.models import Profile
 from app.schemas.chat import (
-    ExtractTasksRequest,
     AskDocumentRequest,
-    UploadPdfResponse,
     GenericLlmResponse,
 )
-
-logger = logging.getLogger("app.llm_features")
 
 router = APIRouter(prefix="/api/v1", tags=["LLM Features"])
 
 LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://llm:8000")
 
-@router.get("/")
-async def health_check():
-    return {"status": "online", "service": "InsideUGAL LLM Engine"}
-
-@router.post("/extract-tasks")
-async def extract_tasks(request: ExtractTasksRequest):
-    """Extrage date structurate dintr-un anunț academic folosind Gemini."""
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{LLM_SERVICE_URL}/api/v1/extract-announcement-info",
-                json={"text": request.text},
-                timeout=30.0
-            )
-            response.raise_for_status()
-            return response.json()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Eroare serviciu LLM: {str(e)}")
-
-@router.post("/upload-pdf", response_model=UploadPdfResponse)
-async def upload_pdf(file: UploadFile = File(...)):
-    """Încarcă un PDF, îl fragmentează și îl indexează în Chroma DB pentru RAG."""
-    if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Sunt acceptate doar fișiere PDF.")
-    
-    try:
-        # Trimitem fișierul prin POST multipart form-data către microserviciul LLM
-        async with httpx.AsyncClient() as client:
-            file_content = await file.read()
-            files = {"pdf": (file.filename, file_content, file.content_type)}
-            response = await client.post(
-                f"{LLM_SERVICE_URL}/api/v1/upload-pdf",
-                files=files,
-                timeout=60.0
-            )
-            response.raise_for_status()
-            result = response.json()
-            return UploadPdfResponse(pdf_id=result["pdf_id"])
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Eroare indexare pe microserviciul LLM: {str(e)}")
 
 @router.post("/ask", response_model=GenericLlmResponse)
 async def ask_document(
@@ -68,63 +23,76 @@ async def ask_document(
     current_profile: Profile = Depends(get_current_profile),
     db: AsyncSession = Depends(get_db),
 ):
-    """Răspunde la întrebări bazându-se EXCLUSIV pe un PDF indexat anterior."""
+    """
+    Proxy endpoint pentru întrebări RAG pe PDF-uri.
+    
+    - ✅ Securizat cu JWT
+    - ✅ Apelează LLM service la /api/v1/ask
+    - ✅ Salvează în questions_history cu pdf_id
+    - ✅ Error Handling: 503 pe orice eroare
+    """
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{LLM_SERVICE_URL}/api/v1/ask",
-                json={"question": request.question, "pdf_id": request.pdf_id},
+                json={
+                    "question": request.question,
+                    "pdf_id": request.pdf_id,
+                },
                 timeout=30.0,
             )
             response.raise_for_status()
             res_data = response.json()
 
-        answer = res_data["answer"]
+        answer = res_data.get("answer", "")
+        if not answer:
+            raise ValueError("Serviciul LLM a returnat răspuns gol.")
 
-        # Persist în DB: public.questions_history
-        await db.execute(
-            text(
-                """
-                INSERT INTO public.questions_history
-                  (user_id, pdf_id, question, answer)
-                VALUES
-                  (:user_id, :pdf_id, :question, :answer)
-                """
-            ),
-            {
-                "user_id": str(current_profile.id),
-                "pdf_id": request.pdf_id,
-                "question": request.question,
-                "answer": answer,
-            },
-        )
-        await db.commit()
+        # ✅ SALVEAZĂ ÎN questions_history cu pdf_id
+        try:
+            await db.execute(
+                text("""
+                    INSERT INTO public.questions_history
+                      (user_id, pdf_id, question, answer)
+                    VALUES (:user_id, :pdf_id, :question, :answer)
+                """),
+                {
+                    "user_id": str(current_profile.id),
+                    "pdf_id": request.pdf_id,
+                    "question": request.question,
+                    "answer": answer,
+                },
+            )
+            await db.commit()
+        except Exception as db_exc:
+            print(f"[WARN] Failed to save to questions_history: {db_exc}")
+            await db.rollback()
 
         return GenericLlmResponse(result=answer)
 
     except httpx.TimeoutException as exc:
         raise HTTPException(
             status_code=503,
-            detail={
-                "message": "InsideUGAL AI este momentan indisponibil (timeout).",
-                "technical_details": str(exc),
-            },
+            detail={"message": "InsideUGAL AI timeout."},
         ) from exc
+
     except httpx.HTTPStatusError as exc:
-        status_code = exc.response.status_code
         raise HTTPException(
             status_code=503,
             detail={
-                "message": "InsideUGAL AI este momentan indisponibil (provider error).",
-                "provider_status": status_code,
-                "technical_details": str(exc),
+                "message": "InsideUGAL AI service error.",
+                "provider_status": exc.response.status_code,
             },
         ) from exc
+
     except httpx.RequestError as exc:
         raise HTTPException(
             status_code=503,
-            detail={
-                "message": "InsideUGAL AI este momentan indisponibil (network).",
-                "technical_details": str(exc),
-            },
+            detail={"message": "InsideUGAL AI network error."},
+        ) from exc
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"message": "InsideUGAL AI processing error."},
         ) from exc

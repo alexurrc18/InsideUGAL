@@ -4,19 +4,19 @@ from typing import List
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import get_current_profile
-from app.api.errors import global_exception_handler  # noqa: F401 (kept for project conventions)
 from app.db.database import get_db
 from app.models.models import Profile
 from app.schemas.chat import ChatRequest, ChatResponse
 
-router = APIRouter(prefix="/api/v1/chat", tags=["Chatbot"])
+router = APIRouter(prefix="/api/v1/chat", tags=["Campus Chat"])
 
 LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://llm:8000")
 
-SYSTEM_PROMPT = """Ești InsideUGAL AI, asistentul virtual al studenților de la Universitatea „Dunărea de Jos” din Galați.
+SYSTEM_PROMPT = """Ești InsideUGAL AI, asistentul virtual al studenților de la Universitatea „Dunărea de Jos" din Galați.
 Misiunea ta este să ajuți cu informații despre orar, cantină, hartă și regulamente.
 Fii prietenos și profesional. Dacă nu știi ceva, îndrumă-i către secretariat."""
 
@@ -39,106 +39,98 @@ async def ask_chatbot(
 ):
     """
     Endpoint-ul principal pentru chatbot-ul InsideUGAL.
+    
+    - ✅ Securizat cu JWT (Depends(get_current_profile))
+    - ✅ Salvează întrebări/răspunsuri în questions_history
+    - ✅ Error Handling: timeout/rate-limit/network => 503
     """
     start_ts = time.perf_counter()
 
     full_prompt = prepare_context(request.message, request.history)
 
     try:
-        # Apelăm serviciul LLM via HTTP
+        # Apelăm serviciul LLM via HTTP la /api/v1/ask
         async with httpx.AsyncClient() as client:
             llm_resp = await client.post(
-                f"{LLM_SERVICE_URL}/api/v1/chat",
+                f"{LLM_SERVICE_URL}/api/v1/ask",
                 json={"prompt": full_prompt},
                 timeout=30.0,
             )
             llm_resp.raise_for_status()
             response_data = llm_resp.json()
 
-        response_text = response_data["response"]
-        model = response_data.get("model") or "gemini-2.5-flash"
-        usage = response_data.get("usage") or {}
+        response_text = response_data.get("answer") or response_data.get("response", "")
+        if not response_text:
+            raise ValueError("Serviciul LLM a returnat răspuns gol.")
+
+        # ✅ SALVEAZĂ ÎN questions_history
+        try:
+            await db.execute(
+                text("""
+                    INSERT INTO public.questions_history
+                      (user_id, question, answer)
+                    VALUES (:user_id, :question, :answer)
+                """),
+                {
+                    "user_id": str(current_profile.id),
+                    "question": request.message,
+                    "answer": response_text,
+                },
+            )
+            await db.commit()
+        except Exception as db_exc:
+            # Log DB error dar nu crapi response-ul
+            print(f"[WARN] Failed to save to questions_history: {db_exc}")
+            await db.rollback()
 
         duration_ms = int((time.perf_counter() - start_ts) * 1000)
 
-        # tokens - dacă providerul nu trimite, folosim 0 (tabelul are DEFAULT 0)
-        prompt_tokens = int(usage.get("prompt_tokens") or 0)
-        response_tokens = int(usage.get("response_tokens") or 0)
-        total_tokens = int(
-            usage.get("total_tokens")
-            or (prompt_tokens + response_tokens)
-            or 0
-        )
-        # Notă arhitectură: în LLMendpoints ignorăm logarea metricilor în public.llm_calls.
-        # Persistarea se face în questions_history prin endpoint-ul POST /api/v1/ask din app/llm_features.py.
-
         return ChatResponse(
             response=response_text,
-            model=model,
-            usage={
-                "info": "ok",
-                "prompt_tokens": str(prompt_tokens),
-                "response_tokens": str(response_tokens),
-                "total_tokens": str(total_tokens),
-                "duration_ms": str(duration_ms),
-            },
+            model="InsideUGAL Campus Assistant",
             status="success",
         )
 
     except httpx.TimeoutException as exc:
-        # Provider timeout => 503
         duration_ms = int((time.perf_counter() - start_ts) * 1000)
         raise HTTPException(
             status_code=503,
             detail={
                 "message": "InsideUGAL AI este momentan indisponibil (timeout).",
-                "technical_details": str(exc),
                 "duration_ms": duration_ms,
             },
         ) from exc
+
     except httpx.HTTPStatusError as exc:
-        # Rate limit / invalid key / etc => 502/503 controlat
         status_code = exc.response.status_code
         duration_ms = int((time.perf_counter() - start_ts) * 1000)
-
-        if status_code == 401 or status_code == 403:
-            mapped = 502
-            friendly = "Cheie/credendțiale invalide pentru serviciul AI."
-        elif status_code == 429:
-            mapped = 503
-            friendly = "Serviciul AI este rate-limited. Încearcă din nou."
-        else:
-            mapped = 502
-            friendly = "Eroare de la serviciul AI."
-
+        
+        # Orice eroare de la LLM service => 503
         raise HTTPException(
-            status_code=mapped,
+            status_code=503,
             detail={
-                "message": friendly,
-                "technical_details": str(exc),
+                "message": "InsideUGAL AI este momentan indisponibil (service error).",
                 "provider_status": status_code,
                 "duration_ms": duration_ms,
             },
         ) from exc
+
     except httpx.RequestError as exc:
-        # Probleme de rețea
         duration_ms = int((time.perf_counter() - start_ts) * 1000)
         raise HTTPException(
             status_code=503,
             detail={
                 "message": "InsideUGAL AI este momentan indisponibil (network).",
-                "technical_details": str(exc),
                 "duration_ms": duration_ms,
             },
         ) from exc
+
     except Exception as exc:
-        # Ultima plasă: nu crăpăm 500 cu blur => controlat 502
         duration_ms = int((time.perf_counter() - start_ts) * 1000)
         raise HTTPException(
-            status_code=502,
+            status_code=503,
             detail={
                 "message": "InsideUGAL AI a eșuat procesarea cererii.",
-                "technical_details": str(exc),
                 "duration_ms": duration_ms,
             },
         ) from exc
