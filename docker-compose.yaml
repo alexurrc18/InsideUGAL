@@ -1,20 +1,14 @@
-version: '3.8'
-
 # Minimal stack: frontend + Supabase Studio + postgres-meta + Postgres.
 # supabase-db is required because supabase-meta/Studio need a database to manage.
 services:
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
-    volumes:
-      - ./backend:/app
+      context: .
+      dockerfile: backend/Dockerfile
     environment:
-      WATCHFILES_FORCE_POLLING: 'true'
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
       SUPABASE_URL: ${SUPABASE_URL:-http://localhost:3001}
-      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-cheie_anonima_local}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
@@ -31,12 +25,10 @@ services:
       retries: 3
       start_period: 20s
     ports:
-    - "8000:8000"
-    - "8001:8000"
+    - 8001:8000
     networks:
     - public
     - internal
-
   llm:
     build:
       context: ./LLM
@@ -69,25 +61,16 @@ services:
     networks:
     - public
     - internal
-
   frontend:
     build:
       context: ./Frontend/Dashboard/dashboard-insideugal
       dockerfile: Dockerfile
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     environment:
-      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
-      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-http://localhost:54321}
-      - VITE_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-cheie_anonima_local}
-      - NODE_ENV=development
-      - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
-      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    - NODE_ENV=production
+    - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
+    - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+    - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     restart: unless-stopped
-    depends_on:
-      - backend
     deploy:
       resources:
         limits:
@@ -102,10 +85,7 @@ services:
       retries: 3
       start_period: 20s
     ports:
-      - "5173:5173"
-      - "8080:80"
-      - "8091:3000"
-      - "3000:3000"
+    - 3000:3000
     networks:
     - public
     - internal
@@ -121,7 +101,6 @@ services:
     - traefik.http.routers.insideugal-frontend-http.service=insideugal-frontend
     - traefik.http.middlewares.insideugal-redirect-https.redirectscheme.scheme=https
     - traefik.http.services.insideugal-frontend.loadbalancer.server.port=3000
-
   supabase-db:
     image: supabase/postgres:15.8.1.085
     restart: unless-stopped
@@ -146,7 +125,6 @@ services:
     - supabase-db-data:/var/lib/postgresql/data
     networks:
     - internal
-
   supabase-meta:
     image: supabase/postgres-meta:v0.95.2
     restart: unless-stopped
@@ -163,7 +141,6 @@ services:
       CRYPTO_KEY: ${PG_META_CRYPTO_KEY:-change-me}
     networks:
     - internal
-
   supabase-studio:
     image: supabase/studio:2026.03.16-sha-5528817
     restart: unless-stopped
@@ -218,14 +195,12 @@ services:
     networks:
       - public
       - internal
-
 networks:
   public:
     name: coolify
     external: true
   internal:
     internal: true
-
 volumes:
   supabase-db-data: {}
   llm-uploads: {}
