@@ -5,7 +5,7 @@ import MockData from '@/constants/mock-data.json';
 import { Config } from '@/constants/config';
 import { Colors } from '@/constants/theme';
 import { getBuildingLetter, cleanMapStyle } from '@/utils/map-helper';
-import { createRoot } from 'react-dom/client';
+import { createRoot, flushSync } from 'react-dom/client';
 import { MapPin } from './map-pin';
 
 interface MapProps {
@@ -62,9 +62,8 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect }: M
     return () => {
       rootsRef.current.forEach(root => {
         try {
-          root.unmount();
-        } catch (e) {
-        }
+          flushSync(() => root.unmount());
+        } catch (e) {}
       });
       rootsRef.current = [];
       m.remove();
@@ -90,9 +89,8 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect }: M
 
     rootsRef.current.forEach(root => {
       try {
-        root.unmount();
-      } catch (e) {
-      }
+        flushSync(() => root.unmount());
+      } catch (e) {}
     });
     rootsRef.current = [];
 
@@ -110,7 +108,7 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect }: M
       el.style.zIndex = Math.round((90 - b.lat) * 1000000).toString();
 
       const root = createRoot(el);
-      root.render(<MapPin name={b.name} facultyId={b.facultyId} />);
+      root.render(<MapPin name={b.name} facultyId={b.facultyId} theme={Colors[themeName]} />);
       rootsRef.current.push(root);
 
       el.addEventListener('click', (e) => {
