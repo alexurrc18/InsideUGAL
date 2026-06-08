@@ -87,33 +87,32 @@ class RAGEngine:
     def _upsert(self, docs: list[str], ids: list[str], metas: list[dict]):
         if not docs:
             return
-        embeddings: list[list[float]] = []
         total_batches = (len(docs) + 9) // 10
         for i in range(0, len(docs), 10):
             batch_no = i // 10 + 1
-            batch = docs[i:i + 10]
-            print(f"[RAG] Embed batch {batch_no}/{total_batches} ({len(batch)} chunk-uri)...")
-            embeddings.extend(_embed(batch))
-            if i + 10 < len(docs):
-                time.sleep(4)
-
-        rows = [
-            {
-                "chunk_id": ids[i],
-                "content": docs[i],
-                "source": metas[i].get("source", ""),
-                "type": metas[i].get("type", "file"),
-                "embedding": embeddings[i],
-            }
-            for i in range(len(docs))
-        ]
-        for i in range(0, len(rows), 50):
+            batch_docs = docs[i:i + 10]
+            batch_ids = ids[i:i + 10]
+            batch_metas = metas[i:i + 10]
+            print(f"[RAG] Embed batch {batch_no}/{total_batches} ({len(batch_docs)} chunk-uri)...")
+            embeddings = _embed(batch_docs)
+            rows = [
+                {
+                    "chunk_id": batch_ids[j],
+                    "content": batch_docs[j],
+                    "source": batch_metas[j].get("source", ""),
+                    "type": batch_metas[j].get("type", "file"),
+                    "embedding": embeddings[j],
+                }
+                for j in range(len(batch_docs))
+            ]
             requests.post(
                 f"{SUPABASE_URL}/rest/v1/chatbot_chunks",
                 headers={**_sb_headers(), "Prefer": "resolution=merge-duplicates"},
-                json=rows[i:i + 50],
+                json=rows,
                 timeout=30,
             )
+            if i + 10 < len(docs):
+                time.sleep(4)
 
     # ── Public API ────────────────────────────────────────────────────────────
 
