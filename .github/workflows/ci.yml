@@ -8,7 +8,7 @@ on:
 
 jobs:
   frontend:
-    name: Frontend
+    name: Frontend (${{ matrix.node-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -39,7 +39,7 @@ jobs:
         run: npm run build
 
   backend:
-    name: Backend
+    name: Backend (${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
