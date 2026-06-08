@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { getBuildingLetter, isFacilityOpen } from '../utils/map-helper';
 
 interface MapPinProps {
@@ -17,11 +18,11 @@ export function MapPin({ name, facultyId }: MapPinProps) {
     if (!isFacility) {
       return <span style={{ color: 'white', fontSize: 13, fontWeight: 'bold' }}>{letter}</span>;
     }
-    if (lower.includes('cantina')) return <img src="/assets/icons/fork-knife.svg" width={18} height={18} alt="" style={{ filter: 'brightness(0) invert(1)' }} />;
-    if (lower.includes('biblioteca')) return <img src="/assets/icons/book.svg" width={18} height={18} alt="" style={{ filter: 'brightness(0) invert(1)' }} />;
-    if (lower.includes('cămin') || lower.includes('camin') || lower.includes('dorm')) return <img src="/assets/icons/apartment.svg" width={18} height={18} alt="" style={{ filter: 'brightness(0) invert(1)' }} />;
-    if (lower.includes('consiliere')) return <img src="/assets/icons/handshake.svg" width={18} height={18} alt="" style={{ filter: 'brightness(0) invert(1)' }} />;
-    if (lower.includes('medic') || lower.includes('cabinet') || lower.includes('sănătate') || lower.includes('sanatate') || lower.includes('doctor')) return <img src="/assets/icons/plus-big.svg" width={18} height={18} alt="" style={{ filter: 'brightness(0) invert(1)' }} />;
+    if (lower.includes('cantina')) return <Image src="/assets/icons/fork-knife.svg" width={18} height={18} alt="Iconiță Cantină" style={{ filter: 'brightness(0) invert(1)' }} />;
+    if (lower.includes('biblioteca')) return <Image src="/assets/icons/book.svg" width={18} height={18} alt="Iconiță Bibliotecă" style={{ filter: 'brightness(0) invert(1)' }} />;
+    if (lower.includes('cămin') || lower.includes('camin') || lower.includes('dorm')) return <Image src="/assets/icons/apartment.svg" width={18} height={18} alt="Iconiță Cămin" style={{ filter: 'brightness(0) invert(1)' }} />;
+    if (lower.includes('consiliere')) return <Image src="/assets/icons/handshake.svg" width={18} height={18} alt="Iconiță Consiliere" style={{ filter: 'brightness(0) invert(1)' }} />;
+    if (lower.includes('medic') || lower.includes('cabinet') || lower.includes('sănătate') || lower.includes('sanatate') || lower.includes('doctor')) return <Image src="/assets/icons/plus-big.svg" width={18} height={18} alt="Iconiță Cabinet Medical" style={{ filter: 'brightness(0) invert(1)' }} />;
     return <span style={{ color: 'white', fontSize: 13, fontWeight: 'bold' }}>{letter}</span>;
   };
 

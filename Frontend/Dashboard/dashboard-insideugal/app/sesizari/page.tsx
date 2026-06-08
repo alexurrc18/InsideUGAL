@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card"
 import { mockComplaints, Complaint, ComplaintStatus } from "../data/complaints";
 
 export default function SesizariPage() {
-  const [complaints, setComplaints] = useState<Complaint[]>(mockComplaints);
+  const [complaints] = useState<Complaint[]>(mockComplaints);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
