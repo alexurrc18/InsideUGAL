@@ -44,3 +44,29 @@
 [data-card]:hover {
   transform: scale(1.03);
 }
+
+/* Cantina (web): deschidere/inchidere meniu cu animatie rapida */
+[data-expandable-body] {
+  display: grid !important;
+  grid-template-rows: 0fr;
+  grid-template-columns: 100%; /* pastreaza latimea */
+  transition: grid-template-rows 500ms ease;
+}
+[data-expanded="open"] [data-expandable-body] {
+  grid-template-rows: 1fr;
+}
+[data-expandable-inner] {
+  overflow: hidden;
+  min-height: 0;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 350ms ease, transform 350ms ease;
+}
+[data-expanded="open"] [data-expandable-inner] {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 120ms; /* fade-in dupa ce incepe deschiderea */
+}
+[data-expandable-chevron] {
+  transition: transform 500ms ease;
+}

@@ -1,132 +1,59 @@
-# InsideUGAL — LLM Module (consolidat)
+# InsideUGAL - Serviciu LLM (Inteligență Artificială)
 
-Acest README unifică documentația internă pentru tot ce ține de LLM în proiect: extragere informații din anunțuri (**info-anunt**), ingestie PDF + RAG, Q&A, generare rezumat și quiz. Scopul: să ai o singură sursă clară pentru dezvoltare, configurare și înțelegerea arhitecturii.
+Acest modul conține componenta de AI a platformei **InsideUGAL**, expunând un API scris în **FastAPI**. Gestionează procesarea inteligentă a documentelor (RAG) și extragerea automată a datelor folosind modelele de limbaj Gemini.
 
-## 1. Prezentare generală
+## 🚀 Arhitectură și Funcționalități
 
-- Serviciul integrat este `LLM/combined_app.py` — un API FastAPI care expune funcționalitățile principale.
-- Există două componente principale:
-  - `smart-news-parser`: extragere structurată de informații din anunțuri (**info-anunt**) (v2.2.0 - Smart Logic) (biblioteca `google-genai`).
-  - `modul-marius`: ingestie PDF → indexare în Chroma DB → RAG + apeluri LLM pentru `ask`, `summary`, `quiz`.
+Am migrat către o arhitectură 100% *stateless / cloud-native*, ceea ce permite aplicației să scaleze orizontal pe mai multe instanțe:
 
-## 2. Diagramă simplă a fluxului
+- **Procesare PDF Asincronă:** Extragerea textului, *chunking-ul* și vectorizarea se fac în background prin `BackgroundTasks` din FastAPI, pentru a nu bloca răspunsurile HTTP.
+- **Supabase Storage:** Fișierele PDF încărcate se salvează imediat într-un bucket privat Supabase (`documents`). API-ul descarcă fișierul fizic doar într-un obiect temporar (`tempfile`) pe parcursul procesării AI, autodistrugându-l ulterior.
+- **Supabase pgvector:** Am înlocuit baza de date locală pe disc (ChromaDB) cu extensia **pgvector** din PostgreSQL (via RPC). Toate cunoștințele sunt astfel unificate cu baza principală de date.
+- **Integrare Gemini API:** Generăm vectori cu `sentence-transformers` (`all-MiniLM-L6-v2`) și generăm răspunsuri folosind modelul `gemini-2.5-flash` de la Google.
+- **Detectare Automată a Limbii:** Textele sunt procesate, iar întrebările și quiz-urile sunt generate automat în limba documentului original (ex: română, engleză, franceză).
+- **Smart News Parser:** Extragere nativă de entități (titlu, organizator, locație, timestamp precis) din anunțuri textuale nesortate.
 
-1. Extragere info-anunt
-   - Client → `POST /api/v1/extract-announcement-info` → `smart-news-parser.llm_service.LLMService.extract_announcement_info(text)` → GenAI (Gemini) → validare Pydantic → răspuns structurat.
+## 📋 Endpoints Principale
 
-2. Ingestie PDF și RAG
-   - Client → `POST /api/v1/upload-pdf` → fișier salvat în `LLM/modul-marius/uploads/` → `modul-marius.functions.load_pdf_into_rag` → extragere text (`pdfplumber`) → chunking → embeddings (`sentence-transformers`) → stocat în Chroma DB local.
+Rutele de AI se pot testa direct din interfața Swagger la adresa `/docs`:
 
-3. Q&A / Rezumat / Quiz
-   - Client → `POST /api/v1/ask|summary|quiz` → `modul-marius.functions` interoghează colecția Chroma pentru `pdf_id` → construiește prompt cu contextul relevant (cele mai bune n chunk-uri) → apelează LLM (Gemini) cu mecanisme de retry, caching și circuit-breaker → parse și validate răspuns → returnează.
+- `POST /api/v1/upload-pdf` - Încarcă documentul, îl pune în Storage și începe procesarea în fundal.
+- `POST /api/v1/summary` - Generează un rezumat structurat pe baza `pdf_id`-ului.
+- `POST /api/v1/ask` - Răspunde la o întrebare direct din conținutul PDF-ului dat.
+- `POST /api/v1/quiz` - Generează o grilă de teste cu explicații extrase din document.
+- `POST /api/v1/extract-announcement-info` - Extrage titlu, locație și intervale orare dintr-un text "Smart News".
+- `DELETE /api/v1/delete-pdf/{pdf_id}` - Șterge documentul din Storage și realizează un *garbage collection* vectorial în baza de date.
 
-## 3. Fișiere și locuri importante
+## ⚙️ Configurare Locală
 
-- API integrat: [LLM/combined_app.py](LLM/combined_app.py#L1)
-- Extracție info-anunt: [LLM/smart-news-parser/llm_service.py](LLM/smart-news-parser/llm_service.py#L1)
-- Schema info-anunt: [LLM/smart-news-parser/schemas.py](LLM/smart-news-parser/schemas.py#L1)
-- PDF / RAG / QA: [LLM/modul-marius/functions/llm_functions.py](LLM/modul-marius/functions/llm_functions.py#L1)
-- Schema PDF/QA: [LLM/modul-marius/schemas.py](LLM/modul-marius/schemas.py#L1)
-- Exemple locale / prototip: [LLM/exemplu AI](LLM/exemplu%20AI/README.md)
-
-## 4. Configurare (env & dependențe)
-
-- Instalează dependențele principale:
+### 1. Instalare dependențe
 
 ```bash
-python -m pip install --user -r LLM/requirements.txt
+cd LLM
+python -m venv venv
+# Windows
+.\venv\Scripts\activate
+# Mac/Linux: source venv/bin/activate
+
+pip install -r requirements.txt
+pip install python-multipart
 ```
 
-- Variabile de mediu (exemplu `.env` în root-ul `LLM`):
+### 2. Variabile de mediu
+
+Creează un fișier `.env` în directorul `/LLM` cu următoarele chei:
 
 ```env
-GEMINI_API_KEY=sk-...     # cheia Google GenAI (Gemini) folosită de ambele module
-OPENROUTER_API_KEY=...   # folosit doar în exemple (LLM/exemplu AI)
-DATABASE_URL=...         # opțional, dacă înregistrezi loguri/telemetrie
+GEMINI_API_KEY=cheia_ta_de_la_google_aistudio
+
+# Acestea pot fi copiate din terminal rulând `npx supabase status` la rădăcina proiectului
+SUPABASE_URL=http://127.0.0.1:54325
+SUPABASE_SERVICE_KEY=cheia_service_role_secret
 ```
 
-Notă: `combined_app.py` încarcă variabilele din `LLM/.env` și toate modulele active folosesc aceeași locație.
-
-> Folosește un singur fișier de requirements: `LLM/requirements.txt`. Fișierele `requirements.txt` ale modulelor au fost arhivate în `LLM/archived_examples/`.
-
-## 5. Cum rulezi local (quickstart)
-
-1. Asigură-ți că `GEMINI_API_KEY` este setat.
-2. Rulează API-ul integrat:
+### 3. Pornirea Serverului
 
 ```bash
-python LLM/combined_app.py
-# sau, pentru reload dev:
-uvicorn LLM.combined_app:app --reload --port 8000
+python combined_app.py
 ```
-
-3. Deschide Swagger UI: `http://127.0.0.1:8000/docs`
-
-## 6. Endpoint-uri (sumar)
-
-- `GET /` — health check
-- `POST /api/v1/extract-announcement-info` — body: `{ "text": "..." }` → returnează `ExtractedAnnouncementInfo` (v2.2: detecție sursă, calcul deadline smart, suport internships, burse, cazare).
-- `POST /api/v1/upload-pdf` — multipart upload PDF → răspunde `{ pdf_id }` după indexare în Chroma.
-- `POST /api/v1/ask` — body: `{ "question": "...", "pdf_id": "..." }` → returnează `AnswerQuestionOutput`.
-- `POST /api/v1/summary` — body: `{ "pdf_id": "..." }` → returnează `GenerateSummaryOutput`.
-- `POST /api/v1/quiz` — body: `{ "pdf_id": "..." }` → returnează `GenerateQuizOutput`.
-
-Vezi definițiile Pydantic pentru detalii (validări, formate): [LLM/smart-news-parser/schemas.py](LLM/smart-news-parser/schemas.py#L1) și [LLM/modul-marius/schemas.py](LLM/modul-marius/schemas.py#L1).
-
-## 7. Detalii implementare Module
-
-### A. Smart Announcement Parser (`smart-news-parser`)
-Acest microserviciu utilizează inteligența artificială (Google Gemini) pentru a extrage date structurate din anunțurile academice. 
-
-**Funcționalități Cheie:**
-- **Detectare Sursă:** Identifică automat entitatea emitentă (Rectorat, Facultăți, Companii partenere).
-- **Recunoaștere Evenimente:** Clasifică anunțurile: proiecte, laboratoare, examene, **internships, burse, voluntariat, cazare**, concursuri sau administrativ.
-- **Logică Inteligentă Deadline:** 
-  - Gestionează date relative (ex: "până vineri").
-  - Rezolvă contradicții (alege termenul cel mai urgent).
-  - Corectează erori de an (ex: corecție automată din 2024 în viitorul apropiat).
-  - Returnează `null` pentru anunțuri fără termen limită.
-- **Optimizare Mobile:** Rezumate telegrafice (max 80 caractere) pentru notificări Push.
-
-### B. PDF RAG & QA (`modul-marius`)
-Apelurile LLM din `modul-marius` folosesc:
-- caching intern (`llm_cache`) pentru a evita costuri duplicate
-- `pybreaker` circuit breaker pentru degradare controlată
-- `tenacity` retry exponential backoff la erori temporare
-- execuție cu timeout (ThreadPoolExecutor) pentru a opri apelurile blocate
-
-**Indexarea PDF:**
-- text extras cu `pdfplumber`
-- chunking simplu pe cuvinte (`chunk_size` implicit 200, overlap 30)
-- embeddings generate cu `sentence-transformers` (`all-MiniLM-L6-v2`)
-- stocate local în Chroma DB persistent
-
-## 8. Testare
-
-- Sunt teste pentru modulele de exemplu și pentru `LLM`:
-  - [LLM/evals](LLM/evals) conține test-evaluate
-  - [LLM/exemplu AI/tests](LLM/exemplu%20AI/tests) conține teste pentru `prompt_builder`, `output_parser`, `llm_client`
-  - [LLM/smart-news-parser](LLM/smart-news-parser) conține `test_main.py` și `test_real_announcements.py`.
-
-Rulează teste cu:
-
-```bash
-pytest -q LLM
-```
-
-## 9. Limitări cunoscute și riscuri
-
-- Dependență directă de API-urile comerciale (costuri, rate limits).
-- Răspunsurile LLM pot necesita validare și sanitizare (în special pentru JSON generat de quiz).
-- Chunking simplu poate duce la pierdere de context în documente complexe; recomandat: îmbunătăţirea metodei de chunking (pe paragraf + sentințe).
-
-## 10. Propuneri de îmbunătățire (next steps)
-
-- Centralizare `.env` și documentare clară a variabilelor necesare.
-- Adăugare job-uri de curățare pentru Chroma (gestionare spațiu) și o rută de ștergere PDF/colecție.
-- Script de testare end-to-end: upload PDF → ask → verify schema răspuns.
-- Extragere rate-limit și monitorizare costuri LLM (telemetrie Supabase deja utilizată în cod).
-
----
-
-_Dezvoltat pentru proiectul InsideUGAL - Universitatea "Dunărea de Jos" din Galați._
+Serverul va fi disponibil la `http://127.0.0.1:8000`.
