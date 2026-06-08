@@ -8,7 +8,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-TEST_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@127.0.0.1:54399/postgres"
+TEST_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/postgres"
 SUPABASE_URL = "http://127.0.0.1:54325"
 SUPABASE_JWT_SECRET = "test-supabase-jwt-secret"
 SUPABASE_JWT_AUDIENCE = "authenticated"

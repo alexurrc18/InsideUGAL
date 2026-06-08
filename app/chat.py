@@ -4,7 +4,6 @@ from typing import List
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import get_current_profile
@@ -70,29 +69,8 @@ async def ask_chatbot(
             or (prompt_tokens + response_tokens)
             or 0
         )
-        cached = bool(usage.get("cached") or False)
-
-        # Persist în DB: public.llm_calls
-        await db.execute(
-            text(
-                """
-                INSERT INTO public.llm_calls
-                  (function_name, model, prompt_tokens, response_tokens, total_tokens, cached, duration_ms)
-                VALUES
-                  (:function_name, :model, :prompt_tokens, :response_tokens, :total_tokens, :cached, :duration_ms)
-                """
-            ),
-            {
-                "function_name": "chat",
-                "model": model,
-                "prompt_tokens": prompt_tokens,
-                "response_tokens": response_tokens,
-                "total_tokens": total_tokens,
-                "cached": cached,
-                "duration_ms": duration_ms,
-            },
-        )
-        await db.commit()
+        # Notă arhitectură: în LLMendpoints ignorăm logarea metricilor în public.llm_calls.
+        # Persistarea se face în questions_history prin endpoint-ul POST /api/v1/ask din app/llm_features.py.
 
         return ChatResponse(
             response=response_text,

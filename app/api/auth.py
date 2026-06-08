@@ -14,8 +14,16 @@ SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
 if not SUPABASE_URL or not SUPABASE_ANON_KEY:
     raise RuntimeError("SUPABASE_URL and SUPABASE_ANON_KEY must be configured in .env")
 
+# Global client or a dependency-managed client is preferred for connection pooling
+async def get_http_client():
+    async with httpx.AsyncClient() as client:
+        yield client
+
 @router.post("/login")
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    client: httpx.AsyncClient = Depends(get_http_client)
+):
     """
     OAuth2 compatible token login, get an access token for future requests.
     Uses Supabase Auth's email/password flow.
@@ -35,22 +43,21 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         "Content-Type": "application/json",
     }
     
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.post(token_url, json=payload, headers=headers)
-            response.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            # Handle non-2xx responses from Supabase
-            raise HTTPException(
-                status_code=exc.response.status_code,
-                detail=f"Supabase authentication failed: {exc.response.text}",
-            ) from exc
-        except httpx.RequestError as exc:
-            # Handle network errors
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"Could not connect to Supabase: {exc}",
-            ) from exc
+    try:
+        response = await client.post(token_url, json=payload, headers=headers)
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        # Extract error message from Supabase JSON if available
+        error_detail = exc.response.json().get("error_description") or exc.response.text
+        raise HTTPException(
+            status_code=exc.response.status_code,
+            detail=f"Authentication failed: {error_detail}",
+        ) from exc
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Could not connect to authentication service: {exc}",
+        ) from exc
     
     # Supabase returns: { access_token, token_type, expires_in, refresh_token, user }
     # We only need to return access_token and token_type for Swagger OAuth2

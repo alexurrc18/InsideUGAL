@@ -29,6 +29,7 @@ from app.api.errors import (
     validation_exception_handler,
 )
 
+
 # Configurare logger pentru middleware
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
