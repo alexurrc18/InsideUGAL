@@ -18,6 +18,7 @@ class TipEveniment(str, Enum):
     CAZARE = "cazare"
     ANUNT_GENERAL = "anunt_general"
     ADMINISTRATIV = "administrativ"
+    ADMITERE = "admitere"
 
 class NivelUrgenta(str, Enum):
     RIDICATA = "ridicata"
@@ -28,12 +29,12 @@ class AnnouncementRequest(BaseModel):
     text: str = Field(..., min_length=10, max_length=15000, description="Textul brut al anuntului")
 
 class GeminiAnnouncementInfo(BaseModel):
-    """Schema extinsa pentru datele extrase direct de LLM, adaptata pentru UGAL/Facultati"""
-    materie_sau_subiect: str = Field(description="Numele materiei sau subiectul administrativ (ex: 'Baze de Date', 'Camine', 'Transport')")
-    entitate_sursa: str = Field(description="Facultatea sau departamentul sursa (ex: 'ACIEE', 'FSEAA', 'SIA', 'Rectorat', 'Secretariat')")
+    """Schema pentru datele extrase de LLM"""
+    materie_sau_subiect: str = Field(description="Numele materiei sau subiectul administrativ")
+    entitate_sursa: Optional[str] = Field(None, description="Facultatea sau departamentul sursa")
     tip_eveniment: TipEveniment = Field(description="Clasificarea anuntului")
     urgenta_estimata: NivelUrgenta = Field(description="Nivelul de prioritate")
-    public_tinta: List[str] = Field(description="Cine trebuie sa actioneze (ex: ['Anul 2', 'Toti studentii'])")
+    public_tinta: List[str] = Field(description="Cine trebuie sa actioneze")
     
     deadline_absolut: Optional[datetime] = Field(None, description="Data si ora limita (YYYY-MM-DD HH:MM)")
     locatie: Optional[str] = Field(None, description="Sala, corpul sau platforma online (ex: 'B21', 'Microsoft Teams')")
@@ -43,7 +44,7 @@ class GeminiAnnouncementInfo(BaseModel):
     penalizari_sau_reguli: List[str] = Field(default=[], description="Reguli sau penalizari mentionate")
     
     linkuri_utile: List[str] = Field(default=[], description="URL-uri detectate in text")
-    taguri_cheie: List[str] = Field(description="Etichete pentru UI (ex: 'Important', 'Urgent', 'Online')")
+    taguri_cheie: List[str] = Field(description="Etichete pentru UI")
 
 class ExtractedAnnouncementInfo(GeminiAnnouncementInfo):
     """Schema completa pentru raspunsul API, include metadate de sistem"""
