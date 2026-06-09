@@ -1,0 +1,25 @@
+{
+  "id": "9248de3f",
+  "filename": "cum-este-procesul-de-admitere_9248de3f",
+  "title": "Cum este procesul de admitere?",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Cum este procesul de admitere?"
+    },
+    {
+      "role": "assistant",
+      "content": "**Admitere FACIEE 2025**\n\nLicență: dosar fără examen, nota = 50% Bac + 50% disciplină la alegere (Matematică/Informatică/Fizică).\nMaster: 50% medie licență + 50% medie studii.\n\nSesiunea iulie 2025: înscrieri 1–18 iulie, rezultate 21–29 iulie.\nDetalii: https://aciee.ugal.ro/admitere"
+    },
+    {
+      "role": "user",
+      "content": "Ce specializări există la licență?"
+    },
+    {
+      "role": "assistant",
+      "content": "**Specializări Licență (4 ani)**\n\n- Automatică și Informatică Aplicată (60 locuri)\n- Calculatoare (120 locuri)\n- Electromecanică\n- Electronică de Putere și Acționări Electrice\n- Inginerie Electrică și Calculatoare\n- Electronică Aplicată\n- Rețele și Software de Telecomunicații\n\nTotal 320 locuri în 2025. Detalii: https://aciee.ugal.ro/educatie/licenta-4-ani"
+    }
+  ],
+  "created_at": "2026-06-04T11:15:49.013489",
+  "updated_at": "2026-06-04T11:16:37.448673"
+}
