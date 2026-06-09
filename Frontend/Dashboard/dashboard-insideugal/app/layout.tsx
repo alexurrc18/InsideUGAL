@@ -1,46 +1,39 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { Providers } from "./providers";
-import PageHeader from "./components/global/PageHeader";
+"use client";
+
+import { usePathname } from "next/navigation";
+// Importăm fișierul de stil folosind calea relativă exactă către folderul tău components/global
+import "./globals.css"; 
+
+// Importăm componentele globale folosind căile relative corecte
 import Sidebar from "./components/global/Sidebar";
+import Header from "./components/global/PageHeader";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  
+  // Ascundem elementele globale când suntem pe pagina de login
+  const isLoginPage = pathname === "/login";
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
-  title: "Inside UGAL - Stream",
-  description: "Platforma Audio",
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
   return (
-    <html lang="ro" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="h-screen overflow-hidden bg-background text-foreground">
-        <Providers>
-          <div className="flex w-full h-screen overflow-hidden">
+    <html lang="ro">
+      <body className="bg-background">
+        {isLoginPage ? (
+          // Pe pagina de login, randăm doar conținutul curat și centrat
+          <div className="w-full min-h-screen flex items-center justify-center">
+            {children}
+          </div>
+        ) : (
+          // Structura ta existentă pentru dashboard
+          <div className="flex min-h-screen">
             <Sidebar />
-
-            <div className="flex-1 min-w-0 h-screen flex flex-col overflow-hidden bg-background">
-              <PageHeader />
-
-              <main className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
-                <div className="mx-auto w-full max-w-7xl">{children}</div>
+            <div className="flex-1 flex flex-col">
+              <Header />
+              <main className="p-6 flex-1 bg-background">
+                {children}
               </main>
             </div>
           </div>
-        </Providers>
+        )}
       </body>
     </html>
   );

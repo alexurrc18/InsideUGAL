@@ -8,15 +8,23 @@ interface ExpandableProps {
   title: string;
   children: React.ReactNode;
   initialExpanded?: boolean;
+  expanded?: boolean;
+  onToggle?: () => void;
 }
 
-export function Expandable({ title, children, initialExpanded = false }: ExpandableProps) {
-  const [isExpanded, setIsExpanded] = useState(initialExpanded);
+export function Expandable({ title, children, initialExpanded = false, expanded, onToggle }: ExpandableProps) {
+  const [internalExpanded, setInternalExpanded] = useState(initialExpanded);
+  const isControlled = expanded !== undefined;
+  const isExpanded = isControlled ? expanded : internalExpanded;
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
-  
+
   const toggleExpand = () => {
-    setIsExpanded(!isExpanded);
+    if (isControlled) {
+      onToggle?.();
+    } else {
+      setInternalExpanded((v) => !v);
+    }
   };
 
   return (

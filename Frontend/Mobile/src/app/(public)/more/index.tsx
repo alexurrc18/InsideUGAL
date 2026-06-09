@@ -13,7 +13,7 @@ export default function MoreScreen() {
   const router = useRouter();
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top + Spacing.xxl }}>
+    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top + Spacing.md }}>
       <CategoryHeader title="Mai multe" />
       
       <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.lg }}>

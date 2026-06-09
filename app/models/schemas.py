@@ -1,14 +1,14 @@
+# app/models/schemas.py
+from enum import Enum
+from typing import Optional, List
+from uuid import UUID
 from datetime import datetime
 from decimal import Decimal
-from enum import Enum
-import re
-import struct
-from uuid import UUID
-from typing import Optional
+from pydantic import BaseModel, ConfigDict
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator, model_validator
-
-
+# ==========================================
+# ENUM-URI
+# ==========================================
 class UserRole(str, Enum):
     STUDENT = "STUDENT"
     STUDENT_RESPONSABIL = "STUDENT_RESPONSABIL"
@@ -17,288 +17,167 @@ class UserRole(str, Enum):
     HEAD_FACULTATI = "HEAD_FACULTATI"
     HEAD_ADMIN = "HEAD_ADMIN"
 
-
 class ComplaintStatus(str, Enum):
     in_asteptare = "in_asteptare"
     in_lucru = "in_lucru"
     finalizat = "finalizat"
     respins = "respins"
-
+    solutionat = "solutionat" # adăugat recent în issue
 
 class PostType(str, Enum):
     NOUTATE = "NOUTATE"
     EVENIMENT = "EVENIMENT"
 
 
+# ==========================================
+# PROFILES
+# ==========================================
 class ProfileBase(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    username: Optional[str] = None
+    username: str
     first_name: str
     last_name: str
     email: str
     role: UserRole = UserRole.STUDENT
     is_active: bool = True
 
-
 class ProfileCreate(ProfileBase):
-    id: UUID
-
+    # ID-ul este opțional pentru că la SSO/Supabase Auth se generează automat
+    id: Optional[UUID] = None
 
 class ProfileUpdate(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
     username: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    email: Optional[str] = None
     role: Optional[UserRole] = None
     is_active: Optional[bool] = None
 
-
 class ProfileResponse(ProfileBase):
-    model_config = ConfigDict(from_attributes=True)
-
     id: UUID
     created_at: datetime
     updated_at: datetime
-
-
-class FacultyBase(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    name: str
-    address: Optional[str] = None
-    phone: Optional[str] = None
-    website_url: Optional[str] = None
-    abbreviation: Optional[str] = None
-    description: Optional[str] = None
-    dormitory_url: Optional[str] = None
-
-
-class FacultyCreate(FacultyBase):
-    pass
-
-
-class FacultyUpdate(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    name: Optional[str] = None
-    address: Optional[str] = None
-    phone: Optional[str] = None
-    website_url: Optional[str] = None
-    abbreviation: Optional[str] = None
-    description: Optional[str] = None
-    dormitory_url: Optional[str] = None
-
-
-class FacultyResponse(FacultyBase):
     model_config = ConfigDict(from_attributes=True)
 
+
+# ==========================================
+# FACULTIES & LOCATIONS
+# ==========================================
+class Coordinates(BaseModel):
+    latitude: float
+    longitude: float
+
+class FacultyBase(BaseModel):
+    name: str
+    abbreviation: Optional[str] = None
+    description: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    website_url: Optional[str] = None
+    dormitory_url: Optional[str] = None
+
+class FacultyCreate(FacultyBase):
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "name": "Facultatea de Inginerie",
+            "abbreviation": "ING",
+            "description": "Facultatea de Inginerie din cadrul Universității Dunărea de Jos din Galați",
+            "address": "Str. Domnească nr. 111, Galați",
+            "phone": "+40 236 130 208",
+            "website_url": "https://ing.ugal.ro",
+            "dormitory_url": "https://campus.ugal.ro"
+        }
+    })
+
+class FacultyUpdate(BaseModel):
+    name: Optional[str] = None
+    abbreviation: Optional[str] = None
+    description: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    website_url: Optional[str] = None
+    dormitory_url: Optional[str] = None
+
+class FacultyResponse(FacultyBase):
     id: int
     created_at: datetime
     updated_at: datetime
-
-
-class CategoryBase(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    name: str
-
-
-class CategoryCreate(CategoryBase):
-    pass
-
-
-class CategoryUpdate(BaseModel):
-    name: Optional[str] = None
-
-
-class CategoryResponse(CategoryBase):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
-
-
-class Coordinates(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    lat: float
-    lon: float
-
-
-def _parse_point_coordinates(coordinates: object) -> Optional[Coordinates]:
-    raw_data = getattr(coordinates, "data", None)
-    if raw_data is not None:
-        data = bytes.fromhex(raw_data) if isinstance(raw_data, str) else bytes(raw_data)
-        if len(data) < 21:
-            return None
-
-        byte_order = "<" if data[0] == 1 else ">"
-        geometry_type = struct.unpack(f"{byte_order}I", data[1:5])[0]
-        base_geometry_type = geometry_type & 0x000000FF
-        if base_geometry_type != 1:
-            return None
-
-        has_srid = bool(geometry_type & 0x20000000)
-        offset = 9 if has_srid else 5
-        lon, lat = struct.unpack(f"{byte_order}dd", data[offset : offset + 16])
-        return Coordinates(lat=lat, lon=lon)
-
-    match = re.fullmatch(
-        r"POINT\s*\(\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*\)",
-        str(coordinates),
-        flags=re.IGNORECASE,
-    )
-    if match is None:
-        return None
-
-    lon, lat = match.groups()
-    return Coordinates(lat=float(lat), lon=float(lon))
-
-
 class LocationBase(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
     name: str
-    coordinates: Optional[Coordinates] = None
     faculty_id: Optional[int] = None
-
+    coordinates: Optional[Coordinates] = None
 
 class LocationCreate(LocationBase):
     pass
 
-
 class LocationUpdate(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
     name: Optional[str] = None
-    coordinates: Optional[Coordinates] = None
     faculty_id: Optional[int] = None
-
+    coordinates: Optional[Coordinates] = None
 
 class LocationResponse(LocationBase):
-    model_config = ConfigDict(from_attributes=True)
-
     id: int
     created_at: datetime
     updated_at: datetime
-
-    @field_validator("coordinates", mode="before")
-    @classmethod
-    def validate_coordinates(cls, coordinates: object) -> Optional[Coordinates]:
-        if coordinates is None or isinstance(coordinates, Coordinates):
-            return coordinates
-        if isinstance(coordinates, dict):
-            return Coordinates.model_validate(coordinates)
-        return _parse_point_coordinates(coordinates)
-
-    @field_serializer("coordinates")
-    def serialize_coordinates(self, coordinates: Optional[Coordinates]) -> Optional[dict[str, float]]:
-        return None if coordinates is None else coordinates.model_dump()
+    model_config = ConfigDict(from_attributes=True)
 
 
-class ProductBase(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
+# ==========================================
+# CATEGORIES (CATEGORII)
+# ==========================================
+class CategoryBase(BaseModel):
     name: str
-    description: Optional[str] = None
-    quantity: str
-    price: Decimal = Field(gt=0)
 
-    @field_validator("price", mode="before")
-    @classmethod
-    def parse_price(cls, v):
-        return Decimal(str(v)) if not isinstance(v, Decimal) else v
-
-
-class ProductCreate(ProductBase):
+class CategoryCreate(CategoryBase):
     pass
 
-
-class ProductUpdate(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
+class CategoryUpdate(BaseModel):
     name: Optional[str] = None
-    description: Optional[str] = None
-    quantity: Optional[str] = None
-    price: Optional[Decimal] = Field(default=None, gt=0)
 
-
-class ProductResponse(ProductBase):
+class CategoryResponse(CategoryBase):
+    id: int
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
-    created_at: datetime
-    updated_at: datetime
 
-
-class DailyMenuBase(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    day_of_week: int = Field(ge=1, le=7)
-    product_ids: list[int] = Field(default_factory=list)
-
-
-class DailyMenuCreate(DailyMenuBase):
-    pass
-
-
-class DailyMenuUpdate(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    day_of_week: Optional[int] = Field(default=None, ge=1, le=7)
-    product_ids: Optional[list[int]] = None
-
-
-class DailyMenuResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    day_of_week: int
-    products: list[ProductResponse] = Field(default_factory=list)
-    created_at: datetime
-    updated_at: datetime
-
-
+# ==========================================
+# COMPLAINTS (SESIZĂRI)
+# ==========================================
 class ComplaintBase(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    location_id: Optional[int] = None
     title: str
     description: str
+    location_id: Optional[int] = None
     image_url: Optional[str] = None
-    status: ComplaintStatus = ComplaintStatus.in_asteptare
-
 
 class ComplaintCreate(ComplaintBase):
-    pass
-
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "title": "Priză defectă în corpul D",
+            "description": "Priza din sala D12 scoate scântei la fiecare conectare.",
+            "location_id": 1,
+            "image_url": "https://example.com/images/complaint.jpg"
+        }
+    })
 
 class ComplaintUpdate(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    location_id: Optional[int] = None
     title: Optional[str] = None
     description: Optional[str] = None
-    image_url: Optional[str] = None
     status: Optional[ComplaintStatus] = None
 
-
 class ComplaintResponse(ComplaintBase):
-    model_config = ConfigDict(from_attributes=True)
-
     id: int
     user_id: UUID
+    status: ComplaintStatus
     created_at: datetime
     updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
 
 
+# ==========================================
+# ANNOUNCEMENTS (ANUNȚURI)
+# ==========================================
 class AnnouncementBase(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    type: PostType = PostType.NOUTATE
-    title: Optional[str] = None
+    type: PostType
+    title: str
     content: str
     image_url: Optional[str] = None
     faculty_id: Optional[int] = None
@@ -306,41 +185,82 @@ class AnnouncementBase(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
 
-    @model_validator(mode="after")
-    def validate_post_type_fields(self):
-        if self.type == PostType.EVENIMENT:
-            if self.start_date is None:
-                raise ValueError("start_date is required for EVENIMENT announcements.")
-            if self.end_date is not None and self.end_date < self.start_date:
-                raise ValueError("end_date must be after start_date.")
-        else:
-            self.start_date = None
-            self.end_date = None
-            self.location_name = None
-        return self
-
-
 class AnnouncementCreate(AnnouncementBase):
-    pass
-
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "type": "EVENIMENT",
+            "title": "Hackathon UGAL 2024",
+            "content": "Vă așteptăm la hackathon-ul ediția 2024! Cele mai bune proiecte vor fi premiate.",
+            "image_url": "https://example.com/images/hackathon.jpg",
+            "faculty_id": 3,
+            "location_name": "Corpul C",
+            "start_date": "2024-06-15T09:00:00",
+            "end_date": "2024-06-15T18:00:00"
+        }
+    })
 
 class AnnouncementUpdate(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    type: Optional[PostType] = None
     title: Optional[str] = None
     content: Optional[str] = None
-    image_url: Optional[str] = None
-    faculty_id: Optional[int] = None
-    location_name: Optional[str] = None
+    type: Optional[PostType] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
 
-
 class AnnouncementResponse(AnnouncementBase):
-    model_config = ConfigDict(from_attributes=True)
-
     id: int
     created_by: UUID
     created_at: datetime
     updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ==========================================
+# PRODUCTS (PRODUSE CANTINĂ)
+# ==========================================
+class ProductBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    quantity: str
+    price: Decimal
+
+class ProductCreate(ProductBase):
+    pass
+
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    quantity: Optional[str] = None
+    price: Optional[Decimal] = None
+
+class ProductResponse(ProductBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ==========================================
+# DAILY MENUS (MENIUL ZILEI)
+# ==========================================
+class DailyMenuBase(BaseModel):
+    day_of_week: int
+
+class DailyMenuCreate(DailyMenuBase):
+    product_ids: List[int] = []
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "day_of_week": 1,
+            "product_ids": [1, 2, 3]
+        }
+    }) 
+
+class DailyMenuUpdate(BaseModel):
+    day_of_week: Optional[int] = None
+    product_ids: Optional[List[int]] = None
+
+class DailyMenuResponse(DailyMenuBase):
+    id: int
+    products: List[ProductResponse] = []
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)

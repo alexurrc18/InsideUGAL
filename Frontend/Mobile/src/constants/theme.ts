@@ -78,3 +78,6 @@ export const Fonts = Platform.select({
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
+
+// Margine laterala constanta pe web (desktop), folosita pe paginile din (public)
+export const WebSidePadding = 64;

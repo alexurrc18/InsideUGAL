@@ -1,3 +1,4 @@
+# app/models/models.py
 from geoalchemy2 import Geometry
 from sqlalchemy import (
     Boolean,
@@ -36,15 +37,14 @@ class Profile(Base, TimestampMixin):
     __tablename__ = "profiles"
     __table_args__ = {"schema": "public"}
 
+    # Nu forța lambda: uuid.uuid4() aici, lăsăm Supabase să ne dea ID-ul sau îl dăm din router.
     id = Column(UUID(as_uuid=False), primary_key=True)
     username = Column(String(100), unique=True)
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     email = Column(String(255), unique=True, nullable=False)
     
-    # MODIFICAT AICI
     role = Column(ENUM('STUDENT', 'STUDENT_RESPONSABIL', 'PROFESOR', 'HEAD_CANTINA', 'HEAD_FACULTATI', 'HEAD_ADMIN', name='user_role', create_type=False), nullable=False, server_default="STUDENT")
-    
     is_active = Column(Boolean, nullable=False, default=True)
 
     complaints = relationship("Complaint", back_populates="user")
@@ -123,7 +123,6 @@ class Complaint(Base, TimestampMixin):
     description = Column(Text, nullable=False)
     image_url = Column(Text)
     
-    # MODIFICAT AICI
     status = Column(ENUM('in_asteptare', 'in_lucru', 'finalizat', 'respins', name='complaint_status', create_type=False), nullable=False, server_default="in_asteptare")
 
     user = relationship("Profile", back_populates="complaints")
@@ -136,7 +135,6 @@ class Announcement(Base, TimestampMixin):
 
     id = Column(Integer, primary_key=True)
     
-    # MODIFICAT AICI
     type = Column(ENUM('NOUTATE', 'EVENIMENT', name='post_type', create_type=False), nullable=False, server_default="NOUTATE")
     
     created_by = Column(UUID(as_uuid=False), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
@@ -150,3 +148,34 @@ class Announcement(Base, TimestampMixin):
 
     creator = relationship("Profile", back_populates="announcements")
     faculty = relationship("Faculty", back_populates="announcements")
+
+
+
+class LLMCall(Base):
+    __tablename__ = "llm_calls"
+    __table_args__ = {"schema": "public"}
+
+    id = Column(UUID(as_uuid=False), primary_key=True, server_default=func.gen_random_uuid())
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    function_name = Column(Text, nullable=False)
+    model = Column(Text, nullable=False)
+    prompt_tokens = Column(Integer, default=0)
+    response_tokens = Column(Integer, default=0)
+    total_tokens = Column(Integer, default=0)
+    cached = Column(Boolean, default=False)
+    duration_ms = Column(Integer)
+
+
+class QuestionsHistory(Base):
+    __tablename__ = "questions_history"
+    __table_args__ = {"schema": "public"}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    
+    # Am adăugat legătura cu userul (studentul care întreabă), cerută în issue
+    user_id = Column(UUID(as_uuid=False), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
+    
+    pdf_id = Column(Text, nullable=False)
+    question = Column(Text, nullable=False)
+    answer = Column(Text, nullable=False)
