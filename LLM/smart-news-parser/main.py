@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 from schemas import AnnouncementRequest, ExtractedAnnouncementInfo
 from llm_service import LLMService
-from image_service import ImageService, ImageGenerationResult
+from image_service_v2 import ImageServiceV2, ImageGenerationResult
 from huggingface_hub.errors import HfHubHTTPError
 
 # ---------------------------------------------------------
@@ -39,7 +39,7 @@ if HF_API_KEY:
 
 # Serviciu LLM si Image
 llm_service = LLMService(hf_api_key=HF_API_KEY)
-image_service = ImageService(hf_api_key=HF_API_KEY)
+image_service = ImageServiceV2(hf_api_key=HF_API_KEY)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
