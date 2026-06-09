@@ -8,21 +8,32 @@ interface Announcement {
   title: string;
   content: string;
   created_at: string;
+  announcement_type?: string;
 }
+
+const STORAGE_KEY = "last_seen_announcement_id";
 
 export default function HeaderActions() {
   const [open, setOpen] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function fetchAnnouncements() {
       setLoading(true);
       try {
-        const res = await fetch("https://api.insideugal.ro/announcements/");
-        const data = await res.json();
-        setAnnouncements(data.slice(0, 5));
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/announcements/`);
+        if (!res.ok) throw new Error("fetch failed");
+        const data: Announcement[] = await res.json();
+        const latest = data.slice(0, 5);
+        setAnnouncements(latest);
+
+        // Calculează câte sunt "necitite" față de ultima vizită
+        const lastSeen = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
+        const unseen = latest.filter((a) => a.id > lastSeen).length;
+        setUnreadCount(unseen);
       } catch {
         setAnnouncements([]);
       } finally {
@@ -31,6 +42,15 @@ export default function HeaderActions() {
     }
     fetchAnnouncements();
   }, []);
+
+  // Când se deschide dropdown-ul, marchează toate ca citite
+  useEffect(() => {
+    if (open && announcements.length > 0) {
+      const maxId = Math.max(...announcements.map((a) => a.id));
+      localStorage.setItem(STORAGE_KEY, String(maxId));
+      setUnreadCount(0);
+    }
+  }, [open, announcements]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -48,35 +68,71 @@ export default function HeaderActions() {
         <button
           type="button"
           aria-label="Notificări"
-          onClick={() => setOpen(!open)}
+          onClick={() => setOpen((prev) => !prev)}
           className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
         >
           <Bell size={18} />
-          {announcements.length > 0 && (
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand" />
+          {unreadCount > 0 && (
+            <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
           )}
         </button>
 
         {open && (
           <div className="absolute right-0 top-full mt-2 w-80 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden">
-            <div className="px-4 py-3 border-b border-border">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <h3 className="text-sm font-semibold text-foreground">Notificări</h3>
+              {announcements.length > 0 && (
+                <span className="text-xs text-muted">{announcements.length} anunțuri</span>
+              )}
             </div>
+
             <div className="max-h-80 overflow-y-auto">
               {loading ? (
-                <div className="px-4 py-6 text-center text-sm text-muted">Se încarcă...</div>
+                <div className="flex flex-col gap-2 px-4 py-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="animate-pulse space-y-1.5">
+                      <div className="h-3 w-3/4 rounded bg-border" />
+                      <div className="h-2.5 w-full rounded bg-border" />
+                      <div className="h-2 w-1/3 rounded bg-border" />
+                    </div>
+                  ))}
+                </div>
               ) : announcements.length === 0 ? (
-                <div className="px-4 py-6 text-center text-sm text-muted">Nicio notificare</div>
+                <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
+                  <Bell size={24} className="text-muted opacity-40" />
+                  <p className="text-sm text-muted">Nicio notificare momentan</p>
+                </div>
               ) : (
-                announcements.map((a) => (
-                  <div key={a.id} className="px-4 py-3 border-b border-border hover:bg-background transition-colors cursor-pointer">
-                    <p className="text-sm font-medium text-foreground">{a.title}</p>
-                    <p className="text-xs text-muted mt-0.5 line-clamp-2">{a.content}</p>
-                    <p className="text-xs text-muted mt-1">{new Date(a.created_at).toLocaleDateString("ro-RO")}</p>
+                announcements.map((a, idx) => (
+                  <div
+                    key={a.id}
+                    className={`px-4 py-3 hover:bg-background transition-colors cursor-pointer ${
+                      idx < announcements.length - 1 ? "border-b border-border" : ""
+                    }`}
+                  >
+                    <p className="text-sm font-medium text-foreground leading-snug">{a.title}</p>
+                    <p className="text-xs text-muted mt-0.5 line-clamp-2 leading-relaxed">{a.content}</p>
+                    <p className="text-xs text-muted mt-1.5 opacity-70">
+                      {new Date(a.created_at).toLocaleDateString("ro-RO", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </p>
                   </div>
                 ))
               )}
             </div>
+
+            {announcements.length > 0 && (
+              <div className="border-t border-border px-4 py-2.5">
+                <button className="w-full text-center text-xs text-brand hover:underline">
+                  Vezi toate anunțurile
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
