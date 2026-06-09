@@ -38,7 +38,7 @@ from huggingface_hub import AsyncInferenceClient
 from huggingface_hub.errors import HfHubHTTPError
 from pydantic import BaseModel
 from PIL import Image as PILImage
-from schemas import ExtractedAnnouncementInfo
+from parser_schemas import ExtractedAnnouncementInfo
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("image-generator-v2")
@@ -312,12 +312,12 @@ if __name__ == "__main__":
         print("🚀 Testare ImageServiceV2 (ControlNet SDXL)...")
         service = ImageServiceV2(hf_api_key=hf_api_key, assets_dir=str(assets_dir))
 
-        from schemas import TipEveniment, NivelUrgenta
+        from parser_schemas import TipEveniment, NivelUrgenta
         from datetime import datetime
 
         test_info = ExtractedAnnouncementInfo(
-            materie_sau_subiect="Hackathon ACIEE 2025",
-            entitate_sursa="Facultatea ACIEE",          # <-- trebuie sa matcheze FACULTY_CANNY_MAP
+            materie_sau_subiect="Eveniment Inginerie 2025",
+            entitate_sursa="Facultatea de Inginerie",          # <-- trebuie sa matcheze FACULTY_CANNY_MAP
             tip_eveniment=TipEveniment.CONCURS,
             urgenta_estimata=NivelUrgenta.RIDICATA,
             public_tinta=["Studenti"],
