@@ -125,9 +125,9 @@ class ImageServiceV2:
             logger.warning(f"⚠️  Folder Canny inexistent: {folder_path}")
             return None
 
-        # Ia primul PNG/JPG din folder (ordonat alfabetic)
+        # Ia primul fișier care se termină în _canny.png/jpg
         canny_files = sorted(
-            [f for f in folder_path.iterdir() if f.suffix.lower() in {".png", ".jpg", ".jpeg"}]
+            [f for f in folder_path.iterdir() if f.suffix.lower() in {".png", ".jpg", ".jpeg"} and "_canny" in f.name.lower()]
         )
         if not canny_files:
             logger.warning(f"⚠️  Nicio imagine Canny in: {folder_path}")
