@@ -24,8 +24,12 @@ export default function HeaderActions() {
     async function fetchAnnouncements() {
       setLoading(true);
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/announcements/`);
-        if (!res.ok) throw new Error("fetch failed");
+        // Fallback de siguranță: dacă nu găsește .env, folosește direct adresa locală
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+        
+        const res = await fetch(`${baseUrl}/announcements/`);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
         const data: Announcement[] = await res.json();
         const latest = data.slice(0, 5);
         setAnnouncements(latest);
@@ -34,7 +38,8 @@ export default function HeaderActions() {
         const lastSeen = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
         const unseen = latest.filter((a) => a.id > lastSeen).length;
         setUnreadCount(unseen);
-      } catch {
+      } catch (error) {
+        console.error("Eroare la preluarea anunțurilor:", error);
         setAnnouncements([]);
       } finally {
         setLoading(false);
@@ -43,14 +48,17 @@ export default function HeaderActions() {
     fetchAnnouncements();
   }, []);
 
-  // Când se deschide dropdown-ul, marchează toate ca citite
-  useEffect(() => {
-    if (open && announcements.length > 0) {
+  // Noua funcție care se ocupă de click-ul pe clopoțel și resetează unreadCount
+  const handleToggleNotifications = () => {
+    const willOpen = !open;
+    setOpen(willOpen);
+
+    if (willOpen && announcements.length > 0) {
       const maxId = Math.max(...announcements.map((a) => a.id));
       localStorage.setItem(STORAGE_KEY, String(maxId));
       setUnreadCount(0);
     }
-  }, [open, announcements]);
+  };
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -68,7 +76,7 @@ export default function HeaderActions() {
         <button
           type="button"
           aria-label="Notificări"
-          onClick={() => setOpen((prev) => !prev)}
+          onClick={handleToggleNotifications} // Funcția corectată atașată aici
           className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
         >
           <Bell size={18} />
