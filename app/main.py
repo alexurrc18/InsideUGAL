@@ -1,3 +1,4 @@
+# app/main.py
 import logging
 import uuid
 import os
@@ -41,8 +42,26 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 
 app = FastAPI(
     title="InsideUGAL API",
-    description="REST API pentru platforma academica InsideUGAL.",
-    version="2.0.0",
+    description="""
+## API-ul platformei InsideUGAL
+
+O platformă academică modernă pentru studenții Universității "Dunărea de Jos" din Galați.
+
+### Funcționalități principale
+
+- **Profile & Microsoft SSO** - Autentificare și gestionare profiluri utilizatori prin integrare Microsoft
+- **Facultăți & Locații (GIS)** - Informații complete despre facultăți și localizare pe hartă
+- **Sesizări studenți** - Sistem de raportare și urmărire a sesizărilor pentru problemele universitare
+- **Meniu cantină** - Meniul zilnic al cantinei universitare cu informații despre produse
+- **Asistent AI LLM** - Asistent virtual bazat pe inteligență artificială pentru răspunsuri la întrebări frecvente
+
+Documentație completă și exemplu de utilizare disponibilă la repository-ul oficial.
+""",
+    version="1.0.0",
+    contact={
+        "name": "Echipa InsideUGAL",
+        "url": "https://github.com/alexurrc18/InsideUGAL",
+    },
     exception_handlers={
         Exception: global_exception_handler,
         StarletteHTTPException: http_exception_handler,
