@@ -21,21 +21,11 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_URL     = "https://openrouter.ai/api/v1/chat/completions"
-GEMINI_API_KEY     = os.getenv("GEMINI_API_KEY", "").strip().strip("'").strip('"')
-GEMINI_MODEL       = "gemini-2.5-flash"
+GEMINI_API_KEY  = os.getenv("GEMINI_API_KEY", "").strip().strip("'").strip('"')
+GEMINI_MODEL    = "gemini-2.5-flash-lite"
 
 _gemini_client  = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 _gemini_breaker = pybreaker.CircuitBreaker(fail_max=5, reset_timeout=60)
-
-MODELS = [
-    "nvidia/nemotron-nano-9b-v2:free",
-    "cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
-    "liquid/lfm-2.5-1.2b-instruct:free",
-    "google/gemma-4-31b-it:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
-]
 
 print("Se încarcă indexul RAG...")
 rag = RAGEngine()
@@ -266,10 +256,6 @@ def chat():
             context = "Nu am găsit informații specifice. Îndrumă utilizatorul spre https://www.ugal.ro/"
 
     system = SYSTEM_BASE + context
-    messages = [
-        {"role": "system", "content": system},
-        {"role": "user", "content": user_message},
-    ]
 
     def try_gemini_stream():
         if not _gemini_client:
@@ -312,29 +298,6 @@ def chat():
             print(f"[Gemini] Eroare: {e}")
             return None
 
-    def try_openrouter():
-        headers = {
-            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "http://localhost:5000",
-            "X-Title": "InsideUGAL Chatbot",
-        }
-        for model in MODELS:
-            try:
-                resp = requests.post(
-                    OPENROUTER_URL,
-                    headers=headers,
-                    json={"model": model, "messages": messages, "max_tokens": 2000, "temperature": 0.3, "stream": True},
-                    timeout=20, stream=True,
-                )
-                if resp.status_code == 429:
-                    continue
-                resp.raise_for_status()
-                return resp
-            except Exception:
-                continue
-        return None
-
     def generate():
         full_content = []
 
@@ -366,50 +329,13 @@ def chat():
                 yield f"data: {json.dumps({'done': True, 'sources': sources, 'suggestions': suggestions})}\n\n"
             return
 
-        working_resp = try_openrouter()
-
-        if not working_resp:
-            yield f"data: {json.dumps({'waiting': True})}\n\n"
-            for wait in (4, 7):
-                time.sleep(wait)
-                working_resp = try_openrouter()
-                if working_resp:
-                    break
-
-        if not working_resp:
-            answer = faq_fallback(user_message)
-            for token in re.split(r"(\s+)", answer):
-                if token:
-                    full_content.append(token)
-                    yield f"data: {json.dumps({'token': token})}\n\n"
-            suggestions = _generate_suggestions(user_message, answer)
-            yield f"data: {json.dumps({'done': True, 'sources': sources, 'suggestions': suggestions})}\n\n"
-            return
-
-        try:
-            for line in working_resp.iter_lines():
-                if not line:
-                    continue
-                line = line.decode("utf-8")
-                if not line.startswith("data: "):
-                    continue
-                data_str = line[6:]
-                if data_str == "[DONE]":
-                    break
-                try:
-                    chunk = json.loads(data_str)
-                    token = chunk["choices"][0].get("delta", {}).get("content", "")
-                    if token:
-                        full_content.append(token)
-                        yield f"data: {json.dumps({'token': token})}\n\n"
-                except (json.JSONDecodeError, KeyError, IndexError):
-                    continue
-        finally:
-            assistant_message = "".join(full_content)
-            if assistant_message:
-                llm_cache.set(cache_key, assistant_message)
-            suggestions = _generate_suggestions(user_message, assistant_message)
-            yield f"data: {json.dumps({'done': True, 'sources': sources, 'suggestions': suggestions})}\n\n"
+        answer = faq_fallback(user_message)
+        for token in re.split(r"(\s+)", answer):
+            if token:
+                full_content.append(token)
+                yield f"data: {json.dumps({'token': token})}\n\n"
+        suggestions = _generate_suggestions(user_message, answer)
+        yield f"data: {json.dumps({'done': True, 'sources': sources, 'suggestions': suggestions})}\n\n"
 
     return Response(
         stream_with_context(generate()),
