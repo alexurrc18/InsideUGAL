@@ -5,7 +5,12 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from schemas import AnnouncementRequest, ExtractedAnnouncementInfo
+# Incarcam variabilele de mediu inainte de a importa modulele locale (care depind de ele)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+local_env_path = os.path.join(current_dir, ".env")
+load_dotenv(dotenv_path=local_env_path, override=True)
+
+from parser_schemas import AnnouncementRequest, ExtractedAnnouncementInfo
 from llm_service import LLMService
 from image_service import ImageService, ImageGenerationResult
 from huggingface_hub.errors import HfHubHTTPError
@@ -23,9 +28,7 @@ logger = logging.getLogger("smart-announcement-parser")
 # ---------------------------------------------------------
 # 1. INITIALIZARE
 # ---------------------------------------------------------
-current_dir = os.path.dirname(os.path.abspath(__file__))
-local_env_path = os.path.join(current_dir, ".env")
-load_dotenv(dotenv_path=local_env_path, override=True)
+# Variabilele de mediu au fost incarcate deja mai sus
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 if not API_KEY:
@@ -38,7 +41,7 @@ if HF_API_KEY:
     HF_API_KEY = HF_API_KEY.strip().strip("'").strip('"')
 
 # Serviciu LLM si Image
-llm_service = LLMService(hf_api_key=HF_API_KEY)
+llm_service = LLMService()
 image_service = ImageService(hf_api_key=HF_API_KEY)
 
 @asynccontextmanager

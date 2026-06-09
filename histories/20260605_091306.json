@@ -1,0 +1,18 @@
+{
+  "id": "20260605_091306",
+  "title": "Unde e Corpul D?",
+  "messages": [
+    {
+      "role": "user",
+      "text": "Unde e Corpul D?",
+      "full_prompt": "[ÎNTREBARE]:\nUnde e Corpul D?",
+      "timestamp": "2026-06-05T09:13:37.021248"
+    },
+    {
+      "role": "model",
+      "text": "Îmi pare rău, dar nu am informaţii specifice despre locaţia exactă a „Corpului D” în cadrul Universităţii Dunărea de Jos. Pentru a obţine detalii precise (indică‑ne pe care facultatea este legat de această clădire sau despre ce tip de spațiu este vorba – săli de curs, birouri etc.), îți recomand să:\n\n- **Suni** la administraţia generală a UGAL (telefon: +40 234 338 500) sau la secretariatul facultăţii relevante;\n- **Vizitezi** site-ul oficial https://www.ugal.ro/ – în secţiunea „Campusuri şi clădiri” găseşti hărze și indicaţii;\n- **Consultă** harta campusului disponibilă în aplicaţia mobilă UA Life (dacă ai student).\n\nAstfel vei primi indicaţia exactă, inclusiv stradă, kilometraj și eventual acces prin portaluri/încăperi. Cu plăcere te pot ajuta și cu alte întrebări despre universitate!",
+      "timestamp": "2026-06-05T09:13:37.021248"
+    }
+  ],
+  "created": "2026-06-05T09:13:06.937028"
+}

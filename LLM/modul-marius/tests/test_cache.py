@@ -4,7 +4,7 @@ Testează cerința 3: Cache cu cheie deterministă (hash prompt + model + temper
 import os
 import sys
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytest
@@ -92,7 +92,7 @@ class TestCacheTTL:
         with sqlite3.connect(c.DB_PATH) as con:
             con.execute(
                 "UPDATE llm_cache SET expires_at = ? WHERE cache_key = ?",
-                ((datetime.utcnow() - timedelta(hours=1)).isoformat(), key),
+                ((datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(), key),
             )
         assert c.get(key) is None
 
@@ -104,7 +104,7 @@ class TestCacheTTL:
         with sqlite3.connect(c.DB_PATH) as con:
             con.execute(
                 "UPDATE llm_cache SET expires_at = ? WHERE cache_key = ?",
-                ((datetime.utcnow() - timedelta(hours=1)).isoformat(), k_expired),
+                ((datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(), k_expired),
             )
         removed = c.clear_expired()
         assert removed == 1

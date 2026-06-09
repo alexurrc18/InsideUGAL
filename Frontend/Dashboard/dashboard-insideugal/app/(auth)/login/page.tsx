@@ -40,8 +40,8 @@ export default function LoginPage() {
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("token_type", data.token_type);
 
-      // Redirecționează utilizatorul după logare spre dashboard
-      window.location.href = "/dashboard";
+      // Redirecționează utilizatorul după logare spre acasă
+      window.location.href = "/";
       
     } catch (err: unknown) {
       if (err instanceof Error) {

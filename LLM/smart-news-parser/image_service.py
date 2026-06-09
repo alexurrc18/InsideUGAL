@@ -5,7 +5,7 @@ import io
 from huggingface_hub import AsyncInferenceClient
 from huggingface_hub.errors import HfHubHTTPError
 from pydantic import BaseModel
-from schemas import ExtractedAnnouncementInfo
+from parser_schemas import ExtractedAnnouncementInfo
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("image-generator")
@@ -117,7 +117,7 @@ if __name__ == "__main__":
         service = ImageService(hf_api_key=hf_api_key)
         
         # Test mock data
-        from schemas import TipEveniment, NivelUrgenta
+        from parser_schemas import TipEveniment, NivelUrgenta
         from datetime import datetime
         
         test_info = ExtractedAnnouncementInfo(
