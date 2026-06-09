@@ -75,7 +75,17 @@ class FacultyBase(BaseModel):
     dormitory_url: Optional[str] = None
 
 class FacultyCreate(FacultyBase):
-    pass
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "name": "Facultatea de Inginerie",
+            "abbreviation": "ING",
+            "description": "Facultatea de Inginerie din cadrul Universității Dunărea de Jos din Galați",
+            "address": "Str. Domnească nr. 111, Galați",
+            "phone": "+40 236 130 208",
+            "website_url": "https://ing.ugal.ro",
+            "dormitory_url": "https://campus.ugal.ro"
+        }
+    })
 
 class FacultyUpdate(BaseModel):
     name: Optional[str] = None
@@ -139,7 +149,14 @@ class ComplaintBase(BaseModel):
     image_url: Optional[str] = None
 
 class ComplaintCreate(ComplaintBase):
-    pass
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "title": "Priză defectă în corpul D",
+            "description": "Priza din sala D12 scoate scântei la fiecare conectare.",
+            "location_id": 1,
+            "image_url": "https://example.com/images/complaint.jpg"
+        }
+    })
 
 class ComplaintUpdate(BaseModel):
     title: Optional[str] = None
@@ -169,7 +186,18 @@ class AnnouncementBase(BaseModel):
     end_date: Optional[datetime] = None
 
 class AnnouncementCreate(AnnouncementBase):
-    pass
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "type": "EVENIMENT",
+            "title": "Hackathon UGAL 2024",
+            "content": "Vă așteptăm la hackathon-ul ediția 2024! Cele mai bune proiecte vor fi premiate.",
+            "image_url": "https://example.com/images/hackathon.jpg",
+            "faculty_id": 3,
+            "location_name": "Corpul C",
+            "start_date": "2024-06-15T09:00:00",
+            "end_date": "2024-06-15T18:00:00"
+        }
+    })
 
 class AnnouncementUpdate(BaseModel):
     title: Optional[str] = None
@@ -218,7 +246,13 @@ class DailyMenuBase(BaseModel):
     day_of_week: int
 
 class DailyMenuCreate(DailyMenuBase):
-    product_ids: List[int] = [] 
+    product_ids: List[int] = []
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "day_of_week": 1,
+            "product_ids": [1, 2, 3]
+        }
+    }) 
 
 class DailyMenuUpdate(BaseModel):
     day_of_week: Optional[int] = None

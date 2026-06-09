@@ -13,9 +13,9 @@ from unittest.mock import patch
 
 import pytest
 
-BASE = Path(__file__).resolve().parent.parent
+BASE = Path(__file__).resolve().parent.parent.parent
 MODUL_MARIUS = BASE / "modul-marius"
-PDF_TEST_PATH = MODUL_MARIUS / "pdfs" / "PAW_curs_1.pdf"
+PDF_TEST_PATH = MODUL_MARIUS / "pdfs" / "Regulament_Camine_UGAL.pdf"
 
 sys.path.insert(0, str(MODUL_MARIUS))
 
@@ -57,7 +57,7 @@ class TestRAGEndToEnd:
         with open(PDF_TEST_PATH, "rb") as f:
             resp = http.post(
                 "/api/v1/upload-pdf",
-                files={"pdf": ("PAW_curs_1.pdf", f, "application/pdf")},
+                files={"pdf": ("Regulament_Camine_UGAL.pdf", f, "application/pdf")},
             )
 
         assert resp.status_code == 200, f"Upload esuat: {resp.text}"
@@ -74,14 +74,14 @@ class TestRAGEndToEnd:
         # Dupa upload, /ask trebuie sa returneze 200 (indexarea a reusit)
         resp = http.post(
             "/api/v1/ask",
-            json={"question": "Ce este PAW?", "pdf_id": pdf_id},
+            json={"question": "Care este programul de liniște în campus?", "pdf_id": pdf_id},
         )
         assert resp.status_code == 200
 
     def test_ask_schema_pydantic_corecta(self, http, pdf_id):
         resp = http.post(
             "/api/v1/ask",
-            json={"question": "Ce este PAW?", "pdf_id": pdf_id},
+            json={"question": "Care este programul de liniște în campus?", "pdf_id": pdf_id},
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -92,7 +92,7 @@ class TestRAGEndToEnd:
     def test_ask_raspuns_nevid(self, http, pdf_id):
         resp = http.post(
             "/api/v1/ask",
-            json={"question": "Ce este PAW?", "pdf_id": pdf_id},
+            json={"question": "Care este programul de liniște în campus?", "pdf_id": pdf_id},
         )
         assert resp.status_code == 200
         assert len(resp.json()["answer"].strip()) > 0
@@ -100,7 +100,7 @@ class TestRAGEndToEnd:
     def test_ask_raspuns_are_minim_20_caractere(self, http, pdf_id):
         resp = http.post(
             "/api/v1/ask",
-            json={"question": "Ce este PAW?", "pdf_id": pdf_id},
+            json={"question": "Care este programul de liniște în campus?", "pdf_id": pdf_id},
         )
         assert len(resp.json()["answer"]) >= 20
 

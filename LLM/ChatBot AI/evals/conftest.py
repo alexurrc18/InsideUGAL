@@ -1,13 +1,14 @@
 import os
 import sys
 import pytest
+from httpx import ConnectError
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "modul-marius"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "modul-marius"))
 
 from functions.llm_functions import load_pdf_into_rag
 
-PDF_PATH = os.path.join(os.path.dirname(__file__), "..", "modul-marius", "pdfs", "PAW_curs_1.pdf")
-PDF_ID = "eval_paw"
+PDF_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "modul-marius", "pdfs", "Regulament_Camine_UGAL.pdf")
+PDF_ID = "eval_admin"
 
 
 def pytest_configure(config):
@@ -29,6 +30,8 @@ def pytest_runtest_call(item):
 def load_pdf():
     if not os.getenv("GEMINI_API_KEY"):
         pytest.skip("GEMINI_API_KEY lipsește — evals necesită API key real")
+    if not os.getenv("SUPABASE_URL") or not (os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY")):
+        pytest.skip("Supabase nu este configurat — evals necesită SUPABASE_URL și SUPABASE_SERVICE_KEY/SUPABASE_KEY")
     if not os.path.exists(PDF_PATH):
         pytest.skip(f"PDF lipsește: {PDF_PATH}")
 
@@ -36,5 +39,13 @@ def load_pdf():
     from functions import llm_functions as llm
     llm._breaker.close()
 
-    load_pdf_into_rag(PDF_PATH, PDF_ID)
+    try:
+        load_pdf_into_rag(PDF_PATH, PDF_ID)
+    except ConnectError as exc:
+        pytest.skip(f"Supabase inaccesibil: {exc}")
+    except OSError as exc:
+        if "getaddrinfo failed" in str(exc):
+            pytest.skip(f"Supabase DNS indisponibil: {exc}")
+        raise
+
     return PDF_ID
