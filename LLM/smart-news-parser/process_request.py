@@ -15,7 +15,7 @@ async def main():
         return
     
     api_key = api_key.strip().strip("'").strip('"')
-    service = LLMService(api_key=api_key)
+    service = LLMService()
     
     text = """Admitere 2025
 Facultatea de Automatică, Calculatoare, Inginerie Electrică şi Electronică îți oferă cunoștințe și competențe tehnice inginerești la nivelul tuturor ciclurilor de învățământ superior (licență, masterat și doctorat) și la nivel de calitate compatibil cu al universităților tehnice din țară și străinătate.Ne găseşti şi pe
