@@ -244,16 +244,12 @@ def chat():
             context = "Meniul cantinei nu a putut fi preluat acum. Trimite utilizatorul la: https://campus.ugal.ro/ccps/meniu-studenti/"
     else:
         backend_context = backend_client.fetch_context(user_message)
-        raw_context, sources = rag.query_with_sources(user_message, n_results=5)
-
-        if backend_context and raw_context:
-            context = backend_context + "\n\n---\n\n" + raw_context
-        elif backend_context:
+        if backend_context:
             context = backend_context
-        elif raw_context:
-            context = raw_context
+            sources = []
         else:
-            context = "Nu am găsit informații specifice. Îndrumă utilizatorul spre https://www.ugal.ro/"
+            raw_context, sources = rag.query_with_sources(user_message, n_results=5)
+            context = raw_context or "Nu am găsit informații specifice. Îndrumă utilizatorul spre https://www.ugal.ro/"
 
     system = SYSTEM_BASE + context
 
