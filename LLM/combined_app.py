@@ -9,13 +9,11 @@ from pathlib import Path
 from importlib.util import spec_from_file_location, module_from_spec
 from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent
 SMART_NEWS_PARSER = BASE_DIR / "smart-news-parser"
-MODUL_MARIUS      = BASE_DIR / "modul-marius"
-CHATBOT_MARIUS    = BASE_DIR / "ChatBot-Marius"
+MODUL_MARIUS = BASE_DIR / "modul-marius"
 
 # Load environment variables from the LLM root .env
 env_path = BASE_DIR / ".env"
@@ -71,25 +69,30 @@ if old_schemas is None:
 else:
     sys.modules["schemas"] = old_schemas
 
-campus_chat_service = load_module(
-    "campus_chat_service",
-    CHATBOT_MARIUS / "campus_chat_service.py",
-    extra_paths=[CHATBOT_MARIUS],
+image_service_module = load_module(
+    "image_service_module",
+    SMART_NEWS_PARSER / "image_service.py",
+    extra_paths=[SMART_NEWS_PARSER],
 )
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 if not API_KEY:
     raise ValueError("GEMINI_API_KEY este necesar pentru LLM combined service.")
 
+HF_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
+if not HF_API_KEY:
+    logging.getLogger("llm-integration").warning("HUGGINGFACE_API_KEY lipseste. Generarea de imagini ar putea esua.")
+
 logger = logging.getLogger("llm-integration")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-llm_service = smart_news_service.LLMService(api_key=API_KEY)
+llm_service = smart_news_service.LLMService()
+img_service = image_service_module.ImageService(hf_api_key=HF_API_KEY) if HF_API_KEY else None
 
 app = FastAPI(
     title="InsideUGAL LLM Integrated Service",
-    description="Serviciu FastAPI care combină extragerea de task-uri UGAL, funcționalitățile PDF/RAG și asistentul virtual campus.",
-    version="2.0.0"
+    description="Serviciu FastAPI care combină extragerea de task-uri UGAL și funcționalitățile PDF/quiz/RAG.",
+    version="1.0.0"
 )
 app.add_middleware(
     CORSMiddleware,
@@ -107,11 +110,12 @@ def health_check():
         "service": "InsideUGAL LLM Integrated Service",
         "endpoints": [
             "/api/v1/extract-announcement-info",
+            "/api/v1/generate-banner",
             "/api/v1/upload-pdf",
             "/api/v1/ask",
             "/api/v1/summary",
+            "/api/v1/quiz",
             "/api/v1/delete-pdf/{pdf_id}",
-            "/api/v1/campus-chat",
         ],
     }
 
@@ -123,6 +127,22 @@ async def extract_announcement_info(request: smart_news_schemas.AnnouncementRequ
         return await llm_service.extract_announcement_info(request.text)
     except Exception as exc:
         logger.error("Eroare la extragerea informatiilor din anunt: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+@app.post("/api/v1/generate-banner", response_model=image_service_module.ImageGenerationResult)
+async def generate_banner(info: smart_news_schemas.ExtractedAnnouncementInfo):
+    if not img_service:
+        raise HTTPException(status_code=500, detail="Serviciul de imagini nu este configurat (lipseste cheia HF).")
+    try:
+        logger.info("Primire cerere generare banner.")
+        result = await img_service.generate_announcement_banner(info)
+        if not result.success:
+            raise HTTPException(status_code=500, detail=result.error_message)
+        return result
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Eroare la generarea banner-ului: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
 
 
@@ -172,7 +192,7 @@ async def upload_pdf(background_tasks: BackgroundTasks, pdf: UploadFile = File(.
 
 
 @app.post("/api/v1/ask", response_model=mod_marius_schemas.AnswerQuestionOutput)
-def ask_question(request: mod_marius_schemas.AnswerQuestionInput):  # type: ignore
+async def ask_question(request: mod_marius_schemas.AnswerQuestionInput):  # type: ignore
     try:
         answer = mod_marius_functions.answer_question(request.question, request.pdf_id)
         return mod_marius_schemas.AnswerQuestionOutput(answer=answer)
@@ -182,12 +202,22 @@ def ask_question(request: mod_marius_schemas.AnswerQuestionInput):  # type: igno
 
 
 @app.post("/api/v1/summary", response_model=mod_marius_schemas.GenerateSummaryOutput)
-def summary(request: mod_marius_schemas.GenerateSummaryInput):  # type: ignore
+async def summary(request: mod_marius_schemas.GenerateSummaryInput):  # type: ignore
     try:
         summary_text = mod_marius_functions.generate_summary(request.pdf_id)
         return mod_marius_schemas.GenerateSummaryOutput(summary=summary_text)
     except Exception as exc:
         logger.error("Eroare la generare rezumat: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/v1/quiz", response_model=mod_marius_schemas.GenerateQuizOutput)
+async def quiz(request: mod_marius_schemas.GenerateQuizInput):  # type: ignore
+    try:
+        quiz_responses = mod_marius_functions.generate_quiz(request.pdf_id)
+        return mod_marius_schemas.GenerateQuizOutput(questions=quiz_responses)
+    except Exception as exc:
+        logger.error("Eroare la generare quiz: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
 
 
@@ -207,34 +237,6 @@ async def delete_pdf(pdf_id: str):
         logger.warning("Nu am putut sterge vectorii pentru %s: %s", pdf_id, exc)
 
     return {"ok": True, "pdf_id": pdf_id}
-
-
-# ── Campus Chat (Asistentul Virtual InsideUGAL) ──────────────────────────────
-
-class CampusChatRequest(BaseModel):
-    question: str
-
-
-class CampusChatResponse(BaseModel):
-    answer: str
-    sources: list[str]
-    suggestions: list[str]
-
-
-@app.post("/api/v1/campus-chat", response_model=CampusChatResponse)
-def campus_chat(request: CampusChatRequest):
-    if not request.question.strip():
-        raise HTTPException(status_code=400, detail="Câmpul 'question' nu poate fi gol.")
-    try:
-        result = campus_chat_service.campus_chat(question=request.question)
-        if "error" in result:
-            raise HTTPException(status_code=500, detail=result["error"])
-        return CampusChatResponse(**result)
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.error("Eroare campus-chat: %s", exc)
-        raise HTTPException(status_code=500, detail=str(exc))
 
 
 if __name__ == "__main__":
