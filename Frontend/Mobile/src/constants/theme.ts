@@ -81,3 +81,10 @@ export const MaxContentWidth = 800;
 
 // Margine laterala constanta pe web (desktop), folosita pe paginile din (public)
 export const WebSidePadding = 64;
+
+// Latimea maxima a coloanei de continut pe web (valoare exterioara, include
+// WebSidePadding pe ambele parti). Peste aceasta latime continutul ramane
+// centrat, iar marginile laterale cresc — elementele NU se intind si nu se
+// micsoreaza. Sub aceasta latime, coloana se ingusteaza odata cu fereastra.
+// Folosita prin componentul partajat WebContainer.
+export const WebContentMaxWidth = 1100;

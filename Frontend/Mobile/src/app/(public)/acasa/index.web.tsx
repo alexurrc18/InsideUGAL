@@ -4,9 +4,10 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
-import { Colors, ColorScheme, Spacing, WebSidePadding } from "@/constants/theme";
+import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 
+import { WebContainer } from "@/components/ui/web-container";
 import { Carousel } from "@/components/ui/carousel";
 import { CAROUSEL_CARD_MARGIN } from "@/components/ui/carousel.shared";
 import { NewsCard } from "@/components/ui/news-card";
@@ -67,17 +68,19 @@ export default function HomeScreen() {
             contentFit="cover"
           />
 
-          <View style={{ flex: 1, padding: Spacing.lg, paddingHorizontal: WebSidePadding + Spacing.lg, justifyContent: "flex-end" }}>
-            <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
-              Astăzi, 27 mai
-            </Text>
-            <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
-              Descoperă
-            </Text>
+          <View style={{ flex: 1, paddingVertical: Spacing.lg, justifyContent: "flex-end" }}>
+            <WebContainer>
+              <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
+                Astăzi, 27 mai
+              </Text>
+              <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
+                Descoperă
+              </Text>
+            </WebContainer>
           </View>
         </View>
 
-        <View style={{paddingTop: Spacing.lg, paddingBottom: insets.bottom + Spacing.sm, flex: 1, paddingHorizontal: WebSidePadding}}>
+        <WebContainer style={{ paddingTop: Spacing.lg, paddingBottom: insets.bottom + Spacing.sm, flex: 1 }}>
           <Carousel
             title="Noutăți"
             data={noutati}
@@ -125,7 +128,7 @@ export default function HomeScreen() {
               />
             )}
           />
-        </View>
+        </WebContainer>
       </ScrollView>
     </View>
   );
