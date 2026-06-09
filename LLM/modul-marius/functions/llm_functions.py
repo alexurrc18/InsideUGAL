@@ -11,8 +11,8 @@ from langdetect import detect as langdetect_detect, LangDetectException
 from dotenv import load_dotenv
 from google import genai
 from google.genai import errors as genai_errors
+from google.genai import types as genai_types
 from pydantic import ValidationError
-from sentence_transformers import SentenceTransformer
 from supabase import create_client, Client
 from tenacity import (
     retry,
@@ -27,8 +27,6 @@ import supabase_logger
 from schemas import (
     AnswerQuestionInput,
     AnswerQuestionOutput,
-    GenerateQuizInput,
-    GenerateQuizOutput,
     GenerateSummaryInput,
     GenerateSummaryOutput,
 )
@@ -36,11 +34,12 @@ from schemas import (
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 GEMINI_MODEL = "gemini-2.5-flash-lite"
+EMBEDDING_MODEL = os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-001")
+EMBEDDING_DIMS = 384
 TEMPERATURE = 0.7
 TIMEOUT_S = 30
 
 _client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-_embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://dummy.supabase.co")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "dummy")
@@ -178,7 +177,14 @@ def chunk_text(text: str, max_words: int = 200, overlap_words: int = 30) -> list
 
 
 def store_in_vector_db(chunks: list, pdf_id: str):
-    embeddings = _embedding_model.encode(chunks).tolist()
+    embeddings = []
+    for chunk in chunks:
+        resp = _client.models.embed_content(
+            model=EMBEDDING_MODEL,
+            contents=chunk,
+            config=genai_types.EmbedContentConfig(output_dimensionality=EMBEDDING_DIMS),
+        )
+        embeddings.append(resp.embeddings[0].values)
 
     data = []
     for i, chunk in enumerate(chunks):
@@ -193,12 +199,17 @@ def store_in_vector_db(chunks: list, pdf_id: str):
 
 
 def query_relevant_chunks(query: str, pdf_id: str, n_results: int = 5) -> list:
-    query_embedding = _embedding_model.encode([query]).tolist()
+    resp = _client.models.embed_content(
+        model=EMBEDDING_MODEL,
+        contents=query,
+        config=genai_types.EmbedContentConfig(output_dimensionality=EMBEDDING_DIMS),
+    )
+    query_embedding = resp.embeddings[0].values
 
     response = supabase_client.rpc(
         "match_document_chunks",
         {
-            "query_embedding": query_embedding[0],
+            "query_embedding": query_embedding,
             "match_count": n_results,
             "filter_pdf_id": pdf_id
         }
@@ -232,14 +243,12 @@ def answer_question(question: str, pdf_id: str, language: str = "ro") -> str:
     context = "\n\n".join(chunks)
     prompt = (
         "Raspunde in aceeasi limba in care este scris materialul de mai jos.\n"
-        "Esti un asistent care ajuta studentii sa invete din documentul furnizat.\n"
+        "Esti Asistentul Virtual InsideUGAL. Rolul tau este sa ajuti studentii sa inteleaga regulamentele si documentele administrative ale UGAL.\n"
         "Reguli:\n"
-        "- Pentru intrebari despre continutul materialului: raspunde EXCLUSIV pe baza informatiilor din material.\n"
-        "- Pentru intrebari despre cum sa inveti, cum sa retii sau cum sa te pregatesti: "
-        "foloseste continutul materialului ca baza si ofera sfaturi concrete bazate pe ce contine documentul "
-        "(ex: ce concepte sunt importante, ce ar trebui retinut, cum e structurat materialul).\n"
+        "- Raspunde EXCLUSIV pe baza informatiilor din materialul administrativ furnizat.\n"
+        "- Daca nu cunosti raspunsul pe baza documentelor, directioneaza studentul catre secretariat si fii mereu politicos.\n"
         "- Nu inventa informatii care nu sunt in material.\n"
-        "- Daca materialul nu contine absolut nimic relevant pentru intrebare, spune asta scurt.\n\n"
+        "- Daca materialul nu contine absolut nimic relevant pentru intrebare, spune politicos ca nu ai informatia in baza de date.\n\n"
         f"Material:\n{context}\n\nIntrebare: {inp.question}"
     )
 
@@ -262,16 +271,16 @@ def generate_summary(pdf_id: str, language: str = "ro") -> str:
     )
     context = "\n\n".join(chunks)
     prompt = (
-        "Esti un profesor care ajuta studentii sa invete eficient.\n"
+        "Esti Asistentul Virtual InsideUGAL.\n"
         "Raspunde in aceeasi limba in care este scris materialul de mai jos.\n"
-        "Creeaza un rezumat structurat al materialului, respectand EXACT acest format:\n\n"
-        "## Idei principale\n"
-        "- [maxim 5 idei cheie, fiecare pe un rand]\n\n"
-        "## Concepte importante\n"
-        "- **Concept**: explicatie scurta si clara\n"
-        "- [repeta pentru fiecare concept important]\n\n"
-        "## Ce trebuie sa retii\n"
-        "[2-3 fraze cu cele mai importante lucruri de memorat pentru examen]\n\n"
+        "Creeaza un rezumat structurat al acestui document administrativ/regulament, respectand EXACT acest format:\n\n"
+        "## Reguli stricte si proceduri\n"
+        "- [maxim 5 reguli cheie extrase din text]\n\n"
+        "## Informatii utile\n"
+        "- **Informatie**: explicatie scurta si clara\n"
+        "- [repeta pentru fiecare detaliu important]\n\n"
+        "## Pasi de urmat (daca se aplica)\n"
+        "[2-3 fraze cu pasii pe care studentul trebuie sa ii urmeze conform procedurii]\n\n"
         "Reguli:\n"
         "- Foloseste limbaj simplu, fara jargon inutil\n"
         "- Fii concis — studentul trebuie sa inteleaga in 2 minute\n"
@@ -286,55 +295,5 @@ def generate_summary(pdf_id: str, language: str = "ro") -> str:
         except ValidationError as exc:
             if attempt == 1:
                 raise ValueError(f"Rezumat invalid după retry: {exc}") from exc
-
-    raise RuntimeError("unreachable")
-
-
-def generate_quiz(pdf_id: str, language: str = "ro") -> list:
-    inp = GenerateQuizInput(pdf_id=pdf_id)
-
-    chunks = query_relevant_chunks(
-        "concepte importante definitii exemple", inp.pdf_id, n_results=10
-    )
-    context = "\n\n".join(chunks)
-    nr_intrebari = min(10, max(5, len(chunks)))
-    prompt = (
-        "Genereaza intrebarile si variantele in aceeasi limba in care este scris materialul de mai jos.\n"
-        f"Genereaza {nr_intrebari} intrebari quiz bazate pe materialul de mai jos.\n"
-        "Returneaza DOAR un JSON valid, fara alt text, in acest format exact:\n"
-        "[\n"
-        "  {\n"
-        '    "intrebare": "...",\n'
-        '    "variante": {"A": "...", "B": "...", "C": "...", "D": "..."},\n'
-        '    "raspuns_corect": "A",\n'
-        '    "explicatii": {\n'
-        '      "A": "Corect: explica de ce aceasta varianta este corecta SAU Gresit: explica exact ce e incorect la aceasta varianta.",\n'
-        '      "B": "Corect: ... SAU Gresit: ...",\n'
-        '      "C": "Corect: ... SAU Gresit: ...",\n'
-        '      "D": "Corect: ... SAU Gresit: ..."\n'
-        "    }\n"
-        "  }\n"
-        "]\n\n"
-        "Reguli stricte pentru explicatii:\n"
-        "- Incepe cu 'Corect:' sau 'Gresit:'\n"
-        "- Explica direct de ce varianta e corecta sau gresita, nu cita din material\n"
-        "- Maxim 1-2 propozitii clare, la obiect\n\n"
-        f"Material:\n{context}"
-    )
-
-    for attempt in range(2):
-        raw = _call(prompt, function_name="generate_quiz")
-        try:
-            cleaned = raw.strip()
-            if cleaned.startswith("```"):
-                cleaned = cleaned.split("\n", 1)[1].rsplit("```", 1)[0]
-            parsed = json.loads(cleaned)
-            # Filtrăm întrebările incomplete returnate uneori de Gemini
-            parsed = [q for q in parsed if isinstance(q, dict) and "raspuns_corect" in q and "variante" in q]
-            output = GenerateQuizOutput(questions=parsed)
-            return [q.model_dump(exclude_none=True) for q in output.questions]
-        except (json.JSONDecodeError, ValidationError, ValueError) as exc:
-            if attempt == 1:
-                raise ValueError(f"Quiz invalid după retry: {exc}") from exc
 
     raise RuntimeError("unreachable")

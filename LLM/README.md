@@ -1,59 +1,38 @@
-# InsideUGAL - Serviciu LLM (Inteligență Artificială)
+# 🤖 Asistentul Virtual InsideUGAL & Servicii AI
 
-Acest modul conține componenta de AI a platformei **InsideUGAL**, expunând un API scris în **FastAPI**. Gestionează procesarea inteligentă a documentelor (RAG) și extragerea automată a datelor folosind modelele de limbaj Gemini.
+> ⚠️ **Notă Arhitecturală:** Acest modul a fost rescris și refactorizat complet. Fosta aplicație Desktop (CustomTkinter), baza de date vectorială locală (ChromaDB), modelul `sentence-transformers` local și funcționalitățile de generare Quiz au fost **arhivate și eliminate** pentru a face platforma 100% cloud-native și orientată spre viața din campus.
 
-## 🚀 Arhitectură și Funcționalități
+## 📖 Despre Modul
 
-Am migrat către o arhitectură 100% *stateless / cloud-native*, ceea ce permite aplicației să scaleze orizontal pe mai multe instanțe:
+Acest director conține serviciile de Inteligență Artificială ale platformei **InsideUGAL**, operate acum ca un **API Backend Integrat** bazat pe FastAPI. 
 
-- **Procesare PDF Asincronă:** Extragerea textului, *chunking-ul* și vectorizarea se fac în background prin `BackgroundTasks` din FastAPI, pentru a nu bloca răspunsurile HTTP.
-- **Supabase Storage:** Fișierele PDF încărcate se salvează imediat într-un bucket privat Supabase (`documents`). API-ul descarcă fișierul fizic doar într-un obiect temporar (`tempfile`) pe parcursul procesării AI, autodistrugându-l ulterior.
-- **Supabase pgvector:** Am înlocuit baza de date locală pe disc (ChromaDB) cu extensia **pgvector** din PostgreSQL (via RPC). Toate cunoștințele sunt astfel unificate cu baza principală de date.
-- **Integrare Gemini API:** Generăm vectori cu `sentence-transformers` (`all-MiniLM-L6-v2`) și generăm răspunsuri folosind modelul `gemini-2.5-flash` de la Google.
-- **Detectare Automată a Limbii:** Textele sunt procesate, iar întrebările și quiz-urile sunt generate automat în limba documentului original (ex: română, engleză, franceză).
-- **Smart News Parser:** Extragere nativă de entități (titlu, organizator, locație, timestamp precis) din anunțuri textuale nesortate.
+Scopul principal este asistarea studenților și a secretariatului prin intermediul a două componente majore:
 
-## 📋 Endpoints Principale
+1. **Asistentul Virtual al Campusului (Sistem RAG)**
+2. **Smart News Parser (Extragere Inteligentă a Anunțurilor)**
 
-Rutele de AI se pot testa direct din interfața Swagger la adresa `/docs`:
+## 🏗️ Arhitectura Nouă (Cloud-Native)
 
-- `POST /api/v1/upload-pdf` - Încarcă documentul, îl pune în Storage și începe procesarea în fundal.
-- `POST /api/v1/summary` - Generează un rezumat structurat pe baza `pdf_id`-ului.
-- `POST /api/v1/ask` - Răspunde la o întrebare direct din conținutul PDF-ului dat.
-- `POST /api/v1/quiz` - Generează o grilă de teste cu explicații extrase din document.
-- `POST /api/v1/extract-announcement-info` - Extrage titlu, locație și intervale orare dintr-un text "Smart News".
-- `DELETE /api/v1/delete-pdf/{pdf_id}` - Șterge documentul din Storage și realizează un *garbage collection* vectorial în baza de date.
+- **Bază de Date Vectorială:** Baza de cunoștințe folosește exclusiv **Supabase `pgvector`** (tabela `document_chunks` și funcția RPC `match_document_chunks`).
+- **Generare Vectori (Embeddings):** Se folosește API-ul extern Google Gemini (`text-embedding-004`), asigurând un consum minim de spațiu și o viteză ridicată de procesare.
+- **Model Limbaj (Generare):** Google Gemini (`gemini-2.5-flash`), configurat printr-un prompt strict să se comporte ca "Asistent Administrativ InsideUGAL". Extrage informații exclusiv din documentele universității și redirecționează utilizatorii politicos spre secretariat în caz contrar.
+- **Generare Imagini (Text-to-Image):** Hugging Face Inference API (`FLUX.1-schnell`) pentru generarea cover-urilor pentru anunțuri.
+- **Reziliență:** Integrare nativă de Circuit Breaker (`pybreaker`) și mecanisme Retry Exponențial (`tenacity`) pentru toleranța la picarea serviciilor AI.
+- **Telemetrie și Caching:** Logarea consumului de tokeni direct în Supabase, rulată asincron (fire-and-forget), și cache pe răspunsuri recurente.
 
-## ⚙️ Configurare Locală
+## 🚀 Endpoint-uri Principale
 
-### 1. Instalare dependențe
+Aceste rute sunt expuse pentru Frontend direct prin gateway-ul principal `combined_app.py`:
 
+- `POST /api/v1/ask`: (Campus Chat) Primește întrebarea studentului, caută semantic contextul în Supabase și returnează un răspuns administrativ util.
+- `POST /api/v1/upload-pdf`: Extrage textul dintr-un document PDF administrativ, împarte inteligent datele (chunking cu overlap) și le stochează în `pgvector`.
+- `POST /api/v1/extract-announcement-info`: Extrage structurat metadate (deadline, tip eveniment, public țintă) dintr-un text brut de la profesori și generează la cerere imagini.
+
+## 🧪 Testare & Evaluare (LLM as a Judge)
+
+Modulul include o suită avansată de evaluare automată (`LLM-as-a-Judge`). La fiecare deploy sau schimbare de prompt-uri, AI-ul își evaluează propriile răspunsuri primind note de la 1 la 5 pentru **Relevanță** și **Acuratețe** (pe baza a zeci de întrebări administrative prestabilite).
+
+Pentru a rula testele E2E (inclusiv testele de stress pentru circuit breaker):
 ```bash
-cd LLM
-python -m venv venv
-# Windows
-.\venv\Scripts\activate
-# Mac/Linux: source venv/bin/activate
-
-pip install -r requirements.txt
-pip install python-multipart
+pytest "LLM/ChatBot AI/evals/" -v -m eval -s
 ```
-
-### 2. Variabile de mediu
-
-Creează un fișier `.env` în directorul `/LLM` cu următoarele chei:
-
-```env
-GEMINI_API_KEY=cheia_ta_de_la_google_aistudio
-
-# Acestea pot fi copiate din terminal rulând `npx supabase status` la rădăcina proiectului
-SUPABASE_URL=http://127.0.0.1:54325
-SUPABASE_SERVICE_KEY=cheia_service_role_secret
-```
-
-### 3. Pornirea Serverului
-
-```bash
-python combined_app.py
-```
-Serverul va fi disponibil la `http://127.0.0.1:8000`.
