@@ -51,30 +51,6 @@ def log_llm_call(
     threading.Thread(target=_send, daemon=True).start()
 
 
-def log_quiz_score(pdf_id: str, correct: int, total: int) -> None:
-    """Loghează scorul unui quiz în quiz_scores. Fire-and-forget."""
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return
-
-    def _send() -> None:
-        try:
-            requests.post(
-                f"{SUPABASE_URL}/rest/v1/quiz_scores",
-                json={"pdf_id": pdf_id, "correct": correct, "total": total},
-                headers={
-                    "apikey": SUPABASE_KEY,
-                    "Authorization": f"Bearer {SUPABASE_KEY}",
-                    "Content-Type": "application/json",
-                    "Prefer": "return=minimal",
-                },
-                timeout=5,
-            )
-        except Exception:
-            pass
-
-    threading.Thread(target=_send, daemon=True).start()
-
-
 def log_question(pdf_id: str, question: str, answer: str) -> None:
     """Loghează o întrebare + răspuns în questions_history. Fire-and-forget."""
     if not SUPABASE_URL or not SUPABASE_KEY:
