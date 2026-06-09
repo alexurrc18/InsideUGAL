@@ -39,7 +39,8 @@ EMBEDDING_DIMS = 384
 TEMPERATURE = 0.7
 TIMEOUT_S = 30
 
-_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+raw_api_key = os.getenv("GEMINI_API_KEY", "").strip().strip("'").strip('"')
+_client = genai.Client(api_key=raw_api_key)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://dummy.supabase.co")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "dummy")
