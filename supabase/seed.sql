@@ -1,71 +1,73 @@
--- ==========================================================
--- SEED DATA - INSIDE UGAL (Date Publice & Dicționare)
--- Atenție: Conturile de utilizator (Auth & Profiles) trebuie 
--- create prin aplicație sau prin Supabase Studio, NU prin acest script.
--- ==========================================================
+INSERT INTO public.profiles (id, username, first_name, last_name, email, role, is_active) VALUES
+('00000000-0000-0000-0000-000000000001', 'admin_seed', 'Admin', 'Seed', 'admin.seed@ugal.ro', 'HEAD_ADMIN', true)
+ON CONFLICT (id) DO NOTHING;
 
--- 1. FACULTĂȚI UGAL EXTINSE
 INSERT INTO public.faculties (id, name, abbreviation, address, phone, website_url) VALUES
-(1, 'Facultatea de Automatică, Calculatoare, Inginerie Electrică și Electronică', 'ACIEE', 'Str. Științei nr. 2', '0236412345', 'https://aciee.ugal.ro'),
-(2, 'Facultatea de Arhitectură Navală', 'FAN', 'Str. Domnească nr. 47', '0236412346', 'https://naoe.ugal.ro'),
-(3, 'Facultatea de Educație Fizică și Sport', 'FEFS', 'Str. Gării nr. 63', '0236412347', 'https://fefs.ugal.ro'),
-(4, 'Facultatea de Inginerie', 'ING', 'Str. Domnească nr. 111', '0236412348', 'https://ing.ugal.ro'),
-(5, 'Facultatea de Litere', 'LIT', 'Str. Domnească nr. 47', '0236412349', 'https://lit.ugal.ro'),
-(6, 'Facultatea de Medicină și Farmacie', 'FMF', 'Str. Al. Ivanov nr. 1A', '0236412350', 'https://med.ugal.ro')
+(1, 'Facultatea de Automatica, Calculatoare, Inginerie Electrica si Electronica', 'ACIEE', 'Str. Stiintei nr. 2', '0236412345', 'https://aciee.ugal.ro'),
+(2, 'Facultatea de Arhitectura Navala', 'FAN', 'Str. Domneasca nr. 47', '0236412346', 'https://naoe.ugal.ro'),
+(3, 'Facultatea de Educatie Fizica si Sport', 'FEFS', 'Str. Garii nr. 63', '0236412347', 'https://fefs.ugal.ro'),
+(4, 'Facultatea de Inginerie', 'ING', 'Str. Domneasca nr. 111', '0236412348', 'https://ing.ugal.ro'),
+(5, 'Facultatea de Litere', 'LIT', 'Str. Domneasca nr. 47', '0236412349', 'https://lit.ugal.ro'),
+(6, 'Facultatea de Medicina si Farmacie', 'FMF', 'Str. Al. Ivanov nr. 1A', '0236412350', 'https://med.ugal.ro')
 ON CONFLICT (id) DO NOTHING;
 
--- 2. CATEGORII ANUNȚURI EXTINSE
 INSERT INTO public.categories (id, name) VALUES
-(1, 'Burse și Ajutoare'),
-(2, 'Oportunități de Carieră'),
-(3, 'Sport și Competiții'),
+(1, 'Burse si Ajutoare'),
+(2, 'Oportunitati de Cariera'),
+(3, 'Sport si Competitii'),
 (4, 'Administrativ'),
-(5, 'Evenimente Studențești'),
-(6, 'Practică și Laboratoare')
+(5, 'Evenimente Studentesti'),
+(6, 'Practica si Laboratoare')
 ON CONFLICT (id) DO NOTHING;
 
--- 3. LOCAȚII UGAL (Inclusiv noi corpuri și facilități)
 INSERT INTO public.locations (id, name, coordinates, faculty_id) VALUES
-(1, 'Corpul D (Săli Laborator)', ST_SetSRID(ST_MakePoint(28.0552, 45.4361), 4326), 1),
+(1, 'Corpul D (Sali Laborator)', ST_SetSRID(ST_MakePoint(28.0552, 45.4361), 4326), 1),
 (2, 'Corpul G (Nave)', ST_SetSRID(ST_MakePoint(28.0531, 45.4370), 4326), 2),
-(3, 'Bazinul de Înot UGAL', ST_SetSRID(ST_MakePoint(28.0510, 45.4385), 4326), 3),
-(4, 'Cantina Centrală', ST_SetSRID(ST_MakePoint(28.0500, 45.4350), 4326), NULL),
-(5, 'Campus LSG (Cămine)', ST_SetSRID(ST_MakePoint(28.0490, 45.4340), 4326), NULL),
+(3, 'Bazinul de Inot UGAL', ST_SetSRID(ST_MakePoint(28.0510, 45.4385), 4326), 3),
+(4, 'Cantina Centrala', ST_SetSRID(ST_MakePoint(28.0500, 45.4350), 4326), NULL),
+(5, 'Campus LSG (Camine)', ST_SetSRID(ST_MakePoint(28.0490, 45.4340), 4326), NULL),
 (6, 'Corpul V', ST_SetSRID(ST_MakePoint(28.0530, 45.4400), 4326), 4),
-(7, 'Biblioteca Centrală UGAL', ST_SetSRID(ST_MakePoint(28.0540, 45.4375), 4326), NULL),
-(8, 'Corpul M (Medicină)', ST_SetSRID(ST_MakePoint(28.0450, 45.4300), 4326), 6)
+(7, 'Biblioteca Centrala UGAL', ST_SetSRID(ST_MakePoint(28.0540, 45.4375), 4326), NULL),
+(8, 'Corpul M (Medicina)', ST_SetSRID(ST_MakePoint(28.0450, 45.4300), 4326), 6)
 ON CONFLICT (id) DO NOTHING;
 
--- 4. PRODUSE CANTINĂ BOGATE
 INSERT INTO public.products (id, name, description, quantity, price) VALUES
-(1, 'Ciorbă de perișoare', 'Ciorbă tradițională cu smântână și ardei iute', '400g', 14.50),
-(2, 'Ceafă de porc la grătar', 'Ceafă suculentă rumenită pe plită', '150g', 16.00),
-(3, 'Cartofi prăjiți', 'Cartofi tăiați mare, ușor condimentați', '200g', 7.00),
-(4, 'Salată de roșii cu brânză', 'Roșii proaspete și telemea de vacă', '150g', 6.50),
-(5, 'Papanași cu dulceață', 'Doi papanași cu smântână și dulceață de afine', '250g', 12.00),
-(6, 'Ciorbă Rădăuțeană', 'Ciorbă cu piept de pui, smântână și usturoi', '400g', 15.00),
-(7, 'Șnițel de pui', 'Piept de pui pane crocant', '150g', 14.00),
-(8, 'Piure de cartofi', 'Cartofi proaspeți pasați cu unt și lapte', '200g', 6.00),
-(9, 'Salată de varză', 'Varză albă proaspătă cu mărar', '100g', 3.50),
-(10, 'Clătite cu Finetti', 'Porție de 2 clătite proaspete', '150g', 8.00)
+(1, 'Ciorba de perisoare', 'Ciorba traditionala cu smantana si ardei iute', '400g', 14.50),
+(2, 'Ceafa de porc la gratar', 'Ceafa suculenta rumenita pe plita', '150g', 16.00),
+(3, 'Cartofi prajiti', 'Cartofi taiati mare, usor condimentati', '200g', 7.00),
+(4, 'Salata de rosii cu branza', 'Rosii proaspete si telemea de vaca', '150g', 6.50),
+(5, 'Papanasi cu dulceata', 'Doi papanasi cu smantana si dulceata de afine', '250g', 12.00),
+(6, 'Ciorba Radauteana', 'Ciorba cu piept de pui, smantana si usturoi', '400g', 15.00),
+(7, 'Snitel de pui', 'Piept de pui pane crocant', '150g', 14.00),
+(8, 'Piure de cartofi', 'Cartofi proaspeti pasati cu unt si lapte', '200g', 6.00),
+(9, 'Salata de varza', 'Varza alba proaspata cu marar', '100g', 3.50),
+(10, 'Clatite cu Finetti', 'Portie de 2 clatite proaspete', '150g', 8.00)
 ON CONFLICT (id) DO NOTHING;
 
--- 5. MENIURI ZILNICE DIVERSIFICATE
 INSERT INTO public.daily_menus (id, day_of_week) VALUES
 (1, 1), (2, 2), (3, 3), (4, 4), (5, 5)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.menu_products (menu_id, product_id) VALUES
-(1, 1), (1, 2), (1, 3), (1, 4), (1, 5),     -- Luni (Meniul 1)
-(2, 6), (2, 7), (2, 8), (2, 9), (2, 10),    -- Marți (Meniul 2)
-(3, 1), (3, 7), (3, 3), (3, 9), (3, 5),     -- Miercuri (Meniul 3)
-(4, 6), (4, 2), (4, 8), (4, 4), (4, 10),    -- Joi (Meniul 4)
-(5, 1), (5, 6), (5, 7), (5, 3), (5, 5)      -- Vineri (Meniul 5)
+(1, 1), (1, 2), (1, 3), (1, 4), (1, 5),
+(2, 6), (2, 7), (2, 8), (2, 9), (2, 10),
+(3, 1), (3, 7), (3, 3), (3, 9), (3, 5),
+(4, 6), (4, 2), (4, 8), (4, 4), (4, 10),
+(5, 1), (5, 6), (5, 7), (5, 3), (5, 5)
 ON CONFLICT (menu_id, product_id) DO NOTHING;
 
--- 6. RESETARE SECVENȚE BAZĂ DE DATE
+INSERT INTO public.announcements (id, type, title, content, image_url, faculty_id, location_name, start_date, end_date, created_by) VALUES
+(1, 'EVENIMENT', 'Festivitatea de deschidere a anului universitar', 'Va invitam sa participati la festivitatea de deschidere a noului an universitar. Evenimentul va avea loc in holul central al universitatii si va reuni studenti, profesori si invitati speciali.', 'https://ing.ugal.ro/Resurse/2024/WhatsApp_Image_2024-09-17_at_11.48.08.jpeg', NULL, 'Hol Central, Corp A', '2026-09-21T09:00:00Z', '2026-09-21T12:00:00Z', '00000000-0000-0000-0000-000000000001'),
+(2, 'EVENIMENT', 'Hackathon de 24 ore: Inovatie in Galati', 'Esti gata sa schimbi lumea in 24 de ore? Vino la cel mai mare hackathon din regiune. Premii totale de peste 5000 EUR.', 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=1000', 1, 'Laborator Multimedia, Corp B', '2026-11-15T10:00:00Z', '2026-11-16T10:00:00Z', '00000000-0000-0000-0000-000000000001'),
+(3, 'NOUTATE', 'Noi oportunitati de burse Erasmus+', 'A fost lansat noul apel pentru mobilitati studentesti. Verifica lista universitatilor partenere si depune dosarul pana la sfarsitul lunii.', 'https://unibuc.ro/wp-content/uploads/2020/01/despre-erasmus.jpg', NULL, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000001'),
+(4, 'NOUTATE', 'Workshop de design grafic in weekend', 'Invata bazele designului grafic folosind instrumente moderne. Workshop-ul este gratuit pentru toti studentii UGAL.', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRrvLpegvQvOniv6QIbBLAB50za2oHinfK75g&s', 5, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000001'),
+(5, 'EVENIMENT', 'Conferinta de Inginerie Sustenabila', 'O conferinta dedicata ultimelor inovatii in domeniul ingineriei sustenabile si energiilor regenerabile.', 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1000', 4, 'Aula Magna, Corp D', '2026-10-10T09:30:00Z', '2026-10-10T17:00:00Z', '00000000-0000-0000-0000-000000000001'),
+(6, 'NOUTATE', 'Rezultate partiale burse de merit', 'Au fost afisate listele partiale pentru bursele de merit aferente semestrului al doilea. Contestatiile se depun online.', 'https://feaa.ugal.ro/wp-content/uploads/feaa-amalia-paharnicu.jpg', 3, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000001')
+ON CONFLICT (id) DO NOTHING;
+
 SELECT setval('public.faculties_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.faculties));
 SELECT setval('public.categories_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.categories));
 SELECT setval('public.locations_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.locations));
 SELECT setval('public.products_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.products));
 SELECT setval('public.daily_menus_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.daily_menus));
+SELECT setval('public.announcements_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.announcements));
