@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, useColorScheme } from "react-native";
+import { View, Text, ScrollView } from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Colors, Spacing, WebSidePadding } from "@/constants/theme";
