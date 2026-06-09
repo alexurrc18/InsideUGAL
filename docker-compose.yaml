@@ -205,7 +205,6 @@ services:
       - public
     labels:
       - traefik.enable=false
-
 networks:
   public:
     name: coolify
