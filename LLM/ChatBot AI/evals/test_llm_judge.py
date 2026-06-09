@@ -14,54 +14,34 @@ from pathlib import Path
 
 import pytest
 
-BASE = Path(__file__).resolve().parent.parent
+BASE = Path(__file__).resolve().parent.parent.parent
 MODUL_MARIUS = BASE / "modul-marius"
 sys.path.insert(0, str(MODUL_MARIUS))
 
-# ── 50 intrebari de test ─────────────────────────────────────────────────
-# Mix: relevante (web/PAW), partial relevante, complet irelevante
+# ── 30 intrebari de test ─────────────────────────────────────────────────
+# Mix: relevante (administrative/regulamente), complet irelevante
 QUESTIONS = [
-    # Relevante pentru un curs de programare web
-    "Ce este PAW?",
-    "Care sunt avantajele programarii web?",
-    "Ce este protocolul HTTP?",
-    "Care sunt metodele HTTP principale?",
-    "Ce este un request HTTP?",
-    "Ce este un response HTTP?",
-    "Ce este REST?",
-    "Ce este JSON?",
-    "Ce este o API?",
-    "Ce este HTML?",
-    "Ce este CSS?",
-    "Ce este JavaScript?",
-    "Ce este un framework web?",
-    "Ce este Flask?",
-    "Ce este Django?",
-    "Ce este o baza de date relationala?",
-    "Ce este SQL?",
-    "Ce este o sesiune web?",
-    "Ce este un cookie?",
-    "Ce este autentificarea?",
-    "Ce este autorizarea?",
-    "Ce este CORS?",
-    "Ce este un middleware?",
-    "Ce este MVC?",
-    "Ce este un ORM?",
-    "Ce este un endpoint?",
-    "Ce este routing-ul in aplicatiile web?",
-    "Ce este un template engine?",
-    "Ce este AJAX?",
-    "Ce este un server web?",
-    "Ce sunt header-ele HTTP?",
-    "Ce este HTTPS?",
-    "Ce este SSL?",
-    "Ce este starea in aplicatiile web?",
-    "Ce este un port de retea?",
-    "Ce este un URL?",
-    "Ce este DNS?",
-    "Ce este un client web?",
-    "Ce este arhitectura client-server?",
-    "Ce este o baza de date NoSQL?",
+    # Relevante pentru regulamente/burse/campus
+    "Câte absențe am voie să am pentru a nu-mi pierde locul la cămin?",
+    "Unde se depune cererea pentru bursa socială?",
+    "La ce oră este programul de liniște în campus?",
+    "Cine beneficiază de decontarea transportului?",
+    "Ce documente sunt necesare pentru cazarea în cămin?",
+    "Cum pot obține o reducere la transportul în comun?",
+    "Când se plătește taxa de cămin?",
+    "Care sunt sancțiunile pentru nerespectarea regulamentului?",
+    "Ce acte sunt necesare pentru obținerea bursei de performanță?",
+    "Care este termenul limită pentru depunerea dosarului de cazare?",
+    "Cât costă regia de cămin pentru studenții la buget?",
+    "Pot primi vizitatori în camera de cămin?",
+    "Ce se întâmplă dacă întârzii cu plata regiei de cămin?",
+    "Unde se vizează legitimația de transport?",
+    "Care sunt criteriile pentru obținerea unui loc în cămin?",
+    "Studenții la taxă beneficiază de reducere la tren?",
+    "Cum pot schimba camera de cămin?",
+    "Care sunt obligațiile studenților cazați în campus?",
+    "Unde raportez o defecțiune în camera de cămin?",
+    "Ce bunuri sunt interzise în cămin?",
     # Complet irelevante — RAG-ul trebuie sa spuna ca nu stie
     "Care este pretul unui bilet la metrou in Tokyo?",
     "Ce este fotosinteza?",
@@ -107,7 +87,7 @@ def rag_and_judge():
     from functions import llm_functions as llm
     from functions.llm_functions import load_pdf_into_rag, answer_question
 
-    pdf_path = MODUL_MARIUS / "pdfs" / "PAW_curs_1.pdf"
+    pdf_path = MODUL_MARIUS / "pdfs" / "Regulament_Camine_UGAL.pdf"
     if not pdf_path.exists():
         pytest.skip(f"PDF de test lipseste: {pdf_path}")
 
@@ -211,20 +191,20 @@ class TestLLMJudge:
         assert avg >= 2.5, f"Acuratete medie prea mica: {avg:.2f}"
 
     def test_intrebari_relevante_scor_bun(self, evaluation_results):
-        """Primele 40 de intrebari (relevante pentru web) trebuie sa aiba scor mediu >= 3."""
-        relevante = [r for r in evaluation_results[:40]
+        """Primele 20 de intrebari (relevante administrativ) trebuie sa aiba scor mediu >= 3."""
+        relevante = [r for r in evaluation_results[:20]
                      if r["relevanta"] is not None and r["acuratete"] is not None]
         if len(relevante) < 5:
             pytest.skip(f"Prea putine intrebari web evaluate: {len(relevante)}")
         avg_rel = sum(r["relevanta"] for r in relevante) / len(relevante)
         avg_acc = sum(r["acuratete"] for r in relevante) / len(relevante)
-        print(f"\n[Judge] Intrebari web ({len(relevante)} evaluate) — relevanta: {avg_rel:.2f}, acuratete: {avg_acc:.2f}")
+        print(f"\n[Judge] Intrebari admin ({len(relevante)} evaluate) — relevanta: {avg_rel:.2f}, acuratete: {avg_acc:.2f}")
         assert avg_rel >= 3.0
         assert avg_acc >= 3.0
 
     def test_intrebari_irelevante_recunoscute(self, evaluation_results):
-        """Ultimele 10 intrebari (complet irelevante) — sistemul trebuie sa recunoasca ca nu stie."""
-        irelevante = [r for r in evaluation_results[40:]
+        """Ultimele 10 intrebari (complet irelevante) — sistemul trebuie sa recunoasca ca nu are in document."""
+        irelevante = [r for r in evaluation_results[20:]
                       if r["acuratete"] is not None]
         if len(irelevante) < 3:
             pytest.skip(f"Prea putine intrebari irelevante evaluate: {len(irelevante)}")

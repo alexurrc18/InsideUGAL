@@ -1,0 +1,49 @@
+{
+  "id": "60876137",
+  "filename": "cand-sunt-examenele-la-sesiunea-mai_60876137",
+  "title": "Când sunt examenele la sesiunea mai-iunie 2026?",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Când sunt examenele la sesiunea mai-iunie 2026?"
+    },
+    {
+      "role": "assistant",
+      "content": "*(AI indisponibil momentan — răspuns din baza de date locală)*\n\nPagina oficială: https://aciee.ugal.ro/admitere/licenta\n\nMetoda de admitere: dosar (fără probă scrisă sau examen de admitere)\nNota finală = 50% media Bacalaureat + 50% nota de la o disciplină la alegere (Matematică, Informatică sau Fizică)\n\nSesiunea iulie 2025:\n- Înscriere online: 30 iunie – 17 iulie 2025\n- Depunere documente fizic: 1-18 iulie 2025 (L-V: 8:30-15:30; S-D: 9:00-14:00)\n- Afișare rezultate: 21-22 iulie (faza I), 26 iulie (faza II), 29 iulie (final)\n- Înmatriculare: 30 iulie – 3 august 2025\n\n---\n\nPagina oficială: https://aciee.ugal.ro/admitere/licenta\n\nMetoda de admitere: dosar (fără probă scrisă sau examen de admitere)\nNota finală = 50% media Bacalaureat + 50% nota de la o disciplină la alegere (Matematică, Informatică sau Fizică)\n\nSesiunea iulie 2025:\n- Înscriere online: 30 iunie – 17 iulie 2025\n- Depunere documente fizic: 1-18 iulie 2025 (L-V: 8:30-15:30; S-D: 9:00-14:00)\n- Afișare rezultate: 21-22 iulie (faza I), 26 iulie (faza II), 29 iulie (final)\n- Înmatriculare: 30 iulie – 3 august 2025\n\n---\n\nPagina oficială: https://aciee.ugal.ro/admitere/masterat\n\nNota finală = 50% media diplomei de licență + 50% media anilor de studiu\n(Unele programe au interviu eliminatoriu – verificați regulamentul specific)\n\nSesiunea iulie 2025:\n- Înscriere: 18-24 iulie\n- Examene/interviuri: 25-26 iulie\n- Înmatriculare: 30 iulie – 3 august\n\nSesiunea septembrie 2025:\n- Înscriere: 10-14 septembrie\n- Examene/interviuri: 15-16 septembrie\n- Înmatriculare: 20-23 septembrie"
+    },
+    {
+      "role": "user",
+      "content": "Ce documente trebuie în dosarul de admitere la licență?"
+    },
+    {
+      "role": "assistant",
+      "content": "**Admitere FACIEE 2025**\n\nLicență: dosar fără examen, nota = 50% Bac + 50% disciplină la alegere (Matematică/Informatică/Fizică).\nMaster: 50% medie licență + 50% medie studii.\n\nSesiunea iulie 2025: înscrieri 1–18 iulie, rezultate 21–29 iulie.\nDetalii: https://aciee.ugal.ro/admitere"
+    },
+    {
+      "role": "user",
+      "content": "Cine a luat bursă de performanță în semestrul 2?"
+    },
+    {
+      "role": "assistant",
+      "content": "**Burse disponibile**\n\n- Bursă de performanță pentru studiu\n- Bursă de performanță pentru rezultate deosebite\n- Bursă de performanță pentru activități extracurriculare\n- Bursă de cercetare\n- Burse pentru românii de pretutindeni\n\nValorile se stabilesc semestrial. Detalii: https://aciee.ugal.ro/studenti/burse"
+    },
+    {
+      "role": "user",
+      "content": "Care e tematica pentru admitere la master TIA?"
+    },
+    {
+      "role": "assistant",
+      "content": "**FACIEE Admissions 2025**\n\nBachelor's: file-based (no entrance exam). Final score = 50% Baccalaureate average + 50% chosen subject (Math/CS/Physics).\nMaster's: 50% bachelor's diploma average + 50% study average.\n\nJuly 2025 session: registration July 1–18, results July 21–29.\nDetails: https://aciee.ugal.ro/admitere"
+    },
+    {
+      "role": "user",
+      "content": "Câte locuri sunt la Calculatoare și cum e admiterea?"
+    },
+    {
+      "role": "assistant",
+      "content": "**Admitere FACIEE 2025**\n\nLicență: dosar fără examen, nota = 50% Bac + 50% disciplină la alegere (Matematică/Informatică/Fizică).\nMaster: 50% medie licență + 50% medie studii.\n\nSesiunea iulie 2025: înscrieri 1–18 iulie, rezultate 21–29 iulie.\nDetalii: https://aciee.ugal.ro/admitere"
+    }
+  ],
+  "created_at": "2026-06-04T11:30:16.158040",
+  "updated_at": "2026-06-04T11:32:13.769737"
+}
