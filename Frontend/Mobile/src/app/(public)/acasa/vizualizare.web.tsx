@@ -56,6 +56,7 @@ function VizualizareScreen() {
     return (
         <View style={{ flex: 1, backgroundColor: theme.background }}>
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + Spacing.xl }}>
+                {/* Banner full-bleed: ramane pe toata latimea, in afara canvas-ului scalat */}
                 <View style={{ width: "100%", height: 320 }}>
                     <Image
                         source={image ? { uri: image as string } : require("@/assets/images/campus-stiintei.png")}

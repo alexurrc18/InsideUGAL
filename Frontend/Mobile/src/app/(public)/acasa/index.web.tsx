@@ -61,6 +61,7 @@ export default function HomeScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
+        {/* Banner full-bleed: ramane pe toata latimea, in afara canvas-ului scalat */}
         <View style={{ width: "100%", height: 285 }}>
           <Image
             source={require("@/assets/images/campus-stiintei.png")}
@@ -70,12 +71,15 @@ export default function HomeScreen() {
 
           <View style={{ flex: 1, paddingVertical: Spacing.lg, justifyContent: "flex-end" }}>
             <WebContainer>
-              <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
-                Astăzi, 27 mai
-              </Text>
-              <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
-                Descoperă
-              </Text>
+              {/* paddingHorizontal Spacing.lg ca sa se alinieze cu titlurile caruselelor */}
+              <View style={{ paddingHorizontal: Spacing.lg }}>
+                <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
+                  Astăzi, 27 mai
+                </Text>
+                <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
+                  Descoperă
+                </Text>
+              </View>
             </WebContainer>
           </View>
         </View>

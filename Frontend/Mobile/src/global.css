@@ -16,7 +16,7 @@
   scrollbar-color: transparent transparent; /* Firefox: ascunsa implicit */
 }
 [data-carousel]:hover {
-  scrollbar-color: #00479E transparent; /* Firefox: apare la hover */
+  scrollbar-color: rgba(0, 71, 158, 0.5) transparent; /* Firefox: apare la hover, putin transparent */
 }
 [data-carousel]::-webkit-scrollbar {
   height: 6px;
@@ -29,7 +29,7 @@
   border-radius: 3px;
 }
 [data-carousel]:hover::-webkit-scrollbar-thumb {
-  background-color: #00479E; /* apare la hover pe carusel */
+  background-color: rgba(0, 71, 158, 0.5); /* apare la hover pe carusel, putin transparent */
 }
 [data-carousel]::-webkit-scrollbar-button {
   display: none;
