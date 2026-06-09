@@ -19,8 +19,9 @@ MODUL_MARIUS      = BASE_DIR / "modul-marius"
 CHATBOT_MARIUS    = BASE_DIR / "ChatBot-Marius"
 
 # Load environment variables from the LLM root .env
+# In Docker, compose environment variables should take precedence over local .env values.
 env_path = BASE_DIR / ".env"
-load_dotenv(dotenv_path=env_path, override=True)
+load_dotenv(dotenv_path=env_path, override=False)
 
 
 def load_module(name: str, path: Path, extra_paths: list[Path] | None = None):
