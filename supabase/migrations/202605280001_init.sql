@@ -6,6 +6,13 @@ BEGIN
 END
 $$;
 
+-- Mock the auth schema and users table for CI environment triggers
+CREATE SCHEMA IF NOT EXISTS auth;
+CREATE TABLE IF NOT EXISTS auth.users (
+    id uuid NOT NULL PRIMARY KEY,
+    email character varying(255)
+);
+
 CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- ==========================================================
