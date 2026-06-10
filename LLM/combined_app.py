@@ -16,7 +16,7 @@ from llm_optimizer import LLMOptimizer
 BASE_DIR = Path(__file__).resolve().parent
 SMART_NEWS_PARSER = BASE_DIR / "smart-news-parser"
 MODUL_MARIUS      = BASE_DIR / "modul-marius"
-CHATBOT_MARIUS    = BASE_DIR / "ChatBot-Marius"
+CHATBOT_MARIUS    = BASE_DIR / "ChatBot - Marius"
 
 # Load environment variables from the LLM root .env
 env_path = BASE_DIR / ".env"
@@ -40,20 +40,19 @@ def load_module(name: str, path: Path, extra_paths: list[Path] | None = None):
 
 smart_news_schemas = load_module(
     "smart_news_schemas",
-    SMART_NEWS_PARSER / "schemas.py",
+    SMART_NEWS_PARSER / "parser_schemas.py",
     extra_paths=[SMART_NEWS_PARSER],
 )
-old_schemas = sys.modules.get("schemas")
-sys.modules["schemas"] = smart_news_schemas
 smart_news_service = load_module(
     "smart_news_service",
     SMART_NEWS_PARSER / "llm_service.py",
     extra_paths=[SMART_NEWS_PARSER],
 )
-if old_schemas is None:
-    sys.modules.pop("schemas", None)
-else:
-    sys.modules["schemas"] = old_schemas
+smart_news_image_service = load_module(
+    "smart_news_image_service",
+    SMART_NEWS_PARSER / "image_service_v2.py",
+    extra_paths=[SMART_NEWS_PARSER],
+)
 
 mod_marius_schemas = load_module(
     "mod_marius_schemas",
@@ -82,10 +81,13 @@ API_KEY = os.getenv("GEMINI_API_KEY", "").strip().strip("'").strip('"')
 if not API_KEY:
     raise ValueError("GEMINI_API_KEY este necesar pentru LLM combined service.")
 
+HF_API_KEY = os.getenv("HUGGINGFACE_API_KEY", "").strip().strip("'").strip('"')
+
 logger = logging.getLogger("llm-integration")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-llm_service = smart_news_service.LLMService(api_key=API_KEY)
+llm_service = smart_news_service.LLMService()
+image_service = smart_news_image_service.ImageServiceV2(hf_api_key=HF_API_KEY)
 llm_optimizer_service = LLMOptimizer(api_key=API_KEY)
 
 app = FastAPI(
@@ -109,6 +111,7 @@ def health_check():
         "service": "InsideUGAL LLM Integrated Service",
         "endpoints": [
             "/api/v1/extract-announcement-info",
+            "/api/v1/generate-banner",
             "/api/v1/upload-pdf",
             "/api/v1/ask",
             "/api/v1/summary",
@@ -126,6 +129,23 @@ async def extract_announcement_info(request: smart_news_schemas.AnnouncementRequ
     except Exception as exc:
         logger.error("Eroare la extragerea informatiilor din anunt: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/v1/generate-banner", response_model=smart_news_image_service.ImageGenerationResult)
+async def generate_banner(info: smart_news_schemas.ExtractedAnnouncementInfo):
+    try:
+        logger.info("Primire cerere generare banner pentru eveniment.")
+        result = await image_service.generate_announcement_banner(info)
+        
+        if not result.success:
+            raise HTTPException(status_code=500, detail=result.error_message)
+            
+        return result
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Eroare la generarea banner-ului: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Eroare interna la generarea imaginii: {str(exc)}")
 
 
 def process_pdf_background(pdf_path: str, pdf_id: str):
