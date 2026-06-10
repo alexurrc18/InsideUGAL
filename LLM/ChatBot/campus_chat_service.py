@@ -15,8 +15,13 @@ if _CHATBOT_DIR not in sys.path:
 from google import genai
 from google.genai import types as genai_types
 from rag_engine import RAGEngine
-import cache as llm_cache
 import backend_client
+
+import importlib.util as _ilu
+_cs = _ilu.spec_from_file_location("_chatbot_cache", Path(__file__).parent / "cache.py")
+_cm = _ilu.module_from_spec(_cs)
+_cs.loader.exec_module(_cm)
+llm_cache = _cm
 
 GEMINI_MODEL = "gemini-2.5-flash"
 
