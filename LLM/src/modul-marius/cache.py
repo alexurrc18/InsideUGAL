@@ -2,8 +2,12 @@ import hashlib
 import sys
 import os
 from typing import Optional
-# Adaugă shared în path
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+
+# Adaugă directorul `src` în sys.path pentru a permite importul ca pachet
+src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if src_dir not in sys.path:
+    sys.path.append(src_dir)
+
 from shared.supabase_cache import SupabaseCache
 
 cache = SupabaseCache()
