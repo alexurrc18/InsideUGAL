@@ -1,7 +1,8 @@
 "use client";
 
 import Image from 'next/image';
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation'; // <-- PASUL 1: Importăm hook-ul pentru parametri
 import Table, { Column } from '../components/ui/Table';
 import Modal from '../components/ui/Modal';
 import { Announcement, mockAnnouncements, PdfFile } from '../data/announcements';
@@ -18,7 +19,8 @@ const availableFacultiesFromSystem = [
   "Economie"
 ];
 
-export default function Page() {
+// PASUL 2: Învelim conținutul într-o sub-componentă pentru a folosi useSearchParams fără să stricăm build-ul în Next.js
+function AnnouncementsContent() {
   const [data, setData] = useState<Announcement[]>(mockAnnouncements);
   const [activeModal, setActiveModal] = useState<'add' | 'edit' | 'details' | null>(null);
   const [selectedItem, setSelectedItem] = useState<Announcement | null>(null);
@@ -29,6 +31,19 @@ export default function Page() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
+  
+  const searchParams = useSearchParams(); // Citim parametrii din URL
+
+  // PASUL 3: Ascultăm când vine ?open=true din Dashboard și deschidem modalul statis
+  useEffect(() => {
+    if (searchParams.get("open") === "true") {
+      setTimeout(() => {
+        setFormState({ faculties: [], pdfFiles: [] });
+        setNewFacultyInput('');
+        setActiveModal('add');
+      }, 0);
+    }
+  }, [searchParams]);
 
   const initialFaculties = useMemo(() => {
     const facultiesSet = new Set<string>();
@@ -207,51 +222,46 @@ export default function Page() {
     setActiveModal(null);
   };
 
-return (
-  <div className="p-6 max-w-7xl mx-auto space-y-6">
-    {/* Containerul principal flex care se ocupă de aliniere */}
-    <div className="flex flex-row items-center justify-between gap-4 w-full">
-      
-      {/* S-a scos div-ul intermediar decorativ pentru a permite justify-between să le despartă la margini */}
-      <div className="flex items-center gap-2 relative" ref={dropdownRef}>
-        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Filtrează:</span>
-        
-        <button
-          type="button"
-          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="flex items-center justify-between min-w-[140px] border border-border px-4 py-2.5 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-slate-700"
+  return (
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="flex flex-row items-center justify-between gap-4 w-full">
+        <div className="flex items-center gap-2 relative" ref={dropdownRef}>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Filtrează:</span>
+          <button
+            type="button"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="flex items-center justify-between min-w-[140px] border border-border px-4 py-2.5 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-slate-700"
+          >
+            <span>{selectedFaculty}</span>
+            <svg className={`w-4 h-4 ml-2 text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {isDropdownOpen && (
+            <div className="absolute left-14 top-full mt-1.5 w-48 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
+              {allFilterOptions.map(faculty => (
+                <div
+                  key={faculty}
+                  onClick={() => { setSelectedFaculty(faculty); setIsDropdownOpen(false); }}
+                  className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedFaculty === faculty ? 'bg-blue-50 text-blue-600 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
+                >
+                  <span>{faculty}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <button 
+          type="button" 
+          onClick={() => { setFormState({ faculties: [], pdfFiles: [] }); setNewFacultyInput(''); setActiveModal('add'); }} 
+          className="bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-bold cursor-pointer hover:opacity-90 transition-all shadow-md"
         >
-          <span>{selectedFaculty}</span>
-          <svg className={`w-4 h-4 ml-2 text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+          + Adaugă
         </button>
-
-        {isDropdownOpen && (
-          <div className="absolute left-14 top-full mt-1.5 w-48 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
-            {allFilterOptions.map(faculty => (
-              <div
-                key={faculty}
-                onClick={() => { setSelectedFaculty(faculty); setIsDropdownOpen(false); }}
-                className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedFaculty === faculty ? 'bg-blue-50 text-blue-600 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
-              >
-                <span>{faculty}</span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
-
-      <button 
-        type="button" 
-        onClick={() => { setFormState({ faculties: [], pdfFiles: [] }); setNewFacultyInput(''); setActiveModal('add'); }} 
-        className="bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-bold cursor-pointer hover:opacity-90 transition-all shadow-md"
-      >
-        + Adaugă
-      </button>
-
-    </div>
-      
+        
       <div className="bg-card border border-border rounded-2xl shadow-xs overflow-hidden">
         <Table 
           data={filteredData} 
@@ -323,15 +333,15 @@ return (
       </Modal>
 
       <Modal isOpen={activeModal === 'add' || activeModal === 'edit'} onClose={() => setActiveModal(null)} title={activeModal === 'edit' ? "Editare Anunț" : "Adăugare Anunț Nou"}>
-        <form onSubmit={handleSave} className="space-y-4 text-sm max-h-[80vh] flex flex-col justify-between">
+        {/* Corecție layout: Înălțimea maximă și structura flex se pun direct pe containerul form-ului */}
+        <form onSubmit={handleSave} className="flex flex-col max-h-[calc(100vh-200px)] text-sm">
           
           {/* Zona de conținut a formularului cu scrollbar ascuns */}
           <div 
-            className="space-y-4 overflow-y-auto pr-1 pb-4"
-            style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+            className="flex-1 overflow-y-auto space-y-4 pr-1 pb-4 scrollbar-none"
           >
             <style dangerouslySetInnerHTML={{__html: `
-              div::-webkit-scrollbar {
+              .scrollbar-none::-webkit-scrollbar {
                 display: none;
               }
             `}} />
@@ -499,11 +509,20 @@ return (
 
           {/* Subsol Static/Fix cu butoanele de acțiune */}
           <div className="sticky bottom-0 bg-white pt-4 border-t border-border z-10 flex justify-end space-x-2">
-            <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-border rounded-lg text-muted text-xs cursor-pointer hover:bg-background">Anulează</button>
-            <button type="submit" className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold cursor-pointer hover:opacity-90">Salvează</button>
+            <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-border rounded-lg text-slate-500 text-xs cursor-pointer hover:bg-slate-50 transition-colors">Anulează</button>
+            <button type="submit" className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold cursor-pointer hover:opacity-90 transition-opacity">Salvează</button>
           </div>
         </form>
       </Modal>
     </div>
+  );
+}
+
+// Exportul implicit împachetat în Suspense obligatoriu pentru build-ul Next.js de producție
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-slate-500">Se încarcă noutățile...</div>}>
+      <AnnouncementsContent />
+    </Suspense>
   );
 }
