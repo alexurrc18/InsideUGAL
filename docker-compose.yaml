@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
       SUPABASE_URL: ${SUPABASE_URL:-http://supabase-kong:8000}
@@ -262,7 +264,7 @@ services:
 networks:
   public:
     name: coolify
-    external: true
+    # external: true
   internal:
     internal: true
 volumes:
