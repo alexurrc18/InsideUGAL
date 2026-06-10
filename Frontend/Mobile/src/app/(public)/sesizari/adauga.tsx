@@ -12,7 +12,7 @@ import {
   LayoutAnimation
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Colors, Fonts, Spacing } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import MockData from "@/constants/mock-data.json";
 import { getTodayRomanianDate } from "@/utils/date";
@@ -79,7 +79,7 @@ const LocationPill = ({ label, isSelected, onPress, theme }: LocationPillProps) 
         <Text 
           style={{ 
             fontSize: 14,
-            fontFamily: Fonts?.sans || "normal",
+            fontFamily: isSelected ? "InstrumentSans-SemiBold" : "InstrumentSans-Regular",
             color: isSelected ? "white" : theme.text,
             fontWeight: isSelected ? "600" : "400"
           }}
@@ -100,15 +100,18 @@ export default function AdaugaSesizareScreen() {
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState(BUILDINGS[0]);
   const [photos, setPhotos] = useState<string[]>([]);
-  const [errors, setErrors] = useState<{ title?: string; description?: string }>({});
+  const [errors, setErrors] = useState<{ title?: string; description?: string; photos?: string }>({});
 
   const validate = () => {
-    const newErrors: { title?: string; description?: string } = {};
+    const newErrors: { title?: string; description?: string; photos?: string } = {};
     if (!title.trim()) {
       newErrors.title = "Titlul este obligatoriu.";
     }
     if (!description.trim()) {
       newErrors.description = "Descrierea este obligatorie.";
+    }
+    if (photos.length === 0) {
+      newErrors.photos = "Este obligatoriu să adăugați cel puțin o fotografie.";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -131,12 +134,22 @@ export default function AdaugaSesizareScreen() {
 
     if (!result.canceled) {
       const selectedUris = result.assets.map(asset => asset.uri);
-      setPhotos([...photos, ...selectedUris].slice(0, 3));
+      const updatedPhotos = [...photos, ...selectedUris].slice(0, 3);
+      setPhotos(updatedPhotos);
+      if (updatedPhotos.length > 0 && errors.photos) {
+        setErrors({ ...errors, photos: undefined });
+      }
     }
   };
 
   const handleRemovePhoto = (index: number) => {
-    setPhotos(photos.filter((_, idx) => idx !== index));
+    const updatedPhotos = photos.filter((_, idx) => idx !== index);
+    setPhotos(updatedPhotos);
+    if (updatedPhotos.length === 0) {
+      setErrors({ ...errors, photos: "Este obligatoriu să adăugați cel puțin o fotografie." });
+    } else if (errors.photos) {
+      setErrors({ ...errors, photos: undefined });
+    }
   };
 
   const handleSubmit = () => {
@@ -201,8 +214,7 @@ export default function AdaugaSesizareScreen() {
                 borderColor: theme.secondary,
                 borderRadius: Spacing.md,
                 paddingHorizontal: Spacing.lg,
-                fontSize: 14,
-                fontFamily: Fonts?.sans || "normal",
+                ...Typography.Paragraph2,
                 color: theme.text,
                 backgroundColor: theme.surface
               }}
@@ -233,8 +245,7 @@ export default function AdaugaSesizareScreen() {
                 borderColor: theme.secondary,
                 borderRadius: Spacing.md,
                 paddingHorizontal: Spacing.lg,
-                fontSize: 14,
-                fontFamily: Fonts?.sans || "normal",
+                ...Typography.Paragraph2,
                 paddingTop: Spacing.md,
                 paddingBottom: Spacing.md,
                 textAlignVertical: "top",
@@ -259,6 +270,8 @@ export default function AdaugaSesizareScreen() {
                     height: 150,
                     borderRadius: Spacing.md,
                     backgroundColor: theme.surface,
+                    borderWidth: errors.photos ? 1.5 : 0,
+                    borderColor: theme.secondary,
                     justifyContent: "center",
                     alignItems: "center",
                     marginTop: Spacing.xs,
@@ -267,11 +280,17 @@ export default function AdaugaSesizareScreen() {
                   }
                 ]}
               >
-                <ImagesIcon width={32} height={32} color={theme.textSecondary} />
-                <Text style={{ fontSize: 14, fontFamily: Fonts?.sans || "normal", color: theme.textSecondary, fontWeight: "500" }}>
+                <ImagesIcon width={24} height={24} color={theme.textSecondary} />
+                <Text style={{ ...Typography.Small1, color: theme.textSecondary }}>
                   Adaugă poză (până la 3 poze)
                 </Text>
               </Pressable>
+            )}
+
+            {errors.photos && (
+              <Text style={[Typography.Paragraph3, { color: theme.secondary, marginLeft: Spacing.xs }]}>
+                {errors.photos}
+              </Text>
             )}
 
             {photos.length > 0 && (

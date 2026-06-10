@@ -62,7 +62,6 @@ export default function SesizariLayout() {
                   >
                     {Platform.OS === "ios" ? (
                       <GlassView
-                        glassEffectStyle="clear"
                         style={{
                           padding: Spacing.xs,
                           borderRadius: 20,
@@ -71,7 +70,7 @@ export default function SesizariLayout() {
                           overflow: "hidden"
                         }}
                       >
-                        <PlusIcon width={32} height={32} color={theme.text} />
+                        <PlusIcon width={24} height={24} color={theme.text} style={{margin: 5}} />
                       </GlassView>
                     ) : (
                       <View
