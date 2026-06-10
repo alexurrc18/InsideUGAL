@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { 
   View, 
   Text, 
@@ -31,7 +31,7 @@ interface LocationPillProps {
 }
 
 const LocationPill = ({ label, isSelected, onPress, theme }: LocationPillProps) => {
-  const scale = useRef(new Animated.Value(1)).current;
+  const scale = useMemo(() => new Animated.Value(1), []);
 
   useEffect(() => {
     Animated.timing(scale, {
@@ -39,7 +39,7 @@ const LocationPill = ({ label, isSelected, onPress, theme }: LocationPillProps) 
       duration: 80,
       useNativeDriver: true,
     }).start();
-  }, [isSelected]);
+  }, [isSelected, scale]);
 
   const handlePressIn = () => {
     Animated.timing(scale, {
