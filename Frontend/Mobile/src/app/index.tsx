@@ -1,33 +1,36 @@
 import { router } from "expo-router";
 import React, { useEffect } from "react";
-import { useColorScheme, View } from "react-native";
+import { useColorScheme, StyleSheet } from "react-native";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";
 
 export default function SplashScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
-  const test = 1;
-
   useEffect(() => {
-    if (test === 1) {
+    const timeout = setTimeout(() => {
       router.replace("/(public)/acasa");
-    } else {
-      const timeout = setTimeout(() => {
-        router.replace("/(public)/acasa");
-      }, 5000);
+    }, 5000);
 
-      return () => clearTimeout(timeout);
-    }
+    return () => clearTimeout(timeout);
   }, []);
 
   return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}>
+    <LinearGradient
+      colors={["#00479E", "#003578"]}
+      style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+    >
+      <Image
+        source={require("@/assets/images/campus-stiintei.png")}
+        contentFit="cover"
+        style={[StyleSheet.absoluteFill, { mixBlendMode: "overlay", opacity: 0.5 } as any]}
+      />
       <Image
         source={require("@/assets/images/logo.png")}
-        contentFit="cover"
-        style={{ width: "100%", height: "100%" }}
+        contentFit="contain"
+        style={{ width: 150, height: 150 }}
       />
-    </View>
+    </LinearGradient>
   );
 }

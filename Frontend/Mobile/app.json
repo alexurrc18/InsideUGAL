@@ -4,29 +4,28 @@
     "slug": "InsideUGAL",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo.png",
     "scheme": "mobile",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.InsideUGAL.mobile",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Aplica\u021bia are nevoie de loca\u021bie pentru a afi\u0219a pozi\u021bia ta pe hart\u0103.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Aplica\u021bia are nevoie de loca\u021bie pentru a afi\u0219a pozi\u021bia ta pe hart\u0103."
+        "NSLocationWhenInUseUsageDescription": "Aplicația are nevoie de locație pentru a afișa poziția ta pe hartă.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Aplicația are nevoie de locație pentru a afișa poziția ta pe hartă."
       }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#00479E",
+        "foregroundImage": "./assets/images/logo.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.InsideUGAL.mobile"
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/logo.png"
     },
     "plugins": [
       "expo-router",
@@ -35,7 +34,7 @@
         {
           "backgroundColor": "#208AEF",
           "android": {
-            "image": "./assets/images/splash-icon.png",
+            "image": "./assets/images/logo.png",
             "imageWidth": 76
           }
         }
