@@ -1,0 +1,18 @@
+{
+  "id": "20260605_100521",
+  "title": "unde e corpul G",
+  "messages": [
+    {
+      "role": "user",
+      "text": "unde e corpul G",
+      "full_prompt": "[ÎNTREBARE]:\nunde e corpul G",
+      "timestamp": "2026-06-05T10:05:54.086429"
+    },
+    {
+      "role": "model",
+      "text": "Corpul G se află pe campusul **Ţiglina** al Universității „Dunărea de Jos” din Galaţi, în apropierea intrării principale a campusului. Pentru informaţii detaliate privind accesul (parcări, trasee pietonale etc.) vă recomandăm să consultaţi harta interactivă disponibilă pe site‑ul oficial al universităţii: **www.ugal.ro** sau să contactaţi secretariatul campusului. \n\nDacă aveţi nevoie de alte detalii, vă stau la dispoziție!",
+      "timestamp": "2026-06-05T10:05:54.086429"
+    }
+  ],
+  "created": "2026-06-05T10:05:21.886998"
+}
