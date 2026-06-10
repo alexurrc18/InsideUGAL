@@ -34,5 +34,5 @@ Modulul include o suită avansată de evaluare automată (`LLM-as-a-Judge`). La 
 
 Pentru a rula testele E2E (inclusiv testele de stress pentru circuit breaker):
 ```bash
-pytest "LLM/ChatBot AI/evals/" -v -m eval -s
+pytest "LLM/tests/" -v -s
 ```
