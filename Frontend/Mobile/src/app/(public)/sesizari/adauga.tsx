@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { 
   View, 
   Text, 
@@ -7,7 +7,9 @@ import {
   TextInput, 
   KeyboardAvoidingView, 
   Platform, 
-  ScrollView 
+  ScrollView,
+  Animated,
+  LayoutAnimation
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Colors, Fonts, Spacing } from "@/constants/theme";
@@ -16,9 +18,78 @@ import MockData from "@/constants/mock-data.json";
 import { getTodayRomanianDate } from "@/utils/date";
 import { Image } from "expo-image";
 import XIcon from "@/assets/icons/svg/x.svg";
+import ImagesIcon from "@/assets/icons/svg/images.svg";
 import * as ImagePicker from "expo-image-picker";
 
-const BUILDINGS = Array.from(new Set(MockData.buildings.map((b) => b.name)));
+const BUILDINGS = [...Array.from(new Set(MockData.buildings.map((b) => b.name))), "Exterior"];
+
+interface LocationPillProps {
+  label: string;
+  isSelected: boolean;
+  onPress: () => void;
+  theme: any;
+}
+
+const LocationPill = ({ label, isSelected, onPress, theme }: LocationPillProps) => {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(scale, {
+      toValue: 1,
+      duration: 80,
+      useNativeDriver: true,
+    }).start();
+  }, [isSelected]);
+
+  const handlePressIn = () => {
+    Animated.timing(scale, {
+      toValue: 0.95,
+      duration: 60,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.timing(scale, {
+      toValue: 1,
+      duration: 60,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <Pressable
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={() => {
+          LayoutAnimation.configureNext({
+            duration: 100,
+            update: { type: 'easeInEaseOut' },
+          });
+          onPress();
+        }}
+        style={{ 
+          paddingHorizontal: Spacing.lg,
+          paddingVertical: Spacing.sm,
+          borderRadius: Spacing.lg,
+          backgroundColor: isSelected ? theme.primary : theme.surface,
+        }}
+      >
+        <Text 
+          style={{ 
+            fontSize: 14,
+            fontFamily: Fonts?.sans || "normal",
+            color: isSelected ? "white" : theme.text,
+            fontWeight: isSelected ? "600" : "400"
+          }}
+        >
+          {label}
+        </Text>
+      </Pressable>
+    </Animated.View>
+  );
+};
 
 export default function AdaugaSesizareScreen() {
   const router = useRouter();
@@ -100,34 +171,17 @@ export default function AdaugaSesizareScreen() {
         <View style={{ gap: Spacing.lg }}>
           
           <View style={{ gap: Spacing.xs }}>
-            <Text style={[Typography.Heading5, { color: theme.text }]}>Clădire (Locație)</Text>
+            <Text style={[Typography.Heading5, { color: theme.text }]}>Locație</Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: Spacing.sm, marginTop: Spacing.xs }}>
-              {BUILDINGS.map((bldg) => {
-                const isSelected = location === bldg;
-                return (
-                  <Pressable
-                    key={bldg}
-                    onPress={() => setLocation(bldg)}
-                    style={{ 
-                      paddingHorizontal: Spacing.lg,
-                      paddingVertical: Spacing.sm,
-                      borderRadius: Spacing.lg,
-                      backgroundColor: isSelected ? theme.primary : (themeName === "light" ? "#F1F3F5" : "#2D2D2D"),
-                    }}
-                  >
-                    <Text 
-                      style={{ 
-                        fontSize: 14,
-                        fontFamily: Fonts?.sans || "normal",
-                        color: isSelected ? "white" : theme.text,
-                        fontWeight: isSelected ? "600" : "400"
-                      }}
-                    >
-                      {bldg}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+              {BUILDINGS.map((bldg) => (
+                <LocationPill
+                  key={bldg}
+                  label={bldg}
+                  isSelected={location === bldg}
+                  onPress={() => setLocation(bldg)}
+                  theme={theme}
+                />
+              ))}
             </View>
           </View>
 
@@ -143,14 +197,14 @@ export default function AdaugaSesizareScreen() {
               placeholderTextColor={theme.textSecondary}
               style={{ 
                 height: 56,
-                borderWidth: 1.5,
+                borderWidth: errors.title ? 1.5 : 0,
+                borderColor: theme.secondary,
                 borderRadius: Spacing.md,
                 paddingHorizontal: Spacing.lg,
                 fontSize: 14,
                 fontFamily: Fonts?.sans || "normal",
-                borderColor: errors.title ? theme.secondary : theme.border,
                 color: theme.text,
-                backgroundColor: themeName === "light" ? "#FFFFFF" : "#1E1E1E"
+                backgroundColor: theme.surface
               }}
               returnKeyType="next"
             />
@@ -175,7 +229,8 @@ export default function AdaugaSesizareScreen() {
               numberOfLines={4}
               style={{ 
                 height: 120,
-                borderWidth: 1.5,
+                borderWidth: errors.description ? 1.5 : 0,
+                borderColor: theme.secondary,
                 borderRadius: Spacing.md,
                 paddingHorizontal: Spacing.lg,
                 fontSize: 14,
@@ -183,9 +238,8 @@ export default function AdaugaSesizareScreen() {
                 paddingTop: Spacing.md,
                 paddingBottom: Spacing.md,
                 textAlignVertical: "top",
-                borderColor: errors.description ? theme.secondary : theme.border,
                 color: theme.text,
-                backgroundColor: themeName === "light" ? "#FFFFFF" : "#1E1E1E"
+                backgroundColor: theme.surface
               }}
             />
             {errors.description && (
@@ -204,14 +258,16 @@ export default function AdaugaSesizareScreen() {
                   {
                     height: 150,
                     borderRadius: Spacing.md,
-                    backgroundColor: themeName === "light" ? "#F1F3F5" : "#2D2D2D",
+                    backgroundColor: theme.surface,
                     justifyContent: "center",
                     alignItems: "center",
                     marginTop: Spacing.xs,
-                    opacity: pressed ? 0.9 : 1
+                    opacity: pressed ? 0.9 : 1,
+                    gap: Spacing.md
                   }
                 ]}
               >
+                <ImagesIcon width={32} height={32} color={theme.textSecondary} />
                 <Text style={{ fontSize: 14, fontFamily: Fonts?.sans || "normal", color: theme.textSecondary, fontWeight: "500" }}>
                   Adaugă poză (până la 3 poze)
                 </Text>
@@ -227,7 +283,7 @@ export default function AdaugaSesizareScreen() {
                       width: 80,
                       height: 80,
                       borderRadius: Spacing.md,
-                      backgroundColor: themeName === "light" ? "#F1F3F5" : "#2D2D2D",
+                      backgroundColor: theme.surface,
                       overflow: "hidden",
                       position: "relative"
                     }}

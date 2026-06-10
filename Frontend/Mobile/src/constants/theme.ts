@@ -21,6 +21,8 @@ export const ColorScheme = {
   green: '#3CBB19',
   yellow: '#FFC107',
 
+  pureWhite: '#FFFFFF',
+  pureBlack: '#000000',
 } as const;
 
 export const Colors = {
@@ -30,6 +32,7 @@ export const Colors = {
     textSecondary: ColorScheme.gray,
     background: ColorScheme.white,
     border: ColorScheme.lightGray,
+    surface: ColorScheme.pureWhite,
 
     primary: ColorScheme.blue,
     secondary: ColorScheme.red,
@@ -41,11 +44,10 @@ export const Colors = {
     textSecondary: ColorScheme.lightGray,
     background: ColorScheme.black,
     border: ColorScheme.gray,
+    surface: ColorScheme.pureBlack,
 
     primary: ColorScheme.blue,
     secondary: ColorScheme.red,
-
-
   },
 } as const;
 
