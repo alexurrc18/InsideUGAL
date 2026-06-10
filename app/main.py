@@ -33,6 +33,9 @@ from app.api.errors import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# --- ADĂUGAT: Citim mediul în care rulează aplicația (default este 'development') ---
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
 # Definire handler personalizat pentru Rate Limit (soluție pentru versiuni noi slowapi)
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     return JSONResponse(
@@ -101,7 +104,11 @@ async def add_security_headers_middleware(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    
+    # --- MODIFICAT: Aplicăm HSTS (securitatea strictă HTTPS) DOAR dacă suntem în producție ---
+    if ENVIRONMENT == "production":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        
     return response
 
 @app.middleware("http")

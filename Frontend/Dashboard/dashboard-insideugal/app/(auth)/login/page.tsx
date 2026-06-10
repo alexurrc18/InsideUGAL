@@ -22,14 +22,16 @@ export default function LoginPage() {
     formData.append("password", password);
 
     try {
-      // Modifică cu portul real al backend-ului tău dacă nu e 8000
-      const response = await fetch("https://127.0.0.1:8000/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: formData.toString(),
-      });
+   // În interiorul funcției handleSubmit:
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      
+const response = await fetch(`${API_URL}/auth/login`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/x-www-form-urlencoded",
+  },
+  body: formData.toString(),
+});
 
       const data = await response.json();
 
