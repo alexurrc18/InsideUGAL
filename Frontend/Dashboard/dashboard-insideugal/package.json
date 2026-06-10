@@ -7,8 +7,6 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
     "doctor": "npx react-doctor@latest . --verbose"
   },
   "dependencies": {
