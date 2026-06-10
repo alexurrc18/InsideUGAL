@@ -31,25 +31,96 @@ const initialCladiri: Cladire[] = [
   { id: 12, denumire: "Centrul de Consiliere", adresa: "Str. Domnească nr. 47", lat: "45.43843053625073", lng: "28.056011430581535", facultate: "f8" },
   { id: 13, denumire: "Cabinet Medical", adresa: "Str. Domnească nr. 111", lat: "45.45335468796397", lng: "28.05171517115972", facultate: "f8" },
 ];
+
+function CladireForm({
+  formState,
+  setFormState,
+  onSave,
+  onCancel,
+}: {
+  formState: Omit<Cladire, "id">;
+  setFormState: React.Dispatch<React.SetStateAction<Omit<Cladire, "id">>>;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="flex flex-col">
+      <div className="space-y-4 overflow-y-auto max-h-[60vh] pb-2">
+        <div>
+          <label className="block text-xs font-bold text-muted uppercase mb-1">Denumire</label>
+          <input type="text" className="w-full p-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-sidebar"
+            value={formState.denumire} onChange={e => setFormState({...formState, denumire: e.target.value})} />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-muted uppercase mb-1">Adresă</label>
+          <input type="text" className="w-full p-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-sidebar"
+            value={formState.adresa} onChange={e => setFormState({...formState, adresa: e.target.value})} />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-muted uppercase mb-1">Latitudine</label>
+            <input type="text" placeholder="ex: 45.44" className="w-full p-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-sidebar"
+              value={formState.lat} onChange={e => setFormState({...formState, lat: e.target.value})} />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-muted uppercase mb-1">Longitudine</label>
+            <input type="text" placeholder="ex: 28.05" className="w-full p-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-sidebar"
+              value={formState.lng} onChange={e => setFormState({...formState, lng: e.target.value})} />
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-muted uppercase mb-1">Facultate</label>
+          <input type="text" className="w-full p-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-sidebar"
+            value={formState.facultate} onChange={e => setFormState({...formState, facultate: e.target.value})} />
+        </div>
+        <div style={{ height: "300px" }} className="rounded-lg overflow-hidden border border-border">
+          <MapComponent onLocationSelect={(lat, lng) => setFormState({ ...formState, lat: lat.toFixed(6), lng: lng.toFixed(6) })} />
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-4 mt-2 border-t border-border">
+        <button type="button" onClick={onCancel}
+          className="px-4 py-2 text-sm font-medium text-muted hover:text-foreground transition-colors">
+          Anulează
+        </button>
+        <button type="button" onClick={onSave}
+          className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
+          Salvează
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function HartiPage() {
   const [tab, setTab] = useState<"locatii" | "harta">("locatii");
-  const [showModal, setShowModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingCladire, setEditingCladire] = useState<Cladire | null>(null);
   const [cladiri, setCladiri] = useState<Cladire[]>(initialCladiri);
-  
-  // Form State
-  const [formState, setFormState] = useState({
-    denumire: "",
-    adresa: "",
-    lat: "",
-    lng: "",
-    facultate: "",
-  });
 
-  const handleSave = () => {
-    if (!formState.denumire) return;
-    setCladiri([...cladiri, { id: Date.now(), ...formState }]);
-    setFormState({ denumire: "", adresa: "", lat: "", lng: "", facultate: "" });
-    setShowModal(false);
+  const emptyForm = { denumire: "", adresa: "", lat: "", lng: "", facultate: "" };
+  const [addForm, setAddForm] = useState<Omit<Cladire, "id">>(emptyForm);
+  const [editForm, setEditForm] = useState<Omit<Cladire, "id">>(emptyForm);
+
+  const handleAdd = () => {
+    if (!addForm.denumire) return;
+    setCladiri([...cladiri, { id: Date.now(), ...addForm }]);
+    setAddForm(emptyForm);
+    setShowAddModal(false);
+  };
+
+  const handleEditOpen = (cladire: Cladire) => {
+    setEditingCladire(cladire);
+    setEditForm({ denumire: cladire.denumire, adresa: cladire.adresa, lat: cladire.lat, lng: cladire.lng, facultate: cladire.facultate });
+    setShowEditModal(true);
+  };
+
+  const handleEditSave = () => {
+    if (!editingCladire) return;
+    setCladiri(cladiri.map(c => c.id === editingCladire.id ? { ...c, ...editForm } : c));
+    setShowEditModal(false);
+    setEditingCladire(null);
   };
 
   const columns: Column<Cladire>[] = [
@@ -63,74 +134,54 @@ export default function HartiPage() {
         </div>
       )
     },
-    {
-      header: "Adresă",
-      key: "adresa",
-    },
+    { header: "Adresă", key: "adresa" },
     {
       header: "Coordonate",
       key: "lat",
       render: (item) => (
-        <span className="text-xs text-muted font-mono">
-          {item.lat}, {item.lng}
-        </span>
+        <span className="text-xs text-muted font-mono">{item.lat}, {item.lng}</span>
       )
     },
     {
       header: "Acțiuni",
       key: "id",
       render: (item) => (
-        <button
-          type="button"
-          onClick={() => setCladiri(cladiri.filter(x => x.id !== item.id))}
-          className="text-rose-600 hover:text-rose-700 text-xs font-medium"
-        >
-          Ștergere
-        </button>
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => handleEditOpen(item)}
+            className="text-blue-600 hover:text-blue-700 text-xs font-medium">
+            Editare
+          </button>
+          <button type="button" onClick={() => setCladiri(cladiri.filter(x => x.id !== item.id))}
+            className="text-rose-600 hover:text-rose-700 text-xs font-medium">
+            Ștergere
+          </button>
+        </div>
       )
     }
   ];
 
   return (
     <div className="space-y-6">
-      {/* Header & Actions */}
       <div className="flex justify-between items-center">
         <div className="flex gap-2 p-1 bg-background border border-border rounded-xl">
-          <button
-            type="button"
-            onClick={() => setTab("locatii")}
-            className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-              tab === "locatii" ? "bg-sidebar text-white" : "text-muted hover:text-foreground"
-            }`}
-          >
+          <button type="button" onClick={() => setTab("locatii")}
+            className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${tab === "locatii" ? "bg-sidebar text-white" : "text-muted hover:text-foreground"}`}>
             Locații
           </button>
-          <button
-            type="button"
-            onClick={() => setTab("harta")}
-            className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-              tab === "harta" ? "bg-sidebar text-white" : "text-muted hover:text-foreground"
-            }`}
-          >
+          <button type="button" onClick={() => setTab("harta")}
+            className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${tab === "harta" ? "bg-sidebar text-white" : "text-muted hover:text-foreground"}`}>
             Hartă
           </button>
         </div>
-
-        <button
-          type="button"
-          onClick={() => setShowModal(true)}
-          className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
-        >
+        <button type="button" onClick={() => { setAddForm(emptyForm); setShowAddModal(true); }}
+          className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
           + Adaugă Clădire
         </button>
       </div>
 
-      {/* Content */}
       {tab === "locatii" ? (
         <Card>
-          <CardHeader>
-            <CardTitle>Clădiri înregistrate</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>Clădiri înregistrate</CardTitle></CardHeader>
           <CardContent className="p-0">
             <Table data={cladiri} columns={columns} />
           </CardContent>
@@ -141,90 +192,12 @@ export default function HartiPage() {
         </div>
       )}
 
-      {/* Add Modal */}
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title="Adaugă Clădire Nouă"
-      >
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-muted uppercase mb-1">Denumire</label>
-              <input
-                type="text"
-                className="w-full p-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-sidebar"
-                value={formState.denumire}
-                onChange={e => setFormState({...formState, denumire: e.target.value})}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-muted uppercase mb-1">Adresă</label>
-              <input
-                type="text"
-                className="w-full p-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-sidebar"
-                value={formState.adresa}
-                onChange={e => setFormState({...formState, adresa: e.target.value})}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-muted uppercase mb-1">Latitudine</label>
-                <input
-                  type="text"
-                  placeholder="ex: 45.44"
-                  className="w-full p-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-sidebar"
-                  value={formState.lat}
-                  onChange={e => setFormState({...formState, lat: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-muted uppercase mb-1">Longitudine</label>
-                <input
-                  type="text"
-                  placeholder="ex: 28.05"
-                  className="w-full p-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-sidebar"
-                  value={formState.lng}
-                  onChange={e => setFormState({...formState, lng: e.target.value})}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-muted uppercase mb-1">Facultate</label>
-              <input
-                type="text"
-                className="w-full p-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-sidebar"
-                value={formState.facultate}
-                onChange={e => setFormState({...formState, facultate: e.target.value})}
-              />
-            </div>
-          </div>
+      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Adaugă Clădire Nouă">
+        <CladireForm formState={addForm} setFormState={setAddForm} onSave={handleAdd} onCancel={() => setShowAddModal(false)} />
+      </Modal>
 
-          <div style={{ height: "300px" }} className="rounded-lg overflow-hidden border border-border">
-            <MapComponent 
-              onLocationSelect={(lat, lng) => 
-                setFormState({ ...formState, lat: lat.toFixed(6), lng: lng.toFixed(6) })
-              } 
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4 border-t border-border">
-            <button
-              type="button"
-              onClick={() => setShowModal(false)}
-              className="px-4 py-2 text-sm font-medium text-muted hover:text-foreground transition-colors"
-            >
-              Anulează
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
-            >
-              Salvează
-            </button>
-          </div>
-        </div>
+      <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Editare Clădire">
+        <CladireForm formState={editForm} setFormState={setEditForm} onSave={handleEditSave} onCancel={() => setShowEditModal(false)} />
       </Modal>
     </div>
   );
