@@ -8,14 +8,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.append(str(BASE_DIR))
 
 def test_paths_exist():
-    """Verify that all expected LLM sub-directories exist."""
-    assert (BASE_DIR / "ChatBot-Marius").exists()
-    assert (BASE_DIR / "modul-marius").exists()
-    assert (BASE_DIR / "smart-news-parser").exists()
+    """Verify that all expected LLM sub-directories exist (case-insensitive)."""
+    existing_dirs = [d.name.lower() for d in BASE_DIR.iterdir() if d.is_dir()]
+    assert "chatbot-marius" in existing_dirs
+    assert "modul-marius" in existing_dirs
+    assert "smart-news-parser" in existing_dirs
 
 def test_requirements_exist():
     """Verify that sub-projects have their requirements files."""
-    assert (BASE_DIR / "ChatBot-Marius" / "requirements.txt").exists()
+    # Find the chatbot folder case-insensitively
+    chatbot_folder = next((d for d in BASE_DIR.iterdir() if d.name.lower() == "chatbot-marius"), None)
+    assert chatbot_folder is not None
+    assert (chatbot_folder / "requirements.txt").exists()
     assert (BASE_DIR / "requirements.txt").exists()
 
 def test_basic_logic_sanity():

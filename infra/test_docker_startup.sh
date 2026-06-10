@@ -1,6 +1,17 @@
 #!/bin/bash
 set -e
 
+if [ ! -f .env ]; then
+  echo "--- Creating dummy .env for CI ---"
+  cp .env.example .env || touch .env
+  echo "POSTGRES_PASSWORD=SuperSecretDummyPassword123!" >> .env
+  echo "SUPABASE_JWT_SECRET=dummy_secret" >> .env
+  echo "PG_META_CRYPTO_KEY=dummy_crypto_key" >> .env
+  echo "NEXT_PUBLIC_BACKEND_URL=http://localhost:8000" >> .env
+  echo "NEXT_PUBLIC_SUPABASE_URL=http://localhost:8082" >> .env
+  echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy_anon" >> .env
+fi
+
 echo "--- Validating Docker Compose Configuration ---"
 docker compose config -q
 
