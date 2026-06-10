@@ -73,3 +73,15 @@ export const parseRomanianDate = (dateStr?: string, timeStr?: string) => {
 
     return new Date(year, monthIndex, day, hours, minutes);
 };
+
+export const getTodayRomanianDate = (): string => {
+    const months = [
+        "ianuarie", "februarie", "martie", "aprilie", "mai", "iunie",
+        "iulie", "august", "septembrie", "octombrie", "noiembrie", "decembrie"
+    ];
+    const d = new Date();
+    const day = d.getDate();
+    const month = months[d.getMonth()];
+    const year = d.getFullYear();
+    return `${day} ${month} ${year}`;
+};
