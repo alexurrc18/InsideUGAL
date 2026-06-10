@@ -77,3 +77,7 @@ Thumbs.db
 # --- Local dev (not tracked on main) ---
 LLM/ChatBot - Marius /
 LLM/ChatBot AI/histories/
+
+# --- Security Reports ---
+security-reports/
+!security-reports/.gitkeep

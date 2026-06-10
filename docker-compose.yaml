@@ -7,7 +7,7 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
-      SUPABASE_URL: ${SUPABASE_URL:-http://supabase-kong:8000}
+      SUPABASE_URL: ${SUPABASE_URL:-http://localhost:8082}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-}
@@ -17,8 +17,6 @@ services:
     depends_on:
       supabase-db:
         condition: service_healthy
-      supabase-kong:
-        condition: service_started
     healthcheck:
       test:
       - CMD-SHELL
@@ -32,6 +30,7 @@ services:
     networks:
     - public
     - internal
+
   llm:
     build:
       context: ./LLM
@@ -41,15 +40,13 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
-      SUPABASE_URL: ${SUPABASE_URL:-http://supabase-kong:8000}
+      SUPABASE_URL: ${SUPABASE_URL:-http://localhost:8082}
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       ALLOWED_ORIGINS: ${LLM_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
     restart: unless-stopped
     depends_on:
       supabase-db:
         condition: service_healthy
-      supabase-kong:
-        condition: service_started
     healthcheck:
       test:
       - CMD-SHELL
@@ -63,6 +60,7 @@ services:
     networks:
     - public
     - internal
+
   frontend:
     build:
       context: ./Frontend/Dashboard/dashboard-insideugal
@@ -103,6 +101,7 @@ services:
     - traefik.http.routers.insideugal-frontend-http.service=insideugal-frontend
     - traefik.http.middlewares.insideugal-redirect-https.redirectscheme.scheme=https
     - traefik.http.services.insideugal-frontend.loadbalancer.server.port=3000
+
   supabase-db:
     image: supabase/postgres:15.8.1.085
     restart: unless-stopped
@@ -116,7 +115,6 @@ services:
       start_period: 15s
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}
       PGPORT: ${POSTGRES_PORT:-5432}
@@ -131,6 +129,7 @@ services:
     - ./supabase/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
     networks:
     - internal
+
   supabase-auth:
     image: supabase/gotrue:v2.188.1
     restart: unless-stopped
@@ -150,6 +149,7 @@ services:
       GOTRUE_MAILER_AUTOCONFIRM: "true"
     networks:
       - internal
+
   supabase-rest:
     image: postgrest/postgrest:v12.2.0
     restart: unless-stopped
@@ -163,6 +163,7 @@ services:
       PGRST_DB_ANON_ROLE: anon
     networks:
       - internal
+
   supabase-kong:
     image: kong:2.8.1
     restart: unless-stopped
@@ -181,6 +182,7 @@ services:
     networks:
       - public
       - internal
+
   supabase-meta:
     image: supabase/postgres-meta:v0.95.2
     restart: unless-stopped
@@ -197,6 +199,7 @@ services:
       CRYPTO_KEY: ${PG_META_CRYPTO_KEY:-change-me}
     networks:
     - internal
+
   supabase-studio:
     image: supabase/studio:2026.03.16-sha-5528817
     restart: unless-stopped
@@ -252,20 +255,43 @@ services:
       test:
       - CMD-SHELL
       - node -e "fetch('http://127.0.0.1:8081').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 40s
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    start_period: 40s
     networks:
       - internal
       - public
     labels:
       - traefik.enable=false
+
+  security-scan:
+    container_name: security-scan
+    image: zaproxy/zap-stable:latest
+    profiles:
+      - security
+    depends_on:
+      frontend:
+        condition: service_healthy
+    volumes:
+      - ./security-reports:/zap/wrk:rw
+    user: root
+    command: >
+      zap-baseline.py -t http://frontend:3000 
+      -r security-audit-report.html 
+      -I
+    networks:
+      - public
+      - internal
+
 networks:
   public:
     name: coolify
     external: true
   internal:
     internal: true
+
 volumes:
   supabase-db-data: {}
+  llm-uploads: {}
+  llm-chroma-data: {}
