@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import time
+import logging
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from typing import Dict, Tuple
 
