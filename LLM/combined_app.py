@@ -200,7 +200,8 @@ async def upload_pdf(background_tasks: BackgroundTasks, pdf: UploadFile = File(.
 @app.post("/api/v1/ask", response_model=mod_marius_schemas.AnswerQuestionOutput)
 def ask_question(request: mod_marius_schemas.AnswerQuestionInput):  # type: ignore
     # 1. Filtru de Securitate Guardrails
-    if not llm_optimizer_service.check_prompt_safety(request.question)        raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
+    if not llm_optimizer_service.check_prompt_safety(request.question):
+        raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
 
     # 2. Verificare Semantic Cache
     cached_answer = llm_optimizer_service.get_cached_answer(request.question)
