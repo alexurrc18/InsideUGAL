@@ -12,11 +12,10 @@ import HandshakeIcon from '@/assets/icons/svg/handshake.svg';
 interface MapPinProps {
   name: string;
   facultyId: string;
-  theme?: ReturnType<typeof useTheme>;
 }
 
-export const MapPin = ({ name, facultyId, theme: themeProp }: MapPinProps) => {
-  const theme = themeProp ?? useTheme();
+export const MapPin = ({ name, facultyId }: MapPinProps) => {
+  const theme = useTheme();
   const letter = getBuildingLetter(name);
   const isFacility = facultyId === 'f8';
   const open = isFacility ? isFacilityOpen(name) : true;
