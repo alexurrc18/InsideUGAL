@@ -39,6 +39,11 @@ def load_module(name: str, path: Path, extra_paths: list[Path] | None = None):
     finally:
         sys.path[:] = old_sys_path
 
+smart_news_image_service = load_module(
+    "smart_news_image_service",
+    SMART_NEWS_PARSER / "image_service_v2.py",
+    extra_paths=[SMART_NEWS_PARSER],
+)
 mod_marius_schemas = load_module(
     "mod_marius_schemas",
     MODUL_MARIUS / "schemas.py",
@@ -77,10 +82,13 @@ API_KEY = os.getenv("GEMINI_API_KEY", "").strip().strip("'").strip('"')
 if not API_KEY:
     raise ValueError("GEMINI_API_KEY este necesar pentru LLM combined service.")
 
+HF_API_KEY = os.getenv("HUGGINGFACE_API_KEY", "").strip().strip("'").strip('"')
+
 logger = logging.getLogger("llm-integration")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 llm_service = smart_news_service.LLMService()
+image_service = smart_news_image_service.ImageServiceV2(hf_api_key=HF_API_KEY)
 llm_optimizer_service = LLMOptimizer(api_key=API_KEY)
 
 app = FastAPI(
@@ -104,6 +112,7 @@ def health_check():
         "service": "InsideUGAL LLM Integrated Service",
         "endpoints": [
             "/api/v1/extract-announcement-info",
+            "/api/v1/generate-banner",
             "/api/v1/upload-pdf",
             "/api/v1/ask",
             "/api/v1/summary",
@@ -121,6 +130,23 @@ async def extract_announcement_info(request: smart_news_schemas.AnnouncementRequ
     except Exception as exc:
         logger.error("Eroare la extragerea informatiilor din anunt: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/v1/generate-banner", response_model=smart_news_image_service.ImageGenerationResult)
+async def generate_banner(info: smart_news_schemas.ExtractedAnnouncementInfo):
+    try:
+        logger.info("Primire cerere generare banner pentru eveniment.")
+        result = await image_service.generate_announcement_banner(info)
+        
+        if not result.success:
+            raise HTTPException(status_code=500, detail=result.error_message)
+            
+        return result
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Eroare la generarea banner-ului: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Eroare interna la generarea imaginii: {str(exc)}")
 
 
 def process_pdf_background(pdf_path: str, pdf_id: str):
@@ -174,8 +200,7 @@ async def upload_pdf(background_tasks: BackgroundTasks, pdf: UploadFile = File(.
 @app.post("/api/v1/ask", response_model=mod_marius_schemas.AnswerQuestionOutput)
 def ask_question(request: mod_marius_schemas.AnswerQuestionInput):  # type: ignore
     # 1. Filtru de Securitate Guardrails
-    if not llm_optimizer_service.check_prompt_safety(request.question):
-        raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
+    if not llm_optimizer_service.check_prompt_safety(request.question)        raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
 
     # 2. Verificare Semantic Cache
     cached_answer = llm_optimizer_service.get_cached_answer(request.question)
