@@ -13,12 +13,10 @@ const cspHeader = `
     base-uri 'self';
     form-action 'self';
     frame-ancestors 'none';
-    connect-src 'self' https://*.supabase.co https://maps.googleapis.com https://maps.gstatic.com https://*.maptiler.com https://api.maptiler.com;
+    connect-src 'self' https://*.supabase.co https://maps.googleapis.com https://maps.gstatic.com https://*.maptiler.com https://api.maptiler.com https://api.insideugal.ro http://127.0.0.1:8000 http://localhost:8000;
     worker-src blob:;
-    connect-src 'self' https://*.supabase.co http://127.0.0.1:8000 http://localhost:8000;
     upgrade-insecure-requests;
 `.replace(/\s{2,}/g, ' ').trim();
-
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
