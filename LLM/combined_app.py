@@ -16,11 +16,7 @@ from llm_optimizer import LLMOptimizer
 BASE_DIR = Path(__file__).resolve().parent
 SMART_NEWS_PARSER = BASE_DIR / "smart-news-parser"
 MODUL_MARIUS      = BASE_DIR / "modul-marius"
-<<<<<<< HEAD
 CHATBOT_MARIUS    = BASE_DIR / "ChatBot"
-=======
-CHATBOT_MARIUS    = BASE_DIR / "ChatBot - Marius"
->>>>>>> 1743870c3f228024027bd8b859424398361f78d3
 
 # Load environment variables from the LLM root .env
 # In Docker, compose environment variables should take precedence over local .env values.
@@ -43,8 +39,6 @@ def load_module(name: str, path: Path, extra_paths: list[Path] | None = None):
     finally:
         sys.path[:] = old_sys_path
 
-<<<<<<< HEAD
-=======
 smart_news_schemas = load_module(
     "smart_news_schemas",
     SMART_NEWS_PARSER / "parser_schemas.py",
@@ -56,23 +50,18 @@ smart_news_service = load_module(
     extra_paths=[SMART_NEWS_PARSER],
 )
 
->>>>>>> 1743870c3f228024027bd8b859424398361f78d3
 mod_marius_schemas = load_module(
     "mod_marius_schemas",
     MODUL_MARIUS / "schemas.py",
     extra_paths=[MODUL_MARIUS],
 )
-<<<<<<< HEAD
-=======
 # We need 'mod_marius_schemas' to be available as 'schemas' for 'llm_functions.py'
->>>>>>> 1743870c3f228024027bd8b859424398361f78d3
 sys.modules["schemas"] = mod_marius_schemas
 mod_marius_functions = load_module(
     "mod_marius_functions",
     MODUL_MARIUS / "functions" / "llm_functions.py",
     extra_paths=[MODUL_MARIUS, MODUL_MARIUS / "functions"],
 )
-<<<<<<< HEAD
 sys.modules.pop("schemas", None)
 
 smart_news_schemas = load_module(
@@ -89,8 +78,6 @@ smart_news_service = load_module(
 )
 sys.modules.pop("schemas", None)
 sys.modules.pop("llm_functions", None)
-=======
->>>>>>> 1743870c3f228024027bd8b859424398361f78d3
 
 campus_chat_service = load_module(
     "campus_chat_service",
@@ -106,10 +93,7 @@ logger = logging.getLogger("llm-integration")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 llm_service = smart_news_service.LLMService()
-<<<<<<< HEAD
 llm_optimizer_service = LLMOptimizer(api_key=API_KEY)
-=======
->>>>>>> 1743870c3f228024027bd8b859424398361f78d3
 
 app = FastAPI(
     title="InsideUGAL LLM Integrated Service",
