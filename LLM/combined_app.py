@@ -11,17 +11,15 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from llm_optimizer import LLMOptimizer
 
 BASE_DIR = Path(__file__).resolve().parent
 SMART_NEWS_PARSER = BASE_DIR / "smart-news-parser"
 MODUL_MARIUS      = BASE_DIR / "modul-marius"
-CHATBOT_MARIUS    = BASE_DIR / "ChatBot"
+CHATBOT_MARIUS    = BASE_DIR / "ChatBot - Marius"
 
 # Load environment variables from the LLM root .env
-# In Docker, compose environment variables should take precedence over local .env values.
 env_path = BASE_DIR / ".env"
-load_dotenv(dotenv_path=env_path, override=False)
+load_dotenv(dotenv_path=env_path, override=True)
 
 
 def load_module(name: str, path: Path, extra_paths: list[Path] | None = None):
@@ -62,22 +60,6 @@ mod_marius_functions = load_module(
     MODUL_MARIUS / "functions" / "llm_functions.py",
     extra_paths=[MODUL_MARIUS, MODUL_MARIUS / "functions"],
 )
-sys.modules.pop("schemas", None)
-
-smart_news_schemas = load_module(
-    "smart_news_schemas",
-    SMART_NEWS_PARSER / "parser_schemas.py",
-    extra_paths=[SMART_NEWS_PARSER],
-)
-sys.modules["schemas"] = mod_marius_schemas
-sys.modules["llm_functions"] = mod_marius_functions
-smart_news_service = load_module(
-    "smart_news_service",
-    SMART_NEWS_PARSER / "llm_service.py",
-    extra_paths=[SMART_NEWS_PARSER],
-)
-sys.modules.pop("schemas", None)
-sys.modules.pop("llm_functions", None)
 
 campus_chat_service = load_module(
     "campus_chat_service",
@@ -85,7 +67,7 @@ campus_chat_service = load_module(
     extra_paths=[CHATBOT_MARIUS],
 )
 
-API_KEY = os.getenv("GEMINI_API_KEY", "").strip().strip("'").strip('"')
+API_KEY = os.getenv("GEMINI_API_KEY")
 if not API_KEY:
     raise ValueError("GEMINI_API_KEY este necesar pentru LLM combined service.")
 
@@ -93,7 +75,6 @@ logger = logging.getLogger("llm-integration")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 llm_service = smart_news_service.LLMService()
-llm_optimizer_service = LLMOptimizer(api_key=API_KEY)
 
 app = FastAPI(
     title="InsideUGAL LLM Integrated Service",
@@ -150,54 +131,40 @@ def process_pdf_background(pdf_path: str, pdf_id: str):
             path_obj.unlink()
 
 
-ALLOWED_EXTENSIONS = {".pdf", ".docx", ".txt", ".pptx"}
-
 @app.post("/api/v1/upload-pdf")
 async def upload_pdf(background_tasks: BackgroundTasks, pdf: UploadFile = File(...)):
-    ext = os.path.splitext(pdf.filename.lower())[1]
-    if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=400, detail=f"Format nesupорtat. Formate acceptate: {', '.join(ALLOWED_EXTENSIONS)}")
+    if not pdf.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Fisierul trebuie sa fie PDF.")
 
     pdf_id = str(uuid.uuid4())
     file_bytes = await pdf.read()
 
-    # 1. Salvăm fișierul în Supabase Storage
+    # 1. Salvăm PDF-ul fizic în Supabase Storage
     try:
         mod_marius_functions.supabase_client.storage.from_("documents").upload(
-            path=f"{pdf_id}{ext}",
+            path=f"{pdf_id}.pdf",
             file=file_bytes,
-            file_options={"content-type": pdf.content_type or "application/octet-stream"}
+            file_options={"content-type": "application/pdf"}
         )
     except Exception as exc:
         logger.error("Eroare la upload in Supabase Storage: %s", exc)
         raise HTTPException(status_code=500, detail="Eroare la salvarea fisierului in cloud.")
-
-    # 2. Fișier temporar pentru procesare AI
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
+        
+    # 2. Creăm un fișier temporar doar pentru AI, care se va șterge singur după
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     temp_file.write(file_bytes)
     temp_file.close()
 
-    # 3. Procesare în background
+    # 3. Trimitem task-ul asincron (folosind calea fișierului temporar)
     background_tasks.add_task(process_pdf_background, temp_file.name, pdf_id)
 
-    return {"pdf_id": pdf_id, "message": "Documentul a fost primit si va fi procesat in background."}
+    return {"pdf_id": pdf_id, "message": "PDF-ul a fost primit si va fi procesat in background."}
 
 
 @app.post("/api/v1/ask", response_model=mod_marius_schemas.AnswerQuestionOutput)
 def ask_question(request: mod_marius_schemas.AnswerQuestionInput):  # type: ignore
-    # 1. Filtru de Securitate Guardrails
-    if not llm_optimizer_service.check_prompt_safety(request.question):
-        raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
-
-    # 2. Verificare Semantic Cache
-    cached_answer = llm_optimizer_service.get_cached_answer(request.question)
-    if cached_answer:
-        return mod_marius_schemas.AnswerQuestionOutput(answer=cached_answer)
-
     try:
         answer = mod_marius_functions.answer_question(request.question, request.pdf_id)
-        # 3. Salvare în cache după răspuns cu succes
-        llm_optimizer_service.save_to_cache(request.question, answer)
         return mod_marius_schemas.AnswerQuestionOutput(answer=answer)
     except Exception as exc:
         logger.error("Eroare la raspuns intrebare: %s", exc)
@@ -248,28 +215,10 @@ class CampusChatResponse(BaseModel):
 def campus_chat(request: CampusChatRequest):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Câmpul 'question' nu poate fi gol.")
-        
-    # 1. Filtru de Securitate Guardrails
-    if not llm_optimizer_service.check_prompt_safety(request.question):
-        raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
-
-    # 2. Verificare Semantic Cache
-    cached_answer = llm_optimizer_service.get_cached_answer(request.question)
-    if cached_answer:
-        return CampusChatResponse(
-            answer=cached_answer,
-            sources=["Memorie Cache (Răspuns stocat semantic)"],
-            suggestions=[]
-        )
-
     try:
         result = campus_chat_service.campus_chat(question=request.question)
         if "error" in result:
             raise HTTPException(status_code=500, detail=result["error"])
-            
-        # 3. Salvare în cache după răspuns cu succes
-        llm_optimizer_service.save_to_cache(request.question, result["answer"])
-        
         return CampusChatResponse(**result)
     except HTTPException:
         raise
