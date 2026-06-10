@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import React, { useState, useMemo, useRef, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation'; // <-- PASUL 1: Importăm hook-ul pentru parametri
+import { useSearchParams } from 'next/navigation';
 import Table, { Column } from '../components/ui/Table';
 import Modal from '../components/ui/Modal';
 import { Announcement, mockAnnouncements, PdfFile } from '../data/announcements';
@@ -19,7 +19,7 @@ const availableFacultiesFromSystem = [
   "Economie"
 ];
 
-// PASUL 2: Învelim conținutul într-o sub-componentă pentru a folosi useSearchParams fără să stricăm build-ul în Next.js
+// Recomandare react-doctor: Componentă extrasă în scope-ul modulului pentru performanță stabilă la randare
 function AnnouncementsContent() {
   const [data, setData] = useState<Announcement[]>(mockAnnouncements);
   const [activeModal, setActiveModal] = useState<'add' | 'edit' | 'details' | null>(null);
@@ -32,17 +32,23 @@ function AnnouncementsContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   
-  const searchParams = useSearchParams(); // Citim parametrii din URL
+  const searchParams = useSearchParams();
 
-  // PASUL 3: Ascultăm când vine ?open=true din Dashboard și deschidem modalul statis
+  // Corecție critică react-doctor: Adăugat return cleanup() pentru a preveni pierderile de memorie (memory leaks)
   useEffect(() => {
+    let timerId: NodeJS.Timeout;
+
     if (searchParams.get("open") === "true") {
-      setTimeout(() => {
+      timerId = setTimeout(() => {
         setFormState({ faculties: [], pdfFiles: [] });
         setNewFacultyInput('');
         setActiveModal('add');
       }, 0);
     }
+
+    return () => {
+      if (timerId) clearTimeout(timerId);
+    };
   }, [searchParams]);
 
   const initialFaculties = useMemo(() => {
@@ -305,10 +311,11 @@ function AnnouncementsContent() {
 
             {selectedItem.pdfFiles && selectedItem.pdfFiles.length > 0 && (
               <div className="space-y-2 pt-2">
-                <label className="block text-xs font-bold text-foreground">Documente atașate:</label>
+                <span className="block text-xs font-bold text-foreground">Documente atașate:</span>
                 <div className="flex flex-col gap-1.5">
-                  {selectedItem.pdfFiles.map((file, idx) => (
-                    <div key={idx}>
+                  {/* Corecție react-doctor: Folosit file.name ca o cheie stabilă în loc de indexul array-ului */}
+                  {selectedItem.pdfFiles.map((file) => (
+                    <div key={file.name}>
                       <a href={file.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-100 transition-all">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -333,13 +340,9 @@ function AnnouncementsContent() {
       </Modal>
 
       <Modal isOpen={activeModal === 'add' || activeModal === 'edit'} onClose={() => setActiveModal(null)} title={activeModal === 'edit' ? "Editare Anunț" : "Adăugare Anunț Nou"}>
-        {/* Corecție layout: Înălțimea maximă și structura flex se pun direct pe containerul form-ului */}
         <form onSubmit={handleSave} className="flex flex-col max-h-[calc(100vh-200px)] text-sm">
           
-          {/* Zona de conținut a formularului cu scrollbar ascuns */}
-          <div 
-            className="flex-1 overflow-y-auto space-y-4 pr-1 pb-4 scrollbar-none"
-          >
+          <div className="flex-1 overflow-y-auto space-y-4 pr-1 pb-4 scrollbar-none">
             <style dangerouslySetInnerHTML={{__html: `
               .scrollbar-none::-webkit-scrollbar {
                 display: none;
@@ -347,14 +350,16 @@ function AnnouncementsContent() {
             `}} />
 
             <div>
-              <label className="block text-xs font-semibold text-foreground mb-1">Titlu</label>
-              <input type="text" value={formState.title || ''} onChange={e => setFormState({...formState, title: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand" required />
+              {/* Corecție react-doctor: Asociat explicit label de input prin htmlFor și id */}
+              <label htmlFor="ann-title" className="block text-xs font-semibold text-slate-700 mb-1">Titlu Anunț</label>
+              <input id="ann-title" type="text" value={formState.title || ''} onChange={e => setFormState({...formState, title: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand" required />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-foreground mb-1">Adaugă o facultate nouă în sistem</label>
+              <label htmlFor="ann-sys-faculty" className="block text-xs font-semibold text-slate-700 mb-1">Adaugă o facultate nouă în sistem</label>
               <div className="flex gap-2">
                 <select
+                  id="ann-sys-faculty"
                   value={newFacultyInput}
                   onChange={e => setNewFacultyInput(e.target.value)}
                   className="flex-1 border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm cursor-pointer"
@@ -399,7 +404,7 @@ function AnnouncementsContent() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-foreground mb-1">Thumbnail</label>
+              <span className="block text-xs font-semibold text-slate-700 mb-1">Thumbnail imagine</span>
               <div className="flex flex-col gap-3 p-3 border border-dashed border-border rounded-lg bg-background/50">
                 <div className="flex flex-col sm:flex-row gap-2 items-center">
                   <input 
@@ -456,7 +461,7 @@ function AnnouncementsContent() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-foreground mb-1">Documente atașate (PDF)</label>
+              <span className="block text-xs font-semibold text-slate-700 mb-1">Documente atașate (PDF)</span>
               <div className="p-3 border border-dashed border-border rounded-lg bg-background/50 flex flex-col gap-2">
                 <input 
                   type="file" 
@@ -479,12 +484,13 @@ function AnnouncementsContent() {
 
                 {formState.pdfFiles && formState.pdfFiles.length > 0 && (
                   <div className="flex flex-col gap-1.5 mt-1">
-                    {formState.pdfFiles.map((file, idx) => (
-                      <div key={idx} className="flex items-center justify-between bg-slate-50 border border-border rounded-lg p-2 text-xs text-slate-600">
+                    {/* Corecție react-doctor: Folosit file.name ca o cheie stabilă unică */}
+                    {formState.pdfFiles.map((file) => (
+                      <div key={file.name} className="flex items-center justify-between bg-slate-50 border border-border rounded-lg p-2 text-xs text-slate-600">
                         <span className="truncate max-w-[250px] font-medium">{file.name}</span>
                         <button
                           type="button"
-                          onClick={() => handleRemovePdf(idx)}
+                          onClick={() => handleRemovePdf(formState.pdfFiles!.indexOf(file))}
                           className="text-red-500 hover:text-red-700 font-bold px-1"
                         >
                           ✕
@@ -497,17 +503,16 @@ function AnnouncementsContent() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-foreground mb-1">Descriere</label>
-              <textarea value={formState.description || ''} onChange={e => setFormState({...formState, description: e.target.value})} className="w-full border border-border p-2 rounded-lg h-24 bg-background resize-none focus:outline-none focus:ring-1 focus:ring-brand" required />
+              <label htmlFor="ann-desc" className="block text-xs font-semibold text-slate-700 mb-1">Descriere detaliată</label>
+              <textarea id="ann-desc" value={formState.description || ''} onChange={e => setFormState({...formState, description: e.target.value})} className="w-full border border-border p-2 rounded-lg h-24 bg-background resize-none focus:outline-none focus:ring-1 focus:ring-brand" required />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-foreground mb-1">Link către noutate (opțional)</label>
-              <input type="url" value={formState.eventLink || ''} onChange={e => setFormState({...formState, eventLink: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand" placeholder="https://..." />
+              <label htmlFor="ann-link" className="block text-xs font-semibold text-slate-700 mb-1">Link către noutate (opțional)</label>
+              <input id="ann-link" type="url" value={formState.eventLink || ''} onChange={e => setFormState({...formState, eventLink: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand" placeholder="https://..." />
             </div>
           </div>
 
-          {/* Subsol Static/Fix cu butoanele de acțiune */}
           <div className="sticky bottom-0 bg-white pt-4 border-t border-border z-10 flex justify-end space-x-2">
             <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-border rounded-lg text-slate-500 text-xs cursor-pointer hover:bg-slate-50 transition-colors">Anulează</button>
             <button type="submit" className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold cursor-pointer hover:opacity-90 transition-opacity">Salvează</button>
@@ -518,7 +523,6 @@ function AnnouncementsContent() {
   );
 }
 
-// Exportul implicit împachetat în Suspense obligatoriu pentru build-ul Next.js de producție
 export default function Page() {
   return (
     <Suspense fallback={<div className="p-6 text-sm text-slate-500">Se încarcă noutățile...</div>}>
