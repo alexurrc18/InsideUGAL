@@ -1,38 +1,50 @@
 # 🤖 Asistentul Virtual InsideUGAL & Servicii AI
 
-> ⚠️ **Notă Arhitecturală:** Acest modul a fost rescris și refactorizat complet. Fosta aplicație Desktop (CustomTkinter), baza de date vectorială locală (ChromaDB), modelul `sentence-transformers` local și funcționalitățile de generare Quiz au fost **arhivate și eliminate** pentru a face platforma 100% cloud-native și orientată spre viața din campus.
+> ⚠️ **Notă Arhitecturală:** Acest modul este 100% cloud-native și orientat spre viața din campus. Fosta arhitectură locală a fost eliminată.
 
 ## 📖 Despre Modul
 
-Acest director conține serviciile de Inteligență Artificială ale platformei **InsideUGAL**, operate acum ca un **API Backend Integrat** bazat pe FastAPI. 
+Acest director conține serviciile de Inteligență Artificială ale platformei **InsideUGAL**, operate ca un **API Backend Integrat** bazat pe FastAPI (`combined_app.py`).
 
 Scopul principal este asistarea studenților și a secretariatului prin intermediul a două componente majore:
 
 1. **Asistentul Virtual al Campusului (Sistem RAG)**
 2. **Smart News Parser (Extragere Inteligentă a Anunțurilor)**
 
-## 🏗️ Arhitectura Nouă (Cloud-Native)
+## 🏗️ Arhitectura (Cloud-Native)
 
-- **Bază de Date Vectorială:** Baza de cunoștințe folosește exclusiv **Supabase `pgvector`** (tabela `document_chunks` și funcția RPC `match_document_chunks`).
-- **Generare Vectori (Embeddings):** Se folosește API-ul extern Google Gemini (`text-embedding-004`), asigurând un consum minim de spațiu și o viteză ridicată de procesare.
-- **Model Limbaj (Generare):** Google Gemini (`gemini-2.5-flash`), configurat printr-un prompt strict să se comporte ca "Asistent Administrativ InsideUGAL". Extrage informații exclusiv din documentele universității și redirecționează utilizatorii politicos spre secretariat în caz contrar.
-- **Generare Imagini (Text-to-Image):** Hugging Face Inference API (`FLUX.1-schnell`) pentru generarea cover-urilor pentru anunțuri.
-- **Reziliență:** Integrare nativă de Circuit Breaker (`pybreaker`) și mecanisme Retry Exponențial (`tenacity`) pentru toleranța la picarea serviciilor AI.
-- **Telemetrie și Caching:** Logarea consumului de tokeni direct în Supabase, rulată asincron (fire-and-forget), și cache pe răspunsuri recurente.
+- **Bază de Date Vectorială:** Baza de cunoștințe folosește exclusiv **Supabase `pgvector`**.
+- **Generare Vectori (Embeddings):** API extern Google Gemini (`text-embedding-004`).
+- **Model Limbaj (Generare):** Google Gemini (`gemini-2.5-flash`).
+- **Generare Imagini (Text-to-Image):** Hugging Face Inference API (`FLUX.1-schnell`).
+- **Reziliență:** Circuit Breaker (`pybreaker`) și mecanisme Retry Exponențial (`tenacity`).
+- **Caching:** Cache semantic pe răspunsuri recurente în Supabase.
 
 ## 🚀 Endpoint-uri Principale
 
-Aceste rute sunt expuse pentru Frontend direct prin gateway-ul principal `combined_app.py`:
+- `POST /api/v1/ask`: (Campus Chat) Căutare semantică RAG și răspuns.
+- `POST /api/v1/upload-pdf`: Procesare PDF, chunking și indexare în `pgvector`.
+- `POST /api/v1/extract-announcement-info`: Extragere structurată metadate din anunțuri.
 
-- `POST /api/v1/ask`: (Campus Chat) Primește întrebarea studentului, caută semantic contextul în Supabase și returnează un răspuns administrativ util.
-- `POST /api/v1/upload-pdf`: Extrage textul dintr-un document PDF administrativ, împarte inteligent datele (chunking cu overlap) și le stochează în `pgvector`.
-- `POST /api/v1/extract-announcement-info`: Extrage structurat metadate (deadline, tip eveniment, public țintă) dintr-un text brut de la profesori și generează la cerere imagini.
+## 🧪 Testare & Evaluare
 
-## 🧪 Testare & Evaluare (LLM as a Judge)
+Pentru a valida funcționalitatea și integrarea cu Supabase, rulați testele în interiorul containerului Docker al proiectului:
 
-Modulul include o suită avansată de evaluare automată (`LLM-as-a-Judge`). La fiecare deploy sau schimbare de prompt-uri, AI-ul își evaluează propriile răspunsuri primind note de la 1 la 5 pentru **Relevanță** și **Acuratețe** (pe baza a zeci de întrebări administrative prestabilite).
+### Rularea Testelor
 
-Pentru a rula testele E2E (inclusiv testele de stress pentru circuit breaker):
-```bash
-pytest "LLM/tests/" -v -s
-```
+1. Asigurați-vă că mediul Docker este pornit:
+   ```bash
+   docker compose up -d
+   ```
+
+2. Rulați suita de teste (Unit & Integration):
+   ```bash
+   docker compose exec llm pytest tests/ -v
+   ```
+
+3. Pentru teste specifice (ex: integrare):
+   ```bash
+   docker compose exec llm pytest tests/test_integration.py -v
+   ```
+
+Modulul include o suită avansată de evaluare automată (`LLM-as-a-Judge`) pentru validarea calității răspunsurilor.

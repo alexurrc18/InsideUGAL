@@ -6,7 +6,7 @@ from importlib.util import spec_from_file_location, module_from_spec
 from pydantic import ValidationError
 
 # Setup path for smart-news-parser
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent / "src"
 SMART_NEWS_PARSER = BASE_DIR / "smart-news-parser"
 
 def load_module(name: str, path: Path, extra_paths: list[Path] | None = None):

@@ -56,9 +56,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 40s
-    volumes:
-    - llm-uploads:/app/LLM/modul-marius/uploads
-    - llm-chroma-data:/app/LLM/modul-marius/chroma_db
     ports:
     - 8001:8000
     networks:
@@ -269,5 +266,3 @@ networks:
     internal: true
 volumes:
   supabase-db-data: {}
-  llm-uploads: {}
-  llm-chroma-data: {}
