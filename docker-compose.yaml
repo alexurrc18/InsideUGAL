@@ -124,6 +124,7 @@ services:
       JWT_EXP: ${JWT_EXPIRY:-3600}
     volumes:
     - supabase-db-data:/var/lib/postgresql/data
+    - ./supabase/migrations/00_init_roles.sql:/docker-entrypoint-initdb.d/00_init_roles.sql:ro
     - ./supabase/migrations/202605280001_init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
     - ./supabase/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
     networks:
