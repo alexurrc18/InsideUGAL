@@ -1,0 +1,18 @@
+{
+  "id": "20260605_091527",
+  "title": "Unde e Corpul D?",
+  "messages": [
+    {
+      "role": "user",
+      "text": "Unde e Corpul D?",
+      "full_prompt": "[ÎNTREBARE]:\nUnde e Corpul D?",
+      "timestamp": "2026-06-05T09:15:51.641217"
+    },
+    {
+      "role": "model",
+      "text": "User Safety: safe",
+      "timestamp": "2026-06-05T09:15:51.641217"
+    }
+  ],
+  "created": "2026-06-05T09:15:27.899214"
+}
