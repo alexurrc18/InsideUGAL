@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-// Importuri corectate exact după arborele tău de directoare (aflat în app/components/ui)
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/Card";
 import { Input } from "@/app/components/ui/Input";
 import { Button } from "@/app/components/ui/Button";
@@ -18,20 +17,19 @@ export default function LoginPage() {
     setLoading(true);
 
     const formData = new URLSearchParams();
-    formData.append("username", email); // Pentru FastAPI OAuth2
+    formData.append("username", email);
     formData.append("password", password);
 
     try {
-   // În interiorul funcției handleSubmit:
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       
-const response = await fetch(`${API_URL}/auth/login`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/x-www-form-urlencoded",
-  },
-  body: formData.toString(),
-});
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: formData.toString(),
+      });
 
       const data = await response.json();
 
@@ -42,9 +40,7 @@ const response = await fetch(`${API_URL}/auth/login`, {
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("token_type", data.token_type);
 
-      // Redirecționează utilizatorul după logare spre acasă
       window.location.href = "/";
-      
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
