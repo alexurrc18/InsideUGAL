@@ -6,10 +6,11 @@ GeoAlchemy2
 asyncpg
 psycopg2-binary
 python-dotenv
-python-jose[cryptography]
+PyJWT
 passlib[bcrypt]
 python-multipart
 httpx
+supabase
 pytest
 pytest-asyncio
 pytest-xdist

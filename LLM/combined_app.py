@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent
 SMART_NEWS_PARSER = BASE_DIR / "smart-news-parser"
 MODUL_MARIUS      = BASE_DIR / "modul-marius"
-CHATBOT_MARIUS    = BASE_DIR / "ChatBot-Marius"
+CHATBOT_MARIUS    = BASE_DIR / "ChatBot - Marius"
 
 # Load environment variables from the LLM root .env
 env_path = BASE_DIR / ".env"
@@ -39,37 +39,27 @@ def load_module(name: str, path: Path, extra_paths: list[Path] | None = None):
 
 smart_news_schemas = load_module(
     "smart_news_schemas",
-    SMART_NEWS_PARSER / "schemas.py",
+    SMART_NEWS_PARSER / "parser_schemas.py",
     extra_paths=[SMART_NEWS_PARSER],
 )
-old_schemas = sys.modules.get("schemas")
-sys.modules["schemas"] = smart_news_schemas
 smart_news_service = load_module(
     "smart_news_service",
     SMART_NEWS_PARSER / "llm_service.py",
     extra_paths=[SMART_NEWS_PARSER],
 )
-if old_schemas is None:
-    sys.modules.pop("schemas", None)
-else:
-    sys.modules["schemas"] = old_schemas
 
 mod_marius_schemas = load_module(
     "mod_marius_schemas",
     MODUL_MARIUS / "schemas.py",
     extra_paths=[MODUL_MARIUS],
 )
-old_schemas = sys.modules.get("schemas")
+# We need 'mod_marius_schemas' to be available as 'schemas' for 'llm_functions.py'
 sys.modules["schemas"] = mod_marius_schemas
 mod_marius_functions = load_module(
     "mod_marius_functions",
     MODUL_MARIUS / "functions" / "llm_functions.py",
     extra_paths=[MODUL_MARIUS, MODUL_MARIUS / "functions"],
 )
-if old_schemas is None:
-    sys.modules.pop("schemas", None)
-else:
-    sys.modules["schemas"] = old_schemas
 
 campus_chat_service = load_module(
     "campus_chat_service",
@@ -84,7 +74,7 @@ if not API_KEY:
 logger = logging.getLogger("llm-integration")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-llm_service = smart_news_service.LLMService(api_key=API_KEY)
+llm_service = smart_news_service.LLMService()
 
 app = FastAPI(
     title="InsideUGAL LLM Integrated Service",
