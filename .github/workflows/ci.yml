@@ -11,7 +11,8 @@ jobs:
     name: Detect Changes
     runs-on: ubuntu-latest
     outputs:
-      frontend: ${{ steps.filter.outputs.frontend }}
+      frontend_dashboard: ${{ steps.filter.outputs.frontend_dashboard }}
+      frontend_mobile: ${{ steps.filter.outputs.frontend_mobile }}
       backend: ${{ steps.filter.outputs.backend }}
       llm: ${{ steps.filter.outputs.llm }}
       infra: ${{ steps.filter.outputs.infra }}
@@ -21,8 +22,10 @@ jobs:
         id: filter
         with:
           filters: |
-            frontend:
-              - 'Frontend/**'
+            frontend_dashboard:
+              - 'Frontend/Dashboard/**'
+            frontend_mobile:
+              - 'Frontend/Mobile/**'
             backend:
               - 'app/**'
               - 'backend/**'
@@ -35,8 +38,8 @@ jobs:
               - 'Dockerfile'
               - 'requirements.txt'
 
-  frontend:
-    name: Frontend (${{ matrix.node-version }})
+  frontend-dashboard:
+    name: Frontend Dashboard
     needs: changes
     runs-on: ubuntu-latest
     strategy:
@@ -47,33 +50,61 @@ jobs:
         working-directory: Frontend/Dashboard/dashboard-insideugal
     steps:
       - name: Checkout
-        if: needs.changes.outputs.frontend == 'true'
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         uses: actions/checkout@v4
       - name: Setup Node
-        if: needs.changes.outputs.frontend == 'true'
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
           cache-dependency-path: Frontend/Dashboard/dashboard-insideugal/package-lock.json
       - name: Install dependencies
-        if: needs.changes.outputs.frontend == 'true'
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         run: npm ci
       - name: Lint
-        if: needs.changes.outputs.frontend == 'true'
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         run: npm run lint
       - name: React Doctor Audit
-        if: needs.changes.outputs.frontend == 'true'
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         run: npm run doctor
       - name: Typecheck
-        if: needs.changes.outputs.frontend == 'true'
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         run: npx tsc --noEmit
       - name: Run Tests with Coverage
-        if: needs.changes.outputs.frontend == 'true'
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         run: npm run test:coverage
       - name: Build
-        if: needs.changes.outputs.frontend == 'true'
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         run: npm run build
+
+  frontend-mobile:
+    name: Frontend Mobile
+    needs: changes
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Frontend/Mobile
+    steps:
+      - name: Checkout
+        if: needs.changes.outputs.frontend_mobile == 'true'
+        uses: actions/checkout@v4
+      - name: Setup Node
+        if: needs.changes.outputs.frontend_mobile == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        if: needs.changes.outputs.frontend_mobile == 'true'
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+      - name: Lint Mobile
+        if: needs.changes.outputs.frontend_mobile == 'true'
+        run: npm run lint
 
   backend:
     name: Backend (${{ matrix.python-version }})
@@ -174,16 +205,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.backend == 'true'
+        if: needs.changes.outputs.frontend_dashboard == 'true' || needs.changes.outputs.backend == 'true'
         uses: actions/checkout@v4
 
       - name: Build local image for scanning
-        if: needs.changes.outputs.frontend == 'true'
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         run: |
           docker build -t insideugal-frontend:test Frontend/Dashboard/dashboard-insideugal/
 
       - name: Run Trivy vulnerability scanner
-        if: needs.changes.outputs.frontend == 'true'
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'insideugal-frontend:test'
@@ -209,7 +240,7 @@ jobs:
 
   coverage-report:
     name: Coverage Report
-    needs: [frontend, backend]
+    needs: [frontend-dashboard, backend]
     if: always() && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
