@@ -13,6 +13,16 @@ CREATE TABLE IF NOT EXISTS auth.users (
     email character varying(255)
 );
 
+-- Mock the storage schema and buckets table for CI environment inserts
+CREATE SCHEMA IF NOT EXISTS storage;
+CREATE TABLE IF NOT EXISTS storage.buckets (
+    id text NOT NULL PRIMARY KEY,
+    name text NOT NULL,
+    public boolean DEFAULT false,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+
 CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- ==========================================================
