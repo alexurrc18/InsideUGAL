@@ -1,0 +1,17 @@
+{
+  "id": "2a8867c1",
+  "filename": "ce-specializari-exista-la-licenta_2a8867c1",
+  "title": "Ce specializări există la licență?",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Ce specializări există la licență?"
+    },
+    {
+      "role": "assistant",
+      "content": "La Universitatea \"Dunărea de Jos\" din Galați, conform informațiilor disponibile, există următoarele specializări la licență:\n\n**Departamentul pentru Pregătirea Personalului Didactic (DPPD)**\n*   Pedagogia Învățământului Primar și Preșcolar (PIPP)\n\n**Facultatea de Inginerie Electrică (AIE)**\n*   Inginerie Electrică și Calculatoare\n*   Electromecanică\n*   Electronică de Putere și Acționări Electrice\n\nPentru mai multe detalii despre specializările oferite de fiecare facultate, vă recomand să consultați site-ul oficial al universității: https://www.ugal.ro/"
+    }
+  ],
+  "created_at": "2026-06-04T17:04:39.182350",
+  "updated_at": "2026-06-04T17:04:41.888724"
+}

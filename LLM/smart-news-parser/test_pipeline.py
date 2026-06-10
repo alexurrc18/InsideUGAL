@@ -13,7 +13,7 @@ async def main():
     gemini_key = os.getenv("GEMINI_API_KEY")
     hf_key = os.getenv("HUGGINGFACE_API_KEY")
     
-    from schemas import ExtractedAnnouncementInfo, TipEveniment, NivelUrgenta
+    from parser_schemas import ExtractedAnnouncementInfo, TipEveniment, NivelUrgenta
     
     # Mocking pasul 1 pentru a evita limita de spam de la Google (apelam o singura data Gemini)
     print("--------------------------------------------------")

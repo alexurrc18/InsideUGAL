@@ -1,0 +1,33 @@
+{
+  "id": "f0862496",
+  "filename": "ce-specializari-exista-la-licenta_f0862496",
+  "title": "Ce specializări există la licență?",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Ce specializări există la licență?"
+    },
+    {
+      "role": "assistant",
+      "content": "**Specializări Licență (4 ani)**\n\n- Automatică și Informatică Aplicată (60 locuri)\n- Calculatoare (120 locuri)\n- Electromecanică\n- Electronică de Putere și Acționări Electrice\n- Inginerie Electrică și Calculatoare\n- Electronică Aplicată\n- Rețele și Software de Telecomunicații\n\nTotal 320 locuri în 2025. Detalii: https://aciee.ugal.ro/educatie/licenta-4-ani"
+    },
+    {
+      "role": "user",
+      "content": "zi mi despre meniul studentilor"
+    },
+    {
+      "role": "assistant",
+      "content": "**Cantina studențească**\n\nMeniul săptămânal este disponibil la:\nhttps://campus.ugal.ro/ccps/meniu-studenti/"
+    },
+    {
+      "role": "user",
+      "content": "nu imi poti spune tu meniul?"
+    },
+    {
+      "role": "assistant",
+      "content": "**Cantina studențească**\n\nMeniul săptămânal este disponibil la:\nhttps://campus.ugal.ro/ccps/meniu-studenti/"
+    }
+  ],
+  "created_at": "2026-06-04T10:45:49.547427",
+  "updated_at": "2026-06-04T10:47:30.307913"
+}

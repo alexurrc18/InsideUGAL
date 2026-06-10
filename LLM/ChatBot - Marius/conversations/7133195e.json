@@ -1,0 +1,16 @@
+{
+  "id": "7133195e",
+  "title": "zi mi despre CTI",
+  "messages": [
+    {
+      "role": "user",
+      "content": "zi mi despre CTI"
+    },
+    {
+      "role": "assistant",
+      "content": "\n\nDesigur! FACIEI (Facultatea de Automatică, Calculatoare, Inginerie Electrică și Electronică) oferă programul de studiu **Calculatoare și Tehnologia Informațiilor (CTI)**. Iată detaliile principale:\n\n### **Programul CTI**  \n- **Domeniu de specializare**: Calculatoare și tehnologia informației.  \n- **Durata**: 4 ani (240 credite ECTS).  \n- **Formă de învățământ**: Zi (clase în prezență).  \n- **Profil profesional**:  \n  - Programare (limbaje de programare, dezvoltare software).  \n  - Arhitectură calculatoarelor și rețele.  \n  - Baze de date (disign și gestionare).  \n  - Aplicații în domenii IT, automatizare și tehnologie digitale.  \n\n### **Admitere**  \n- **Sesiuni**: Iulie și Septembrie.  \n- **Criterii**: Nota de la Bacalaureat (media minimă variabilă, în funcție de concurență).  \n- **Locuri**: Bugetate și cu taxă (suma variază anual).  \n- **Dosar de înscriere**: Diplomă bacalaureat, certificat naștere, buletin, fotografii, dosar plic.  \n\n### **Taxe și Finanțe**  \n- **Studenți bugetați**: Fără taxă de școlarizare.  \n- **Taxă de înscriere**: Aproximativ 150-200 RON (verificați pe site-ul oficial).  \n\n### **Bursa**  \n- Disponibile: Bursa de performanță, socială, de studiu, Erasmus+.  \n\n### **Infrastructură**  \n- Laboratoare de informatică cu servere, rețele și cluster HPC.  \n- Acces la internet și baze de date internaționale.  \n\nPentru informații actualizate (adresă, contact, medii de admitere), recomand să verificeți pe [site-ul oficial de FACIEI](https://www.ugal.ro/faciei). Dacă ai întrebări specifice, spune-mă! 😊\n"
+    }
+  ],
+  "created_at": "2026-06-04T10:27:16.242394",
+  "updated_at": "2026-06-04T10:27:30.916656"
+}

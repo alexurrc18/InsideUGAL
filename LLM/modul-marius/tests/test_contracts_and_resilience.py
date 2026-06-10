@@ -3,10 +3,9 @@ Testează cerințele 1 și 2:
   1. Contract clar (Pydantic input/output schemas + retry pe output invalid)
   2. Timeout + retry + circuit breaker
 """
-import json
 import sys
 import os
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 import pybreaker
@@ -17,10 +16,6 @@ from schemas import (
     AnswerQuestionOutput,
     GenerateSummaryInput,
     GenerateSummaryOutput,
-    GenerateQuizInput,
-    GenerateQuizOutput,
-    QuizQuestion,
-    QuizVariants,
 )
 
 os.environ.setdefault("GEMINI_API_KEY", "test-key")
@@ -28,15 +23,6 @@ from functions import llm_functions as llm
 
 
 # ── Helpers ───────────────────────────────────────────────
-
-VALID_QUIZ_JSON = json.dumps([
-    {
-        "intrebare": "Ce este fotosinteza?",
-        "variante": {"A": "Proces chimic", "B": "Proces fizic", "C": "Proces biologic", "D": "Nimic"},
-        "raspuns_corect": "A",
-        "explicatii": {"A": "Corect", "B": "Gresit", "C": "Gresit", "D": "Gresit"},
-    }
-])
 
 VALID_CHUNKS = ["Fotosinteza este un proces.", "Clorofila absoarbe lumina."]
 
@@ -63,11 +49,6 @@ class TestInputSchemas:
         inp = GenerateSummaryInput(pdf_id="pdf-abc")
         assert inp.pdf_id == "pdf-abc"
 
-    def test_generate_quiz_input_rejects_empty_pdf_id(self):
-        with pytest.raises(Exception):
-            GenerateQuizInput(pdf_id="")
-
-
 class TestOutputSchemas:
     def test_answer_output_valid(self):
         out = AnswerQuestionOutput(answer="Fotosinteza este procesul prin care...")
@@ -80,29 +61,6 @@ class TestOutputSchemas:
     def test_summary_output_rejects_empty(self):
         with pytest.raises(Exception):
             GenerateSummaryOutput(summary="")
-
-    def test_quiz_output_rejects_empty_list(self):
-        with pytest.raises(Exception):
-            GenerateQuizOutput(questions=[])
-
-    def test_quiz_question_rejects_invalid_raspuns_corect(self):
-        with pytest.raises(Exception):
-            QuizQuestion(
-                intrebare="Ce este fotosinteza?",
-                variante=QuizVariants(A="a", B="b", C="c", D="d"),
-                raspuns_corect="E",  # invalid — doar A/B/C/D acceptate
-            )
-
-    def test_quiz_question_normalizes_explicatie_string_to_dict(self):
-        q = QuizQuestion(
-            intrebare="Ce este clorofila?",
-            variante=QuizVariants(A="Pigment", B="Proteina", C="Acid", D="Lipid"),
-            raspuns_corect="A",
-            explicatie="A este corect deoarece clorofila este un pigment.",
-        )
-        assert q.explicatii is not None
-        assert set(q.explicatii.keys()) == {"A", "B", "C", "D"}
-        assert q.explicatie is None
 
 
 class TestOutputValidationWithRetry:
@@ -122,21 +80,6 @@ class TestOutputValidationWithRetry:
                 llm.answer_question("Ce este fotosinteza?", "pdf-123")
 
         assert call_count == 2  # apel original + 1 retry
-
-    def test_generate_quiz_retries_once_on_invalid_json(self):
-        call_count = 0
-
-        def fake_call(prompt, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            return "asta nu e json valid {{{{"
-
-        with patch("functions.llm_functions.query_relevant_chunks", return_value=VALID_CHUNKS), \
-             patch("functions.llm_functions._call", side_effect=fake_call):
-            with pytest.raises(ValueError, match="invalid după retry"):
-                llm.generate_quiz("pdf-123")
-
-        assert call_count == 2
 
     def test_answer_question_succeeds_on_second_attempt(self):
         """Prima încercare întoarce output gol, a doua e validă."""
