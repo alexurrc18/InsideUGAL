@@ -10,8 +10,9 @@ from google.genai import types
 logger = logging.getLogger(__name__)
 
 class LLMOptimizer:
-    def __init__(self, api_key: str = None):
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+    def __init__(self, api_key: Optional[str] = None):
+        raw_key = api_key or os.getenv("GEMINI_API_KEY", "")
+        self.api_key = raw_key.strip().strip("'").strip('"')
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY este necesar pentru LLMOptimizer.")
         
@@ -67,17 +68,23 @@ class LLMOptimizer:
 
     def generate_embedding(self, text: str) -> list[float]:
         """Generează reprezentarea vectorială a textului folosind modelul de embeddings."""
-        response = self.client.models.embed_content(
-            model=self.embedding_model,
-            contents=text,
-        )
-        return response.embeddings[0].values
+        try:
+            response = self.client.models.embed_content(
+                model=self.embedding_model,
+                contents=text,
+            )
+            return response.embeddings[0].values
+        except Exception as e:
+            logger.error(f"Eroare la generarea vectorului: {e}")
+            return []
 
     def get_cached_answer(self, user_input: str, threshold: float = 0.95) -> Optional[str]:
         """
         Verifică dacă o întrebare cu o similaritate semantică de peste threshold a mai fost pusă azi.
         """
         new_vector = self.generate_embedding(user_input)
+        if not new_vector:
+            return None
         
         best_match_score = 0.0
         best_answer = None
@@ -99,7 +106,8 @@ class LLMOptimizer:
     def save_to_cache(self, user_input: str, answer: str):
         """Salvează o nouă întrebare în cache (mock DB)."""
         embedding = self.generate_embedding(user_input)
-        self._mock_db.append({
-            "embedding": embedding,
-            "answer": answer
-        })
+        if embedding:
+            self._mock_db.append({
+                "embedding": embedding,
+                "answer": answer
+            })
