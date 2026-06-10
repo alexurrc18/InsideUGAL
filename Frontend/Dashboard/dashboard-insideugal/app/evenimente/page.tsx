@@ -45,9 +45,6 @@ const availableFacultiesFromSystem = [
   "AC", "FIE", "ACIEE", "Mecanică", "SIA", "Litere", "Drept", "Medicină", "Economie"
 ];
 
-// Mutăm logica într-o componentă internă pentru a permite utilizarea corectă a Suspense
-void function EventsPageContent() {}
-
 function EventsPageContent() {
   const searchParams = useSearchParams();
   const [data, setData] = useState<EventItem[]>(myCustomEvents);
@@ -63,6 +60,7 @@ function EventsPageContent() {
 
   useEffect(() => {
     if (searchParams.get("open") === "true") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormState({ faculties: [], pdfFiles: [] });
       setNewFacultyInput('');
       setActiveModal('add');
@@ -311,14 +309,13 @@ function EventsPageContent() {
       </Modal>
 
       <Modal isOpen={activeModal === 'add' || activeModal === 'edit'} onClose={() => setActiveModal(null)} title={activeModal === 'edit' ? "Editare Anunț" : "Adăugare Eveniment Nou"}>
-        <form onSubmit={handleSave} className="space-y-4 text-sm max-h-[80vh] flex flex-col justify-between">
+        <form onSubmit={handleSave} className="flex flex-col max-h-[calc(100vh-200px)] text-sm">
           
           <div 
-            className="space-y-4 overflow-y-auto pr-1 pb-4"
-            style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+            className="flex-1 overflow-y-auto space-y-4 pr-1 pb-4 scrollbar-none"
           >
             <style dangerouslySetInnerHTML={{__html: `
-              div::-webkit-scrollbar {
+              .scrollbar-none::-webkit-scrollbar {
                 display: none;
               }
             `}} />
@@ -444,8 +441,8 @@ function EventsPageContent() {
           </div>
 
           <div className="sticky bottom-0 bg-background pt-4 border-t border-border z-10 flex justify-end space-x-2">
-            <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-border rounded-lg text-muted text-xs cursor-pointer hover:bg-background">Anulează</button>
-            <button type="submit" className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold cursor-pointer hover:opacity-90">Salvează</button>
+            <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-border rounded-lg text-slate-500 text-xs cursor-pointer hover:bg-slate-50 transition-colors">Anulează</button>
+            <button type="submit" className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold cursor-pointer hover:opacity-90 transition-opacity">Salvează</button>
           </div>
         </form>
       </Modal>
@@ -453,7 +450,6 @@ function EventsPageContent() {
   );
 }
 
-// Exportul default împachetat corect în Suspense, rezolvând problema citirii parametrilor URL din Next.js
 export default function Page() {
   return (
     <Suspense fallback={<div className="p-6 text-sm text-slate-500">Se încarcă evenimentele...</div>}>
