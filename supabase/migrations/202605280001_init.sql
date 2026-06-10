@@ -8,6 +8,12 @@ $$;
 
 -- Mock the auth schema and users table for CI environment triggers
 CREATE SCHEMA IF NOT EXISTS auth;
+
+-- Mock the auth.uid() function for CI environment RLS policies
+CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid AS $$
+  SELECT null::uuid;
+$$ LANGUAGE SQL STABLE;
+
 CREATE TABLE IF NOT EXISTS auth.users (
     id uuid NOT NULL PRIMARY KEY,
     email character varying(255)
