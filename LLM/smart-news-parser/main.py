@@ -1,7 +1,7 @@
 import os
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
@@ -14,6 +14,7 @@ from parser_schemas import AnnouncementRequest, ExtractedAnnouncementInfo
 from llm_service import LLMService
 from image_service_v2 import ImageServiceV2, ImageGenerationResult
 from huggingface_hub.errors import HfHubHTTPError
+from vector_service import VectorService
 
 # ---------------------------------------------------------
 # 0. CONFIGURARE LOGGING
@@ -43,6 +44,7 @@ if HF_API_KEY:
 # Serviciu LLM si Image
 llm_service = LLMService(hf_api_key=HF_API_KEY)
 image_service = ImageServiceV2(hf_api_key=HF_API_KEY)
+vector_service = VectorService()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -77,7 +79,7 @@ def health_check():
     }
 
 @app.post("/api/v1/extract-announcement-info", response_model=ExtractedAnnouncementInfo)
-async def extract_announcement_info(request: AnnouncementRequest):
+async def extract_announcement_info(request: AnnouncementRequest, background_tasks: BackgroundTasks):
     """
     Endpoint principal care primeste textul brut al unui anunt
     si returneaza date structurate optimizate pentru aplicatie.
@@ -85,6 +87,14 @@ async def extract_announcement_info(request: AnnouncementRequest):
     try:
         logger.info(f"📥 Primire cerere extractie info-anunt: {request.text[:50]}...")
         result = await llm_service.extract_announcement_info(request.text)
+        
+        # Lansam in fundal (background task) salvarea anuntului in Vector DB
+        background_tasks.add_task(
+            vector_service.store_announcement,
+            request.text,
+            result.model_dump() if hasattr(result, 'model_dump') else result.dict()
+        )
+        
         return result
     except HfHubHTTPError as e:
         logger.error(f"❌ Eroare HF API la procesarea anuntului: {e}", exc_info=True)

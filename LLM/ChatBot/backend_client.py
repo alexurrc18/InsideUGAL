@@ -86,9 +86,8 @@ _KEYWORDS = {
         "intrebari", "întrebări", "istoric intrebari", "ce am intrebat",
         "întrebat", "intrebat", "history",
     ],
-    "quiz_scores": [
-        "quiz", "scor", "scoruri", "rezultat", "punctaj", "test", "grilă",
-        "cat am luat", "performanta quiz",
+    "menu_products": [
+        "produse meniu", "ce produse are meniul", "meniu produse",
     ],
     "llm_calls": [
         "tokeni", "tokens", "apeluri ai", "usage", "consum api", "statistici",
@@ -96,6 +95,12 @@ _KEYWORDS = {
     "profiles": [
         "utilizatori", "studenti înregistrați", "conturi", "profil",
         "câți studenți",
+    ],
+    "categories": [
+        "categorie", "categorii", "category", "tip anunț", "tipuri anunțuri",
+    ],
+    "products": [
+        "produs", "produse", "ce produse", "articol", "articole",
     ],
 }
 
@@ -191,19 +196,6 @@ def _fmt_questions(items: list) -> str:
     return "\n".join(lines)
 
 
-def _fmt_quiz_scores(items: list) -> str:
-    if not items:
-        return ""
-    lines = ["SCORURI QUIZ (InsideUGAL):"]
-    for s in items[:8]:
-        correct = s.get("correct", 0)
-        total   = s.get("total", 0)
-        date    = (s.get("created_at") or "")[:10]
-        pct     = round(correct / total * 100) if total else 0
-        lines.append(f"- [{date}] {correct}/{total} ({pct}%)")
-    return "\n".join(lines)
-
-
 def _fmt_llm_calls(items: list) -> str:
     if not items:
         return ""
@@ -223,18 +215,50 @@ def _fmt_profiles(items: list) -> str:
     return f"UTILIZATORI ÎNREGISTRAȚI ÎN INSIDEUGAL: {len(items)} conturi active."
 
 
+def _fmt_categories(items: list) -> str:
+    if not items:
+        return ""
+    names = [c.get("name", "") for c in items if c.get("name")]
+    return f"CATEGORII ANUNȚURI (InsideUGAL):\n" + "\n".join(f"- {n}" for n in names)
+
+
+def _fmt_menu_products(items: list) -> str:
+    if not items:
+        return ""
+    return f"PRODUSE ÎN MENIURI: {len(items)} asocieri meniu-produs."
+
+
+def _fmt_products(items: list) -> str:
+    if not items:
+        return ""
+    lines = ["PRODUSE (InsideUGAL):"]
+    for p in items[:10]:
+        name  = p.get("name", "")
+        desc  = p.get("description", "")
+        price = p.get("price", "")
+        line  = f"- **{name}**"
+        if price:
+            line += f" — {price} lei"
+        if desc:
+            line += f": {desc[:100]}"
+        lines.append(line)
+    return "\n".join(lines)
+
+
 # ── Mapare tabele ────────────────────────────────────────────────────────────
 
 _TABLE_MAP = {
-    "announcements":    ("announcements",    "/announcements",  "created_at.desc", 10, _fmt_announcements),
-    "faculties":        ("faculties",        "/faculties",      "id.asc",          20, _fmt_faculties),
-    "locations":        ("locations",        "/locations",      "id.asc",          20, _fmt_locations),
-    "daily_menus":      ("daily_menus",      "/daily_menus",    "id.asc",          7,  _fmt_menus),
-    "complaints":       ("complaints",       "/complaints",     "created_at.desc", 5,  _fmt_complaints),
-    "questions_history":("questions_history",None,              "created_at.desc", 6,  _fmt_questions),
-    "quiz_scores":      ("quiz_scores",      None,              "created_at.desc", 8,  _fmt_quiz_scores),
-    "llm_calls":        ("llm_calls",        None,              "created_at.desc", 50, _fmt_llm_calls),
-    "profiles":         ("profiles",         "/profiles",       "id.asc",          100,_fmt_profiles),
+    "announcements":    ("announcements",    "/announcements",       "created_at.desc", 10,  _fmt_announcements),
+    "faculties":        ("faculties",        "/faculties",           "id.asc",          20,  _fmt_faculties),
+    "locations":        ("locations",        "/locations",           "id.asc",          20,  _fmt_locations),
+    "daily_menus":      ("daily_menus",      "/daily_menus",         "id.asc",          7,   _fmt_menus),
+    "complaints":       ("complaints",       "/complaints",          "created_at.desc", 5,   _fmt_complaints),
+    "questions_history":("questions_history",None,                   "created_at.desc", 6,   _fmt_questions),
+    "llm_calls":        ("llm_calls",        None,                   "created_at.desc", 50,  _fmt_llm_calls),
+    "profiles":         ("profiles",         "/profiles",            "id.asc",          100, _fmt_profiles),
+    "categories":       ("categories",       "/categories",          "id.asc",          50,  _fmt_categories),
+    "menu_products":    ("menu_products",    None,                   "menu_id.asc",     20,  _fmt_menu_products),
+    "products":         ("products",         "/products",            "id.asc",          20,  _fmt_products),
 }
 
 
