@@ -72,11 +72,8 @@ class ImageGenerationResult(BaseModel):
 
 
 class ImageServiceV2:
-    def __init__(self, hf_api_key: str, assets_dir: str | None = None):
-        if not hf_api_key:
-            raise ValueError("HUGGINGFACE_API_KEY este obligatoriu pentru ImageServiceV2.")
-
-        self.hf_client = AsyncInferenceClient(token=hf_api_key)
+    def __init__(self, hf_api_key: str | None = None, assets_dir: str | None = None):
+        self.hf_client = AsyncInferenceClient(token=hf_api_key) if hf_api_key else None
 
         # ── Modele ──────────────────────────────────────────────────────────
         self.hf_text_model_id   = "meta-llama/Llama-3.3-70B-Instruct"
