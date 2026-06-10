@@ -128,7 +128,7 @@ services:
     volumes:
     - supabase-db-data:/var/lib/postgresql/data
     - ./supabase/migrations/202605280001_init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
-    - ./supabase/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+    - ./supabase/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
     networks:
     - internal
   supabase-auth:
