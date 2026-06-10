@@ -4,6 +4,9 @@ set -e
 echo "--- Validating Docker Compose Configuration ---"
 docker compose config -q
 
+echo "--- Creating External Network (if missing) ---"
+docker network create coolify || true
+
 echo "--- Starting Containers (Detached Mode) ---"
 docker compose up -d
 
