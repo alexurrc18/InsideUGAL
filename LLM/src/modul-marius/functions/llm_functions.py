@@ -42,9 +42,14 @@ TIMEOUT_S = 30
 raw_api_key = os.getenv("GEMINI_API_KEY", "").strip().strip("'").strip('"')
 _client = genai.Client(api_key=raw_api_key)
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://dummy.supabase.co")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "dummy")
-supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+
+if SUPABASE_URL and SUPABASE_KEY:
+    supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+else:
+    logger.warning("Supabase URL sau KEY lipsesc. Funcționalitățile Supabase vor fi dezactivate.")
+    supabase_client = None
 
 # Se închide după 5 erori consecutive, se resetează după 60s
 _breaker = pybreaker.CircuitBreaker(fail_max=5, reset_timeout=60)
