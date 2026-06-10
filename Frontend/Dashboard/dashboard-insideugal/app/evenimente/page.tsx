@@ -452,12 +452,3 @@ function EventsPageContent() {
     </div>
   );
 }
-
-// Exportul default împachetat corect în Suspense, rezolvând problema citirii parametrilor URL din Next.js
-export default function Page() {
-  return (
-    <Suspense fallback={<div className="p-6 text-sm text-slate-500">Se încarcă evenimentele...</div>}>
-      <EventsPageContent />
-    </Suspense>
-  );
-}

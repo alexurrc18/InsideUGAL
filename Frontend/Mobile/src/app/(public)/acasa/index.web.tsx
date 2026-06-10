@@ -4,9 +4,10 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
-import { Colors, ColorScheme, Spacing, WebSidePadding } from "@/constants/theme";
+import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 
+import { WebContainer } from "@/components/ui/web-container";
 import { Carousel } from "@/components/ui/carousel";
 import { CAROUSEL_CARD_MARGIN } from "@/components/ui/carousel.shared";
 import { NewsCard } from "@/components/ui/news-card";
@@ -22,6 +23,23 @@ export default function HomeScreen() {
   const noutati = MOCK_DATA.events.filter(e => e.category === "Noutăți");
   const evenimente = MOCK_DATA.events.filter(e => e.category === "Evenimente");
   const facultati = MOCK_DATA.faculties;
+  const facilitati = MOCK_DATA.facilities;
+
+  const handleFacilityPress = (facility: any) => {
+    router.push({
+        pathname: "/(public)/acasa/vizualizare",
+        params: {
+            type: "Facilitate",
+            title: facility.title,
+            content: facility.content,
+            image: facility.image,
+            address: facility.address,
+            phone: facility.phone,
+            website: facility.website,
+            schedule: facility.schedule
+        }
+    });
+  };
 
   const handlePress = (item: any) => {
     router.push({
@@ -60,6 +78,7 @@ export default function HomeScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
+        {/* Banner full-bleed: ramane pe toata latimea, in afara canvas-ului scalat */}
         <View style={{ width: "100%", height: 285 }}>
           <Image
             source={require("@/assets/images/campus-stiintei.png")}
@@ -67,17 +86,22 @@ export default function HomeScreen() {
             contentFit="cover"
           />
 
-          <View style={{ flex: 1, padding: Spacing.lg, paddingHorizontal: WebSidePadding + Spacing.lg, justifyContent: "flex-end" }}>
-            <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
-              Astăzi, 27 mai
-            </Text>
-            <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
-              Descoperă
-            </Text>
+          <View style={{ flex: 1, paddingVertical: Spacing.lg, justifyContent: "flex-end" }}>
+            <WebContainer>
+              {/* paddingHorizontal Spacing.lg ca sa se alinieze cu titlurile caruselelor */}
+              <View style={{ paddingHorizontal: Spacing.lg }}>
+                <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
+                  Astăzi, 27 mai
+                </Text>
+                <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
+                  Descoperă
+                </Text>
+              </View>
+            </WebContainer>
           </View>
         </View>
 
-        <View style={{paddingTop: Spacing.lg, paddingBottom: insets.bottom + Spacing.sm, flex: 1, paddingHorizontal: WebSidePadding}}>
+        <WebContainer style={{ paddingTop: Spacing.lg, paddingBottom: insets.bottom + Spacing.sm, flex: 1 }}>
           <Carousel
             title="Noutăți"
             data={noutati}
@@ -125,7 +149,22 @@ export default function HomeScreen() {
               />
             )}
           />
-        </View>
+          <Carousel
+            title="Facilități"
+            data={facilitati}
+            keyExtractor={(item) => item.id}
+            viewAllHref="/(public)/acasa/categorie?title=Facilități"
+            renderItem={({ item, index }) => (
+              <NewsCard
+                variant="square"
+                title={item.title}
+                image={item.image}
+                marginRight={index === facilitati.length - 1 ? 0 : CAROUSEL_CARD_MARGIN}
+                onPress={() => handleFacilityPress(item)}
+              />
+            )}
+          />
+        </WebContainer>
       </ScrollView>
     </View>
   );

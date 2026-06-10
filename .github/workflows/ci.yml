@@ -7,8 +7,40 @@ on:
       - main
 
 jobs:
-  frontend:
-    name: Frontend (${{ matrix.node-version }})
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      frontend_dashboard: ${{ steps.filter.outputs.frontend_dashboard }}
+      frontend_mobile: ${{ steps.filter.outputs.frontend_mobile }}
+      backend: ${{ steps.filter.outputs.backend }}
+      llm: ${{ steps.filter.outputs.llm }}
+      infra: ${{ steps.filter.outputs.infra }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend_dashboard:
+              - 'Frontend/Dashboard/**'
+            frontend_mobile:
+              - 'Frontend/Mobile/**'
+            backend:
+              - 'app/**'
+              - 'backend/**'
+            llm:
+              - 'LLM/**'
+            infra:
+              - 'supabase/**'
+              - 'infra/**'
+              - 'docker-compose.yaml'
+              - 'Dockerfile'
+              - 'requirements.txt'
+
+  frontend-dashboard:
+    name: Frontend Dashboard
+    needs: changes
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -18,42 +50,82 @@ jobs:
         working-directory: Frontend/Dashboard/dashboard-insideugal
     steps:
       - name: Checkout
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         uses: actions/checkout@v4
       - name: Setup Node
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
           cache-dependency-path: Frontend/Dashboard/dashboard-insideugal/package-lock.json
       - name: Install dependencies
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         run: npm ci
       - name: Lint
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         run: npm run lint
       - name: React Doctor Audit
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         run: npm run doctor
       - name: Typecheck
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         run: npx tsc --noEmit
       - name: Run Tests with Coverage
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         run: npm run test:coverage
       - name: Build
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         run: npm run build
+
+  frontend-mobile:
+    name: Frontend Mobile
+    needs: changes
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Frontend/Mobile
+    steps:
+      - name: Checkout
+        if: needs.changes.outputs.frontend_mobile == 'true'
+        uses: actions/checkout@v4
+      - name: Setup Node
+        if: needs.changes.outputs.frontend_mobile == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        if: needs.changes.outputs.frontend_mobile == 'true'
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+      - name: Lint Mobile
+        if: needs.changes.outputs.frontend_mobile == 'true'
+        run: npm run lint
 
   backend:
     name: Backend (${{ matrix.python-version }})
+    needs: changes
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.11", "3.12"]
     steps:
       - name: Checkout
+        if: needs.changes.outputs.backend == 'true'
         uses: actions/checkout@v4
       - name: Setup Python
+        if: needs.changes.outputs.backend == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: "backend/requirements.txt"
       - name: Install dependencies
+        if: needs.changes.outputs.backend == 'true'
         working-directory: app
         shell: bash
         run: |
@@ -66,34 +138,84 @@ jobs:
           fi
           pip install ruff mypy pytest pytest-cov
       - name: Lint
+        if: needs.changes.outputs.backend == 'true'
         working-directory: app
         shell: bash
         run: ruff check .
       - name: Typecheck
+        if: needs.changes.outputs.backend == 'true'
         working-directory: app
         shell: bash
         run: mypy .
       - name: Run Tests with Coverage
+        if: needs.changes.outputs.backend == 'true'
         working-directory: app
         run: |
           pip install pytest-xdist
           pytest -n auto --cov=. --cov-report=xml || [[ $? -eq 5 ]]
       - name: Build
+        if: needs.changes.outputs.backend == 'true'
         working-directory: app
         run: python -m compileall .
 
-  security-scan:
-    name: Container Security Scan
+  llm:
+    name: LLM Tests
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
+        if: needs.changes.outputs.llm == 'true'
+        uses: actions/checkout@v4
+      - name: Setup Python
+        if: needs.changes.outputs.llm == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: "LLM/requirements.txt"
+      - name: Install dependencies
+        if: needs.changes.outputs.llm == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pydantic google-genai openai
+          if [ -f LLM/requirements.txt ]; then
+            pip install -r LLM/requirements.txt
+          fi
+      - name: Run LLM Tests
+        if: needs.changes.outputs.llm == 'true'
+        run: pytest LLM/tests
+
+  infra:
+    name: Infrastructure Validation
+    needs: changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        if: needs.changes.outputs.infra == 'true'
+        uses: actions/checkout@v4
+      - name: Run Infrastructure Startup Test
+        if: needs.changes.outputs.infra == 'true'
+        run: |
+          sed -i 's/\r$//' infra/test_docker_startup.sh
+          chmod +x infra/test_docker_startup.sh
+          ./infra/test_docker_startup.sh
+
+  security-scan:
+    name: Container Security Scan
+    needs: changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        if: needs.changes.outputs.frontend_dashboard == 'true' || needs.changes.outputs.backend == 'true'
         uses: actions/checkout@v4
 
       - name: Build local image for scanning
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         run: |
           docker build -t insideugal-frontend:test Frontend/Dashboard/dashboard-insideugal/
 
       - name: Run Trivy vulnerability scanner
+        if: needs.changes.outputs.frontend_dashboard == 'true'
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'insideugal-frontend:test'
@@ -105,6 +227,7 @@ jobs:
 
   semgrep-scan:
     name: Security Scan (SAST)
+    needs: changes
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -118,7 +241,7 @@ jobs:
 
   coverage-report:
     name: Coverage Report
-    needs: [frontend, backend]
+    needs: [frontend-dashboard, backend]
     if: always() && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:

@@ -207,46 +207,51 @@ export default function Page() {
     setActiveModal(null);
   };
 
-  return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-row items-center justify-between gap-4 w-full">
-        <div className="flex items-center gap-2 relative" ref={dropdownRef}>
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Filtrează:</span>
-          <button
-            type="button"
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center justify-between min-w-[140px] border border-border px-4 py-2.5 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-slate-700"
-          >
-            <span>{selectedFaculty}</span>
-            <svg className={`w-4 h-4 ml-2 text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          {isDropdownOpen && (
-            <div className="absolute left-14 top-full mt-1.5 w-48 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
-              {allFilterOptions.map(faculty => (
-                <div
-                  key={faculty}
-                  onClick={() => { setSelectedFaculty(faculty); setIsDropdownOpen(false); }}
-                  className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedFaculty === faculty ? 'bg-blue-50 text-blue-600 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
-                >
-                  <span>{faculty}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <button 
-          type="button" 
-          onClick={() => { setFormState({ faculties: [], pdfFiles: [] }); setNewFacultyInput(''); setActiveModal('add'); }} 
-          className="bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-bold cursor-pointer hover:opacity-90 transition-all shadow-md"
-        >
-          + Adaugă
-        </button>
-      </div>
+return (
+  <div className="p-6 max-w-7xl mx-auto space-y-6">
+    {/* Containerul principal flex care se ocupă de aliniere */}
+    <div className="flex flex-row items-center justify-between gap-4 w-full">
+      
+      {/* S-a scos div-ul intermediar decorativ pentru a permite justify-between să le despartă la margini */}
+      <div className="flex items-center gap-2 relative" ref={dropdownRef}>
+        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Filtrează:</span>
         
+        <button
+          type="button"
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className="flex items-center justify-between min-w-[140px] border border-border px-4 py-2.5 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-slate-700"
+        >
+          <span>{selectedFaculty}</span>
+          <svg className={`w-4 h-4 ml-2 text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {isDropdownOpen && (
+          <div className="absolute left-14 top-full mt-1.5 w-48 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
+            {allFilterOptions.map(faculty => (
+              <div
+                key={faculty}
+                onClick={() => { setSelectedFaculty(faculty); setIsDropdownOpen(false); }}
+                className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedFaculty === faculty ? 'bg-blue-50 text-blue-600 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                <span>{faculty}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <button 
+        type="button" 
+        onClick={() => { setFormState({ faculties: [], pdfFiles: [] }); setNewFacultyInput(''); setActiveModal('add'); }} 
+        className="bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-bold cursor-pointer hover:opacity-90 transition-all shadow-md"
+      >
+        + Adaugă
+      </button>
+
+    </div>
+      
       <div className="bg-card border border-border rounded-2xl shadow-xs overflow-hidden">
         <Table 
           data={filteredData} 
