@@ -3,7 +3,7 @@ import asyncio
 import base64
 from dotenv import load_dotenv
 from llm_service import LLMService
-from image_service import ImageService
+from image_service_v2 import ImageServiceV2
 
 async def main():
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -37,7 +37,7 @@ async def main():
     print("\n--------------------------------------------------")
     print("2. Rulam image-generator (Generare Banner)...")
     print("--------------------------------------------------")
-    img_service = ImageService(hf_api_key=hf_key)
+    img_service = ImageServiceV2(hf_api_key=hf_key)
     img_result = await img_service.generate_announcement_banner(extracted_info)
     
     if img_result.success:

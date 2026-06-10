@@ -39,7 +39,8 @@ EMBEDDING_DIMS = 384
 TEMPERATURE = 0.7
 TIMEOUT_S = 30
 
-_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+raw_api_key = os.getenv("GEMINI_API_KEY", "").strip().strip("'").strip('"')
+_client = genai.Client(api_key=raw_api_key)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://dummy.supabase.co")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "dummy")
@@ -114,6 +115,29 @@ def extract_text_from_pdf(pdf_path: str) -> str:
         for page in pdf.pages:
             text += page.extract_text() or ""
     return text
+
+
+def extract_text_from_file(file_path: str) -> str:
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext == ".pdf":
+        return extract_text_from_pdf(file_path)
+    if ext == ".docx":
+        from docx import Document
+        doc = Document(file_path)
+        return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+    if ext == ".pptx":
+        from pptx import Presentation
+        prs = Presentation(file_path)
+        lines = []
+        for slide in prs.slides:
+            for shape in slide.shapes:
+                if hasattr(shape, "text") and shape.text.strip():
+                    lines.append(shape.text)
+        return "\n".join(lines)
+    if ext == ".txt":
+        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            return f.read()
+    raise ValueError(f"Format nesupорtat: {ext}")
 
 
 def detect_language(text: str) -> str:
@@ -227,7 +251,7 @@ def delete_pdf_from_rag(pdf_id: str) -> None:
 
 
 def load_pdf_into_rag(pdf_path: str, pdf_id: str) -> tuple:
-    text = extract_text_from_pdf(pdf_path)
+    text = extract_text_from_file(pdf_path)
     language = detect_language(text)
     chunks = chunk_text(text)
     store_in_vector_db(chunks, pdf_id)
