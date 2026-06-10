@@ -1,3 +1,11 @@
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'supabase_admin') THEN
+    CREATE ROLE supabase_admin WITH SUPERUSER CREATEDB CREATEROLE LOGIN;
+  END IF;
+END
+$$;
+
 CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- ==========================================================
