@@ -95,17 +95,18 @@ Site universitate: https://www.ugal.ro/ | Aplicație: https://insideugal.ro/
 
 ═══ ACURATEȚE ═══
 • Răspunzi EXCLUSIV pe baza contextului furnizat mai jos. Nu inventa nicio informație.
+• Dacă contextul conține date structurate din baza de date InsideUGAL (anunțuri, produse, locații, sesizări etc.), PREZINTĂ-LE întotdeauna utilizatorului — nu refuza răspunsul pe motiv că întrebarea e scurtă sau ambiguă.
+• Extrage din context DOAR informațiile care răspund direct la întrebarea utilizatorului. Nu cita textul brut al documentelor — reformulează concis.
+• Dacă contextul conține informații despre o temă similară dar NU răspunde direct la întrebarea specifică, spune că nu ai detalii specifice și îndrumă spre secretariatul facultății sau https://www.ugal.ro/.
 • Dacă o informație nu apare în context, spune clar că nu o ai și îndrumă spre https://www.ugal.ro/ sau secretariatul facultății respective.
 • INTERZIS să inventezi URL-uri. Folosești EXCLUSIV link-urile care apar literal în contextul de mai jos. Dacă nu ai un link valid în context, NU pune niciun link.
 • Nu inventa taxe, medii, date, numere de telefon sau alte date concrete. Folosești DOAR ce apare în context.
 
 ═══ FORMAT RĂSPUNSURI ═══
-• Fii concis și direct — nu repeta întrebarea, nu da introduceri lungi.
-• Structurează răspunsul cu titluri bold (**Titlu**), liste cu - sau 1. 2. 3., când are sens.
-• Pentru liste de programe, specializări, documente — folosește obligatoriu listă cu bullet points.
-• Pentru date calendaristice — scoate în evidență datele importante cu bold.
-• La final, dacă e relevant, adaugă link-ul exact de pe site pentru mai multe detalii.
-• Răspunsuri scurte pentru întrebări simple, detaliate pentru întrebări complexe.
+• Răspunde DIRECT și SCURT — maxim 3-5 rânduri pentru întrebări simple. Nicio introducere, nicio recapitulare.
+• Dacă întrebarea are un singur răspuns concret (ex: o sumă, o dată, o adresă), dă DOAR acel răspuns + un link dacă există în context.
+• Folosește liste cu bullet points DOAR când sunt mai mult de 2-3 elemente distincte.
+• Nu explica ce urmează să faci. Nu repeta întrebarea. Nu adăuga concluzii.
 
 ═══ CONTEXT RELEVANT ═══
 """
@@ -244,16 +245,12 @@ def chat():
             context = "Meniul cantinei nu a putut fi preluat acum. Trimite utilizatorul la: https://campus.ugal.ro/ccps/meniu-studenti/"
     else:
         backend_context = backend_client.fetch_context(user_message)
-        raw_context, sources = rag.query_with_sources(user_message, n_results=5)
-
-        if backend_context and raw_context:
-            context = backend_context + "\n\n---\n\n" + raw_context
-        elif backend_context:
+        if backend_context:
             context = backend_context
-        elif raw_context:
-            context = raw_context
+            sources = []
         else:
-            context = "Nu am găsit informații specifice. Îndrumă utilizatorul spre https://www.ugal.ro/"
+            raw_context, sources = rag.query_with_sources(user_message, n_results=3)
+            context = raw_context or "Nu am găsit informații specifice. Îndrumă utilizatorul spre https://www.ugal.ro/"
 
     system = SYSTEM_BASE + context
 
@@ -313,6 +310,7 @@ def chat():
 
         gemini_stream = try_gemini_stream()
         if gemini_stream:
+            stream_failed = False
             try:
                 for chunk in gemini_stream:
                     token = chunk.text
@@ -321,15 +319,25 @@ def chat():
                         yield f"data: {json.dumps({'token': token})}\n\n"
             except Exception as e:
                 print(f"[Gemini] Stream error: {e}")
-            finally:
+                stream_failed = True
+
+            if full_content or not stream_failed:
                 assistant_message = "".join(full_content)
                 if assistant_message:
                     llm_cache.set(cache_key, assistant_message)
                 suggestions = _generate_suggestions(user_message, assistant_message)
                 yield f"data: {json.dumps({'done': True, 'sources': sources, 'suggestions': suggestions})}\n\n"
-            return
+                return
 
-        answer = faq_fallback(user_message)
+        if backend_context:
+            answer = backend_context
+        else:
+            sources.clear()
+            lang = _detect_lang(user_message)
+            if lang == "en":
+                answer = "I don't have specific information about this. Find details at: https://www.ugal.ro/ or contact the faculty secretariat directly."
+            else:
+                answer = "Nu am informații specifice despre asta. Găsești detalii la: https://www.ugal.ro/ sau contactează direct secretariatul facultății."
         for token in re.split(r"(\s+)", answer):
             if token:
                 full_content.append(token)

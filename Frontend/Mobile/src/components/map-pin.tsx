@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Platform } from 'react-native';
 import { useTheme } from '@/hooks/use-theme';
 import { getBuildingLetter, isFacilityOpen } from '@/utils/map-helper';
 
@@ -56,16 +56,22 @@ export const MapPin = ({ name, facultyId }: MapPinProps) => {
 
   return (
     <View
-      style={{
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 1.5 },
-        shadowOpacity: open ? 0.15 : 0.05,
-        shadowRadius: 2.5,
-        elevation: open ? 3 : 1,
-        opacity: open ? 1 : 0.6,
-      }}
+      style={[
+        {
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: open ? 1 : 0.6,
+        },
+        Platform.OS === 'web'
+          ? ({ filter: `drop-shadow(0px 1.5px 2.5px rgba(0,0,0,${open ? 0.15 : 0.05}))` } as any)
+          : {
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 1.5 },
+              shadowOpacity: open ? 0.15 : 0.05,
+              shadowRadius: 2.5,
+              elevation: open ? 3 : 1,
+            }
+      ]}
     >
       <View
         style={{

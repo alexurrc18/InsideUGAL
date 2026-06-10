@@ -3,8 +3,9 @@ import { View, Text, ScrollView } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Colors, Spacing, WebSidePadding } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
+import { WebContainer } from "@/components/ui/web-container";
 import { NewsCard } from "@/components/ui/news-card";
 import { CategoryHeader, FilterItem } from "@/components/ui/category-header";
 import { getFormattedDate } from "@/utils/date";
@@ -69,7 +70,7 @@ export default function CategoryScreen() {
           paddingBottom: insets.bottom + Spacing.xxl
         }}
       >
-        <View style={{ width: "100%", paddingHorizontal: WebSidePadding }}>
+        <WebContainer>
         <View style={{ paddingTop: insets.top + 140, marginBottom: Spacing.lg }}>
             <CategoryHeader
                 title={(categoryTitle as string) || "Categorie"}
@@ -98,7 +99,7 @@ export default function CategoryScreen() {
                 Nu există elemente în această categorie.
             </Text>
         )}
-        </View>
+        </WebContainer>
       </ScrollView>
     </View>
   );

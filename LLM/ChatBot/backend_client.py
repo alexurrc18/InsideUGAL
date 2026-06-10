@@ -62,47 +62,67 @@ def _fetch(table: str, backend_path: str = None, order: str = "created_at.desc",
 _KEYWORDS = {
     "announcements": [
         "anunț", "anunturi", "anunțuri", "noutăți", "noutati", "stiri", "știri",
-        "news", "anunt", "anuntat", "anunțat", "aviz", "comunicat",
+        "news", "anunt", "anuntat", "anunțat", "aviz", "comunicat", "vesti",
+        "announcements", "announcement", "notices", "notice", "updates", "latest",
     ],
     "faculties": [
-        "facultate", "facultăți", "facultati", "faciee", "nave", "litere",
-        "medicina", "medicină", "drept", "economie", "sport", "arte",
-        "inginerie", "informatică", "informatica", "specializare",
+        "lista facultati", "lista facultăți", "toate facultatile", "toate facultățile",
+        "ce facultati are ugal", "câte facultăți", "cate facultati",
+        "contact facultate", "telefon facultate", "adresa facultate",
+        "list of faculties", "all faculties", "faculty list",
     ],
     "locations": [
         "locație", "locatie", "locatii", "locații", "hartă", "harta", "campus",
         "clădire", "cladire", "sala", "sală", "corp", "adresă", "adresa",
-        "unde se află", "unde este",
+        "unde se află", "unde este", "unde e", "unde gasesc",
+        "location", "locations", "building", "room", "where is", "where are",
     ],
     "daily_menus": [
         "meniu", "meniuri", "cantina", "cantină", "mancare", "mâncare",
         "prânz", "pranz", "masa", "masă", "ce se mănâncă", "menu",
+        "daily menu", "lunch", "food today", "what to eat",
     ],
     "complaints": [
         "sesizare", "sesizări", "sesizari", "reclamație", "reclamatie",
-        "problemă", "problema", "raportez", "raportat", "plângere",
+        "problemă", "problema", "raportez", "raportat", "plângere", "plangere",
+        "complaint", "complaints", "report", "issue", "problem",
     ],
     "questions_history": [
         "intrebari", "întrebări", "istoric intrebari", "ce am intrebat",
-        "întrebat", "intrebat", "history",
+        "întrebat", "intrebat", "history", "previous questions", "past questions",
     ],
-    "quiz_scores": [
-        "quiz", "scor", "scoruri", "rezultat", "punctaj", "test", "grilă",
-        "cat am luat", "performanta quiz",
+    "menu_products": [
+        "produse meniu", "ce produse are meniul", "meniu produse",
+        "menu products", "what's in the menu",
     ],
     "llm_calls": [
         "tokeni", "tokens", "apeluri ai", "usage", "consum api", "statistici",
+        "ai usage", "api calls", "statistics", "how many calls",
     ],
     "profiles": [
-        "utilizatori", "studenti înregistrați", "conturi", "profil",
-        "câți studenți",
+        "utilizatori", "studenti înregistrați", "conturi", "profil", "profiluri",
+        "câți studenți", "users", "accounts", "profiles", "registered",
+    ],
+    "categories": [
+        "categorie", "categorii", "category", "categories", "tip anunț", "tipuri anunțuri",
+        "types of announcements", "what types",
+    ],
+    "products": [
+        "produs", "produse", "ce produse", "articol", "articole",
+        "product", "products", "items", "what products",
     ],
 }
 
 
+def _normalize(text: str) -> str:
+    import unicodedata
+    text = unicodedata.normalize("NFD", text)
+    return "".join(c for c in text if unicodedata.category(c) != "Mn").lower()
+
+
 def detect_intent(question: str) -> list[str]:
-    q = question.lower()
-    return [ep for ep, kws in _KEYWORDS.items() if any(kw in q for kw in kws)]
+    q = _normalize(question)
+    return [ep for ep, kws in _KEYWORDS.items() if any(_normalize(kw) in q for kw in kws)]
 
 
 # ── Formatare răspunsuri ─────────────────────────────────────────────────────
@@ -191,19 +211,6 @@ def _fmt_questions(items: list) -> str:
     return "\n".join(lines)
 
 
-def _fmt_quiz_scores(items: list) -> str:
-    if not items:
-        return ""
-    lines = ["SCORURI QUIZ (InsideUGAL):"]
-    for s in items[:8]:
-        correct = s.get("correct", 0)
-        total   = s.get("total", 0)
-        date    = (s.get("created_at") or "")[:10]
-        pct     = round(correct / total * 100) if total else 0
-        lines.append(f"- [{date}] {correct}/{total} ({pct}%)")
-    return "\n".join(lines)
-
-
 def _fmt_llm_calls(items: list) -> str:
     if not items:
         return ""
@@ -223,18 +230,50 @@ def _fmt_profiles(items: list) -> str:
     return f"UTILIZATORI ÎNREGISTRAȚI ÎN INSIDEUGAL: {len(items)} conturi active."
 
 
+def _fmt_categories(items: list) -> str:
+    if not items:
+        return ""
+    names = [c.get("name", "") for c in items if c.get("name")]
+    return f"CATEGORII ANUNȚURI (InsideUGAL):\n" + "\n".join(f"- {n}" for n in names)
+
+
+def _fmt_menu_products(items: list) -> str:
+    if not items:
+        return ""
+    return f"PRODUSE ÎN MENIURI: {len(items)} asocieri meniu-produs."
+
+
+def _fmt_products(items: list) -> str:
+    if not items:
+        return ""
+    lines = ["PRODUSE (InsideUGAL):"]
+    for p in items[:10]:
+        name  = p.get("name", "")
+        desc  = p.get("description", "")
+        price = p.get("price", "")
+        line  = f"- **{name}**"
+        if price:
+            line += f" — {price} lei"
+        if desc:
+            line += f": {desc[:100]}"
+        lines.append(line)
+    return "\n".join(lines)
+
+
 # ── Mapare tabele ────────────────────────────────────────────────────────────
 
 _TABLE_MAP = {
-    "announcements":    ("announcements",    "/announcements",  "created_at.desc", 10, _fmt_announcements),
-    "faculties":        ("faculties",        "/faculties",      "id.asc",          20, _fmt_faculties),
-    "locations":        ("locations",        "/locations",      "id.asc",          20, _fmt_locations),
-    "daily_menus":      ("daily_menus",      "/daily_menus",    "id.asc",          7,  _fmt_menus),
-    "complaints":       ("complaints",       "/complaints",     "created_at.desc", 5,  _fmt_complaints),
-    "questions_history":("questions_history",None,              "created_at.desc", 6,  _fmt_questions),
-    "quiz_scores":      ("quiz_scores",      None,              "created_at.desc", 8,  _fmt_quiz_scores),
-    "llm_calls":        ("llm_calls",        None,              "created_at.desc", 50, _fmt_llm_calls),
-    "profiles":         ("profiles",         "/profiles",       "id.asc",          100,_fmt_profiles),
+    "announcements":    ("announcements",    "/announcements",       "created_at.desc", 10,  _fmt_announcements),
+    "faculties":        ("faculties",        "/faculties",           "id.asc",          20,  _fmt_faculties),
+    "locations":        ("locations",        "/locations",           "id.asc",          20,  _fmt_locations),
+    "daily_menus":      ("daily_menus",      "/daily_menus",         "id.asc",          7,   _fmt_menus),
+    "complaints":       ("complaints",       "/complaints",          "created_at.desc", 5,   _fmt_complaints),
+    "questions_history":("questions_history",None,                   "created_at.desc", 6,   _fmt_questions),
+    "llm_calls":        ("llm_calls",        None,                   "created_at.desc", 50,  _fmt_llm_calls),
+    "profiles":         ("profiles",         "/profiles",            "id.asc",          100, _fmt_profiles),
+    "categories":       ("categories",       "/categories",          "id.asc",          50,  _fmt_categories),
+    "menu_products":    ("menu_products",    None,                   "menu_id.asc",     20,  _fmt_menu_products),
+    "products":         ("products",         "/products",            "id.asc",          20,  _fmt_products),
 }
 
 
