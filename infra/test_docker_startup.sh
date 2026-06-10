@@ -19,7 +19,11 @@ echo "--- Creating External Network (if missing) ---"
 docker network create coolify || true
 
 echo "--- Starting Containers (Detached Mode) ---"
-docker compose up -d
+if ! docker compose up -d; then
+  echo "❌ EROARE: docker compose up a picat. Afișez logurile bazei de date:"
+  docker compose logs supabase-db
+  exit 1
+fi
 
 echo "--- Waiting for Services to be Healthy ---"
 # Give it some time or check specific health status
