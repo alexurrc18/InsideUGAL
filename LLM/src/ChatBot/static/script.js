@@ -207,7 +207,7 @@ function showTyping() {
   wrapper.innerHTML = `
     <div class="message-avatar">🎓</div>
     <div class="message-bubble typing-bubble">
-      <span class="typing-label">FACIEE Assistant scrie</span>
+      <span class="typing-label">InsideUGAL Assistant scrie</span>
       <div class="typing-dots"><span></span><span></span><span></span></div>
     </div>`;
   messagesEl.appendChild(wrapper);
