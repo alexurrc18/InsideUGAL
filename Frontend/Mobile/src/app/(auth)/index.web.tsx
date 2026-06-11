@@ -1,14 +1,11 @@
 import { useState } from "react";
 import { View, Text, Pressable, TextInput, KeyboardAvoidingView, ScrollView } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useRouter } from "expo-router";
-import { Colors, Fonts, Spacing, WebSidePadding } from "@/constants/theme";
-import CloseIcon from "@/assets/icons/svg/x.svg";
+import { Colors, Spacing, WebSidePadding } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 export default function LoginScreen() {
-    const router = useRouter();
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
     const theme = Colors[themeName];
 
