@@ -321,13 +321,15 @@ def chat():
                 print(f"[Gemini] Stream error: {e}")
                 stream_failed = True
 
-            if full_content or not stream_failed:
+            if not stream_failed:
                 assistant_message = "".join(full_content)
                 if assistant_message:
                     llm_cache.set(cache_key, assistant_message)
                 suggestions = _generate_suggestions(user_message, assistant_message)
                 yield f"data: {json.dumps({'done': True, 'sources': sources, 'suggestions': suggestions})}\n\n"
                 return
+            if stream_failed and full_content:
+                yield f"data: {json.dumps({'clear': True})}\n\n"
 
         if backend_context:
             answer = backend_context

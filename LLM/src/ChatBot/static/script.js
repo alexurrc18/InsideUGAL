@@ -88,6 +88,10 @@ async function sendMessage(text) {
         if (!dataStr) continue;
         try {
           const chunk = JSON.parse(dataStr);
+          if (chunk.clear) {
+            rawText = "";
+            if (bubble) bubble.innerHTML = "";
+          }
           if (chunk.token) {
             if (!bubble) {
               removeTyping();
