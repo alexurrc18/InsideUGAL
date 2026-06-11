@@ -14,7 +14,6 @@ from parser_schemas import AnnouncementRequest, ExtractedAnnouncementInfo
 from llm_service import LLMService
 from image_service_v2 import ImageServiceV2, ImageGenerationResult
 from huggingface_hub.errors import HfHubHTTPError
-from vector_service import VectorService
 
 # ---------------------------------------------------------
 # 0. CONFIGURARE LOGGING
@@ -44,7 +43,6 @@ if HF_API_KEY:
 # Serviciu LLM si Image
 llm_service = LLMService(hf_api_key=HF_API_KEY)
 image_service = ImageServiceV2(hf_api_key=HF_API_KEY)
-vector_service = VectorService()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -87,13 +85,6 @@ async def extract_announcement_info(request: AnnouncementRequest, background_tas
     try:
         logger.info(f"📥 Primire cerere extractie info-anunt: {request.text[:50]}...")
         result = await llm_service.extract_announcement_info(request.text)
-        
-        # Lansam in fundal (background task) salvarea anuntului in Vector DB
-        background_tasks.add_task(
-            vector_service.store_announcement,
-            request.text,
-            result.model_dump() if hasattr(result, 'model_dump') else result.dict()
-        )
         
         return result
     except HfHubHTTPError as e:

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Table, { Column } from '../components/ui/Table';
 import Modal from '../components/ui/Modal';
 
@@ -134,10 +134,7 @@ export default function Page() {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex justify-between items-start">
         <div className="space-y-4">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">Gestiune Cantină</h1>
-            <p className="text-sm text-muted">Panou administrativ pentru configurarea meniului zilnic web/mobil.</p>
-          </div>
+          {/* Titlul și descrierea au fost scoase direct de aici */}
           <div className="flex flex-wrap gap-2 p-1 bg-slate-100/50 border border-slate-200 rounded-2xl w-fit">
             {DAYS.map(day => (
               <button key={day} type="button" onClick={() => setActiveDay(day)} className={`px-4 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${activeDay === day ? 'bg-white text-blue-600 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>{day}</button>
@@ -162,64 +159,77 @@ export default function Page() {
           
           setCustomCategory('');
           setActiveModal(null);
-        }} className="space-y-4 text-sm">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold mb-1">Nume Preparat</label>
-              <input type="text" value={formState.name || ''} onChange={e => setFormState({...formState, name: e.target.value})} className="w-full border p-2 rounded-lg bg-background outline-none" required />
+        }} className="space-y-4 text-sm max-h-[80vh] flex flex-col justify-between">
+          
+          <div 
+            className="space-y-4 overflow-y-auto pr-1 pb-4"
+            style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+          >
+            <style dangerouslySetInnerHTML={{__html: `
+              div::-webkit-scrollbar {
+                display: none;
+              }
+            `}} />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold mb-1">Nume Preparat</label>
+                <input type="text" value={formState.name || ''} onChange={e => setFormState({...formState, name: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background outline-none" required />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1">Categorie</label>
+                <select 
+                  value={['Meniul Zilei', 'Ciorbe și Supe', 'Garnituri', 'Preparate Carne', 'Salate/Sosuri', 'Pâine', 'Desert'].includes(formState.category || '') ? formState.category : 'Alta'} 
+                  onChange={e => setFormState({...formState, category: e.target.value})} 
+                  className="w-full border border-border p-2 rounded-lg bg-background outline-none cursor-pointer"
+                >
+                  <option value="Meniul Zilei">Meniul Zilei</option>
+                  <option value="Ciorbe și Supe">Ciorbe și Supe</option>
+                  <option value="Garnituri">Garnituri</option>
+                  <option value="Preparate Carne">Preparate Carne</option>
+                  <option value="Salate/Sosuri">Salate/Sosuri</option>
+                  <option value="Pâine">Pâine</option>
+                  <option value="Desert">Desert</option>
+                  <option value="Alta">-- Altă categorie --</option>
+                </select>
+                {formState.category === 'Alta' && (
+                  <input type="text" placeholder="Categorie nouă..." value={customCategory} onChange={e => setCustomCategory(e.target.value)} className="w-full border border-blue-400 p-2 mt-2 rounded-lg bg-background outline-none" required />
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold mb-1">Preț</label>
+                <input type="text" value={formState.price || ''} onChange={e => setFormState({...formState, price: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background outline-none" required />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1">Gramaj</label>
+                <input type="text" value={formState.weight || ''} onChange={e => setFormState({...formState, weight: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background outline-none" />
+              </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold mb-1">Categorie</label>
-              <select 
-                value={['Meniul Zilei', 'Ciorbe și Supe', 'Garnituri', 'Preparate Carne', 'Salate/Sosuri', 'Pâine', 'Desert'].includes(formState.category || '') ? formState.category : 'Alta'} 
-                onChange={e => setFormState({...formState, category: e.target.value})} 
-                className="w-full border p-2 rounded-lg bg-background outline-none cursor-pointer"
-              >
-                <option value="Meniul Zilei">Meniul Zilei</option>
-                <option value="Ciorbe și Supe">Ciorbe și Supe</option>
-                <option value="Garnituri">Garnituri</option>
-                <option value="Preparate Carne">Preparate Carne</option>
-                <option value="Salate/Sosuri">Salate/Sosuri</option>
-                <option value="Pâine">Pâine</option>
-                <option value="Desert">Desert</option>
-                <option value="Alta">-- Altă categorie --</option>
-              </select>
-              {formState.category === 'Alta' && (
-                <input type="text" placeholder="Categorie nouă..." value={customCategory} onChange={e => setCustomCategory(e.target.value)} className="w-full border border-blue-400 p-2 mt-2 rounded-lg bg-background outline-none" required />
-              )}
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold mb-1">Preț</label>
-              <input type="text" value={formState.price || ''} onChange={e => setFormState({...formState, price: e.target.value})} className="w-full border p-2 rounded-lg bg-background outline-none" required />
+              <label className="block text-xs font-semibold mb-1">Valori Nutriționale</label>
+              <input type="text" placeholder="kcal | P | C | G" value={formState.nutritionalValues || ''} onChange={e => setFormState({...formState, nutritionalValues: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background outline-none" />
             </div>
             <div>
-              <label className="block text-xs font-semibold mb-1">Gramaj</label>
-              <input type="text" value={formState.weight || ''} onChange={e => setFormState({...formState, weight: e.target.value})} className="w-full border p-2 rounded-lg bg-background outline-none" />
+              <label className="block text-xs font-bold mb-2">Zile afișare</label>
+              <div className="flex flex-wrap gap-2">
+                {DAYS.filter(d => d !== 'Toate preparatele').map(day => (
+                  <button key={day} type="button" onClick={() => {
+                    const current = formState.availableDays || [];
+                    setFormState({...formState, availableDays: current.includes(day) ? current.filter(d => d !== day) : [...current, day]});
+                  }} className={`px-3 py-1.5 rounded-lg text-xs font-bold border cursor-pointer transition-all ${formState.availableDays?.includes(day) ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white text-slate-400 border-border hover:border-slate-300'}`}>{day}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1">Descriere / Ingrediente</label>
+              <textarea value={formState.description || ''} onChange={e => setFormState({...formState, description: e.target.value})} className="w-full border border-border p-2 rounded-lg h-20 bg-background resize-none outline-none" />
             </div>
           </div>
-          <div>
-            <label className="block text-xs font-semibold mb-1">Valori Nutriționale</label>
-            <input type="text" placeholder="kcal | P | C | G" value={formState.nutritionalValues || ''} onChange={e => setFormState({...formState, nutritionalValues: e.target.value})} className="w-full border p-2 rounded-lg bg-background outline-none" />
-          </div>
-          <div>
-            <label className="block text-xs font-bold mb-2">Zile afișare</label>
-            <div className="flex flex-wrap gap-2">
-              {DAYS.filter(d => d !== 'Toate preparatele').map(day => (
-                <button key={day} type="button" onClick={() => {
-                  const current = formState.availableDays || [];
-                  setFormState({...formState, availableDays: current.includes(day) ? current.filter(d => d !== day) : [...current, day]});
-                }} className={`px-3 py-1.5 rounded-lg text-xs font-bold border cursor-pointer transition-all ${formState.availableDays?.includes(day) ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white text-slate-400 border-border hover:border-slate-300'}`}>{day}</button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold mb-1">Descriere / Ingrediente</label>
-            <textarea value={formState.description || ''} onChange={e => setFormState({...formState, description: e.target.value})} className="w-full border p-2 rounded-lg h-20 bg-background resize-none outline-none" />
-          </div>
-          <div className="flex justify-end space-x-2 pt-4 border-t">
-            <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border rounded-lg text-xs cursor-pointer">Anulează</button>
+
+          <div className="sticky bottom-0 bg-white pt-4 border-t border-border z-10 flex justify-end space-x-2">
+            <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-border rounded-lg text-muted text-xs cursor-pointer hover:bg-slate-50">Anulează</button>
             <button type="submit" className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold cursor-pointer hover:opacity-90">Salvează</button>
           </div>
         </form>
