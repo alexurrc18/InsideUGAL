@@ -9,6 +9,7 @@ import { Carousel } from "@/components/ui/carousel";
 import { CAROUSEL_CARD_MARGIN } from "@/components/ui/carousel.shared";
 import { NewsCard } from "@/components/ui/news-card";
 import { HeroSlideshow, HERO_HEIGHT } from "@/components/ui/hero-slideshow";
+import { HomeHighlights } from "@/components/ui/home-highlights";
 import { NAVBAR_HEIGHT } from "@/components/ui/web-navbar";
 import { getFormattedDate, parseRomanianDate } from "@/utils/date";
 import { useWebScrollAware } from "@/contexts/web-scroll-context";
@@ -32,6 +33,10 @@ export default function HomeScreen() {
   const heroItems = [...noutati]
     .sort((a, b) => parseRomanianDate(b.date).getTime() - parseRomanianDate(a.date).getTime())
     .slice(0, 3);
+
+  // Sectiunea "Recomandate": un anunt mare (featured) + 3 compacte, fara duplicat.
+  const featuredItem = evenimente[0] ?? noutati[0];
+  const highlightItems = MOCK_DATA.events.filter((e) => e.id !== featuredItem?.id).slice(0, 3);
 
   const handleFacilityPress = (facility: any) => {
     router.push({
@@ -88,6 +93,9 @@ export default function HomeScreen() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} {...scrollProps}>
         {/* Hero slideshow full-bleed: ultimele 3 anunturi, auto-rotire + puncte. */}
         <HeroSlideshow slides={heroItems} onPressItem={handlePress} />
+
+        {/* Sectiune intre hero si carusele: 3 carduri compacte + 1 card mare. */}
+        <HomeHighlights featured={featuredItem} items={highlightItems} onPressItem={handlePress} />
 
         <WebContainer style={{ paddingTop: Spacing.lg, paddingBottom: insets.bottom + Spacing.sm, flex: 1 }}>
           <Carousel
