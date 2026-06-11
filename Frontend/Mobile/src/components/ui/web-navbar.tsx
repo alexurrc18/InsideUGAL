@@ -8,7 +8,7 @@
 //     derulata (raportat prin WebScrollProvider) -> fade lin.
 //   - restul paginilor: solid mereu (nu au hero).
 // Textul ramane alb in ambele stari. Aliniere: continutul sta intr-un WebContainer.
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { useRouter, usePathname } from "expo-router";
@@ -46,7 +46,7 @@ export function WebNavbar() {
   const solid = !isHome || scrolled;
 
   // Opacitatea fundalului solid: 0 = transparent, 1 = solid. Fade pe schimbare.
-  const bgOpacity = useRef(new Animated.Value(solid ? 1 : 0)).current;
+  const [bgOpacity] = useState(() => new Animated.Value(solid ? 1 : 0));
   useEffect(() => {
     Animated.timing(bgOpacity, {
       toValue: solid ? 1 : 0,

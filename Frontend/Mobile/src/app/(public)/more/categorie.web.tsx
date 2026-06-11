@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, useColorScheme, Linking, Pressable, Animated } from "react-native";
+import { View, Text, Linking, Pressable, Animated } from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { Colors, Spacing, WebSidePadding } from "@/constants/theme";
@@ -85,8 +86,8 @@ export default function MoreCategoryScreen() {
 
       <Animated.ScrollView 
         style={{ flex: 1 }} 
-        contentContainerStyle={{ 
-          paddingTop: insets.top + 140,
+        contentContainerStyle={{
+          paddingTop: insets.top + 80,
           paddingBottom: insets.bottom + Spacing.xxl
         }}
         onScroll={Animated.event(

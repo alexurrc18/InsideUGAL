@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { View, Text, Pressable, TextInput, KeyboardAvoidingView, ScrollView, useColorScheme } from "react-native";
+import { View, Text, Pressable, TextInput, KeyboardAvoidingView, ScrollView } from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useRouter } from "expo-router";
 import { Colors, Fonts, Spacing, WebSidePadding } from "@/constants/theme";
 import CloseIcon from "@/assets/icons/svg/x.svg";

@@ -128,8 +128,9 @@ function VizualizareScreen() {
                 </View>
 
                 <WebContainer style={{ paddingVertical: Spacing.xl, gap: Spacing.xxl }}>
-                    {/* Rand principal: continut (stanga) + sidebar Noutăți (dreapta). */}
-                    <View style={{ flexDirection: twoCol ? "row" : "column", gap: Spacing.xxl, alignItems: "flex-start" }}>
+                    {/* Rand principal: continut (stanga) + sidebar Noutăți (dreapta).
+                        gap putin mai mare ca sa "respire" intre coloana de text si carduri. */}
+                    <View style={{ flexDirection: twoCol ? "row" : "column", gap: 40, alignItems: "flex-start" }}>
                         {/* Stanga: continutul anuntului. */}
                         <View style={{ flex: 1, gap: Spacing.xxl, width: "100%" }}>
                             {tipPagina !== "Facultate" && (

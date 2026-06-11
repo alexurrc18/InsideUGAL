@@ -12,7 +12,7 @@
 //  - puncte jos (cate unul / slide) — click pentru salt manual, care reseteaza
 //    si cronometrul de auto-rotire;
 //  - click pe imagine => onPressItem(slide-ul activ).
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Animated, View, Text, Pressable, StyleSheet, Easing } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -43,7 +43,7 @@ export function HeroSlideshow({ slides, onPressItem }: HeroSlideshowProps) {
   const [active, setActive] = useState(0);
 
   // Cate o valoare de opacitate per slide (primul vizibil, restul ascunse).
-  const opacities = useRef(slides.map((_, i) => new Animated.Value(i === 0 ? 1 : 0))).current;
+  const [opacities] = useState(() => slides.map((_, i) => new Animated.Value(i === 0 ? 1 : 0)));
 
   // Crossfade la schimbarea slide-ului activ: ridicam activul la 1, restul la 0.
   useEffect(() => {

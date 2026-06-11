@@ -2,7 +2,7 @@
 //  - cog-ul se roteste (90deg)
 //  - sub el apare, cu fade + slide, cercul cu luna/soare (ThemeToggle) care comuta tema.
 // Se inchide la a doua apasare pe cog. Trebuie montat intr-un <ThemeProvider>.
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Animated, Easing, Pressable, View } from "react-native";
 import { ColorScheme } from "@/constants/theme";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -13,7 +13,7 @@ import CogIcon from "@/assets/icons/svg/cog.svg";
 // intunecat translucid ca sa nu mai fie un albastru care pluteste peste imagine.
 export function ThemeMenu({ solid = true }: { solid?: boolean }) {
   const [open, setOpen] = useState(false);
-  const anim = useRef(new Animated.Value(0)).current; // 0 = inchis, 1 = deschis
+  const [anim] = useState(() => new Animated.Value(0)); // 0 = inchis, 1 = deschis
 
   const circleBg = solid ? ColorScheme.blue : "rgba(0,0,0,0.45)";
 

@@ -20,6 +20,7 @@ import {
 } from "@/constants/theme";
 import Map from "@/components/map";
 import { CategoryHeader } from "@/components/ui/category-header";
+import { WebContainer } from "@/components/ui/web-container";
 import { NAVBAR_HEIGHT } from "@/components/ui/web-navbar";
 import MockData from "@/constants/mock-data.json";
 
@@ -60,16 +61,16 @@ export default function HartaScreen() {
         paddingTop: insets.top + NAVBAR_HEIGHT * zoom + Spacing.xl,
       }}
     >
-      {/* CategoryHeader adauga intern Spacing.lg, deci scadem din inset ca titlul
-          sa cada exact la contentInset (aliniat cu logo-ul din navbar). */}
-      <View style={{ paddingHorizontal: Math.max(0, contentInset - Spacing.lg) }}>
+      {/* Header in WebContainer => acelasi zoom ca pe cantina/sesizari, deci titlul
+          "Hartă" are aceeasi marime ca "Cantina"/"Sesizări". Harta ramane in afara. */}
+      <WebContainer>
         <CategoryHeader
           title="Hartă"
           filters={facultyFilters}
           selectedFilterId={selectedFacultyId}
           onSelectFilter={handleSelectFilter}
         />
-      </View>
+      </WebContainer>
 
       {/* Harta umple inaltimea ramasa; padding lateral = inset-ul navbarului. */}
       <View
