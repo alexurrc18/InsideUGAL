@@ -236,6 +236,7 @@ def chat():
         return jsonify({"error": "Mesaj gol"}), 400
 
     sources: list[str] = []
+    backend_context = ""
 
     if is_menu_question(user_message):
         menu_text = fetch_canteen_menu()
