@@ -19,6 +19,58 @@ interface Cladire {
   descriere?: string;
 }
 
+type BackendRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is BackendRecord {
+  return typeof value === "object" && value !== null;
+}
+
+function normalizeCoordinates(value: unknown): Cladire["coordinates"] {
+  if (!isRecord(value)) return null;
+
+  const latitude = Number(value.latitude);
+  const longitude = Number(value.longitude);
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return null;
+  }
+
+  return { latitude, longitude };
+}
+
+function normalizeCladire(value: unknown): Cladire | null {
+  if (!isRecord(value)) return null;
+
+  const id = Number(value.id);
+  if (!Number.isFinite(id) || typeof value.name !== "string") {
+    return null;
+  }
+
+  const facultyId = value.faculty_id === null || value.faculty_id === undefined
+    ? null
+    : Number(value.faculty_id);
+
+  return {
+    id,
+    name: value.name,
+    faculty_id: Number.isFinite(facultyId) ? facultyId : null,
+    coordinates: normalizeCoordinates(value.coordinates),
+    adresa: typeof value.adresa === "string" ? value.adresa : undefined,
+    telefon: typeof value.telefon === "string" ? value.telefon : undefined,
+    website: typeof value.website === "string" ? value.website : undefined,
+    program: typeof value.program === "string" ? value.program : undefined,
+    descriere: typeof value.descriere === "string" ? value.descriere : undefined,
+  };
+}
+
+function normalizeCladiri(value: unknown): Cladire[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map(normalizeCladire)
+    .filter((cladire): cladire is Cladire => cladire !== null);
+}
+
 interface FormState {
   name: string;
   faculty_id: string;
@@ -155,15 +207,20 @@ export default function HartiPage() {
   const [addForm, setAddForm] = useState<FormState>(emptyForm);
   const [editForm, setEditForm] = useState<FormState>(emptyForm);
 
-  const API = process.env.NEXT_PUBLIC_API_URL;
+  const API = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
   useEffect(() => {
     async function fetchLocations() {
       try {
         const res = await fetch(`${API}/locations/`);
+        if (!res.ok) {
+          throw new Error(`Eroare API: ${res.status}`);
+        }
         const data = await res.json();
-        setCladiri(data);
-      } catch {
+        console.log("Date primite de la backend:", data);
+        setCladiri(normalizeCladiri(data));
+      } catch (error) {
+        console.error("Eroare la preluarea locațiilor:", error);
         setCladiri([]);
       } finally {
         setLoading(false);
@@ -188,7 +245,10 @@ export default function HartiPage() {
         })
       });
       const newLocation = await res.json();
-      setCladiri([...cladiri, newLocation]);
+      const normalizedLocation = normalizeCladire(newLocation);
+      if (normalizedLocation) {
+        setCladiri([...cladiri, normalizedLocation]);
+      }
       setAddForm(emptyForm);
       setIsAddExpanded(false);
       setShowAddModal(false);
@@ -229,7 +289,10 @@ export default function HartiPage() {
         })
       });
       const updated = await res.json();
-      setCladiri(cladiri.map(c => c.id === editingId ? updated : c));
+      const normalizedLocation = normalizeCladire(updated);
+      if (normalizedLocation) {
+        setCladiri(cladiri.map(c => c.id === editingId ? normalizedLocation : c));
+      }
       setShowEditModal(false);
       setEditingId(null);
       setIsEditExpanded(false);
