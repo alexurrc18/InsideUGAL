@@ -8,6 +8,7 @@ from google.genai import types as genai_types
 
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 EMBEDDING_MODEL = "gemini-embedding-001"
 EMBEDDING_DIMS = 384
