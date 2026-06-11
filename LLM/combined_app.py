@@ -269,7 +269,11 @@ def campus_chat(request: CampusChatRequest):
         raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
 
     # 2. Verificare Semantic Cache
-    cached_answer = llm_optimizer_service.get_cached_answer(request.question)
+    try:
+        cached_answer = llm_optimizer_service.get_cached_answer(request.question)
+    except Exception as cache_exc:
+        logger.warning("Semantic cache error (ignorat): %s", cache_exc)
+        cached_answer = None
     if cached_answer:
         return CampusChatResponse(
             answer=cached_answer,
