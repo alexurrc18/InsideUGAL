@@ -230,6 +230,7 @@ ADM_PAGES = [
 
 FACULTY_COMMON_PAGES = [
     "/",
+    # Structură standard (aciee, ing, feaa etc.)
     "/prezentare",
     "/prezentare/misiune",
     "/structura/conducere",
@@ -253,6 +254,20 @@ FACULTY_COMMON_PAGES = [
     "/informatii/anunturi",
     "/informatii/evenimente",
     "/contact",
+    # Structură Joomla (/index.php/ro/) — fdsa, fan, sia etc.
+    "/index.php/ro/despre-noi/prezentare",
+    "/index.php/ro/despre-noi/conducere",
+    "/index.php/ro/despre-noi/secretariat",
+    "/index.php/ro/admitere",
+    "/index.php/ro/admitere/admitere-licenta",
+    "/index.php/ro/admitere/admitere-masterat",
+    "/index.php/ro/studenti/burse",
+    "/index.php/ro/studenti/taxe",
+    "/index.php/ro/studenti/orare",
+    "/index.php/ro/studenti/regulamente",
+    "/index.php/ro/studenti/practica",
+    "/index.php/ro/anunturi",
+    "/index.php/ro/contact",
 ]
 
 FACULTY_SITES = {
