@@ -256,14 +256,19 @@ FACULTY_COMMON_PAGES = [
 ]
 
 FACULTY_SITES = {
-    "ing":    "https://ing.ugal.ro",    # Facultatea de Inginerie
-    "fan":    "https://fan.ugal.ro",    # Facultatea de Arhitectură Navală
-    "sia":    "https://sia.ugal.ro",    # Facultatea de Știința și Ingineria Alimentelor
-    "feaa":   "https://feaa.ugal.ro",   # Facultatea de Economie și Administrarea Afacerilor
-    "fdsa":   "https://fdsa.ugal.ro",   # Facultatea de Drept și Științe Administrative
-    "litere": "https://litere.ugal.ro", # Facultatea de Litere
-    "arte":   "https://arte.ugal.ro",   # Facultatea de Arte
-    "fefs":   "https://fefs.ugal.ro",   # Facultatea de Educație Fizică și Sport
+    "ing":             "https://ing.ugal.ro",             # Facultatea de Inginerie
+    "fan":             "https://fan.ugal.ro",             # Facultatea de Arhitectură Navală
+    "sia":             "https://sia.ugal.ro",             # Facultatea de Știința și Ingineria Alimentelor
+    "feaa":            "https://feaa.ugal.ro",            # Facultatea de Economie și Administrarea Afacerilor
+    "fdsa":            "https://fdsa.ugal.ro",            # Facultatea de Drept și Științe Administrative
+    "litere":          "https://litere.ugal.ro",          # Facultatea de Litere
+    "arte":            "https://arte.ugal.ro",            # Facultatea de Arte
+    "fefs":            "https://fefs.ugal.ro",            # Facultatea de Educație Fizică și Sport
+    "fsed":            "https://fsed.ugal.ro",            # Facultatea de Științe ale Educației
+    "sciences":        "https://sciences.ugal.ro",        # Facultatea de Științe și Mediu
+    "fift":            "https://fift.ugal.ro",            # Facultatea de Istorie, Filosofie și Teologie
+    "fmfgl":           "https://www.fmfgl.ro",            # Facultatea de Medicină și Farmacie
+    "transfrontaliera":"https://transfrontaliera.ugal.ro",# Facultatea Transfrontalieră
 }
 
 
