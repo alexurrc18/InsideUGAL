@@ -1,4 +1,3 @@
-// app/components/ui/Modal.tsx
 "use client";
 import React from 'react';
 
@@ -7,9 +6,10 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  className?: string; // MODIFICAT: Permitem configurarea claselor (lățimii) din exterior
 }
 
-export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export default function Modal({ isOpen, onClose, title, children, className }: ModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -19,8 +19,10 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
       onClick={onClose}
     >
       <div
-        /* MODIFICAT: folosește colțurile rotunjite și culorile din tema ta globală */
-        className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-2xl bg-card border border-border shadow-xl overflow-hidden"
+        /* MODIFICAT: Dacă primim clasa din exterior (ex: max-w-4xl), o folosim pe aceea, altfel punem standardul max-w-lg */
+        className={`flex max-h-[90vh] w-full flex-col rounded-2xl bg-card border border-border shadow-xl overflow-hidden ${
+          className ? className : "max-w-lg"
+        }`}
         onClick={(event) => event.stopPropagation()}
       >
         {/* Header-ul modalului */}

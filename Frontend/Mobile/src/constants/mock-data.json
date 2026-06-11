@@ -298,5 +298,82 @@
     { "id": "b11", "name": "Cantina Universitate", "facultyId": "f8", "lat": 45.43887442628822, "lng": 28.056094396753004, "description": "Cantină studențească." },
     { "id": "b12", "name": "Centrul de Consiliere", "facultyId": "f8", "lat": 45.43843053625073, "lng": 28.056011430581535, "description": "Centrul de Consiliere și Orientare în Carieră.", "schedule": "Luni-Vineri: 08:00 - 14:00" },
     { "id": "b13", "name": "Cabinet Medical", "facultyId": "f8", "lat": 45.45335468796397, "lng": 28.05171517115972, "description": "Cabinet Medical studențesc." }
+  ],
+  "reports": [
+    {
+      "id": "1",
+      "title": "Problemă cu încălzirea în sala de curs",
+      "category": "Infrastructură",
+      "status": "active",
+      "date": "8 iunie 2026",
+      "description": "Caloriferul din laboratorul 302 nu se încălzește suficient de ieri seară. Este destul de frig în sală.",
+      "location": "Corp D",
+      "isUserReport": true,
+      "image": "https://campus.ugal.ro/ccps/wp-content/uploads/photo-gallery/DJI_0238.jpg?bwg=1639133115",
+      "images": [
+        "https://campus.ugal.ro/ccps/wp-content/uploads/photo-gallery/DJI_0238.jpg?bwg=1639133115",
+        "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?q=80&w=1000",
+        "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=1000"
+      ]
+    },
+    {
+      "id": "2",
+      "title": "Bec ars pe coridorul principal",
+      "category": "Iluminat public",
+      "status": "finalizate",
+      "date": "2 iunie 2026",
+      "description": "Becul principal din fața sălii de conferințe s-a ars de câteva zile.",
+      "location": "Corp Y",
+      "isUserReport": true,
+      "image": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=1000",
+      "images": [
+        "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=1000",
+        "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?q=80&w=1000"
+      ]
+    },
+    {
+      "id": "3",
+      "title": "Ușă defectă la sala de curs B02",
+      "category": "Infrastructură",
+      "status": "respinse",
+      "date": "25 mai 2026",
+      "description": "Mecanismul de închidere al ușii de la sala B02 este blocat și ușa nu se mai închide complet.",
+      "location": "Corp D (Domnească)",
+      "isUserReport": false,
+      "image": "https://litere.ugal.ro/images/2018/litere.gif",
+      "images": [
+        "https://litere.ugal.ro/images/2018/litere.gif",
+        "https://images.unsplash.com/photo-1590069261209-f8e9b8642343?q=80&w=1000"
+      ]
+    },
+    {
+      "id": "4",
+      "title": "Filtru de apă nefuncțional",
+      "category": "Facilități",
+      "status": "active",
+      "date": "7 iunie 2026",
+      "description": "Dispenserul de apă de la etajul 1 al corpului D nu mai curge deloc.",
+      "location": "Corp D",
+      "isUserReport": false,
+      "image": "https://biblioteca.ugal.ro/images/logo-new.jpeg",
+      "images": [
+        "https://biblioteca.ugal.ro/images/logo-new.jpeg"
+      ]
+    },
+    {
+      "id": "5",
+      "title": "Geam crăpat în laboratorul de informatică",
+      "category": "Infrastructură",
+      "status": "finalizate",
+      "date": "5 iunie 2026",
+      "description": "Geamul din colțul drept al sălii de calculatoare s-a fisurat în urma unei furtuni.",
+      "location": "Corp AN",
+      "isUserReport": false,
+      "image": "https://ing.ugal.ro/Resurse/2024/WhatsApp_Image_2024-09-17_at_11.48.08.jpeg",
+      "images": [
+        "https://ing.ugal.ro/Resurse/2024/WhatsApp_Image_2024-09-17_at_11.48.08.jpeg",
+        "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?q=80&w=1000"
+      ]
+    }
   ]
 }

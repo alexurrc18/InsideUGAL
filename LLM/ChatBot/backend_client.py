@@ -62,52 +62,67 @@ def _fetch(table: str, backend_path: str = None, order: str = "created_at.desc",
 _KEYWORDS = {
     "announcements": [
         "anunț", "anunturi", "anunțuri", "noutăți", "noutati", "stiri", "știri",
-        "news", "anunt", "anuntat", "anunțat", "aviz", "comunicat",
+        "news", "anunt", "anuntat", "anunțat", "aviz", "comunicat", "vesti",
+        "announcements", "announcement", "notices", "notice", "updates", "latest",
     ],
     "faculties": [
-        "facultate", "facultăți", "facultati", "faciee", "nave", "litere",
-        "medicina", "medicină", "drept", "economie", "sport", "arte",
-        "inginerie", "informatică", "informatica", "specializare",
+        "lista facultati", "lista facultăți", "toate facultatile", "toate facultățile",
+        "ce facultati are ugal", "câte facultăți", "cate facultati",
+        "contact facultate", "telefon facultate", "adresa facultate",
+        "list of faculties", "all faculties", "faculty list",
     ],
     "locations": [
         "locație", "locatie", "locatii", "locații", "hartă", "harta", "campus",
         "clădire", "cladire", "sala", "sală", "corp", "adresă", "adresa",
-        "unde se află", "unde este",
+        "unde se află", "unde este", "unde e", "unde gasesc",
+        "location", "locations", "building", "room", "where is", "where are",
     ],
     "daily_menus": [
         "meniu", "meniuri", "cantina", "cantină", "mancare", "mâncare",
         "prânz", "pranz", "masa", "masă", "ce se mănâncă", "menu",
+        "daily menu", "lunch", "food today", "what to eat",
     ],
     "complaints": [
         "sesizare", "sesizări", "sesizari", "reclamație", "reclamatie",
-        "problemă", "problema", "raportez", "raportat", "plângere",
+        "problemă", "problema", "raportez", "raportat", "plângere", "plangere",
+        "complaint", "complaints", "report", "issue", "problem",
     ],
     "questions_history": [
         "intrebari", "întrebări", "istoric intrebari", "ce am intrebat",
-        "întrebat", "intrebat", "history",
+        "întrebat", "intrebat", "history", "previous questions", "past questions",
     ],
     "menu_products": [
         "produse meniu", "ce produse are meniul", "meniu produse",
+        "menu products", "what's in the menu",
     ],
     "llm_calls": [
         "tokeni", "tokens", "apeluri ai", "usage", "consum api", "statistici",
+        "ai usage", "api calls", "statistics", "how many calls",
     ],
     "profiles": [
-        "utilizatori", "studenti înregistrați", "conturi", "profil",
-        "câți studenți",
+        "utilizatori", "studenti înregistrați", "conturi", "profil", "profiluri",
+        "câți studenți", "users", "accounts", "profiles", "registered",
     ],
     "categories": [
-        "categorie", "categorii", "category", "tip anunț", "tipuri anunțuri",
+        "categorie", "categorii", "category", "categories", "tip anunț", "tipuri anunțuri",
+        "types of announcements", "what types",
     ],
     "products": [
         "produs", "produse", "ce produse", "articol", "articole",
+        "product", "products", "items", "what products",
     ],
 }
 
 
+def _normalize(text: str) -> str:
+    import unicodedata
+    text = unicodedata.normalize("NFD", text)
+    return "".join(c for c in text if unicodedata.category(c) != "Mn").lower()
+
+
 def detect_intent(question: str) -> list[str]:
-    q = question.lower()
-    return [ep for ep, kws in _KEYWORDS.items() if any(kw in q for kw in kws)]
+    q = _normalize(question)
+    return [ep for ep, kws in _KEYWORDS.items() if any(_normalize(kw) in q for kw in kws)]
 
 
 # ── Formatare răspunsuri ─────────────────────────────────────────────────────

@@ -16,6 +16,7 @@ interface CategoryHeaderProps {
     onSelectFilter?: (id: string | null) => void;
     autoAbbreviate?: boolean;
     initialsOnly?: boolean;
+    rightElement?: React.ReactNode;
 }
 
 const getAbbreviation = (text: string) => {
@@ -32,16 +33,20 @@ export function CategoryHeader({
     selectedFilterId, 
     onSelectFilter,
     autoAbbreviate = true,
-    initialsOnly = false
+    initialsOnly = false,
+    rightElement
 }: CategoryHeaderProps) {
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
     const theme = Colors[themeName];
 
     return (
         <View style={{ gap: Spacing.xs, marginBottom: Spacing.sm }}>
-            <Text style={[Typography.Heading1, { color: theme.text, paddingHorizontal: Spacing.lg }]}>
-                {title}
-            </Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: Spacing.lg }}>
+                <Text style={[Typography.Heading1, { color: theme.text }]}>
+                    {title}
+                </Text>
+                {rightElement}
+            </View>
 
             {filters && filters.length > 0 && onSelectFilter && (
                 <ScrollView 
