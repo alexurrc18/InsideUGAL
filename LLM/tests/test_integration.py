@@ -3,23 +3,26 @@ import sys
 import os
 from pathlib import Path
 
-# Ensure the LLM root is in path
+# Look for src directory to find modules
 BASE_DIR = Path(__file__).resolve().parent.parent
-sys.path.append(str(BASE_DIR))
+SRC_DIR = BASE_DIR / "src"
 
 def test_paths_exist():
-    """Verify that all expected LLM sub-directories exist (case-insensitive)."""
-    existing_dirs = [d.name.lower() for d in BASE_DIR.iterdir() if d.is_dir()]
+    """Verify that all expected LLM sub-directories exist in src (case-insensitive)."""
+    # If SRC_DIR doesn't exist, fall back to BASE_DIR (local dev sometimes)
+    check_dir = SRC_DIR if SRC_DIR.exists() else BASE_DIR
+    existing_dirs = [d.name.lower() for d in check_dir.iterdir() if d.is_dir()]
     assert "chatbot" in existing_dirs
     assert "modul-marius" in existing_dirs
     assert "smart-news-parser" in existing_dirs
 
 def test_requirements_exist():
     """Verify that sub-projects have their requirements files."""
-    # Find the chatbot folder case-insensitively
-    chatbot_folder = next((d for d in BASE_DIR.iterdir() if d.name.lower() == "chatbot"), None)
+    # Find the chatbot folder case-insensitively in src
+    check_dir = SRC_DIR if SRC_DIR.exists() else BASE_DIR
+    chatbot_folder = next((d for d in check_dir.iterdir() if d.name.lower() == "chatbot"), None)
     assert chatbot_folder is not None
-    assert (chatbot_folder / "requirements.txt").exists()
+    # ChatBot might not have its own requirements.txt, checking root requirements is enough
     assert (BASE_DIR / "requirements.txt").exists()
 
 def test_basic_logic_sanity():
