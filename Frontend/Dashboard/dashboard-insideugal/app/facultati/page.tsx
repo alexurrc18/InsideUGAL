@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Table, { Column } from '../components/ui/Table';
 import Modal from '../components/ui/Modal';
 
@@ -20,52 +20,10 @@ export type BuildingItem = {
   faculties: string[];
 };
 
-const initialFaculties: FacultyItem[] = [
-  {
-    id: "fac-1",
-    name: "Facultatea de Automatică, Calculatoare, Electrică și Electronică (ACIEE)",
-    address: "Str. Științei nr. 2",
-    phone: "0336 130 236",
-    email: "secretariat.aciee@ugal.ro",
-    website: "https://aciee.ugal.ro"
-  },
-  {
-    id: "fac-2",
-    name: "Facultatea de Educație Fizică și Sport(FEFS)",
-    address: "Strada Gării 63-65",
-    phone: "0336 130 171",
-    email: "secretariat.fefs@ugal.ro",
-    website: "https://fefs.ugal.ro/index.php/ro/"
-  },
-  {
-    id: "fac-3",
-    name: "Facultatea de Științe ale Educației(FSED)",
-    address: "Str. Științei nr. 2",
-    phone: "0336 130 164",
-    email: "secretariat.fsed@ugal.ro",
-    website: "https://fsed.ugal.ro/"
-  }
-];
-
-const initialBuildings: BuildingItem[] = [
-  {
-    id: "bld-1",
-    name: "Corpul G",
-    location: "Str. Științei nr. 2",
-    faculties: ["ACIEE", "Științe ale Educației"]
-  },
-  {
-    id: "bld-2",
-    name: "Corpul A",
-    location: "Strada Gării 63-65",
-    faculties: ["Educație Fizică și sport", "Drept"]
-  }
-];
-
 export default function Page() {
   const [activeTab, setActiveTab] = useState<'facultati' | 'cladiri'>('facultati');
-  const [faculties, setFaculties] = useState<FacultyItem[]>(initialFaculties);
-  const [buildings, setBuildings] = useState<BuildingItem[]>(initialBuildings);
+  const [faculties, setFaculties] = useState<FacultyItem[]>([]);
+  const [buildings, setBuildings] = useState<BuildingItem[]>([]);
   
   const [activeModal, setActiveModal] = useState<'add' | 'edit' | null>(null);
   const [targetType, setTargetType] = useState<'facultati' | 'cladiri'>('facultati');
@@ -73,6 +31,62 @@ export default function Page() {
   
   const [facultyForm, setFacultyForm] = useState<Partial<FacultyItem>>({});
   const [buildingForm, setBuildingForm] = useState<Partial<BuildingItem>>({ faculties: [] });
+  const [isDataLoading, setIsDataLoading] = useState<boolean>(false);
+
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+  // 1. CONEXIUNE BACKEND: GET Facultăți + ALERTĂ EROARE CONEXIUNE
+  const fetchFaculties = async () => {
+    setIsDataLoading(true);
+    try {
+      const res = await fetch(`${baseUrl}/faculties/`);
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const apiData = await res.json();
+      
+      const mappedFaculties: FacultyItem[] = apiData.map((item: any) => ({
+        id: String(item.id),
+        name: item.name,
+        address: item.address || '',
+        phone: item.phone || '',
+        email: item.email || '',
+        website: item.website || ''
+      }));
+      setFaculties(mappedFaculties);
+    } catch (error) {
+      console.error("Eroare la încărcarea facultăților:", error);
+      alert("Nu există conexiune cu backend-ul pentru modulul de Facultăți! Verifică dacă serverul Python/FastAPI este pornit local.");
+    } finally {
+      setIsDataLoading(false);
+    }
+  };
+
+  // 2. CONEXIUNE BACKEND: GET Clădiri/Locații + ALERTĂ EROARE CONEXIUNE
+  const fetchBuildings = async () => {
+    setIsDataLoading(true);
+    try {
+      const res = await fetch(`${baseUrl}/locations/`);
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const apiData = await res.json();
+      
+      const mappedBuildings: BuildingItem[] = apiData.map((item: any) => ({
+        id: String(item.id),
+        name: item.name || 'Corp clădire',
+        location: item.address || item.coordinates || 'Campus UGAL',
+        faculties: item.faculty ? [item.faculty.name] : (item.faculty_id ? [`ID Facultate: ${item.faculty_id}`] : ['UGAL'])
+      }));
+      setBuildings(mappedBuildings);
+    } catch (error) {
+      console.error("Eroare la încărcarea locațiilor:", error);
+      alert("Nu există conexiune cu backend-ul pentru modulul de Clădiri! Verifică dacă serverul Python/FastAPI este pornit local.");
+    } finally {
+      setIsDataLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFaculties();
+    fetchBuildings();
+  }, []);
 
   const availableAcronyms = useMemo(() => {
     return faculties.map(f => {
@@ -80,6 +94,34 @@ export default function Page() {
       return match ? match[1] : f.name.split(' ').map(w => w[0]).join('').toUpperCase();
     });
   }, [faculties]);
+
+  const handleDeleteFaculty = async (id: string, name: string) => {
+    if (!confirm(`Sigur dorești să ștergi facultatea "${name}"?`)) return;
+    try {
+      const response = await fetch(`${baseUrl}/faculties/${id}`, { method: "DELETE" });
+      if (response.ok || response.status === 204) {
+        setFaculties(prev => prev.filter(f => f.id !== id));
+      }
+    } catch (error) {
+      console.error("Eroare delete facultate:", error);
+      alert("Ștergerea a eșuat. Nu există conexiune cu backend-ul!");
+      setFaculties(prev => prev.filter(f => f.id !== id));
+    }
+  };
+
+  const handleDeleteBuilding = async (id: string, name: string) => {
+    if (!confirm(`Sigur dorești să ștergi clădirea "${name}"?`)) return;
+    try {
+      const response = await fetch(`${baseUrl}/locations/${id}`, { method: "DELETE" });
+      if (response.ok || response.status === 204) {
+        setBuildings(prev => prev.filter(b => b.id !== id));
+      }
+    } catch (error) {
+      console.error("Eroare delete locație:", error);
+      alert("Ștergerea a eșuat. Nu există conexiune cu backend-ul!");
+      setBuildings(prev => prev.filter(b => b.id !== id));
+    }
+  };
 
   const facultyColumns: Column<FacultyItem>[] = [
     {
@@ -131,7 +173,7 @@ export default function Page() {
           <button
             type="button"
             className="text-red-500 hover:text-red-700 font-medium hover:underline cursor-pointer"
-            onClick={() => setFaculties(faculties.filter(f => f.id !== item.id))}
+            onClick={() => handleDeleteFaculty(item.id, item.name)}
           >
             Ștergere
           </button>
@@ -184,7 +226,7 @@ export default function Page() {
           <button
             type="button"
             className="text-red-500 hover:text-red-700 font-medium hover:underline cursor-pointer"
-            onClick={() => setBuildings(buildings.filter(b => b.id !== item.id))}
+            onClick={() => handleDeleteBuilding(item.id, item.name)}
           >
             Ștergere
           </button>
@@ -210,34 +252,68 @@ export default function Page() {
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (targetType === 'facultati') {
-      if (activeModal === 'edit' && selectedId) {
-        setFaculties(faculties.map(f => f.id === selectedId ? { ...f, ...facultyForm } as FacultyItem : f));
-      } else {
-        const newFaculty: FacultyItem = {
-          id: `fac-${Date.now()}`,
-          name: facultyForm.name || '',
-          address: facultyForm.address || '',
-          phone: facultyForm.phone || '',
-          email: facultyForm.email || '',
-          website: facultyForm.website || ''
-        };
-        setFaculties([...faculties, newFaculty]);
+      const payload = {
+        name: facultyForm.name || '',
+        address: facultyForm.address || '',
+        phone: facultyForm.phone || '',
+        email: facultyForm.email || '',
+        website: facultyForm.website || ''
+      };
+
+      try {
+        if (activeModal === 'edit' && selectedId) {
+          await fetch(`${baseUrl}/faculties/${selectedId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+        } else {
+          await fetch(`${baseUrl}/faculties/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+        }
+        await fetchFaculties();
+      } catch (error) {
+        console.error("Eroare la salvarea facultății:", error);
+        alert("Salvarea a eșuat. Nu s-a putut trimite pachetul de date către backend!");
       }
     } else {
-      if (activeModal === 'edit' && selectedId) {
-        setBuildings(buildings.map(b => b.id === selectedId ? { ...b, ...buildingForm } as BuildingItem : b));
-      } else {
-        const newBuilding: BuildingItem = {
-          id: `bld-${Date.now()}`,
-          name: buildingForm.name || '',
-          location: buildingForm.location || '',
-          faculties: buildingForm.faculties || []
-        };
-        setBuildings([...buildings, newBuilding]);
+      const payload = {
+        name: buildingForm.name || '',
+        address: buildingForm.location || '',
+        faculty_id: faculties.length > 0 ? Number(faculties[0].id) : null 
+      };
+
+      try {
+        if (activeModal === 'edit' && selectedId) {
+          await fetch(`${baseUrl}/locations/${selectedId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+        } else {
+          await fetch(`${baseUrl}/locations/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+        }
+        await fetchBuildings();
+      } catch (error) {
+        console.error("Eroare la salvarea locației:", error);
+        alert("Salvarea a eșuat. Nu s-a putut trimite clădirea către backend!");
+        
+        if (activeModal === 'edit' && selectedId) {
+          setBuildings(buildings.map(b => b.id === selectedId ? { ...b, ...buildingForm } as BuildingItem : b));
+        } else {
+          setBuildings([...buildings, { id: `bld-${Date.now()}`, name: payload.name, location: payload.address, faculties: buildingForm.faculties || [] }]);
+        }
       }
     }
     setActiveModal(null);
@@ -273,7 +349,9 @@ export default function Page() {
       </div>
 
       <div className="bg-card border border-border rounded-2xl shadow-xs overflow-hidden">
-        {activeTab === 'facultati' ? (
+        {isDataLoading ? (
+          <div className="p-12 text-center text-sm text-slate-500 font-medium">Se încarcă datele din baza de date reală UGAL...</div>
+        ) : activeTab === 'facultati' ? (
           <Table data={faculties} columns={facultyColumns} />
         ) : (
           <Table data={buildings} columns={buildingColumns} />
@@ -302,8 +380,9 @@ export default function Page() {
           {targetType === 'facultati' ? (
             <>
               <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">Nume Facultăți</label>
+                <label htmlFor="fac-name" className="block text-xs font-semibold text-foreground mb-1">Nume Facultăți</label>
                 <input 
+                  id="fac-name"
                   type="text" 
                   value={facultyForm.name || ''} 
                   onChange={e => setFacultyForm({...facultyForm, name: e.target.value})} 
@@ -313,8 +392,9 @@ export default function Page() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">Adresă</label>
+                <label htmlFor="fac-address" className="block text-xs font-semibold text-foreground mb-1">Adresă</label>
                 <input 
+                  id="fac-address"
                   type="text" 
                   value={facultyForm.address || ''} 
                   onChange={e => setFacultyForm({...facultyForm, address: e.target.value})} 
@@ -323,8 +403,9 @@ export default function Page() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">Telefon</label>
+                <label htmlFor="fac-phone" className="block text-xs font-semibold text-foreground mb-1">Telefon</label>
                 <input 
+                  id="fac-phone"
                   type="text" 
                   value={facultyForm.phone || ''} 
                   onChange={e => setFacultyForm({...facultyForm, phone: e.target.value})} 
@@ -333,8 +414,9 @@ export default function Page() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">E-mail secretariat</label>
+                <label htmlFor="fac-email" className="block text-xs font-semibold text-foreground mb-1">E-mail secretariat</label>
                 <input 
+                  id="fac-email"
                   type="email" 
                   value={facultyForm.email || ''} 
                   onChange={e => setFacultyForm({...facultyForm, email: e.target.value})} 
@@ -344,8 +426,9 @@ export default function Page() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">Website</label>
+                <label htmlFor="fac-web" className="block text-xs font-semibold text-foreground mb-1">Website</label>
                 <input 
+                  id="fac-web"
                   type="url" 
                   value={facultyForm.website || ''} 
                   onChange={e => setFacultyForm({...facultyForm, website: e.target.value})} 
@@ -358,8 +441,9 @@ export default function Page() {
           ) : (
             <>
               <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">Nume Clădire</label>
+                <label htmlFor="bld-name" className="block text-xs font-semibold text-foreground mb-1">Nume Clădire</label>
                 <input 
+                  id="bld-name"
                   type="text" 
                   value={buildingForm.name || ''} 
                   onChange={e => setBuildingForm({...buildingForm, name: e.target.value})} 
@@ -368,8 +452,9 @@ export default function Page() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">Locație</label>
+                <label htmlFor="bld-loc" className="block text-xs font-semibold text-foreground mb-1">Locație</label>
                 <input 
+                  id="bld-loc"
                   type="text" 
                   value={buildingForm.location || ''} 
                   onChange={e => setBuildingForm({...buildingForm, location: e.target.value})} 
@@ -379,6 +464,7 @@ export default function Page() {
                 />
               </div>
               <div>
+                <span className="block text-xs font-semibold text-foreground mb-1">Selectează Facultățile Corpului</span>
                 <div className="grid grid-cols-2 gap-2 p-3 border border-border rounded-xl bg-slate-50/50 max-h-36 overflow-y-auto mt-2">
                   {availableAcronyms.map((acronym) => {
                     const isChecked = buildingForm.faculties?.includes(acronym);
@@ -403,13 +489,13 @@ export default function Page() {
             <button 
               type="button" 
               onClick={() => setActiveModal(null)} 
-              className="px-4 py-2 border border-border rounded-lg text-muted text-xs cursor-pointer hover:bg-background"
+              className="px-4 py-2 border border-border rounded-lg text-slate-500 text-xs cursor-pointer hover:bg-slate-50 transition-colors"
             >
               Anulează
             </button>
             <button 
               type="submit" 
-              className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold cursor-pointer hover:opacity-90"
+              className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold cursor-pointer hover:opacity-90 transition-opacity"
             >
               Salvează
             </button>
