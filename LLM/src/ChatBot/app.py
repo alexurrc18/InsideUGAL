@@ -343,9 +343,9 @@ def chat():
             sources.clear()
             lang = _detect_lang(user_message)
             if lang == "en":
-                answer = "The AI service is temporarily unavailable (quota exceeded). For information visit: https://www.ugal.ro/ or contact the faculty secretariat directly."
+                answer = "I don't have details on this right now. You can find more information at https://www.ugal.ro/ or contact the faculty secretariat directly."
             else:
-                answer = "Serviciul AI este temporar indisponibil (limită depășită). Găsești informații la: https://www.ugal.ro/ sau contactează direct secretariatul facultății."
+                answer = "Nu am detalii despre asta în acest moment. Poți găsi mai multe informații la https://www.ugal.ro/ sau contactează direct secretariatul facultății."
         for token in re.split(r"(\s+)", answer):
             if token:
                 full_content.append(token)
