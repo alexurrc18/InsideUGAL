@@ -257,6 +257,8 @@ FACULTY_COMMON_PAGES = [
 
 FACULTY_SITES = {
     "ing":    "https://ing.ugal.ro",    # Facultatea de Inginerie
+    "fan":    "https://fan.ugal.ro",    # Facultatea de Arhitectură Navală
+    "sia":    "https://sia.ugal.ro",    # Facultatea de Știința și Ingineria Alimentelor
     "feaa":   "https://feaa.ugal.ro",   # Facultatea de Economie și Administrarea Afacerilor
     "fdsa":   "https://fdsa.ugal.ro",   # Facultatea de Drept și Științe Administrative
     "litere": "https://litere.ugal.ro", # Facultatea de Litere
