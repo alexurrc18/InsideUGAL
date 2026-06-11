@@ -228,6 +228,43 @@ ADM_PAGES = [
     "/contact",
 ]
 
+FACULTY_COMMON_PAGES = [
+    "/",
+    "/prezentare",
+    "/prezentare/misiune",
+    "/structura/conducere",
+    "/structura/secretariat",
+    "/structura/departamente",
+    "/educatie/licenta",
+    "/educatie/masterat",
+    "/admitere",
+    "/admitere/licenta",
+    "/admitere/masterat",
+    "/studenti/burse",
+    "/studenti/taxe",
+    "/studenti/orare-licenta",
+    "/studenti/orare-masterat",
+    "/studenti/programarea-examenelor",
+    "/studenti/regulamente",
+    "/studenti/ghidul-studentului",
+    "/studenti/finalizare-studii",
+    "/studenti/practica",
+    "/studenti/erasmus",
+    "/informatii/anunturi",
+    "/informatii/evenimente",
+    "/contact",
+]
+
+FACULTY_SITES = {
+    "ing":   "https://ing.ugal.ro",
+    "fmf":   "https://fmf.ugal.ro",
+    "feaa":  "https://feaa.ugal.ro",
+    "fdsa":  "https://fdsa.ugal.ro",
+    "litere": "https://litere.ugal.ro",
+    "arte":  "https://arte.ugal.ro",
+    "fefs":  "https://fefs.ugal.ro",
+}
+
 
 def _scrape_site(base: str, pages: list[str], prefix: str) -> list[dict]:
     chunks = []
@@ -267,10 +304,21 @@ def scrape_admitere() -> list[dict]:
     return _scrape_site(ADM_URL, ADM_PAGES, "adm")
 
 
+def scrape_faculties() -> list[dict]:
+    """Scrape-uiește toate site-urile de facultăți UGAL."""
+    chunks = []
+    for prefix, base_url in FACULTY_SITES.items():
+        print(f"[Scraper] Facultate {prefix} ({base_url})...")
+        VERIFY_SSL[base_url] = False
+        chunks += _scrape_site(base_url, FACULTY_COMMON_PAGES, prefix)
+    return chunks
+
+
 def scrape_all() -> list[dict]:
-    """Scrape-uiește toate sursele: FACIEE + UGAL general + Admitere."""
+    """Scrape-uiește toate sursele: FACIEE + toate facultățile + UGAL general + Admitere."""
     chunks = []
     chunks += scrape_faciee()
+    chunks += scrape_faculties()
     chunks += scrape_ugal_general()
     chunks += scrape_admitere()
     print(f"[Scraper] Total: {len(chunks)} chunk-uri din toate sursele.")
