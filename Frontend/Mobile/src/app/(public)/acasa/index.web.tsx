@@ -1,17 +1,16 @@
-import React from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, ScrollView } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Image } from "expo-image";
-import { Colors, ColorScheme, Spacing } from "@/constants/theme";
-import { Typography } from "@/constants/typography";
+import { Colors, Spacing } from "@/constants/theme";
 
 import { WebContainer } from "@/components/ui/web-container";
 import { Carousel } from "@/components/ui/carousel";
 import { CAROUSEL_CARD_MARGIN } from "@/components/ui/carousel.shared";
 import { NewsCard } from "@/components/ui/news-card";
-import { getFormattedDate } from "@/utils/date";
+import { HeroSlideshow, HERO_HEIGHT } from "@/components/ui/hero-slideshow";
+import { NAVBAR_HEIGHT } from "@/components/ui/web-navbar";
+import { getFormattedDate, parseRomanianDate } from "@/utils/date";
 import { useWebScrollAware } from "@/contexts/web-scroll-context";
 import MOCK_DATA from "@/constants/mock-data.json";
 
@@ -21,13 +20,18 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // Navbar transparent pana trece de banner (285px) - inaltimea navbarului (72).
-  const scrollProps = useWebScrollAware(210);
+  // Navbar transparent pana trece de hero. Pragul = inaltimea hero-ului minus navbar.
+  const scrollProps = useWebScrollAware(HERO_HEIGHT - NAVBAR_HEIGHT);
 
   const noutati = MOCK_DATA.events.filter(e => e.category === "Noutăți");
   const evenimente = MOCK_DATA.events.filter(e => e.category === "Evenimente");
   const facultati = MOCK_DATA.faculties;
   const facilitati = MOCK_DATA.facilities;
+
+  // Ultimele 3 anunturi (Noutăți), cele mai recente primele, pentru hero.
+  const heroItems = [...noutati]
+    .sort((a, b) => parseRomanianDate(b.date).getTime() - parseRomanianDate(a.date).getTime())
+    .slice(0, 3);
 
   const handleFacilityPress = (facility: any) => {
     router.push({
@@ -82,28 +86,8 @@ export default function HomeScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} {...scrollProps}>
-        {/* Banner full-bleed: ramane pe toata latimea, in afara canvas-ului scalat */}
-        <View style={{ width: "100%", height: 285 }}>
-          <Image
-            source={require("@/assets/images/campus-stiintei.png")}
-            style={{ width: "100%", height: "100%", position: "absolute" }}
-            contentFit="cover"
-          />
-
-          <View style={{ flex: 1, paddingVertical: Spacing.lg, justifyContent: "flex-end" }}>
-            <WebContainer>
-              {/* paddingHorizontal Spacing.lg ca sa se alinieze cu titlurile caruselelor */}
-              <View style={{ paddingHorizontal: Spacing.lg }}>
-                <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
-                  Astăzi, 27 mai
-                </Text>
-                <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
-                  Descoperă
-                </Text>
-              </View>
-            </WebContainer>
-          </View>
-        </View>
+        {/* Hero slideshow full-bleed: ultimele 3 anunturi, auto-rotire + puncte. */}
+        <HeroSlideshow slides={heroItems} onPressItem={handlePress} />
 
         <WebContainer style={{ paddingTop: Spacing.lg, paddingBottom: insets.bottom + Spacing.sm, flex: 1 }}>
           <Carousel
