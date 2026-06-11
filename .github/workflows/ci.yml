@@ -197,11 +197,11 @@ jobs:
       - name: Build local image for scanning
         if: needs.changes.outputs.frontend_dashboard == 'true'
         run: |
-          docker build -t insideugal-frontend:test Frontend/Dashboard/dashboard-insideugal/
+          docker build --pull -t insideugal-frontend:test Frontend/Dashboard/dashboard-insideugal/
 
       - name: Run Trivy vulnerability scanner
         if: needs.changes.outputs.frontend_dashboard == 'true'
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'insideugal-frontend:test'
           format: 'table'
@@ -209,6 +209,7 @@ jobs:
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
+          trivyignores: '.trivyignore'
 
   semgrep-scan:
     name: Security Scan (SAST)
