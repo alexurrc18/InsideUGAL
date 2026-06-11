@@ -37,8 +37,8 @@ function itemDate(item: HighlightItem) {
   return getFormattedDate(item.date_start || item.date);
 }
 
-/** Card orizontal compact: poza stanga, text dreapta. */
-function CompactCard({ item, onPress }: { item: HighlightItem; onPress: () => void }) {
+/** Card orizontal compact: poza stanga, text dreapta. Latime flexibila (umple containerul). */
+export function CompactCard({ item, onPress }: { item: HighlightItem; onPress: () => void }) {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
 

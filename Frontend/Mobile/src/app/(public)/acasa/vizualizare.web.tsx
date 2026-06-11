@@ -1,19 +1,29 @@
-import { View, Text, ScrollView, Linking, TouchableOpacity, Alert } from "react-native";
+import { useState } from "react";
+import { View, Text, ScrollView, Linking, TouchableOpacity, Alert, useWindowDimensions, type LayoutChangeEvent } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { getFormattedDate, getReadingTime } from "@/utils/date";
 import { WebContainer } from "@/components/ui/web-container";
+import { CompactCard } from "@/components/ui/home-highlights";
+import { NewsCard } from "@/components/ui/news-card";
+import MOCK_DATA from "@/constants/mock-data.json";
 
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
 import LocationIcon from "@/assets/icons/svg/location.svg";
 import PhoneIcon from "@/assets/icons/svg/phone.svg";
 import WebsiteIcon from "@/assets/icons/svg/globe-europe.svg";
 
+// Latimea coloanei din dreapta (sidebar) cand layout-ul e pe doua coloane.
+const SIDEBAR_WIDTH = 340;
+// Sub acest prag continutul si sidebarul se stivuiesc vertical.
+const TWO_COL_BREAKPOINT = 900;
+
 function VizualizareScreen() {
+    const params = useLocalSearchParams();
     const {
         type,
         title,
@@ -29,14 +39,55 @@ function VizualizareScreen() {
         address,
         phone,
         website,
-        date
-    } = useLocalSearchParams();
+        date,
+    } = params;
 
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
     const theme = Colors[themeName];
     const insets = useSafeAreaInsets();
+    const router = useRouter();
+    const { width } = useWindowDimensions();
+    const twoCol = width >= TWO_COL_BREAKPOINT;
 
     const tipPagina = type || "Eveniment";
+
+    // Anunturi inrudite: prioritizam aceeasi categorie ca articolul curent, apoi
+    // completam cu restul. Excludem articolul curent (dupa titlu). Sidebar-ul ia
+    // primele, "Mai multe" ia urmatoarele (distincte de sidebar).
+    const pool = MOCK_DATA.events.filter((e) => e.title !== title);
+    const sameCategory = pool.filter((e) => e.category === (category as string));
+    const otherCategory = pool.filter((e) => e.category !== (category as string));
+    const ordered = [...sameCategory, ...otherCategory];
+
+    const sidebarItems = ordered.slice(0, 3);
+    const relatedItems = ordered.slice(3, 6);
+
+    // Latimea masurata a randului de jos, impartita egal la numarul de carduri.
+    const [rowWidth, setRowWidth] = useState(0);
+    const onRowLayout = (e: LayoutChangeEvent) => setRowWidth(e.nativeEvent.layout.width);
+    const bottomCount = relatedItems.length;
+    const bottomCardWidth =
+        rowWidth > 0 && bottomCount > 0 ? (rowWidth - (bottomCount - 1) * Spacing.lg) / bottomCount : 0;
+
+    // Navigare catre alt anunt (aceeasi pagina, parametri noi).
+    const openItem = (item: any) => {
+        router.push({
+            pathname: "/(public)/acasa/vizualizare",
+            params: {
+                type: item.category === "Evenimente" ? "Eveniment" : "Anunț",
+                title: item.title,
+                category: item.category,
+                content: item.content,
+                image: item.image,
+                location: item.location,
+                date_start: item.date_start,
+                date_end: item.date_end,
+                time_start: item.time_start,
+                time_end: item.time_end,
+                date: item.date_start || item.date,
+            },
+        });
+    };
 
     const handleCall = () => {
         Alert.alert(
@@ -44,12 +95,12 @@ function VizualizareScreen() {
             `Doriți să apelați numărul ${phone}?`,
             [
                 { text: "Anulează", style: "cancel" },
-                { text: "Sună", onPress: () => Linking.openURL(`tel:${phone}`) }
+                { text: "Sună", onPress: () => Linking.openURL(`tel:${phone}`) },
             ]
         );
     };
 
-    const formattedDate = getFormattedDate(date as string || posted_at as string);
+    const formattedDate = getFormattedDate((date as string) || (posted_at as string));
     const readingTime = getReadingTime(content as string);
     const dateDisplay = category === "Noutăți" ? `${formattedDate} | ${readingTime}` : formattedDate;
 
@@ -66,109 +117,136 @@ function VizualizareScreen() {
 
                     <View style={{ flex: 1, paddingVertical: Spacing.lg, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.3)" }}>
                         <WebContainer>
-                        <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
-                            {category || (tipPagina === "Facultate" ? "Facultate" : "Categorie")}
-                        </Text>
-                        <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
-                            {title || "Titlu"}
-                        </Text>
+                            <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
+                                {category || (tipPagina === "Facultate" ? "Facultate" : "Categorie")}
+                            </Text>
+                            <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
+                                {title || "Titlu"}
+                            </Text>
                         </WebContainer>
                     </View>
                 </View>
 
-                <WebContainer style={{ paddingVertical: Spacing.lg, gap: Spacing.xxl }}>
-                    {tipPagina !== "Facultate" && (
-                        <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>
-                            {dateDisplay || "Dată necunoscută"}
-                        </Text>
-                    )}
+                <WebContainer style={{ paddingVertical: Spacing.xl, gap: Spacing.xxl }}>
+                    {/* Rand principal: continut (stanga) + sidebar Noutăți (dreapta). */}
+                    <View style={{ flexDirection: twoCol ? "row" : "column", gap: Spacing.xxl, alignItems: "flex-start" }}>
+                        {/* Stanga: continutul anuntului. */}
+                        <View style={{ flex: 1, gap: Spacing.xxl, width: "100%" }}>
+                            {tipPagina !== "Facultate" && (
+                                <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>
+                                    {dateDisplay || "Dată necunoscută"}
+                                </Text>
+                            )}
 
-                    {tipPagina === "Eveniment" && (
-                        <View style={{ gap: Spacing.md }}>
-                            <Text style={[Typography.Heading4, { color: theme.text }]}>
-                                Informații eveniment
-                            </Text>
+                            {tipPagina === "Eveniment" && (
+                                <View style={{ gap: Spacing.md }}>
+                                    <Text style={[Typography.Heading4, { color: theme.text }]}>Informații eveniment</Text>
+                                    <View style={{ gap: Spacing.md }}>
+                                        <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
+                                            <CalendarIcon width={24} height={24} color={theme.primary} />
+                                            <View>
+                                                <Text style={[Typography.Heading5, { color: theme.text }]}>
+                                                    De pe {date_start || "N/A"} {time_start || ""}
+                                                </Text>
+                                                <Text style={[Typography.Heading5, { color: theme.text }]}>
+                                                    Până la {date_end || "N/A"} {time_end || ""}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                        <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
+                                            <LocationIcon width={24} height={24} color={theme.primary} />
+                                            <View>
+                                                <Text style={[Typography.Heading5, { color: theme.text }]}>
+                                                    {location || "Locație nespecificată"}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    </View>
+                                </View>
+                            )}
+
+                            {tipPagina === "Facultate" && (
+                                <View style={{ gap: Spacing.md }}>
+                                    <Text style={[Typography.Heading4, { color: theme.text }]}>Contact și Locație</Text>
+                                    <View style={{ gap: Spacing.lg }}>
+                                        <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
+                                            <LocationIcon width={24} height={24} color={theme.primary} />
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Adresă</Text>
+                                                <Text style={[Typography.Heading5, { color: theme.text }]}>
+                                                    {address || "Nespecificată"}
+                                                </Text>
+                                            </View>
+                                        </View>
+
+                                        {phone && (
+                                            <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
+                                                <PhoneIcon width={24} height={24} color={theme.primary} />
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Telefon</Text>
+                                                    <TouchableOpacity onPress={handleCall}>
+                                                        <Text style={[Typography.Heading5, { color: theme.text }]}>{phone}</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+                                        )}
+
+                                        {website && (
+                                            <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
+                                                <WebsiteIcon width={24} height={24} color={theme.primary} />
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Website</Text>
+                                                    <TouchableOpacity onPress={() => Linking.openURL(website as string)}>
+                                                        <Text style={[Typography.Heading5, { color: theme.secondary }]}>{website}</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+                                        )}
+                                    </View>
+                                </View>
+                            )}
 
                             <View style={{ gap: Spacing.md }}>
-                                <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
-                                    <CalendarIcon width={24} height={24} color={theme.primary} />
-                                    <View>
-                                        <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                            De pe {date_start || "N/A"} {time_start || ""}
-                                        </Text>
-                                        <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                            Până la {date_end || "N/A"} {time_end || ""}
-                                        </Text>
-                                    </View>
-                                </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
-                                    <LocationIcon width={24} height={24} color={theme.primary} />
-                                    <View>
-                                        <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                            {location || "Locație nespecificată"}
-                                        </Text>
-                                    </View>
-                                </View>
+                                <Text style={[Typography.Heading4, { color: theme.text }]}>
+                                    {tipPagina === "Eveniment" ? "Despre eveniment" : tipPagina === "Facultate" ? "Despre facultate" : "Detalii anunț"}
+                                </Text>
+                                <Text style={[Typography.Paragraph2, { color: theme.text, lineHeight: 25 }]}>
+                                    {content || "Conținutul nu este disponibil."}
+                                </Text>
                             </View>
                         </View>
-                    )}
 
-                    {tipPagina === "Facultate" && (
-                        <View style={{ gap: Spacing.md }}>
-                            <Text style={[Typography.Heading4, { color: theme.text }]}>
-                                Contact și Locație
-                            </Text>
-
-                            <View style={{ gap: Spacing.lg }}>
-                                <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
-                                    <LocationIcon width={24} height={24} color={theme.primary} />
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Adresă</Text>
-                                        <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                            {address || "Nespecificată"}
-                                        </Text>
-                                    </View>
-                                </View>
-
-                                {phone && (
-                                    <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
-                                        <PhoneIcon width={24} height={24} color={theme.primary} />
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Telefon</Text>
-                                            <TouchableOpacity onPress={handleCall}>
-                                                <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                                    {phone}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    </View>
-                                )}
-
-                                {website && (
-                                    <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
-                                        <WebsiteIcon width={24} height={24} color={theme.primary} />
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Website</Text>
-                                            <TouchableOpacity onPress={() => Linking.openURL(website as string)}>
-                                                <Text style={[Typography.Heading5, { color: theme.secondary }]}>
-                                                    {website}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    </View>
-                                )}
+                        {/* Dreapta: 3 carduri Noutăți, una sub alta. */}
+                        {sidebarItems.length > 0 && (
+                            <View style={{ width: twoCol ? SIDEBAR_WIDTH : "100%", gap: Spacing.lg }}>
+                                <Text style={[Typography.Heading4, { color: theme.text }]}>Articole similare</Text>
+                                {sidebarItems.map((item) => (
+                                    <CompactCard key={item.id} item={item} onPress={() => openItem(item)} />
+                                ))}
                             </View>
-                        </View>
-                    )}
-
-                    <View style={{ gap: Spacing.md }}>
-                        <Text style={[Typography.Heading4, { color: theme.text }]}>
-                            {tipPagina === "Eveniment" ? "Despre eveniment" : tipPagina === "Facultate" ? "Despre facultate" : "Detalii anunț"}
-                        </Text>
-                        <Text style={[Typography.Paragraph2, { color: theme.text, lineHeight: 25 }]}>
-                            {content || "Conținutul nu este disponibil."}
-                        </Text>
+                        )}
                     </View>
+
+                    {/* Jos, sub tot: 3 carduri pe un rand. */}
+                    {relatedItems.length > 0 && (
+                        <View style={{ gap: Spacing.lg }}>
+                            <Text style={[Typography.Heading4, { color: theme.text }]}>Mai multe</Text>
+                            <View style={{ flexDirection: "row", gap: Spacing.lg }} onLayout={onRowLayout}>
+                                {bottomCardWidth > 0 &&
+                                    relatedItems.map((item) => (
+                                        <NewsCard
+                                            key={item.id}
+                                            width={bottomCardWidth}
+                                            title={item.title}
+                                            date={getFormattedDate(item.date_start || item.date)}
+                                            author={item.author}
+                                            image={item.image}
+                                            onPress={() => openItem(item)}
+                                        />
+                                    ))}
+                            </View>
+                        </View>
+                    )}
                 </WebContainer>
             </ScrollView>
         </View>
