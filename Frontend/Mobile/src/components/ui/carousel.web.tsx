@@ -2,7 +2,7 @@ import { View, Text, FlatList, Pressable, useWindowDimensions } from "react-nati
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useRouter } from "expo-router";
 import { Typography } from "@/constants/typography";
-import { Colors, ColorScheme, Spacing } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { CAROUSEL_CARD_WIDTH, CAROUSEL_CARD_MARGIN, CarouselProps } from "./carousel.shared";
 
 export function Carousel<T>({ data, renderItem, keyExtractor, title, viewAllHref }: CarouselProps<T>) {
@@ -27,7 +27,7 @@ export function Carousel<T>({ data, renderItem, keyExtractor, title, viewAllHref
                     {title && <Text style={[Typography.Heading3, { color: theme.text }]}>{title}</Text>}
                     {viewAllHref && (
                         <Pressable onPress={() => router.push(viewAllHref as any)}>
-                            <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>Vezi mai multe &gt;</Text>
+                            <Text style={[Typography.Paragraph2, { color: theme.primary }]}>Vezi mai multe &gt;</Text>
                         </Pressable>
                     )}
                 </View>

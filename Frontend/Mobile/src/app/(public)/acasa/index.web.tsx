@@ -12,6 +12,7 @@ import { Carousel } from "@/components/ui/carousel";
 import { CAROUSEL_CARD_MARGIN } from "@/components/ui/carousel.shared";
 import { NewsCard } from "@/components/ui/news-card";
 import { getFormattedDate } from "@/utils/date";
+import { useWebScrollAware } from "@/contexts/web-scroll-context";
 import MOCK_DATA from "@/constants/mock-data.json";
 
 export default function HomeScreen() {
@@ -19,6 +20,9 @@ export default function HomeScreen() {
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
+  // Navbar transparent pana trece de banner (285px) - inaltimea navbarului (72).
+  const scrollProps = useWebScrollAware(210);
 
   const noutati = MOCK_DATA.events.filter(e => e.category === "Noutăți");
   const evenimente = MOCK_DATA.events.filter(e => e.category === "Evenimente");
@@ -77,7 +81,7 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} {...scrollProps}>
         {/* Banner full-bleed: ramane pe toata latimea, in afara canvas-ului scalat */}
         <View style={{ width: "100%", height: 285 }}>
           <Image
