@@ -31,7 +31,7 @@ print("Se încarcă indexul RAG...")
 rag = RAGEngine()
 print(f"RAG gata — {rag.collection.count()} chunk-uri indexate.")
 
-RESCRAPE_INTERVAL_HOURS = 1
+RESCRAPE_INTERVAL_HOURS = 24
 
 def _run_scraper(full_rebuild: bool = False):
     try:
