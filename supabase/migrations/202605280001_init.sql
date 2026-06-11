@@ -1,3 +1,7 @@
+-- Grant necessary permissions for Supabase internal scripts to create extensions in CI
+ALTER ROLE postgres WITH SUPERUSER;
+GRANT pg_read_server_files TO postgres;
+
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'supabase_admin') THEN
