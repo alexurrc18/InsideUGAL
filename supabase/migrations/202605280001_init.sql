@@ -29,7 +29,12 @@ CREATE TABLE IF NOT EXISTS storage.buckets (
     updated_at timestamp with time zone
 );
 
-CREATE EXTENSION IF NOT EXISTS postgis;
+DO $$
+BEGIN
+  CREATE EXTENSION IF NOT EXISTS postgis;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'Ignorat: Lipsa permisiuni interne Supabase pentru instalare PostGIS in mediul local/CI.';
+END $$;
 
 -- ==========================================================
 -- 1. CREARE TIPURI ENUM
