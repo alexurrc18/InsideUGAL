@@ -238,7 +238,14 @@ def chat():
     sources: list[str] = []
     backend_context = ""
 
-    if is_menu_question(user_message):
+    # Încearcă Supabase (anunțuri, meniuri, facultăți etc.) — prioritate maximă
+    backend_context = backend_client.fetch_context(user_message)
+
+    if backend_context:
+        context = backend_context
+        sources = []
+    elif is_menu_question(user_message):
+        # Supabase nu are date de meniu — fallback pe scraping live
         menu_text = fetch_canteen_menu()
         if menu_text:
             context = f"MENIUL CANTINEI (actualizat live astăzi):\n{menu_text}\n\nPrezintă meniul structurat pe categorii cu prețurile."
@@ -247,13 +254,8 @@ def chat():
             context = "Meniul cantinei nu a putut fi preluat acum. Trimite utilizatorul la: https://campus.ugal.ro/ccps/meniu-studenti/"
             backend_context = "Meniul cantinei nu este disponibil momentan. Verifică la: https://campus.ugal.ro/ccps/meniu-studenti/"
     else:
-        backend_context = backend_client.fetch_context(user_message)
-        if backend_context:
-            context = backend_context
-            sources = []
-        else:
-            raw_context, sources = rag.query_with_sources(user_message, n_results=3)
-            context = raw_context or "Nu am găsit informații specifice. Îndrumă utilizatorul spre https://www.ugal.ro/"
+        raw_context, sources = rag.query_with_sources(user_message, n_results=3)
+        context = raw_context or "Nu am găsit informații specifice. Îndrumă utilizatorul spre https://www.ugal.ro/"
 
     system = SYSTEM_BASE + context
 
