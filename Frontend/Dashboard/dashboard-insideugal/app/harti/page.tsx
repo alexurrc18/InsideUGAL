@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Table, { Column } from "../components/ui/Table";
 import Modal from "../components/ui/Modal";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
+import { Card, CardContent } from "../components/ui/Card";
 import MapView from "../components/MapView";
 import MapComponent from "../components/MapComponent";
 
@@ -20,11 +20,11 @@ interface Cladire {
   descriere: string;
 }
 
-const initialCladiri: Cladire[] = [
-  { id: 1, denumire: "Corp D", adresa: "Str. Domnească nr. 111", lat: "45.44663581608561", lng: "28.053739626065855", facultate: "f1", telefon: "", website: "", program: "", descriere: "" },
-  { id: 2, denumire: "Corp Y", adresa: "Str. Domnească nr. 111, Corp Y", lat: "45.44568720923874", lng: "28.052315584193785", facultate: "f1", telefon: "", website: "", program: "", descriere: "" },
-  { id: 3, denumire: "Corp G (Domnească)", adresa: "Str. Domnească nr. 111", lat: "45.44607531932204", lng: "28.05217216305528", facultate: "f1", telefon: "", website: "", program: "", descriere: "" },
-];
+interface BackendLocation {
+  id: number;
+  name: string;
+  coordinates?: { latitude: number; longitude: number };
+}
 
 function CladireForm({
   formState,
@@ -145,7 +145,39 @@ export default function HartiPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingCladire, setEditingCladire] = useState<Cladire | null>(null);
-  const [cladiri, setCladiri] = useState<Cladire[]>(initialCladiri);
+  const [cladiri, setCladiri] = useState<Cladire[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch("http://localhost:8000/locations/");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data: BackendLocation[] = await response.json();
+        const mappedCladiri: Cladire[] = data.map((loc) => ({
+          id: loc.id,
+          denumire: loc.name,
+          adresa: "",
+          lat: loc.coordinates?.latitude?.toString() || "",
+          lng: loc.coordinates?.longitude?.toString() || "",
+          facultate: "",
+          telefon: "",
+          website: "",
+          program: "",
+          descriere: ""
+        }));
+        setCladiri(mappedCladiri);
+      } catch (error) {
+        console.error("Eroare la încărcarea locațiilor:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchLocations();
+  }, []);
 
   const [isAddExpanded, setIsAddExpanded] = useState(false);
   const [isEditExpanded, setIsEditExpanded] = useState(false);
@@ -227,7 +259,13 @@ export default function HartiPage() {
 
       {tab === "locatii" ? (
         <Card>
-          <CardContent className="p-0"><Table data={cladiri} columns={columns} /></CardContent>
+          <CardContent className="p-0">
+            {isLoading ? (
+              <div className="p-8 text-center text-muted">Se încarcă locațiile...</div>
+            ) : (
+              <Table data={cladiri} columns={columns} />
+            )}
+          </CardContent>
         </Card>
       ) : (
         <div className="h-[600px] rounded-2xl overflow-hidden border border-border"><MapView cladiri={cladiri} /></div>
