@@ -27,6 +27,9 @@ export const NAVBAR_HEIGHT = 72;
 
 const LOGO = require("@/assets/images/logo.png");
 
+// Rute fara hero, unde navbar-ul e mereu solid (albastru), independent de scroll.
+const ALWAYS_SOLID_ROUTES = ["/harta", "/cantina", "/sesizari"];
+
 // Link-urile = aceleasi destinatii care erau in NativeTabs. `match` e segmentul cu
 // care comparam pathname-ul (care vine fara grupul "(public)") ca sa stim activul.
 const LINKS: { label: string; href: string; match: string }[] = [
@@ -44,15 +47,19 @@ export function WebNavbar() {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Pe rutele fara hero navbar-ul e mereu solid; altfel devine solid la scroll.
+  const forceSolid = ALWAYS_SOLID_ROUTES.some((p) => pathname.startsWith(p));
+  const solid = scrolled || forceSolid;
+
   // Opacitatea stratului de fundal solid (albastru): 0 = transparent, 1 = solid.
-  const bgOpacity = useRef(new Animated.Value(scrolled ? 1 : 0)).current;
+  const bgOpacity = useRef(new Animated.Value(solid ? 1 : 0)).current;
   useEffect(() => {
     Animated.timing(bgOpacity, {
-      toValue: scrolled ? 1 : 0,
+      toValue: solid ? 1 : 0,
       duration: 250,
       useNativeDriver: false,
     }).start();
-  }, [scrolled, bgOpacity]);
+  }, [solid, bgOpacity]);
 
   return (
     <View style={styles.bar} pointerEvents="box-none">
