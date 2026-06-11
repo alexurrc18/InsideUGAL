@@ -1,12 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, useColorScheme } from "react-native";
+import { View, Text, useColorScheme, Pressable, Animated } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { NewsCard } from "@/components/ui/news-card";
 import { CategoryHeader, FilterItem } from "@/components/ui/category-header";
 import { getFormattedDate } from "@/utils/date";
+import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import MOCK_DATA from "@/constants/mock-data.json";
 
 export default function CategoryScreen() {
@@ -15,6 +16,8 @@ export default function CategoryScreen() {
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
+  const scrollY = React.useRef(new Animated.Value(0)).current;
 
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
 
@@ -62,15 +65,67 @@ export default function CategoryScreen() {
     });
   };
 
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [50, 90],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView 
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerShadowVisible: false,
+          headerTransparent: false,
+          headerStyle: {
+            backgroundColor: theme.background,
+          },
+          headerTintColor: theme.text,
+          headerLeft: () => (
+            <Pressable 
+              onPress={() => router.back()} 
+              style={({ pressed }) => ({
+                padding: Spacing.xs,
+                marginLeft: -Spacing.xs,
+                opacity: pressed ? 0.6 : 1
+              })}
+            >
+              <BackIcon width={28} height={28} color={theme.text} />
+            </Pressable>
+          ),
+          headerTitle: () => (
+            <Animated.View style={{ opacity: headerTitleOpacity }}>
+              <Text 
+                style={[
+                  Typography.Heading4, 
+                  { 
+                    color: theme.text,
+                    textAlign: "center"
+                  }
+                ]}
+                numberOfLines={1}
+              >
+                {(categoryTitle as string) || "Categorie"}
+              </Text>
+            </Animated.View>
+          ),
+        }}
+      />
+
+      <Animated.ScrollView 
         style={{ flex: 1 }} 
         contentContainerStyle={{ 
+          paddingTop: Spacing.md,
           paddingBottom: insets.bottom + Spacing.xxl
         }}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
       >
-        <View style={{ paddingTop: insets.top + 50, marginBottom: Spacing.lg }}>
+        <View style={{ marginBottom: Spacing.lg }}>
             <CategoryHeader 
                 title={(categoryTitle as string) || "Categorie"}
                 filters={categoryTitle === "Facultăți" || categoryTitle === "Facilități" ? undefined : facultyFilters}
@@ -85,7 +140,7 @@ export default function CategoryScreen() {
                   key={item.id}
                   variant="list"
                   title={item.title}
-                  author={(item as any).author}
+                  author={(item as any).author || (item as any).address}
                   date={getFormattedDate((item as any).date_start || (item as any).date)}
                   image={item.image}
                   onPress={() => handlePress(item)}
@@ -99,7 +154,7 @@ export default function CategoryScreen() {
             </Text>
         )}
 
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }

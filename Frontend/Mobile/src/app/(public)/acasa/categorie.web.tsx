@@ -1,14 +1,14 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView } from "react-native";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { View, Text, useColorScheme, Pressable, Animated } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { WebContainer } from "@/components/ui/web-container";
 import { NewsCard } from "@/components/ui/news-card";
 import { CategoryHeader, FilterItem } from "@/components/ui/category-header";
 import { getFormattedDate } from "@/utils/date";
+import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import MOCK_DATA from "@/constants/mock-data.json";
 
 export default function CategoryScreen() {
@@ -17,6 +17,8 @@ export default function CategoryScreen() {
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
+  const scrollY = React.useRef(new Animated.Value(0)).current;
 
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
 
@@ -62,45 +64,96 @@ export default function CategoryScreen() {
     });
   };
 
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [80, 120],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerShadowVisible: false,
+          headerTransparent: false,
+          headerStyle: {
+            backgroundColor: theme.background,
+          },
+          headerTintColor: theme.text,
+          headerLeft: () => (
+            <Pressable 
+              onPress={() => router.back()} 
+              style={({ pressed }) => ({
+                padding: Spacing.xs,
+                marginLeft: -Spacing.xs,
+                opacity: pressed ? 0.6 : 1
+              })}
+            >
+              <BackIcon width={28} height={28} color={theme.text} />
+            </Pressable>
+          ),
+          headerTitle: () => (
+            <Animated.View style={{ opacity: headerTitleOpacity }}>
+              <Text 
+                style={[
+                  Typography.Heading4, 
+                  { 
+                    color: theme.text,
+                    textAlign: "center"
+                  }
+                ]}
+                numberOfLines={1}
+              >
+                {(categoryTitle as string) || "Categorie"}
+              </Text>
+            </Animated.View>
+          ),
+        }}
+      />
+
+      <Animated.ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingBottom: insets.bottom + Spacing.xxl
         }}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
       >
         <WebContainer>
-        <View style={{ paddingTop: insets.top + 140, marginBottom: Spacing.lg }}>
-            <CategoryHeader
-                title={(categoryTitle as string) || "Categorie"}
-                filters={categoryTitle === "Facultăți" ? undefined : facultyFilters}
-                selectedFilterId={selectedFacultyId}
-                onSelectFilter={setSelectedFacultyId}
-            />
-        </View>
-
-        <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>
-          {filteredData.map((item) => (
-              <NewsCard
-                  key={item.id}
-                  variant="list"
-                  title={item.title}
-                  author={(item as any).author}
-                  date={getFormattedDate((item as any).date_start || (item as any).date)}
-                  image={item.image}
-                  onPress={() => handlePress(item)}
+          <View style={{ paddingTop: insets.top + 140, marginBottom: Spacing.lg }}>
+              <CategoryHeader
+                  title={(categoryTitle as string) || "Categorie"}
+                  filters={categoryTitle === "Facultăți" ? undefined : facultyFilters}
+                  selectedFilterId={selectedFacultyId}
+                  onSelectFilter={setSelectedFacultyId}
               />
-          ))}
-        </View>
+          </View>
 
-        {filteredData.length === 0 && (
-            <Text style={[Typography.Paragraph1, { color: theme.text, textAlign: "center", marginTop: 40 }]}>
-                Nu există elemente în această categorie.
-            </Text>
-        )}
+          <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>
+            {filteredData.map((item) => (
+                <NewsCard
+                    key={item.id}
+                    variant="list"
+                    title={item.title}
+                    author={(item as any).author || (item as any).address}
+                    date={getFormattedDate((item as any).date_start || (item as any).date)}
+                    image={item.image}
+                    onPress={() => handlePress(item)}
+                />
+            ))}
+          </View>
+
+          {filteredData.length === 0 && (
+              <Text style={[Typography.Paragraph1, { color: theme.text, textAlign: "center", marginTop: 40 }]}>
+                  Nu există elemente în această categorie.
+              </Text>
+          )}
         </WebContainer>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }

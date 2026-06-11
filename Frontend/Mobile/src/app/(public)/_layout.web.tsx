@@ -2,8 +2,10 @@ import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { View } from 'react-native';
 import { ColorScheme, WebSidePadding } from "@/constants/theme";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { useNavigation } from 'expo-router';
 
 export default function TabLayout() {
+    const navigation = useNavigation<any>();
     const activeColor = ColorScheme.white;
 
     // ThemeProvider e montat in root-ul web (_layout.web.tsx), deasupra tuturor grupurilor.
@@ -15,6 +17,17 @@ export default function TabLayout() {
                 }}
                 tintColor={activeColor}
                 minimizeBehavior="onScrollDown"
+                screenListeners={() => ({
+                    tabPress: (e) => {
+                        const state = navigation.getState();
+                        if (state) {
+                            const route = state.routes.find((r: any) => r.key === e.target);
+                            if (route && (route.name === 'more' || route.name === 'acasa' || route.name === 'sesizari')) {
+                                navigation.navigate(route.name, { screen: 'index' });
+                            }
+                        }
+                    }
+                })}
             >
                 <NativeTabs.Trigger name="acasa">
                     <NativeTabs.Trigger.Icon
