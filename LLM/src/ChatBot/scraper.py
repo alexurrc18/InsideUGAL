@@ -256,13 +256,12 @@ FACULTY_COMMON_PAGES = [
 ]
 
 FACULTY_SITES = {
-    "ing":   "https://ing.ugal.ro",
-    "fmf":   "https://fmf.ugal.ro",
-    "feaa":  "https://feaa.ugal.ro",
-    "fdsa":  "https://fdsa.ugal.ro",
-    "litere": "https://litere.ugal.ro",
-    "arte":  "https://arte.ugal.ro",
-    "fefs":  "https://fefs.ugal.ro",
+    "ing":    "https://ing.ugal.ro",    # Facultatea de Inginerie
+    "feaa":   "https://feaa.ugal.ro",   # Facultatea de Economie și Administrarea Afacerilor
+    "fdsa":   "https://fdsa.ugal.ro",   # Facultatea de Drept și Științe Administrative
+    "litere": "https://litere.ugal.ro", # Facultatea de Litere
+    "arte":   "https://arte.ugal.ro",   # Facultatea de Arte
+    "fefs":   "https://fefs.ugal.ro",   # Facultatea de Educație Fizică și Sport
 }
 
 
