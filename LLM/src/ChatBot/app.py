@@ -256,6 +256,7 @@ def chat():
     else:
         raw_context, sources = rag.query_with_sources(user_message, n_results=3)
         context = raw_context or "Nu am găsit informații specifice. Îndrumă utilizatorul spre https://www.ugal.ro/"
+        backend_context = raw_context  # fallback direct dacă Gemini pică
 
     system = SYSTEM_BASE + context
 
@@ -342,9 +343,9 @@ def chat():
             sources.clear()
             lang = _detect_lang(user_message)
             if lang == "en":
-                answer = "I don't have specific information about this. Find details at: https://www.ugal.ro/ or contact the faculty secretariat directly."
+                answer = "The AI service is temporarily unavailable (quota exceeded). For information visit: https://www.ugal.ro/ or contact the faculty secretariat directly."
             else:
-                answer = "Nu am informații specifice despre asta. Găsești detalii la: https://www.ugal.ro/ sau contactează direct secretariatul facultății."
+                answer = "Serviciul AI este temporar indisponibil (limită depășită). Găsești informații la: https://www.ugal.ro/ sau contactează direct secretariatul facultății."
         for token in re.split(r"(\s+)", answer):
             if token:
                 full_content.append(token)
