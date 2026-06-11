@@ -1,9 +1,0 @@
-.env
-__pycache__/
-*.pyc
-venv/
-.venv/
-.chroma/
-conversations/
-response_cache.db
-.knowledge_hash
