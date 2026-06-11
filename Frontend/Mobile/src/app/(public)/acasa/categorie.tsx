@@ -17,7 +17,7 @@ export default function CategoryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const scrollY = React.useRef(new Animated.Value(0)).current;
+  const [scrollY] = useState(() => new Animated.Value(0));
 
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
 

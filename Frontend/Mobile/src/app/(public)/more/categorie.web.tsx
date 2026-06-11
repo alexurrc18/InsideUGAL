@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, ScrollView, useColorScheme, Linking, Pressable, Animated } from "react-native";
+import React, { useState } from "react";
+import { View, Text, useColorScheme, Linking, Pressable, Animated } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { Colors, Spacing, WebSidePadding } from "@/constants/theme";
@@ -16,7 +16,7 @@ export default function MoreCategoryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const scrollY = React.useRef(new Animated.Value(0)).current;
+  const [scrollY] = useState(() => new Animated.Value(0));
 
   const filteredData = (MOCK_DATA as any).cityGuide.filter(
     (item: any) => item.categoryId === categoryId
