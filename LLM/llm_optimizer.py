@@ -118,8 +118,11 @@ class LLMOptimizer:
             
         embedding = self.generate_embedding(user_input)
         if embedding:
-            self.supabase_client.table("semantic_cache").insert({
-                "question": user_input,
-                "embedding": embedding,
-                "answer": answer
-            }).execute()
+            try:
+                self.supabase_client.table("semantic_cache").insert({
+                    "question": user_input,
+                    "embedding": embedding,
+                    "answer": answer
+                }).execute()
+            except Exception as e:
+                logger.warning(f"Failed to save to semantic_cache: {e}")
