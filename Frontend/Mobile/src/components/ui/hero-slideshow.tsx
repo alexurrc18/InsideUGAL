@@ -117,6 +117,15 @@ export function HeroSlideshow({ slides, onPressItem }: HeroSlideshowProps) {
         </Animated.View>
       ))}
 
+      {/* Umbra subtila sus: contrast pentru textul alb din navbar peste hero. */}
+      <LinearGradient
+        colors={["rgba(0,0,0,0.45)", "transparent"]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.topShade}
+        pointerEvents="none"
+      />
+
       {/* Strat de navigare: click oriunde pe hero => deschide anuntul activ. */}
       <Pressable style={StyleSheet.absoluteFill} onPress={() => onPressItem(current)} />
 
@@ -129,9 +138,10 @@ export function HeroSlideshow({ slides, onPressItem }: HeroSlideshowProps) {
               <Pressable
                 key={slide.id}
                 onPress={() => setActive(i)}
-                hitSlop={8}
+                hitSlop={12}
                 accessibilityRole="button"
                 accessibilityLabel={`Anunțul ${i + 1} din ${slides.length}`}
+                style={({ hovered }: any) => [styles.dotHit, hovered && styles.dotHitHover]}
               >
                 <View style={[styles.dot, isActive ? styles.dotActive : styles.dotInactive]} />
               </Pressable>
@@ -155,6 +165,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  topShade: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 160,
   },
   content: {
     position: "absolute",
@@ -182,6 +199,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
+  },
+  // Zona de click (mai mare decat punctul vizual) + tranzitie lina la hover pe web.
+  dotHit: {
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    ...({ transitionDuration: "150ms", transitionProperty: "transform" } as any),
+  },
+  dotHitHover: {
+    transform: [{ scale: 1.5 }],
   },
   dot: {
     height: 8,

@@ -75,7 +75,7 @@ export default function CantinaScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingBottom: insets.bottom + Spacing.xxl,
-          paddingTop: insets.top + 100,
+          paddingTop: insets.top + 140,
         }}
       >
         <WebContainer>

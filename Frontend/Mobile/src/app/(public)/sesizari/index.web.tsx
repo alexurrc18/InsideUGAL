@@ -67,7 +67,7 @@ export default function SesizariScreen() {
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingTop: insets.top + 100,
+          paddingTop: insets.top + 140,
           paddingBottom: insets.bottom + Spacing.xxl,
         }}
       >

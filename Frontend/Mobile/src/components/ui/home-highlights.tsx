@@ -51,9 +51,11 @@ export function CompactCard({ item, onPress }: { item: HighlightItem; onPress: (
       />
       <View style={styles.compactBody}>
         {item.category ? (
-          <Text style={[Typography.Small1, { color: theme.primary }]} numberOfLines={1}>
-            {item.category}
-          </Text>
+          <View style={styles.compactChip}>
+            <Text style={[Typography.Small1, { color: ColorScheme.white }]} numberOfLines={1}>
+              {item.category}
+            </Text>
+          </View>
         ) : null}
         <Text style={[Typography.Heading6, { color: theme.text }]} numberOfLines={2}>
           {item.title}
@@ -186,5 +188,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
     borderRadius: 999,
+  },
+  compactChip: {
+    alignSelf: "flex-start",
+    backgroundColor: ColorScheme.blue,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: 999,
+    marginBottom: Spacing.xxs,
   },
 });
