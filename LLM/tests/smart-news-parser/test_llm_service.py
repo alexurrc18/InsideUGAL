@@ -68,11 +68,11 @@ def test_extract_sync_missing_optional_fields_get_defaults(service):
         assert result.linkuri_utile == []
         assert result.taguri_cheie == []
 
-def test_extract_sync_invalid_enum(service):
-    # Invalid tip_eveniment
+def test_extract_sync_normalizes_invalid_enum(service):
+    # Testăm că o valoare invalidă pentru tip_eveniment este normalizată la ANUNT_GENERAL
     mock_json = {
         "materie_sau_subiect": "Test",
-        "tip_eveniment": "invalid_event",
+        "tip_eveniment": "invalid_event_type",
         "urgenta_estimata": "medie",
         "public_tinta": [],
         "deadline_absolut": None,
@@ -86,10 +86,10 @@ def test_extract_sync_invalid_enum(service):
     mock_response = json.dumps(mock_json)
 
     with patch('llm_service._call', return_value=mock_response):
-        with pytest.raises(ValidationError) as exc_info:
-            service._extract_sync("Test text")
+        result = service._extract_sync("Test text")
         
-        assert "tip_eveniment" in str(exc_info.value)
+        # Verificăm că a fost normalizat la valoarea default
+        assert result.tip_eveniment == TipEveniment.ANUNT_GENERAL
 
 def test_extract_sync_empty_response(service):
     with patch('llm_service._call', return_value=""):

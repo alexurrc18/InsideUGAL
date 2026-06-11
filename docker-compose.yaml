@@ -3,12 +3,14 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
       SUPABASE_URL: ${SUPABASE_URL:-http://supabase-kong:8000}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
-      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-}
       SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
     restart: unless-stopped
@@ -56,9 +58,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 40s
-    volumes:
-    - llm-uploads:/app/LLM/modul-marius/uploads
-    - llm-chroma-data:/app/LLM/modul-marius/chroma_db
     ports:
     - 8001:8000
     networks:
@@ -127,6 +126,7 @@ services:
       JWT_EXP: ${JWT_EXPIRY:-3600}
     volumes:
     - supabase-db-data:/var/lib/postgresql/data
+    - ./supabase/migrations/00_init_roles.sql:/docker-entrypoint-initdb.d/00_init_roles.sql:ro
     - ./supabase/migrations/202605280001_init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
     - ./supabase/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
     networks:
@@ -139,7 +139,7 @@ services:
         condition: service_healthy
     environment:
       GOTRUE_DB_DRIVER: postgres
-      GOTRUE_DB_DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}?sslmode=disable
+      GOTRUE_DB_DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}?sslmode=disable
       GOTRUE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       GOTRUE_JWT_EXP: ${JWT_EXPIRY:-3600}
       GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:3000}
@@ -157,7 +157,7 @@ services:
       supabase-db:
         condition: service_healthy
     environment:
-      PGRST_DB_URI: postgres://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
+      PGRST_DB_URI: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
       PGRST_DB_SCHEMAS: public,storage,graphql_public
       PGRST_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       PGRST_DB_ANON_ROLE: anon
@@ -269,5 +269,3 @@ networks:
     internal: true
 volumes:
   supabase-db-data: {}
-  llm-uploads: {}
-  llm-chroma-data: {}

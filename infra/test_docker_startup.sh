@@ -20,10 +20,10 @@ docker network create coolify || true
 
 # Prevent Docker from creating directories when files are expected for volumes
 echo "--- Ensuring SQL init files exist ---"
-mkdir -p ./InsideUgal/supabase/migrations/
-touch ./InsideUgal/supabase/migrations/202605280001_init.sql
-mkdir -p ./InsideUgal/supabase/
-touch ./InsideUgal/supabase/seed.sql
+mkdir -p ./supabase/migrations/
+touch ./supabase/migrations/202605280001_init.sql
+mkdir -p ./supabase/
+touch ./supabase/seed.sql
 
 echo "--- Starting Containers (Detached Mode) ---"
 if ! docker compose up -d; then
