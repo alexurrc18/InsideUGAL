@@ -1,3 +1,30 @@
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'supabase_admin') THEN
+    CREATE ROLE supabase_admin WITH SUPERUSER CREATEDB CREATEROLE LOGIN;
+  END IF;
+END
+$$;
+
+CREATE SCHEMA IF NOT EXISTS auth;
+CREATE TABLE IF NOT EXISTS auth.users (
+    id uuid NOT NULL PRIMARY KEY,
+    email character varying(255)
+);
+
+CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid AS $$
+  SELECT null::uuid;
+$$ LANGUAGE SQL STABLE;
+
+CREATE SCHEMA IF NOT EXISTS storage;
+CREATE TABLE IF NOT EXISTS storage.buckets (
+    id text NOT NULL PRIMARY KEY,
+    name text NOT NULL,
+    public boolean DEFAULT false,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+
 CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- ==========================================================
