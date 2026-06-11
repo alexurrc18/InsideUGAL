@@ -2,7 +2,8 @@ import React, { useState, useMemo } from "react";
 import { View, ScrollView } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors, Spacing, WebSidePadding } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
+import { WebContainer } from "@/components/ui/web-container";
 import { CategoryHeader } from "@/components/ui/category-header";
 import { Expandable } from "@/components/ui/expandable";
 import { MenuItem } from "@/components/ui/menu-item";
@@ -77,7 +78,7 @@ export default function CantinaScreen() {
           paddingTop: insets.top + 100,
         }}
       >
-        <View style={{ width: "100%", paddingHorizontal: WebSidePadding }}>
+        <WebContainer>
         <CategoryHeader
           title="Cantina"
           filters={daysFilter}
@@ -119,7 +120,7 @@ export default function CantinaScreen() {
             </View>
           ))}
         </View>
-        </View>
+        </WebContainer>
       </ScrollView>
     </View>
   );

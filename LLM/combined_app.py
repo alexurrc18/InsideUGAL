@@ -14,9 +14,10 @@ from dotenv import load_dotenv
 from llm_optimizer import LLMOptimizer
 
 BASE_DIR = Path(__file__).resolve().parent
-SMART_NEWS_PARSER = BASE_DIR / "smart-news-parser"
-MODUL_MARIUS      = BASE_DIR / "modul-marius"
-CHATBOT_MARIUS    = BASE_DIR / "ChatBot"
+SRC_DIR = BASE_DIR / "src"
+SMART_NEWS_PARSER = SRC_DIR / "smart-news-parser"
+MODUL_MARIUS      = SRC_DIR / "modul-marius"
+CHATBOT_MARIUS    = SRC_DIR / "ChatBot"
 
 # Load environment variables from the LLM root .env
 # In Docker, compose environment variables should take precedence over local .env values.
@@ -89,7 +90,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 
 llm_service = smart_news_service.LLMService()
 image_service = smart_news_image_service.ImageServiceV2(hf_api_key=HF_API_KEY)
-llm_optimizer_service = LLMOptimizer(api_key=API_KEY)
+llm_optimizer_service = LLMOptimizer(api_key=API_KEY, supabase_client=mod_marius_functions.supabase_client)
 
 app = FastAPI(
     title="InsideUGAL LLM Integrated Service",
@@ -200,7 +201,8 @@ async def upload_pdf(background_tasks: BackgroundTasks, pdf: UploadFile = File(.
 @app.post("/api/v1/ask", response_model=mod_marius_schemas.AnswerQuestionOutput)
 def ask_question(request: mod_marius_schemas.AnswerQuestionInput):  # type: ignore
     # 1. Filtru de Securitate Guardrails
-    if not llm_optimizer_service.check_prompt_safety(request.question)        raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
+    if not llm_optimizer_service.check_prompt_safety(request.question):
+        raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
 
     # 2. Verificare Semantic Cache
     cached_answer = llm_optimizer_service.get_cached_answer(request.question)

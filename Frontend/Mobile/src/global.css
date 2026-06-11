@@ -16,7 +16,7 @@
   scrollbar-color: transparent transparent; /* Firefox: ascunsa implicit */
 }
 [data-carousel]:hover {
-  scrollbar-color: #00479E transparent; /* Firefox: apare la hover */
+  scrollbar-color: rgba(0, 71, 158, 0.5) transparent; /* Firefox: apare la hover, putin transparent */
 }
 [data-carousel]::-webkit-scrollbar {
   height: 6px;
@@ -29,7 +29,7 @@
   border-radius: 3px;
 }
 [data-carousel]:hover::-webkit-scrollbar-thumb {
-  background-color: #00479E; /* apare la hover pe carusel */
+  background-color: rgba(0, 71, 158, 0.5); /* apare la hover pe carusel, putin transparent */
 }
 [data-carousel]::-webkit-scrollbar-button {
   display: none;
@@ -50,23 +50,28 @@
   display: grid !important;
   grid-template-rows: 0fr;
   grid-template-columns: 100%; /* pastreaza latimea */
-  transition: grid-template-rows 500ms ease;
+  transition: grid-template-rows 200ms ease; /* Inchidere rapida */
 }
 [data-expanded="open"] [data-expandable-body] {
   grid-template-rows: 1fr;
+  transition: grid-template-rows 250ms ease; /* Deschidere normala */
 }
 [data-expandable-inner] {
   overflow: hidden;
   min-height: 0;
   opacity: 0;
   transform: translateY(-8px);
-  transition: opacity 350ms ease, transform 350ms ease;
+  transition: opacity 100ms ease, transform 100ms ease; /* Inchidere rapida */
 }
 [data-expanded="open"] [data-expandable-inner] {
   opacity: 1;
   transform: translateY(0);
-  transition-delay: 120ms; /* fade-in dupa ce incepe deschiderea */
+  transition: opacity 300ms ease, transform 300ms ease;
+  transition-delay: 100ms; /* fade-in dupa ce incepe deschiderea */
 }
 [data-expandable-chevron] {
-  transition: transform 500ms ease;
+  transition: transform 150ms ease; /* Inchidere rapida */
+}
+[data-expanded="open"] [data-expandable-chevron] {
+  transition: transform 400ms ease; /* Deschidere normala */
 }

@@ -1,23 +1,28 @@
 services:
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     volumes:
       - ./backend:/app
+    env_file:
+      - .env
     environment:
       WATCHFILES_FORCE_POLLING: 'true'
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
-      SUPABASE_URL: ${SUPABASE_URL:-http://localhost:8082}
+      SUPABASE_URL: ${SUPABASE_URL:-http://supabase-kong:8000}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-}
       SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
     restart: unless-stopped
     depends_on:
       supabase-db:
         condition: service_healthy
+      supabase-kong:
+        condition: service_started
     healthcheck:
       test:
       - CMD-SHELL
@@ -41,13 +46,15 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
-      SUPABASE_URL: ${SUPABASE_URL:-http://localhost:8082}
+      SUPABASE_URL: ${SUPABASE_URL:-http://supabase-kong:8000}
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       ALLOWED_ORIGINS: ${LLM_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
     restart: unless-stopped
     depends_on:
       supabase-db:
         condition: service_healthy
+      supabase-kong:
+        condition: service_started
     healthcheck:
       test:
       - CMD-SHELL
@@ -56,9 +63,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 40s
-    volumes:
-    - llm-uploads:/app/LLM/modul-marius/uploads
-    - llm-chroma-data:/app/LLM/modul-marius/chroma_db
     ports:
     - 8001:8000
     networks:
@@ -130,6 +134,7 @@ services:
       start_period: 15s
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}
       PGPORT: ${POSTGRES_PORT:-5432}
@@ -139,11 +144,61 @@ services:
       JWT_EXP: ${JWT_EXPIRY:-3600}
     volumes:
     - supabase-db-data:/var/lib/postgresql/data
-    - ./InsideUgal/supabase/migrations/202605280001_init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
-    - /InsideUgal/supabase/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+    - ./supabase/migrations/00_init_roles.sql:/docker-entrypoint-initdb.d/00_init_roles.sql:ro
+    - ./supabase/migrations/202605280001_init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    - ./supabase/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
     networks:
     - internal
-
+  supabase-auth:
+    image: supabase/gotrue:v2.188.1
+    restart: unless-stopped
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    environment:
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}?sslmode=disable
+      GOTRUE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
+      GOTRUE_JWT_EXP: ${JWT_EXPIRY:-3600}
+      GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:3000}
+      API_EXTERNAL_URL: http://localhost:8004/auth/v1
+      GOTRUE_API_EXTERNAL_URL: http://localhost:8004/auth/v1
+      GOTRUE_DB_MAX_POOL_SIZE: 20
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+    networks:
+      - internal
+  supabase-rest:
+    image: postgrest/postgrest:v12.2.0
+    restart: unless-stopped
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
+      PGRST_DB_SCHEMAS: public,storage,graphql_public
+      PGRST_JWT_SECRET: ${SUPABASE_JWT_SECRET}
+      PGRST_DB_ANON_ROLE: anon
+    networks:
+      - internal
+  supabase-kong:
+    image: kong:2.8.1
+    restart: unless-stopped
+    depends_on:
+      supabase-auth:
+        condition: service_started
+      supabase-rest:
+        condition: service_started
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+    volumes:
+      - ./supabase/kong.yml:/var/lib/kong/kong.yml:ro
+    ports:
+      - 8004:8000
+    networks:
+      - public
+      - internal
   supabase-meta:
     image: supabase/postgres-meta:v0.95.2
     restart: unless-stopped
@@ -234,5 +289,3 @@ networks:
 
 volumes:
   supabase-db-data: {}
-  llm-uploads: {}
-  llm-chroma-data: {}
