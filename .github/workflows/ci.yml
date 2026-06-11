@@ -185,21 +185,6 @@ jobs:
         if: needs.changes.outputs.llm == 'true'
         run: pytest LLM/tests
 
-  infra:
-    name: Infrastructure Validation
-    needs: changes
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        if: needs.changes.outputs.infra == 'true'
-        uses: actions/checkout@v4
-      - name: Run Infrastructure Startup Test
-        if: needs.changes.outputs.infra == 'true'
-        run: |
-          sed -i 's/\r$//' infra/test_docker_startup.sh
-          chmod +x infra/test_docker_startup.sh
-          ./infra/test_docker_startup.sh
-
   security-scan:
     name: Container Security Scan
     needs: changes

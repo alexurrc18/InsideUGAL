@@ -63,15 +63,19 @@ export function NewsCard({
                 />
                 
                 <View style={{ flex: 1, justifyContent: "center", gap: Spacing.xs }}>
-                    <Text style={[Typography.Small1, { color: theme.text, opacity: 0.6 }]}>
-                        {author}
-                    </Text>
+                    {!!author && (
+                        <Text style={[Typography.Small1, { color: theme.textSecondary }]}>
+                            {author}
+                        </Text>
+                    )}
                     <Text style={[Typography.Heading4, { color: theme.text }]} numberOfLines={3}>
                         {title}
                     </Text>
-                    <Text style={[Typography.Small2, { color: theme.text, opacity: 0.6 }]}>
-                        {date}
-                    </Text>
+                    {!!date && (
+                        <Text style={[Typography.Small2, { color: theme.textSecondary }]}>
+                            {date}
+                        </Text>
+                    )}
                 </View>
             </Pressable>
         );

@@ -50,7 +50,7 @@ function RootLayoutNav() {
     <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(public)" options={{ animation: 'none' }} />
-        <Stack.Screen name="(auth)" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="(auth)" options={{ presentation: 'formSheet' }} />
       </Stack>
     </NavigationThemeProvider>
   );

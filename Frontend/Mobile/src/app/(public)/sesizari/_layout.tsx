@@ -9,6 +9,10 @@ import PlusIcon from "@/assets/icons/svg/plus.svg";
 import { CategoryHeader, FilterItem } from "@/components/ui/category-header";
 import { GlassView } from "expo-glass-effect";
 
+export const unstable_settings = {
+  initialRouteName: "index",
+};
+
 export default function SesizariLayout() {
   const router = useRouter();
   const params = useGlobalSearchParams();
