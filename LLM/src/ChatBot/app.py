@@ -242,8 +242,10 @@ def chat():
         menu_text = fetch_canteen_menu()
         if menu_text:
             context = f"MENIUL CANTINEI (actualizat live astăzi):\n{menu_text}\n\nPrezintă meniul structurat pe categorii cu prețurile."
+            backend_context = f"**Meniul cantinei (astăzi):**\n\n{menu_text}"
         else:
             context = "Meniul cantinei nu a putut fi preluat acum. Trimite utilizatorul la: https://campus.ugal.ro/ccps/meniu-studenti/"
+            backend_context = "Meniul cantinei nu este disponibil momentan. Verifică la: https://campus.ugal.ro/ccps/meniu-studenti/"
     else:
         backend_context = backend_client.fetch_context(user_message)
         if backend_context:
