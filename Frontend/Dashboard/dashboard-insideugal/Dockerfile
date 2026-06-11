@@ -14,6 +14,7 @@ RUN npm run build
 
 FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
+RUN apk upgrade --no-cache libcrypto3 libssl3
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
