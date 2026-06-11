@@ -5,14 +5,22 @@ let pendingImageData = null;
 const messagesEl     = document.getElementById("chat-messages");
 const inputEl        = document.getElementById("user-input");
 const sendBtn        = document.getElementById("send-btn");
-const imgInput       = document.getElementById("img-input");
+const fileInput      = document.getElementById("file-input");
 const imgPreview     = document.getElementById("img-preview");
 const imgPreviewWrap = document.getElementById("img-preview-wrap");
 const imgClearBtn    = document.getElementById("img-clear");
 
+const cameraBtn      = document.getElementById("camera-btn");
+const cameraModal    = document.getElementById("camera-modal");
+const cameraVideo    = document.getElementById("camera-video");
+const cameraCapture  = document.getElementById("camera-capture-btn");
+const cameraClose    = document.getElementById("camera-close-btn");
+const cameraCanvas   = document.getElementById("camera-canvas");
+let localMediaStream = null;
+
 // ── Image upload ─────────────────────────────────────────────────────────────
-imgInput.addEventListener("change", () => {
-  const file = imgInput.files[0];
+function handleImageSelection(inputElement) {
+  const file = inputElement.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -21,11 +29,54 @@ imgInput.addEventListener("change", () => {
     imgPreviewWrap.style.display = "flex";
   };
   reader.readAsDataURL(file);
-});
+}
+
+if (fileInput) fileInput.addEventListener("change", () => handleImageSelection(fileInput));
+
+if (cameraBtn) {
+  cameraBtn.addEventListener("click", async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      cameraVideo.srcObject = stream;
+      localMediaStream = stream;
+      cameraModal.style.display = "flex";
+    } catch (err) {
+      alert("Nu am putut accesa camera web: " + err.message);
+    }
+  });
+}
+
+if (cameraClose) {
+  cameraClose.addEventListener("click", () => {
+    if (localMediaStream) {
+      localMediaStream.getTracks().forEach(track => track.stop());
+      localMediaStream = null;
+    }
+    cameraModal.style.display = "none";
+  });
+}
+
+if (cameraCapture) {
+  cameraCapture.addEventListener("click", () => {
+    if (!localMediaStream) return;
+    const context = cameraCanvas.getContext("2d");
+    cameraCanvas.width = cameraVideo.videoWidth;
+    cameraCanvas.height = cameraVideo.videoHeight;
+    context.drawImage(cameraVideo, 0, 0, cameraCanvas.width, cameraCanvas.height);
+    
+    pendingImageData = cameraCanvas.toDataURL("image/jpeg", 0.9);
+    imgPreview.src = pendingImageData;
+    imgPreviewWrap.style.display = "flex";
+    
+    localMediaStream.getTracks().forEach(track => track.stop());
+    localMediaStream = null;
+    cameraModal.style.display = "none";
+  });
+}
 
 imgClearBtn.addEventListener("click", () => {
   pendingImageData = null;
-  imgInput.value = "";
+  if (fileInput) fileInput.value = "";
   imgPreviewWrap.style.display = "none";
   imgPreview.src = "";
 });
@@ -47,7 +98,7 @@ async function sendMessage(text) {
   showTyping();
 
   try {
-    if (imgInput) imgInput.value = "";
+    if (fileInput) fileInput.value = "";
     if (imgPreviewWrap) imgPreviewWrap.style.display = "none";
     if (imgPreview) imgPreview.src = "";
 
