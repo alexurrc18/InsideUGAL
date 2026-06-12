@@ -249,10 +249,13 @@ const styles = StyleSheet.create({
     borderRadius: 1,
     backgroundColor: ColorScheme.white,
   },
-  // Panoul hamburger sta lipit sub bara (care are inaltimea NAVBAR_HEIGHT).
+  // Panoul hamburger sta lipit sub bara. Il urcam 1px (suprapunere peste bara) ca
+  // sa nu ramana o linie transparenta intre bara si panou la densitati de pixeli
+  // fractionare pe mobil — ambele au acelasi fundal cand panoul e deschis, deci
+  // suprapunerea e invizibila.
   panel: {
     position: "absolute",
-    top: NAVBAR_HEIGHT,
+    top: NAVBAR_HEIGHT - 1,
     left: 0,
     right: 0,
     paddingBottom: Spacing.sm,
