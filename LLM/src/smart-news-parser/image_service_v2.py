@@ -71,8 +71,8 @@ import asyncio
 import base64
 import io
 import logging
-import os
-import random
+import io
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -81,17 +81,10 @@ from huggingface_hub import AsyncInferenceClient
 from huggingface_hub.errors import HfHubHTTPError
 from PIL import Image as PILImage, ImageFilter, ImageEnhance, ImageOps
 from pydantic import BaseModel
+from PIL import Image as PILImage
+from parser_schemas import ExtractedAnnouncementInfo
 
-from parser_schemas import ExtractedAnnouncementInfo, TipEveniment
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Logging
-# ─────────────────────────────────────────────────────────────────────────────
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s  %(levelname)-8s  [%(name)s]  %(message)s",
-    datefmt="%H:%M:%S",
-)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("image-generator-v2")
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -131,7 +124,8 @@ BANNER_HEIGHT = 576
 # ─────────────────────────────────────────────────────────────────────────────
 class ImageGenerationResult(BaseModel):
     success: bool
-    image_base64: str | None = None
+    image_url: str | None = None           # URL public din Supabase Storage (primar)
+    image_base64: str | None = None        # Fallback base64 daca Supabase nu e configurat
     error_message: str | None = None
     used_controlnet: bool = False
     style_used: str | None = None
@@ -386,47 +380,29 @@ def _make_styled_preview(
 # ImageServiceV2
 # ─────────────────────────────────────────────────────────────────────────────
 class ImageServiceV2:
-    """
-    Serviciu asincron de generare bannere pentru InsideUGAL.
+    def __init__(self, hf_api_key: str | None = None, assets_dir: str | None = None):
+        self.hf_client = AsyncInferenceClient(token=hf_api_key) if hf_api_key else None
 
-    Parametri constructor:
-        hf_api_key      – token HuggingFace (obligatoriu)
-        canny_root_dir  – rădăcina folderului cu imagini Canny.
-                          Default: <modul>/poze_maps_campus/
-    """
+        # ── Modele ──────────────────────────────────────────────────────────
+        self.hf_text_model_id   = "meta-llama/Llama-3.3-70B-Instruct"
 
-    def __init__(
-        self,
-        hf_api_key: str,
-        canny_root_dir: str | None = None,
-    ) -> None:
-        if not hf_api_key:
-            raise ValueError("HUGGINGFACE_API_KEY este obligatoriu pentru ImageServiceV2.")
+        # Modelul ControlNet SDXL de pe HF Hub — folosit pentru image-to-image cu canny
+        # Acesta este un Space public Gradio; apelul se face prin hf_client.image_to_image()
+        self.controlnet_model_id = "diffusers/controlnet-canny-sdxl-1.0"
 
-        self._hf_token = hf_api_key
+        # Fallback daca ControlNet nu e disponibil (v1 behavior)
+        self.flux_model_id       = "black-forest-labs/FLUX.1-schnell"
 
-        # Client LLM (featherless-ai cu Qwen2.5-7B; schimbă provider când vin credite)
-        self.hf_llm_client = AsyncInferenceClient(token=hf_api_key, provider=HF_LLM_PROVIDER)
-
-        # Client imagini (hf-inference, GRATUIT, pentru FLUX fallback)
-        self.hf_image_client = AsyncInferenceClient(token=hf_api_key, provider=HF_IMAGE_PROVIDER)
-
-        # Folderul cu Canny-urile clădirilor
-        if canny_root_dir:
-            self.canny_root = Path(canny_root_dir)
+        # ── Assets ──────────────────────────────────────────────────────────
+        # Cauta assets/ relativ la fisierul curent daca nu e specificat explicit
+        if assets_dir:
+            self.assets_dir = Path(assets_dir)
         else:
-            self.canny_root = Path(__file__).parent / "poze_maps_campus"
+            self.assets_dir = Path(__file__).parent / "assets" / "buildings"
 
-        # Pre-încarcă pool-ul de Canny la init
-        self._canny_pool: list[Path] = _collect_canny_images(self.canny_root)
-
-        if self._canny_pool:
-            logger.info(f"Canny pool: {len(self._canny_pool)} imagini in {self.canny_root}")
-        else:
-            logger.warning(
-                f"NICIO imagine Canny gasita in {self.canny_root}. "
-                f"Ruleaza preprocess_buildings_final.py pentru a le genera."
-            )
+        logger.info(f"📁 Assets dir: {self.assets_dir}")
+        logger.info(f"🤖 ControlNet model: {self.controlnet_model_id}")
+        logger.info(f"🔄 Fallback model: {self.flux_model_id}")
 
     # ─────────────────────────────────────────────────────────────────────────
     # 1. Style Recipe
@@ -648,25 +624,13 @@ class ImageServiceV2:
         return image
 
     # ─────────────────────────────────────────────────────────────────────────
-    # 6. Preview local PIL (fără API, pentru debug/demo)
+    # PIL Image → base64 JPEG
     # ─────────────────────────────────────────────────────────────────────────
     @staticmethod
-    def _make_local_preview(
-        canny_path: Path,
-        recipe: dict[str, Any],
-    ) -> PILImage.Image:
-        """
-        Generează un preview vizual al Canny-ului colorat cu paleta stilului.
-        Funcționează OFFLINE, fără niciun API. Util pentru:
-          - Demo rapid al structurii clădirii
-          - Verificare că Canny-ul e de calitate
-          - Testare pipeline fără credite
-        """
-        return _make_styled_preview(
-            canny_path=canny_path,
-            tint_rgb=recipe["preview_tint"],
-            accent_rgb=recipe["preview_accent"],
-        )
+    def _pil_to_base64(image: PILImage.Image) -> str:
+        buffered = io.BytesIO()
+        image.save(buffered, format="JPEG", quality=90)
+        return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
     # ─────────────────────────────────────────────────────────────────────────
     # 7. Metoda publică principală
@@ -749,44 +713,31 @@ class ImageServiceV2:
                         num_steps=recipe["num_steps"],
                     )
                     used_controlnet = True
-                    generation_mode = "controlnet"
-                except Exception as ctrl_err:
-                    logger.warning(f"ControlNet esuat ({type(ctrl_err).__name__}: {ctrl_err}) → FLUX fallback")
-
-            if image is None:
-                image = await self._call_flux_fallback(final_prompt)
+                except Exception as e:
+                    logger.warning(f"⚠️  ControlNet a esuat ({e}), fallback la FLUX...")
+                    image = await self._generate_with_flux(refined_prompt)
+            else:
+                image = await self._generate_with_flux(refined_prompt)
 
             # ── Pas 6: Validare și conversie ─────────────────────────────────
             if not isinstance(image, PILImage.Image):
                 raise ValueError(f"Tip neașteptat: {type(image)}")
 
-            b64 = _pil_to_base64_jpeg(image, quality=90)
-            logger.info(
-                f"Banner generat | mode={generation_mode} | "
-                f"style='{style_name}' | canny='{canny_file_name}'"
-            )
+            # 5. Conversie → base64
+            base64_encoded = self._pil_to_base64(image)
 
             return ImageGenerationResult(
                 success=True,
-                image_base64=f"data:image/jpeg;base64,{b64}",
+                image_base64=f"data:image/jpeg;base64,{base64_encoded}",
                 used_controlnet=used_controlnet,
-                style_used=style_name,
-                canny_file_used=canny_file_name,
-                generation_mode=generation_mode,
             )
 
-        except HfHubHTTPError as hf_err:
-            logger.error(f"Eroare critica HF API: {hf_err}")
-            raise
-
-        except Exception as err:
-            logger.error(f"Eroare generare banner: {err}", exc_info=True)
-            return ImageGenerationResult(
-                success=False,
-                error_message=str(err),
-                style_used=style_name,
-                canny_file_used=canny_file_name,
-            )
+        except HfHubHTTPError as e:
+            logger.error(f"❌ Eroare HF API: {e}")
+            raise e
+        except Exception as e:
+            logger.error(f"❌ Eroare generare banner: {e}")
+            return ImageGenerationResult(success=False, error_message=str(e))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
