@@ -44,3 +44,17 @@ Pentru a porni platforma, rulați comanda:
 
 Bash
 docker compose up
+
+## Verificare Docker Compose local
+
+Pentru un setup curat pe Windows/PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/validate-compose-env.ps1
+docker compose down -v
+docker compose up -d
+powershell -ExecutionPolicy Bypass -File scripts/check-compose-db.ps1
+```
+
+Primul script valideaza `.env` pentru Compose local, inclusiv cheile Supabase si valorile nerezolvate de tip `${...}`.
+Al doilea script verifica daca `supabase-db` este healthy, daca exista tabelele asteptate si daca seed data pentru API a fost incarcata.
