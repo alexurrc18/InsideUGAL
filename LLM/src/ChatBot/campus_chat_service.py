@@ -137,19 +137,25 @@ def campus_chat(question: str) -> dict:
     sources: list[str] = []
     backend_context = ""
 
-    if is_menu_question(question):
+    # Încearcă Supabase (anunțuri, meniuri, facultăți etc.) — prioritate maximă
+    backend_context = backend_client.fetch_context(question)
+
+    if backend_context:
+        context = backend_context
+        sources = []
+    elif is_menu_question(question):
+        # Supabase nu are date de meniu — fallback pe scraping live
         menu_text = fetch_canteen_menu()
         if menu_text:
             context = f"MENIUL CANTINEI (actualizat live astăzi):\n{menu_text}\n\nPrezintă meniul structurat pe categorii cu prețurile."
+            backend_context = f"**Meniul cantinei (astăzi):**\n\n{menu_text}"
         else:
             context = "Meniul cantinei nu a putut fi preluat acum. Trimite utilizatorul la: https://campus.ugal.ro/ccps/meniu-studenti/"
+            backend_context = "Meniul cantinei nu este disponibil momentan. Verifică la: https://campus.ugal.ro/ccps/meniu-studenti/"
     else:
-        backend_context = backend_client.fetch_context(question)
-        if backend_context:
-            context = backend_context
-        else:
-            raw_context, sources = _rag.query_with_sources(question, n_results=3)
-            context = raw_context or "Nu am găsit informații specifice. Îndrumă utilizatorul spre https://www.ugal.ro/"
+        raw_context, sources = _rag.query_with_sources(question, n_results=3)
+        context = raw_context or "Nu am găsit informații specifice. Îndrumă utilizatorul spre https://www.ugal.ro/"
+        backend_context = raw_context
 
     cache_key = llm_cache.make_key(question + context, GEMINI_MODEL)
     cached = llm_cache.get(cache_key)
@@ -176,7 +182,7 @@ def campus_chat(question: str) -> dict:
         answer = backend_context if backend_context else ""
 
     if not answer:
-        answer = backend_context if backend_context else "Nu am putut conecta la AI. Găsești informații la: https://www.ugal.ro/"
+        answer = backend_context if backend_context else "Nu am detalii despre asta în acest moment. Poți găsi mai multe informații la https://www.ugal.ro/ sau contactează direct secretariatul facultății."
 
     return {
         "answer": answer,

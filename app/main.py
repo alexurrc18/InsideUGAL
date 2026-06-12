@@ -20,6 +20,7 @@ import app.api.categories as categories
 import app.api.complaints as complaints
 import app.api.daily_menus as daily_menus
 import app.api.faculties as faculties
+import app.api.llm as llm
 import app.api.locations as locations
 import app.api.products as products
 import app.api.profiles as profiles
@@ -56,7 +57,10 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["60 per minute"])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
-allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+allowed_origins_raw = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001",
+)
 allowed_origins = [origin.strip() for origin in allowed_origins_raw.split(",") if origin.strip()]
 
 app.add_middleware(
@@ -108,3 +112,4 @@ app.include_router(cafeteria_menus.router)
 app.include_router(complaints.router)
 app.include_router(announcements.router)
 app.include_router(auth.router)
+app.include_router(llm.router)
