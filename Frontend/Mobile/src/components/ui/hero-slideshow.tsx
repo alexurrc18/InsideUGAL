@@ -104,7 +104,16 @@ export function HeroSlideshow({ slides, onPressItem }: HeroSlideshowProps) {
                   </View>
                 ) : null}
 
-                <Text style={[Typography.Heading1, { color: ColorScheme.white, marginTop: Spacing.sm }]} numberOfLines={2}>
+                {/* Singurul titlu mai ingrosat de pe web: titlul mare de hero/banner
+                    ramane SemiBold, ca sa iasa in evidenta peste imagine. Restul
+                    titlurilor web sunt Regular/Medium (vezi typography.web.ts). */}
+                <Text
+                  style={[
+                    Typography.Heading1,
+                    { color: ColorScheme.white, marginTop: Spacing.sm, fontFamily: "InstrumentSans-SemiBold", fontWeight: "600" },
+                  ]}
+                  numberOfLines={2}
+                >
                   {slide.title}
                 </Text>
 

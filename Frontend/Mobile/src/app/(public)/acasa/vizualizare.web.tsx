@@ -141,15 +141,15 @@ function VizualizareScreen() {
 
                             {tipPagina === "Eveniment" && (
                                 <View style={{ gap: Spacing.md }}>
-                                    <Text style={[Typography.Heading4, { color: theme.text }]}>Informații eveniment</Text>
+                                    <Text style={[Typography.Heading4, { color: theme.text, fontFamily: "InstrumentSans-SemiBold", fontWeight: "600" }]}>Informații eveniment</Text>
                                     <View style={{ gap: Spacing.md }}>
                                         <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                             <CalendarIcon width={24} height={24} color={theme.primary} />
                                             <View>
-                                                <Text style={[Typography.Heading5, { color: theme.text }]}>
+                                                <Text style={[Typography.Paragraph2, { color: theme.text }]}>
                                                     De pe {date_start || "N/A"} {time_start || ""}
                                                 </Text>
-                                                <Text style={[Typography.Heading5, { color: theme.text }]}>
+                                                <Text style={[Typography.Paragraph2, { color: theme.text }]}>
                                                     Până la {date_end || "N/A"} {time_end || ""}
                                                 </Text>
                                             </View>
@@ -157,7 +157,7 @@ function VizualizareScreen() {
                                         <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                             <LocationIcon width={24} height={24} color={theme.primary} />
                                             <View>
-                                                <Text style={[Typography.Heading5, { color: theme.text }]}>
+                                                <Text style={[Typography.Paragraph2, { color: theme.text }]}>
                                                     {location || "Locație nespecificată"}
                                                 </Text>
                                             </View>
@@ -174,7 +174,7 @@ function VizualizareScreen() {
                                             <LocationIcon width={24} height={24} color={theme.primary} />
                                             <View style={{ flex: 1 }}>
                                                 <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Adresă</Text>
-                                                <Text style={[Typography.Heading5, { color: theme.text }]}>
+                                                <Text style={[Typography.Paragraph2, { color: theme.text }]}>
                                                     {address || "Nespecificată"}
                                                 </Text>
                                             </View>
@@ -186,7 +186,7 @@ function VizualizareScreen() {
                                                 <View style={{ flex: 1 }}>
                                                     <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Telefon</Text>
                                                     <TouchableOpacity onPress={handleCall}>
-                                                        <Text style={[Typography.Heading5, { color: theme.text }]}>{phone}</Text>
+                                                        <Text style={[Typography.Paragraph2, { color: theme.text }]}>{phone}</Text>
                                                     </TouchableOpacity>
                                                 </View>
                                             </View>
@@ -198,7 +198,7 @@ function VizualizareScreen() {
                                                 <View style={{ flex: 1 }}>
                                                     <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Website</Text>
                                                     <TouchableOpacity onPress={() => Linking.openURL(website as string)}>
-                                                        <Text style={[Typography.Heading5, { color: theme.secondary }]}>{website}</Text>
+                                                        <Text style={[Typography.Paragraph2, { color: theme.secondary }]}>{website}</Text>
                                                     </TouchableOpacity>
                                                 </View>
                                             </View>
@@ -208,7 +208,7 @@ function VizualizareScreen() {
                             )}
 
                             <View style={{ gap: Spacing.md }}>
-                                <Text style={[Typography.Heading4, { color: theme.text }]}>
+                                <Text style={[Typography.Heading4, { color: theme.text, fontFamily: "InstrumentSans-SemiBold", fontWeight: "600" }]}>
                                     {tipPagina === "Eveniment" ? "Despre eveniment" : tipPagina === "Facultate" ? "Despre facultate" : "Detalii anunț"}
                                 </Text>
                                 <Text style={[Typography.Paragraph2, { color: theme.text, lineHeight: 25 }]}>

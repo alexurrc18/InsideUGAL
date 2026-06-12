@@ -19,7 +19,7 @@ import { useNavbarScrolled } from "@/contexts/web-scroll-context";
 import { WebContainer } from "@/components/ui/web-container";
 import { ThemeMenu } from "@/components/ui/theme-menu";
 
-export const NAVBAR_HEIGHT = 72;
+export const NAVBAR_HEIGHT = 60;
 
 const LOGO = require("@/assets/images/logo.png");
 
@@ -98,7 +98,15 @@ export function WebNavbar() {
                   accessibilityRole="link"
                   style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, alignItems: "center" })}
                 >
-                  <Text style={[Typography.Heading5, { color: ColorScheme.white }]}>
+                  {/* Link-urile de navbar sunt mai subtiri (Regular) decat restul
+                      lucrurilor care folosesc Heading5 (etichete, butoane) — de aceea
+                      suprascriem greutatea local, nu global in typography.web.ts. */}
+                  <Text
+                    style={[
+                      Typography.Heading5,
+                      { color: ColorScheme.white, fontFamily: "InstrumentSans-Regular", fontWeight: "400" },
+                    ]}
+                  >
                     {link.label}
                   </Text>
                   {/* Indicator pentru link-ul activ. */}
