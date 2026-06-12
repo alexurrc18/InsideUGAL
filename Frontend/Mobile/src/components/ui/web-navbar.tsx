@@ -60,16 +60,23 @@ export function WebNavbar() {
 
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Inchidem panoul cand navigam catre alta pagina sau cand ecranul devine lat.
+  // Ajustam in timpul randarii (pattern recomandat de React pentru "state derivat
+  // dintr-o schimbare de prop") in loc de setState intr-un useEffect, care declanseaza
+  // re-randari in cascada (regula react-hooks/set-state-in-effect).
+  const [lastPathname, setLastPathname] = useState(pathname);
+  if (pathname !== lastPathname) {
+    setLastPathname(pathname);
+    if (menuOpen) setMenuOpen(false);
+  }
+  if (!isCompact && menuOpen) {
+    setMenuOpen(false);
+  }
+
   // Doar pagina de acasa (index) are hero -> transparent pana la scroll.
   const isHome = pathname === "/acasa" || pathname === "/";
   // Bara e solida daca: nu suntem pe hero / s-a derulat / panoul hamburger e deschis.
   const solid = !isHome || scrolled || (isCompact && menuOpen);
-
-  // Inchidem panoul cand navigam catre alta pagina sau cand ecranul se face lat.
-  useEffect(() => setMenuOpen(false), [pathname]);
-  useEffect(() => {
-    if (!isCompact) setMenuOpen(false);
-  }, [isCompact]);
 
   // Opacitatea fundalului solid: 0 = transparent, 1 = solid. Fade pe schimbare.
   const [bgOpacity] = useState(() => new Animated.Value(solid ? 1 : 0));
