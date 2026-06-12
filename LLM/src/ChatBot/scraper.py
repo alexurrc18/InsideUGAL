@@ -228,6 +228,64 @@ ADM_PAGES = [
     "/contact",
 ]
 
+FACULTY_COMMON_PAGES = [
+    "/",
+    # Structură standard (aciee, ing, feaa etc.)
+    "/prezentare",
+    "/prezentare/misiune",
+    "/structura/conducere",
+    "/structura/secretariat",
+    "/structura/departamente",
+    "/educatie/licenta",
+    "/educatie/masterat",
+    "/admitere",
+    "/admitere/licenta",
+    "/admitere/masterat",
+    "/studenti/burse",
+    "/studenti/taxe",
+    "/studenti/orare-licenta",
+    "/studenti/orare-masterat",
+    "/studenti/programarea-examenelor",
+    "/studenti/regulamente",
+    "/studenti/ghidul-studentului",
+    "/studenti/finalizare-studii",
+    "/studenti/practica",
+    "/studenti/erasmus",
+    "/informatii/anunturi",
+    "/informatii/evenimente",
+    "/contact",
+    # Structură Joomla (/index.php/ro/) — fdsa, fan, sia etc.
+    "/index.php/ro/despre-noi/prezentare",
+    "/index.php/ro/despre-noi/conducere",
+    "/index.php/ro/despre-noi/secretariat",
+    "/index.php/ro/admitere",
+    "/index.php/ro/admitere/admitere-licenta",
+    "/index.php/ro/admitere/admitere-masterat",
+    "/index.php/ro/studenti/burse",
+    "/index.php/ro/studenti/taxe",
+    "/index.php/ro/studenti/orare",
+    "/index.php/ro/studenti/regulamente",
+    "/index.php/ro/studenti/practica",
+    "/index.php/ro/anunturi",
+    "/index.php/ro/contact",
+]
+
+FACULTY_SITES = {
+    "ing":             "https://ing.ugal.ro",             # Facultatea de Inginerie
+    "fan":             "https://fan.ugal.ro",             # Facultatea de Arhitectură Navală
+    "sia":             "https://sia.ugal.ro",             # Facultatea de Știința și Ingineria Alimentelor
+    "feaa":            "https://feaa.ugal.ro",            # Facultatea de Economie și Administrarea Afacerilor
+    "fdsa":            "https://fdsa.ugal.ro",            # Facultatea de Drept și Științe Administrative
+    "litere":          "https://litere.ugal.ro",          # Facultatea de Litere
+    "arte":            "https://arte.ugal.ro",            # Facultatea de Arte
+    "fefs":            "https://fefs.ugal.ro",            # Facultatea de Educație Fizică și Sport
+    "fsed":            "https://fsed.ugal.ro",            # Facultatea de Științe ale Educației
+    "sciences":        "https://sciences.ugal.ro",        # Facultatea de Științe și Mediu
+    "fift":            "https://fift.ugal.ro",            # Facultatea de Istorie, Filosofie și Teologie
+    "fmfgl":           "https://www.fmfgl.ro",            # Facultatea de Medicină și Farmacie
+    "transfrontaliera":"https://transfrontaliera.ugal.ro",# Facultatea Transfrontalieră
+}
+
 
 def _scrape_site(base: str, pages: list[str], prefix: str) -> list[dict]:
     chunks = []
@@ -267,10 +325,21 @@ def scrape_admitere() -> list[dict]:
     return _scrape_site(ADM_URL, ADM_PAGES, "adm")
 
 
+def scrape_faculties() -> list[dict]:
+    """Scrape-uiește toate site-urile de facultăți UGAL."""
+    chunks = []
+    for prefix, base_url in FACULTY_SITES.items():
+        print(f"[Scraper] Facultate {prefix} ({base_url})...")
+        VERIFY_SSL[base_url] = False
+        chunks += _scrape_site(base_url, FACULTY_COMMON_PAGES, prefix)
+    return chunks
+
+
 def scrape_all() -> list[dict]:
-    """Scrape-uiește toate sursele: FACIEE + UGAL general + Admitere."""
+    """Scrape-uiește toate sursele: FACIEE + toate facultățile + UGAL general + Admitere."""
     chunks = []
     chunks += scrape_faciee()
+    chunks += scrape_faculties()
     chunks += scrape_ugal_general()
     chunks += scrape_admitere()
     print(f"[Scraper] Total: {len(chunks)} chunk-uri din toate sursele.")

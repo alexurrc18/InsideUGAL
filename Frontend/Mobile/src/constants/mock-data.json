@@ -371,9 +371,200 @@
       "isUserReport": false,
       "image": "https://ing.ugal.ro/Resurse/2024/WhatsApp_Image_2024-09-17_at_11.48.08.jpeg",
       "images": [
-        "https://ing.ugal.ro/Resurse/2024/WhatsApp_Image_2024-09-17_at_11.48.08.jpeg",
-        "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?q=80&w=1000"
       ]
+    }
+  ],
+  "cityGuideCategories": [
+    { "id": "transport", "title": "Transport", "description": "Autobuze, troleibuze, tramvaie și trenuri", "iconName": "bus" },
+    { "id": "muzee", "title": "Muzee", "description": "Istorie, artă vizuală și științe", "iconName": "dino" },
+    { "id": "divertisment", "title": "Divertisment", "description": "Teatre, cinema și cumpărături", "iconName": "film-roll-alt" },
+    { "id": "parcuri", "title": "Parcuri", "description": "Faleza Dunării și spații verzi", "iconName": "tree-alt" }
+  ],
+  "cityGuide": [
+    {
+      "id": "cg1",
+      "title": "Transurb Galați",
+      "categoryId": "transport",
+      "image": "https://transurbgalati.ro/includes/img/Program_Circulatie_Imagine2.png",
+      "address": "Transport Public Local",
+      "website": "https://transurbgalati.ro/"
+    },
+    {
+      "id": "cg2",
+      "title": "Bolt",
+      "categoryId": "transport",
+      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSxTOYvyvSt5h77CUAcdV4JYlRLXl0DmdToNg&s",
+      "address": "Ridesharing",
+      "website": "https://bolt.eu/"
+    },
+    {
+      "id": "cg3",
+      "title": "Uber",
+      "categoryId": "transport",
+      "image": "https://cdn.mos.cms.futurecdn.net/tQxVwcJSowYD7xwWDYidd9.jpg",
+      "address": "Ridesharing",
+      "website": "https://www.uber.com/ro/en/"
+    },
+    {
+      "id": "cg4",
+      "title": "CFR Călători",
+      "categoryId": "transport",
+      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRnLckileJO0qaWVplVmWNlGduyFW16ffQGbA&s",
+      "address": "Transport Feroviar",
+      "website": "https://bilete.cfrcalatori.ro/ro-RO/Itineraries"
+    },
+    {
+      "id": "cg5",
+      "title": "Complexul Muzeal de Ştiinţele Naturii \"Răzvan Angheluţă\"",
+      "categoryId": "muzee",
+      "image": "https://cmsngl.ro/wp-content/uploads/2025/12/1.-Home-coperta-site.jpg",
+      "address": "Str. Regimentul 11 Siret, 1",
+      "website": "http://www.cmsngl.ro"
+    },
+    {
+      "id": "cg7",
+      "title": "Muzeul de Artă Vizuală",
+      "categoryId": "muzee",
+      "image": "https://ghidulmuzeelor.cimec.ro/P/Ghid/6934502_02.jpg",
+      "address": "Strada Tecuci nr.7, bloc V3",
+      "website": "http://www.mavgl.ro"
+    },
+    {
+      "id": "cg8",
+      "title": "Teatrul Dramatic „Fani Tardini”",
+      "categoryId": "divertisment",
+      "image": "https://fanitardini.ro/wp-content/uploads/2025/08/2021.03.11-Cum-ajungi-la-teatru.jpg",
+      "address": "Strada Domnească nr. 59",
+      "website": "https://www.fanitardini.ro/"
+    },
+    {
+      "id": "cg9",
+      "title": "Teatrul Național de Operă și Operetă „Nae Leonard”",
+      "categoryId": "divertisment",
+      "image": "https://naeleonard.ro/wp-content/uploads/2018/04/teatrul-muzical-nae-leonard_702.jpg",
+      "address": "Strada Mihai Bravu nr. 50",
+      "website": "https://www.naeleonard.ro/"
+    },
+    {
+      "id": "cg10",
+      "title": "Cinema City",
+      "categoryId": "divertisment",
+      "image": "https://www.filmneweurope.com/media/k2/items/cache/7c4c9e3c9a7b3f2addccba76aeb9c9b5_XL.jpg",
+      "address": "Bulevardul George Coșbuc nr. 251",
+      "website": "https://www.cinemacity.ro/"
+    },
+    {
+      "id": "cg11",
+      "title": "Shopping City Galați",
+      "categoryId": "divertisment",
+      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTaBKjGIOcBKCuW_NOsO0WrFLhV_JGvZrc20g&s",
+      "address": "Bulevardul George Coșbuc nr. 251",
+      "website": "https://shoppingcitygalati.ro/"
+    },
+    {
+      "id": "cg12",
+      "title": "Faleza Dunării",
+      "categoryId": "parcuri",
+      "image": "https://www.bursa.ro/_img/articole/mare/402892.jpg",
+      "address": "Bulevardul Marea Unire, Galați",
+      "website": "https://www.viziteazagalati.ro/"
+    },
+    {
+      "id": "cg13",
+      "title": "Grădina Publică",
+      "categoryId": "parcuri",
+      "image": "https://scontent.ftce2-1.fna.fbcdn.net/v/t39.30808-6/503431772_3062836593885042_847571313377193039_n.jpg?stp=dst-jpg_tt6&cstp=mx2048x1150&ctp=s2048x1150&_nc_cat=103&ccb=1-7&_nc_sid=0b6b33&_nc_ohc=arW2I5eoeDgQ7kNvwFnmmye&_nc_oc=Adpszgy2uZly2F5RMtT_2NkZVfCat2w6fClxI_ZCYK8Ap55vX06-ATqmUpOdISWDvNqbFTwIHReHHZn0Je6rttIC&_nc_zt=23&_nc_ht=scontent.ftce2-1.fna&_nc_gid=DEUoi1gOJRYl1N_DcBv2mg&_nc_ss=7b2a8&oh=00_Af8w5mAiUVqmySSPFJQZ9QO6r-GwXKrDy6xe1H4i5Kv_SQ&oe=6A2F8A88",
+      "address": "Strada Domnească, Galați",
+      "website": ""
+    },
+    {
+      "id": "cg14",
+      "title": "Parcul \"Mihai Eminescu\"",
+      "categoryId": "parcuri",
+      "image": "https://www.viata-libera.ro/images/galerie/eminescu9sept2019/07.jpg",
+      "address": "Strada Domnească, Galați",
+      "website": ""
+    },
+    {
+      "id": "cg21",
+      "title": "Parcul \"Carol I\"",
+      "categoryId": "parcuri",
+      "image": "https://presagalati.ro/wp-content/uploads/2023/08/366329328_865720094912638_8561746592446678372_n.jpg",
+      "address": "Strada Domnească nr. 251, Galați",
+      "website": ""
+    },
+    {
+      "id": "cg28",
+      "title": "Spicu / Aleea de la P-uri",
+      "categoryId": "parcuri",
+      "image": "https://telem.ro/wp-content/uploads/2023/11/centru-Galati.jpg",
+      "address": "Strada Domnească, Galați",
+      "website": ""
+    },
+    {
+      "id": "cg22",
+      "title": "Parcul Turn TV",
+      "categoryId": "parcuri",
+      "image": "https://www.bursa.ro/_img/articole/mare/488960.jpg",
+      "address": "Strada Victor Vâlcovici nr. 2, Galați",
+      "website": ""
+    },
+    {
+      "id": "cg23",
+      "title": "Parcul Corneliu Coposu",
+      "categoryId": "parcuri",
+      "image": "https://cdn.adh.reperio.news/image-d/df93b06f-a6cf-4cc5-90e5-28d987f1080d/index.jpeg?p=w%3D650%26f%3Dwebp%26q%3D91",
+      "address": "Strada Cloșca, Galați",
+      "website": ""
+    },
+    {
+      "id": "cg24",
+      "title": "Parcul de aventură",
+      "categoryId": "parcuri",
+      "image": "https://www.radiovacanta.ro/wp-content/uploads/2023/07/galati-parc-aventura-foto-primaria-galati.jpg",
+      "address": "Strada Saturn nr. 42, Galați",
+      "website": ""
+    },
+    {
+      "id": "cg25",
+      "title": "Parcul Rizer",
+      "categoryId": "parcuri",
+      "image": "https://cdn.adh.reperio.news/image-1/13ef753e-4453-474d-a156-4439d31b0c06/index.jpeg?p=a%3D1%26co%3D1.05%26w%3D700%26h%3D750%26r%3Dcontain%26f%3Dwebp",
+      "address": "Strada Traian nr. 199, Galați",
+      "website": ""
+    },
+    {
+      "id": "cg26",
+      "title": "Parc Aventura \"Pădurea Gârboavele\"",
+      "categoryId": "parcuri",
+      "image": "https://cdn.adh.reperio.news/image-a/afa14d36-4370-4ca4-aa19-f1bdb1db8453/index.jpeg?p=f%3Djpeg%26w%3D1200%26h%3D630%26r%3Dcover",
+      "address": "Pădurea Gârboavele, Comuna Tulucești, Galați",
+      "website": "https://www.spjadppgalati.ro/escape-land/"
+    },
+    {
+      "id": "cg27",
+      "title": "Parcul Viva",
+      "categoryId": "parcuri",
+      "image": "https://www.ct100.ro/wp-content/uploads/2022/06/parcul-viva-galati-7.jpg",
+      "address": "Strada Regimentul 11 Siret, Galați",
+      "website": ""
+    },
+
+    {
+      "id": "cg19",
+      "title": "Dunărea Mall",
+      "categoryId": "divertisment",
+      "image": "https://lh3.googleusercontent.com/gps-cs-s/APNQkAErgXErUviW3PxNFgfUiAjx-UL8ChJI2rQnMtCRhLZDTP_bWAHzADRqvzMkfd8I7D_5TlCVWq3wmFSiyk_FDbnuVBk8qHYuPZGAayCRXIFVM-UWuy8rKLiT8egSrblzyLfwi2zlVL_6S52s=s1360-w1360-h1020",
+      "address": "Strada Brăilei nr. 220 A",
+      "website": ""
+    },
+    {
+      "id": "cg20",
+      "title": "Winmarkt Galați",
+      "categoryId": "divertisment",
+      "image": "https://www.bikeworks.ro/wp-content/uploads/2017/05/winmarkt-galati.jpg",
+      "address": "Strada Domnească nr. 24",
+      "website": "https://www.winmarkt.ro/galati/"
     }
   ]
 }

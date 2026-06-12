@@ -20,6 +20,7 @@ import app.api.categories as categories
 import app.api.complaints as complaints
 import app.api.daily_menus as daily_menus
 import app.api.faculties as faculties
+import app.api.llm as llm
 import app.api.locations as locations
 import app.api.products as products
 import app.api.profiles as profiles
@@ -111,3 +112,4 @@ app.include_router(cafeteria_menus.router)
 app.include_router(complaints.router)
 app.include_router(announcements.router)
 app.include_router(auth.router)
+app.include_router(llm.router)

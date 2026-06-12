@@ -6,6 +6,10 @@ import { Typography } from "@/constants/typography";
 
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 
+export const unstable_settings = {
+    initialRouteName: "index",
+};
+
 export default function LineupLayout() {
     const router = useRouter();
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
