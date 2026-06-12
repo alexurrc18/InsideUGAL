@@ -7,10 +7,10 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
-      SUPABASE_URL: ${SUPABASE_URL:-http://supabase-kong:8000}
+      SUPABASE_URL: http://supabase-kong:8000
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
-      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
     restart: unless-stopped
@@ -41,7 +41,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
-      SUPABASE_URL: ${SUPABASE_URL:-http://supabase-kong:8000}
+      SUPABASE_URL: http://supabase-kong:8000
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       ALLOWED_ORIGINS: ${LLM_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
     restart: unless-stopped
