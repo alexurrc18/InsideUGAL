@@ -29,6 +29,7 @@ ALTER ROLE service_role WITH NOINHERIT BYPASSRLS;
 ALTER ROLE authenticator WITH NOINHERIT LOGIN PASSWORD 'postgres';
 ALTER ROLE supabase_auth_admin WITH NOINHERIT SUPERUSER CREATEROLE CREATEDB LOGIN PASSWORD 'postgres';
 ALTER ROLE supabase_admin WITH NOINHERIT SUPERUSER CREATEROLE CREATEDB LOGIN REPLICATION PASSWORD 'postgres';
+ALTER ROLE supabase_auth_admin SET search_path TO auth, public;
 
 GRANT anon TO authenticator;
 GRANT authenticated TO authenticator;

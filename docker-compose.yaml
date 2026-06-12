@@ -13,6 +13,7 @@ services:
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      ALLOWED_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
     restart: unless-stopped
     depends_on:
       supabase-db:
@@ -91,11 +92,11 @@ services:
     - internal
     labels:
     - traefik.enable=true
-    - traefik.docker.network=coolify
-    - traefik.http.routers.insideugal-frontend.rule=Host(insideugal.ro)
+    - traefik.docker.network=${TRAEFIK_DOCKER_NETWORK:-coolify}
+    - traefik.http.routers.insideugal-frontend.rule=Host(`${FRONTEND_HOST:-insideugal.ro}`)
     - traefik.http.routers.insideugal-frontend.entrypoints=https
     - traefik.http.routers.insideugal-frontend.tls=true
-    - traefik.http.routers.insideugal-frontend-http.rule=Host(insideugal.ro)
+    - traefik.http.routers.insideugal-frontend-http.rule=Host(`${FRONTEND_HOST:-insideugal.ro}`)
     - traefik.http.routers.insideugal-frontend-http.entrypoints=http
     - traefik.http.routers.insideugal-frontend-http.middlewares=insideugal-redirect-https
     - traefik.http.routers.insideugal-frontend-http.service=insideugal-frontend
@@ -124,6 +125,7 @@ services:
       JWT_EXP: ${JWT_EXPIRY:-3600}
     volumes:
     - supabase-db-data:/var/lib/postgresql/data
+    - ./supabase/migrations/00_init_roles.sql:/docker-entrypoint-initdb.d/00_init_roles.sql:ro
     - ./supabase/migrations/202605280001_init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
     - ./supabase/migrations/20260604081436_adaugare_pgvector_si_chunkuri.sql:/docker-entrypoint-initdb.d/02_pgvector_document_chunks.sql:ro
     - ./supabase/migrations/20260604084954_adaugare_bucket_documente.sql:/docker-entrypoint-initdb.d/03_documents_bucket.sql:ro
@@ -140,7 +142,8 @@ services:
         condition: service_healthy
     environment:
       GOTRUE_DB_DRIVER: postgres
-      GOTRUE_DB_DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}?sslmode=disable
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:postgres@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}?sslmode=disable
+      GOTRUE_DB_NAMESPACE: auth
       GOTRUE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       GOTRUE_JWT_EXP: ${JWT_EXPIRY:-3600}
       GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
@@ -324,6 +327,9 @@ services:
       - internal
 networks:
   public:
+    name: ${PUBLIC_NETWORK_NAME:-insideugal_public}
+    external: ${PUBLIC_NETWORK_EXTERNAL:-false}
+  coolify:
     name: coolify
     external: true
   internal:

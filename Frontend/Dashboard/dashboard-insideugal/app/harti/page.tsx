@@ -6,6 +6,7 @@ import Modal from "../components/ui/Modal";
 import { Card, CardContent } from "../components/ui/Card";
 import MapView from "../components/MapView";
 import MapComponent from "../components/MapComponent";
+import { apiBaseUrl } from "@/lib/api-client";
 
 interface Cladire {
   id: number;
@@ -87,6 +88,15 @@ const emptyForm: FormState = {
   name: "", faculty_id: "", lat: "", lng: "",
   adresa: "", telefon: "", website: "", program: "", descriere: ""
 };
+
+function authHeaders(): HeadersInit {
+  const headers = new Headers({ "Content-Type": "application/json" });
+  const token = typeof window !== "undefined" ? window.localStorage.getItem("access_token") : null;
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  return headers;
+}
 
 function CladireForm({
   formState,
@@ -207,12 +217,10 @@ export default function HartiPage() {
   const [addForm, setAddForm] = useState<FormState>(emptyForm);
   const [editForm, setEditForm] = useState<FormState>(emptyForm);
 
-  const API = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
-
   useEffect(() => {
     async function fetchLocations() {
       try {
-        const res = await fetch(`${API}/locations/`);
+        const res = await fetch(`${apiBaseUrl}/locations/`);
         if (!res.ok) {
           throw new Error(`Eroare API: ${res.status}`);
         }
@@ -227,14 +235,14 @@ export default function HartiPage() {
       }
     }
     fetchLocations();
-  }, [API]);
+  }, []);
 
   const handleAdd = async () => {
     if (!addForm.name) return;
     try {
-      const res = await fetch(`${API}/locations/`, {
+      const res = await fetch(`${apiBaseUrl}/locations/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({
           name: addForm.name,
           faculty_id: addForm.faculty_id ? parseInt(addForm.faculty_id) : null,
@@ -276,9 +284,9 @@ export default function HartiPage() {
   const handleEditSave = async () => {
     if (!editingId) return;
     try {
-      const res = await fetch(`${API}/locations/${editingId}`, {
+      const res = await fetch(`${apiBaseUrl}/locations/${editingId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({
           name: editForm.name,
           faculty_id: editForm.faculty_id ? parseInt(editForm.faculty_id) : null,
@@ -303,7 +311,7 @@ export default function HartiPage() {
 
   const handleDelete = async (id: number) => {
     try {
-      await fetch(`${API}/locations/${id}`, { method: "DELETE" });
+      await fetch(`${apiBaseUrl}/locations/${id}`, { method: "DELETE", headers: authHeaders() });
       setCladiri(cladiri.filter(c => c.id !== id));
     } catch (e) {
       console.error("Eroare la ștergere:", e);
