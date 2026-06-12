@@ -176,6 +176,7 @@ services:
     environment:
       KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+      ANON_KEY: ${SUPABASE_ANON_KEY:-}
     volumes:
       - ./supabase/kong.yml:/var/lib/kong/kong.yml:ro
     ports:
@@ -220,8 +221,8 @@ services:
       DEFAULT_ORGANIZATION_NAME: ${STUDIO_DEFAULT_ORGANIZATION:-InsideUGAL}
       DEFAULT_PROJECT_NAME: ${STUDIO_DEFAULT_PROJECT:-InsideUGAL}
       SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL:-http://localhost:8082}
-      SUPABASE_URL: http://localhost:8082
-      NEXT_PUBLIC_SUPABASE_URL: http://localhost:8082
+      SUPABASE_URL: http://supabase-kong:8000
+      NEXT_PUBLIC_SUPABASE_URL: http://localhost:8004
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       AUTH_JWT_SECRET: ${SUPABASE_JWT_SECRET}
