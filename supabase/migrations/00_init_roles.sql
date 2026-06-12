@@ -11,8 +11,9 @@ BEGIN
 
     -- Creare rol supabase_admin
     IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'supabase_admin') THEN
-        CREATE ROLE supabase_admin NOINHERIT CREATEROLE LOGIN NOREPLICATION;
+        CREATE ROLE supabase_admin NOINHERIT SUPERUSER CREATEROLE CREATEDB LOGIN REPLICATION PASSWORD 'postgres';
     END IF;
+    ALTER ROLE supabase_admin WITH NOINHERIT SUPERUSER CREATEROLE CREATEDB LOGIN REPLICATION PASSWORD 'postgres';
 
     -- Creare rol authenticated
     IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'authenticated') THEN
