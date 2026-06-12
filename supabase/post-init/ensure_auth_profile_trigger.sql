@@ -2,13 +2,16 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
     assigned_role public.user_role;
+    profile_email text;
     profile_first_name text;
     profile_last_name text;
     profile_username text;
 BEGIN
-    IF NEW.email = 'admin@ugal.ro' THEN
+    profile_email := COALESCE(NULLIF(NEW.email, ''), NEW.id::text || '@local.invalid');
+
+    IF profile_email = 'admin@ugal.ro' THEN
         assigned_role := 'HEAD_ADMIN'::public.user_role;
-    ELSIF NEW.email LIKE 'profesor.%@ugal.ro' THEN
+    ELSIF profile_email LIKE 'profesor.%@ugal.ro' THEN
         assigned_role := 'PROFESOR'::public.user_role;
     ELSE
         assigned_role := 'STUDENT'::public.user_role;
@@ -26,16 +29,25 @@ BEGIN
     profile_username := COALESCE(
         NULLIF(NEW.raw_user_meta_data->>'preferred_username', ''),
         NULLIF(NEW.raw_user_meta_data->>'username', ''),
-        split_part(NEW.email, '@', 1),
+        NULLIF(split_part(profile_email, '@', 1), ''),
         NEW.id::text
     );
+
+    IF EXISTS (
+        SELECT 1
+        FROM public.profiles
+        WHERE username = profile_username
+          AND id <> NEW.id
+    ) THEN
+        profile_username := profile_username || '_' || left(replace(NEW.id::text, '-', ''), 8);
+    END IF;
 
     INSERT INTO public.profiles (
         id, email, first_name, last_name, username, role
     )
     VALUES (
         NEW.id,
-        NEW.email,
+        profile_email,
         profile_first_name,
         profile_last_name,
         profile_username,
@@ -50,12 +62,35 @@ BEGIN
         updated_at = NOW();
 
     RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'handle_new_user failed for auth user %, SQLSTATE %, error: %', NEW.id, SQLSTATE, SQLERRM;
+
+    BEGIN
+        INSERT INTO public.profiles (
+            id, email, first_name, last_name, username, role, is_active
+        )
+        VALUES (
+            NEW.id,
+            COALESCE(NULLIF(NEW.email, ''), NEW.id::text || '@local.invalid'),
+            'User',
+            'Local',
+            'user_' || left(replace(NEW.id::text, '-', ''), 12),
+            'STUDENT'::public.user_role,
+            true
+        )
+        ON CONFLICT (id) DO NOTHING;
+    EXCEPTION WHEN OTHERS THEN
+        RAISE WARNING 'fallback profile insert also failed for auth user %, SQLSTATE %, error: %', NEW.id, SQLSTATE, SQLERRM;
+    END;
+
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
 
 ALTER FUNCTION public.handle_new_user() OWNER TO postgres;
 
 GRANT USAGE ON SCHEMA public TO supabase_auth_admin;
+GRANT USAGE ON SCHEMA public TO postgres;
 GRANT ALL ON public.profiles TO supabase_auth_admin;
 GRANT ALL ON public.profiles TO service_role;
 
