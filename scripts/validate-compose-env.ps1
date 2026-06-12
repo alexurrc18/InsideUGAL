@@ -159,4 +159,8 @@ foreach ($expected in @(
     }
 }
 
+if ($compose -like "*00_init_roles.sql:/docker-entrypoint-initdb.d/*") {
+    Fail "00_init_roles.sql nu trebuie montat in /docker-entrypoint-initdb.d; intra in conflict cu init-ul intern Supabase care creeaza rolurile anon/authenticated/service_role."
+}
+
 Write-Host "OK: .env este valid pentru docker compose local."

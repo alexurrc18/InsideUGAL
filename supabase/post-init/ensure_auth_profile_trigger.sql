@@ -1,3 +1,39 @@
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'anon') THEN
+        CREATE ROLE anon NOINHERIT;
+    END IF;
+
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'authenticated') THEN
+        CREATE ROLE authenticated NOINHERIT;
+    END IF;
+
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'service_role') THEN
+        CREATE ROLE service_role NOINHERIT BYPASSRLS;
+    END IF;
+
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'authenticator') THEN
+        CREATE ROLE authenticator NOINHERIT LOGIN PASSWORD 'postgres';
+    END IF;
+
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'supabase_auth_admin') THEN
+        CREATE ROLE supabase_auth_admin NOINHERIT LOGIN PASSWORD 'postgres';
+    END IF;
+
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'supabase_admin') THEN
+        CREATE ROLE supabase_admin NOINHERIT;
+    END IF;
+END $$;
+
+ALTER ROLE service_role WITH NOINHERIT BYPASSRLS;
+ALTER ROLE authenticator WITH NOINHERIT LOGIN PASSWORD 'postgres';
+ALTER ROLE supabase_auth_admin WITH NOINHERIT SUPERUSER CREATEROLE CREATEDB LOGIN PASSWORD 'postgres';
+ALTER ROLE supabase_admin WITH NOINHERIT SUPERUSER CREATEROLE CREATEDB LOGIN REPLICATION PASSWORD 'postgres';
+
+GRANT anon TO authenticator;
+GRANT authenticated TO authenticator;
+GRANT service_role TO authenticator;
+
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
