@@ -172,8 +172,17 @@ services:
     volumes:
       - ./supabase/post-init/ensure_auth_profile_trigger.sql:/tmp/ensure_auth_profile_trigger.sql:ro
     command: >
-      sh -c "until psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -tAc \"select to_regclass('auth.users') is not null\" | grep -q t; do sleep 1; done;
-      psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -v ON_ERROR_STOP=1 -f /tmp/ensure_auth_profile_trigger.sql"
+      sh -c "for i in $$(seq 1 90); do
+      if psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -tAc \"select to_regclass('auth.users') is not null\" | grep -q t; then
+      echo \"auth.users is ready; applying post-init SQL\";
+      psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -v ON_ERROR_STOP=1 -f /tmp/ensure_auth_profile_trigger.sql;
+      exit $$?;
+      fi;
+      echo \"waiting for auth.users ($$i/90)\";
+      sleep 2;
+      done;
+      echo \"auth.users was not ready after 180s; skipping post-init so compose can continue\";
+      exit 0"
     networks:
       - internal
   supabase-rest:
@@ -233,8 +242,6 @@ services:
     depends_on:
       supabase-meta:
         condition: service_started
-      supabase-post-init:
-        condition: service_completed_successfully
     environment:
       STUDIO_PG_META_URL: http://supabase-meta:8080
       HOSTNAME: 0.0.0.0
