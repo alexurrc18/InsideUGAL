@@ -1,6 +1,10 @@
 import React, { useEffect, useRef } from "react";
 import { View, useWindowDimensions, type StyleProp, type ViewStyle } from "react-native";
-import { WebContentMaxWidth, WebMaxScale, WebSidePadding } from "@/constants/theme";
+import { WebContentMaxWidth, WebMaxScale, WebSidePadding, Spacing } from "@/constants/theme";
+
+// Sub aceasta latime suntem "pe telefon" (browser ingust): marginile laterale
+// se micsoreaza mult, ca sa nu irosim jumatate din ecran pe padding.
+export const WEB_COMPACT_BREAKPOINT = 768;
 
 /**
  * Canvas-ul de continut pe web (.web.tsx — mobilul NU il foloseste).
@@ -39,6 +43,9 @@ export function WebContainer({
   const scaling = width > WebContentMaxWidth;
   const zoom = scaling ? Math.min(width / WebContentMaxWidth, WebMaxScale) : 1;
 
+  // Margine laterala responsiva: mica pe telefon, generoasa pe ecran lat.
+  const sidePadding = width < WEB_COMPACT_BREAKPOINT ? Spacing.lg : WebSidePadding;
+
   // `zoom` nu e o proprietate de stil React Native, deci o setam direct pe nodul
   // DOM (suntem pe web, View randeaza un <div>).
   useEffect(() => {
@@ -56,7 +63,7 @@ export function WebContainer({
           width: scaling ? WebContentMaxWidth : "100%",
           maxWidth: WebContentMaxWidth,
           alignSelf: "center",
-          paddingHorizontal: padded ? WebSidePadding : 0,
+          paddingHorizontal: padded ? sidePadding : 0,
         },
         style,
       ]}

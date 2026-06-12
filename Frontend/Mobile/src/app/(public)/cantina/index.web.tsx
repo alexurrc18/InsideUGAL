@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Spacing } from "@/constants/theme";
 import { WebContainer } from "@/components/ui/web-container";
 import { CategoryHeader } from "@/components/ui/category-header";
+import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { Expandable } from "@/components/ui/expandable";
 import { MenuItem } from "@/components/ui/menu-item";
 import MockData from "@/constants/mock-data.json";
@@ -24,6 +25,7 @@ export default function CantinaScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
+  const contentTop = useWebContentTop();
 
   const daysFilter = useMemo(() => {
     const allDays = [
@@ -75,7 +77,7 @@ export default function CantinaScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingBottom: insets.bottom + Spacing.xxl,
-          paddingTop: insets.top + 140,
+          paddingTop: contentTop,
         }}
       >
         <WebContainer>

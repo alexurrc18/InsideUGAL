@@ -20,8 +20,8 @@ import {
 } from "@/constants/theme";
 import Map from "@/components/map";
 import { CategoryHeader } from "@/components/ui/category-header";
-import { WebContainer } from "@/components/ui/web-container";
-import { NAVBAR_HEIGHT } from "@/components/ui/web-navbar";
+import { WebContainer, WEB_COMPACT_BREAKPOINT } from "@/components/ui/web-container";
+import { useWebContentTop } from "@/hooks/use-web-content-top";
 import MockData from "@/constants/mock-data.json";
 
 export default function HartaScreen() {
@@ -30,14 +30,18 @@ export default function HartaScreen() {
   const { width } = useWindowDimensions();
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
+  const contentTop = useWebContentTop();
 
   // Geometria WebContainer-ului (vezi web-container.web.tsx), reprodusa ca valori.
   const scaling = width > WebContentMaxWidth;
   const zoom = scaling ? Math.min(width / WebContentMaxWidth, WebMaxScale) : 1;
   const columnWidth = scaling ? WebContentMaxWidth * zoom : width;
+  // Padding-ul lateral al WebContainer-ului e responsiv (mic pe ecran ingust), deci
+  // il reproducem identic aici ca harta sa ramana aliniata cu titlul "Hartă".
+  const sidePadding = width < WEB_COMPACT_BREAKPOINT ? Spacing.lg : WebSidePadding;
   // Inset-ul orizontal pana la continutul navbarului (logo / "Hartă"):
   //   margine de centrare + (padding lateral + Spacing.lg) scalate cu zoom.
-  const contentInset = (width - columnWidth) / 2 + (WebSidePadding + Spacing.lg) * zoom;
+  const contentInset = (width - columnWidth) / 2 + (sidePadding + Spacing.lg) * zoom;
 
   const facultyFilters = useMemo(
     () => [
@@ -57,8 +61,8 @@ export default function HartaScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        // Lasam loc sub navbar (care e mai inalt la zoom) + spatiu de respiratie.
-        paddingTop: insets.top + NAVBAR_HEIGHT * zoom + Spacing.xl,
+        // Lasam loc sub navbar (acelasi top ca celelalte pagini web).
+        paddingTop: contentTop,
       }}
     >
       {/* Header in WebContainer => acelasi zoom ca pe cantina/sesizari, deci titlul

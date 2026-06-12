@@ -8,6 +8,16 @@
   --font-serif: Georgia, 'Times New Roman', serif;
 }
 
+/* Plasa de siguranta pe ecrane inguste: nimic nu trebuie sa depaseasca latimea
+   ferestrei pe orizontala (altfel apare scroll orizontal + zona alba in
+   dreapta-jos). Caruselele isi gestioneaza singure scroll-ul lor orizontal in
+   propriile containere, deci nu sunt afectate de regula asta. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 /* Bara de scroll a caruselelor pe desktop web: subțire, colorată, doar orizontală */
 [data-carousel] {
   overflow-x: auto !important;

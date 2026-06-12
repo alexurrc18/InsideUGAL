@@ -7,6 +7,7 @@ import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { WebContainer } from "@/components/ui/web-container";
 import { CategoryHeader, FilterItem } from "@/components/ui/category-header";
+import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { SesizareCard, Sesizare } from "@/components/ui/sesizare-card";
 import MockData from "@/constants/mock-data.json";
 import PlusIcon from "@/assets/icons/svg/plus.svg";
@@ -24,6 +25,7 @@ export default function SesizariScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
+  const contentTop = useWebContentTop();
   const router = useRouter();
 
   const [reports, setReports] = useState<Sesizare[]>(MockData.reports as Sesizare[]);
@@ -67,7 +69,7 @@ export default function SesizariScreen() {
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingTop: insets.top + 140,
+          paddingTop: contentTop,
           paddingBottom: insets.bottom + Spacing.xxl,
         }}
       >

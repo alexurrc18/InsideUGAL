@@ -1,23 +1,27 @@
 // Navbar-ul web (DOAR web — importat doar din _layout.web.tsx, deci nu intra in
 // bundle-ul de mobil). Inlocuieste bara de jos (NativeTabs) cu o bara de sus:
 //   - stanga: logo
-//   - dreapta: link-urile existente + meniul de tema (cog)
+//   - dreapta (ecran lat): link-urile + meniul de tema (cog)
+//   - dreapta (ecran ingust < 768): un buton hamburger care deschide un panou
+//     vertical cu link-urile + comutatorul de tema.
 //
 // Fundal: albastru de brand (theme.primary). Comportament pe pagini:
 //   - ACASA (are hero): transparent peste hero, devine solid cand pagina a fost
 //     derulata (raportat prin WebScrollProvider) -> fade lin.
 //   - restul paginilor: solid mereu (nu au hero).
-// Textul ramane alb in ambele stari. Aliniere: continutul sta intr-un WebContainer.
+//   - cand panoul hamburger e deschis, bara devine solida ca textul sa fie lizibil.
+// Textul ramane alb in toate starile. Aliniere: continutul sta intr-un WebContainer.
 import { useEffect, useState } from "react";
-import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Image } from "expo-image";
 import { useRouter, usePathname } from "expo-router";
 import { ColorScheme, Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useNavbarScrolled } from "@/contexts/web-scroll-context";
-import { WebContainer } from "@/components/ui/web-container";
+import { WebContainer, WEB_COMPACT_BREAKPOINT } from "@/components/ui/web-container";
 import { ThemeMenu } from "@/components/ui/theme-menu";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export const NAVBAR_HEIGHT = 60;
 
@@ -33,17 +37,39 @@ const LINKS: { label: string; href: string; match: string }[] = [
   { label: "Mai multe", href: "/(public)/more", match: "/more" },
 ];
 
+// Hamburger din 3 bare (nu avem icon dedicat in assets). Devine "X" cand e deschis:
+// bara de sus si de jos se rotesc, cea din mijloc dispare.
+function HamburgerIcon({ open }: { open: boolean }) {
+  return (
+    <View style={hamburger.box}>
+      <View style={[hamburger.bar, open && hamburger.barTop]} />
+      <View style={[hamburger.bar, open && hamburger.barMid]} />
+      <View style={[hamburger.bar, open && hamburger.barBottom]} />
+    </View>
+  );
+}
+
 export function WebNavbar() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const scrolled = useNavbarScrolled();
   const router = useRouter();
   const pathname = usePathname();
+  const { width } = useWindowDimensions();
+  const isCompact = width < WEB_COMPACT_BREAKPOINT;
+
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Doar pagina de acasa (index) are hero -> transparent pana la scroll.
-  // Sub-paginile acasa (categorie/vizualizare) si restul: solid mereu.
   const isHome = pathname === "/acasa" || pathname === "/";
-  const solid = !isHome || scrolled;
+  // Bara e solida daca: nu suntem pe hero / s-a derulat / panoul hamburger e deschis.
+  const solid = !isHome || scrolled || (isCompact && menuOpen);
+
+  // Inchidem panoul cand navigam catre alta pagina sau cand ecranul se face lat.
+  useEffect(() => setMenuOpen(false), [pathname]);
+  useEffect(() => {
+    if (!isCompact) setMenuOpen(false);
+  }, [isCompact]);
 
   // Opacitatea fundalului solid: 0 = transparent, 1 = solid. Fade pe schimbare.
   const [bgOpacity] = useState(() => new Animated.Value(solid ? 1 : 0));
@@ -54,6 +80,17 @@ export function WebNavbar() {
       useNativeDriver: false,
     }).start();
   }, [solid, bgOpacity]);
+
+  // Animatia panoului hamburger (fade + slide in jos).
+  const [panelAnim] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    Animated.timing(panelAnim, {
+      toValue: menuOpen ? 1 : 0,
+      duration: 220,
+      useNativeDriver: false,
+    }).start();
+  }, [menuOpen, panelAnim]);
+  const panelTranslate = panelAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] });
 
   return (
     <View style={styles.bar} pointerEvents="box-none">
@@ -87,38 +124,88 @@ export function WebNavbar() {
             <Image source={LOGO} style={styles.logo} contentFit="contain" />
           </Pressable>
 
-          {/* Dreapta: link-uri + meniu tema */}
-          <View style={styles.right}>
+          {isCompact ? (
+            /* Ecran ingust: doar butonul hamburger. */
+            <Pressable
+              onPress={() => setMenuOpen((v) => !v)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={menuOpen ? "Închide meniul" : "Deschide meniul"}
+              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, padding: Spacing.xs })}
+            >
+              <HamburgerIcon open={menuOpen} />
+            </Pressable>
+          ) : (
+            /* Ecran lat: link-uri + meniu tema */
+            <View style={styles.right}>
+              {LINKS.map((link) => {
+                const isActive = pathname.startsWith(link.match);
+                return (
+                  <Pressable
+                    key={link.href}
+                    onPress={() => router.push(link.href as any)}
+                    accessibilityRole="link"
+                    style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, alignItems: "center" })}
+                  >
+                    <Text style={[Typography.Heading5, { color: ColorScheme.white }]}>{link.label}</Text>
+                    {isActive && <View style={styles.activeUnderline} />}
+                  </Pressable>
+                );
+              })}
+
+              <ThemeMenu solid={solid} />
+            </View>
+          )}
+        </View>
+      </WebContainer>
+
+      {/* Panou hamburger (doar ecran ingust): lista verticala de link-uri + tema. */}
+      {isCompact && (
+        <Animated.View
+          pointerEvents={menuOpen ? "auto" : "none"}
+          style={[
+            styles.panel,
+            { backgroundColor: theme.primary, opacity: panelAnim, transform: [{ translateY: panelTranslate }] },
+          ]}
+        >
+          <WebContainer style={{ paddingVertical: Spacing.sm }}>
             {LINKS.map((link) => {
               const isActive = pathname.startsWith(link.match);
               return (
                 <Pressable
                   key={link.href}
-                  onPress={() => router.push(link.href as any)}
+                  onPress={() => {
+                    router.push(link.href as any);
+                    setMenuOpen(false);
+                  }}
                   accessibilityRole="link"
-                  style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, alignItems: "center" })}
+                  style={({ pressed }) => [styles.panelLink, { opacity: pressed ? 0.6 : 1 }]}
                 >
-                  {/* Link-urile de navbar sunt mai subtiri (Regular) decat restul
-                      lucrurilor care folosesc Heading5 (etichete, butoane) — de aceea
-                      suprascriem greutatea local, nu global in typography.web.ts. */}
                   <Text
                     style={[
                       Typography.Heading5,
-                      { color: ColorScheme.white, fontFamily: "InstrumentSans-Regular", fontWeight: "400" },
+                      { color: ColorScheme.white, fontFamily: isActive ? "InstrumentSans-SemiBold" : "InstrumentSans-Medium" },
                     ]}
                   >
                     {link.label}
                   </Text>
-                  {/* Indicator pentru link-ul activ. */}
-                  {isActive && <View style={styles.activeUnderline} />}
                 </Pressable>
               );
             })}
 
-            <ThemeMenu solid={solid} />
-          </View>
-        </View>
-      </WebContainer>
+            {/* Rand de tema: eticheta + comutator soare/luna. */}
+            <View style={styles.panelThemeRow}>
+              <Text style={[Typography.Heading5, { color: ColorScheme.white }]}>Temă</Text>
+              <ThemeToggle
+                size={20}
+                backgroundColor="rgba(255,255,255,0.15)"
+                borderColor={ColorScheme.white}
+                color={ColorScheme.white}
+              />
+            </View>
+          </WebContainer>
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -132,7 +219,7 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   inner: {
-    // Acelasi padding suplimentar ca rEndul de titlu al caruselului (Spacing.lg),
+    // Acelasi padding suplimentar ca randul de titlu al caruselului (Spacing.lg),
     // peste padding-ul lateral al WebContainer-ului => aliniere cu "Noutăți".
     paddingHorizontal: Spacing.lg,
     flexDirection: "row",
@@ -140,8 +227,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   logo: {
-    height: 44,
-    width: 44,
+    height: 40,
+    width: 40,
   },
   right: {
     flexDirection: "row",
@@ -154,5 +241,55 @@ const styles = StyleSheet.create({
     width: "100%",
     borderRadius: 1,
     backgroundColor: ColorScheme.white,
+  },
+  // Panoul hamburger sta lipit sub bara (care are inaltimea NAVBAR_HEIGHT).
+  panel: {
+    position: "absolute",
+    top: NAVBAR_HEIGHT,
+    left: 0,
+    right: 0,
+    paddingBottom: Spacing.sm,
+    shadowColor: ColorScheme.pureBlack,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+  },
+  panelLink: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  panelThemeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    marginTop: Spacing.xs,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(255,255,255,0.25)",
+  },
+});
+
+const hamburger = StyleSheet.create({
+  box: {
+    width: 24,
+    height: 18,
+    justifyContent: "space-between",
+  },
+  bar: {
+    height: 2,
+    width: "100%",
+    borderRadius: 1,
+    backgroundColor: ColorScheme.white,
+  },
+  // Stari pentru "X": bara de sus coboara+roteste, mijlocul dispare, jos urca+roteste.
+  barTop: {
+    transform: [{ translateY: 8 }, { rotate: "45deg" }],
+  },
+  barMid: {
+    opacity: 0,
+  },
+  barBottom: {
+    transform: [{ translateY: -8 }, { rotate: "-45deg" }],
   },
 });

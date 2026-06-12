@@ -115,21 +115,31 @@ export function HomeHighlights({ featured, items, onPressItem, title = "Recomand
           <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.lg }]}>{title}</Text>
         ) : null}
 
-        <View style={[styles.row, stacked && styles.rowStacked]}>
-          {/* Stanga: 3 carduri compacte. */}
-          <View style={[styles.listCol, stacked && styles.colStacked]}>
+        {stacked ? (
+          // Ecran ingust: TOATE cardurile (cele 3 compacte + cel mare) intr-o singura
+          // coloana cu un singur `gap`. Asa au exact aceeasi distanta intre ele —
+          // acelasi mecanism prin care cele 3 compacte erau deja spatiate corect.
+          <View style={styles.stack}>
             {items.map((item) => (
               <CompactCard key={item.id} item={item} onPress={() => onPressItem(item)} />
             ))}
+            {featured ? <FeaturedCard item={featured} onPress={() => onPressItem(featured)} /> : null}
           </View>
-
-          {/* Dreapta: card mare featured. */}
-          {featured ? (
-            <View style={[styles.featuredCol, stacked && styles.colStacked]}>
-              <FeaturedCard item={featured} onPress={() => onPressItem(featured)} />
+        ) : (
+          // Ecran lat: doua coloane (3 carduri compacte stanga + card mare dreapta).
+          <View style={styles.row}>
+            <View style={styles.listCol}>
+              {items.map((item) => (
+                <CompactCard key={item.id} item={item} onPress={() => onPressItem(item)} />
+              ))}
             </View>
-          ) : null}
-        </View>
+            {featured ? (
+              <View style={styles.featuredCol}>
+                <FeaturedCard item={featured} onPress={() => onPressItem(featured)} />
+              </View>
+            ) : null}
+          </View>
+        )}
       </View>
     </WebContainer>
   );
@@ -141,8 +151,9 @@ const styles = StyleSheet.create({
     gap: Spacing.xl,
     alignItems: "stretch",
   },
-  rowStacked: {
-    flexDirection: "column",
+  // Ecran ingust: o singura coloana, toate cardurile la aceeasi distanta (gap).
+  stack: {
+    gap: Spacing.lg,
   },
   listCol: {
     flex: 1,
@@ -151,10 +162,6 @@ const styles = StyleSheet.create({
   },
   featuredCol: {
     flex: 1.2,
-  },
-  colStacked: {
-    flex: undefined,
-    width: "100%",
   },
   compact: {
     flexDirection: "row",
