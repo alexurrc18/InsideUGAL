@@ -6,7 +6,7 @@ import Modal from "../components/ui/Modal";
 import { Card, CardContent } from "../components/ui/Card";
 import MapView from "../components/MapView";
 import MapComponent from "../components/MapComponent";
-import { apiBaseUrl } from "@/lib/api-client";
+import { apiBaseUrl, getAuthHeaders } from "@/lib/api-client";
 
 interface Cladire {
   id: number;
@@ -90,12 +90,7 @@ const emptyForm: FormState = {
 };
 
 function authHeaders(): HeadersInit {
-  const headers = new Headers({ "Content-Type": "application/json" });
-  const token = typeof window !== "undefined" ? window.localStorage.getItem("access_token") : null;
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-  return headers;
+  return getAuthHeaders({ "Content-Type": "application/json" });
 }
 
 function CladireForm({
@@ -212,6 +207,7 @@ export default function HartiPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [cladiri, setCladiri] = useState<Cladire[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isAddExpanded, setIsAddExpanded] = useState(false);
   const [isEditExpanded, setIsEditExpanded] = useState(false);
   const [addForm, setAddForm] = useState<FormState>(emptyForm);
@@ -219,16 +215,25 @@ export default function HartiPage() {
 
   useEffect(() => {
     async function fetchLocations() {
+      setError(null);
+      setLoading(true);
       try {
-        const res = await fetch(`${apiBaseUrl}/locations/`);
+        const res = await fetch(`${apiBaseUrl}/locations/`, {
+          headers: authHeaders(),
+        });
         if (!res.ok) {
-          throw new Error(`Eroare API: ${res.status}`);
+          const body = await res.json().catch(() => null);
+          const message = isRecord(body) && typeof body.detail === "string"
+            ? body.detail
+            : `Eroare API: ${res.status}`;
+          throw new Error(message);
         }
         const data = await res.json();
         console.log("Date primite de la backend:", data);
         setCladiri(normalizeCladiri(data));
       } catch (error) {
         console.error("Eroare la preluarea locațiilor:", error);
+        setError(error instanceof Error ? error.message : "Nu s-au putut incarca locatiile.");
         setCladiri([]);
       } finally {
         setLoading(false);
@@ -376,6 +381,12 @@ export default function HartiPage() {
           <CardContent className="p-0">
             {loading ? (
               <div className="p-8 text-center text-muted text-sm">Se încarcă locațiile...</div>
+            ) : error ? (
+              <div className="p-8">
+                <div className="border border-red-200 bg-red-50 text-red-700 rounded-lg p-3 text-sm">
+                  {error}
+                </div>
+              </div>
             ) : cladiri.length === 0 ? (
               <div className="p-8 text-center text-muted text-sm">Nicio locație înregistrată.</div>
             ) : (

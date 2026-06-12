@@ -2,6 +2,7 @@
 
 import { Bell, UserRound } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { apiBaseUrl } from "@/lib/api-client";
 
 interface Announcement {
   id: number;
@@ -25,9 +26,7 @@ export default function HeaderActions() {
       setLoading(true);
       try {
         // Fallback de siguranță: dacă nu găsește .env, folosește direct adresa locală
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-        
-        const res = await fetch(`${baseUrl}/announcements/`);
+        const res = await fetch(`${apiBaseUrl}/announcements/`);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         
         const data: Announcement[] = await res.json();
