@@ -5,6 +5,10 @@
 
 DO $$ 
 BEGIN
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'anon') THEN
+        CREATE ROLE anon NOINHERIT;
+    END IF;
+
     -- Creare rol supabase_admin
     IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'supabase_admin') THEN
         CREATE ROLE supabase_admin NOINHERIT CREATEROLE LOGIN NOREPLICATION;
@@ -22,5 +26,6 @@ BEGIN
 END $$;
 
 -- Asigură permisiunile de bază (opțional, dar recomandat)
+GRANT USAGE ON SCHEMA public TO anon;
 GRANT USAGE ON SCHEMA public TO authenticated;
 GRANT USAGE ON SCHEMA public TO service_role;
