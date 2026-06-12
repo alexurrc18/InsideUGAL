@@ -149,6 +149,7 @@ services:
       API_EXTERNAL_URL: http://localhost:8004/auth/v1
       GOTRUE_API_EXTERNAL_URL: http://localhost:8004/auth/v1
       GOTRUE_DB_MAX_POOL_SIZE: 20
+      GOTRUE_LOG_LEVEL: debug
       GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
       GOTRUE_MAILER_AUTOCONFIRM: "true"
       GOTRUE_DISABLE_SIGNUP: "false"
@@ -196,6 +197,9 @@ services:
     environment:
       KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+      KONG_LOG_LEVEL: debug
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
       ANON_KEY: ${SUPABASE_ANON_KEY:-}
     volumes:
       - ./supabase/kong.yml:/var/lib/kong/kong.yml:ro
@@ -245,8 +249,10 @@ services:
       SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL:-http://localhost:8004}
       SUPABASE_URL: http://supabase-kong:8000
       NEXT_PUBLIC_SUPABASE_URL: http://localhost:8004
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       AUTH_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       SNIPPETS_MANAGEMENT_FOLDER: /tmp/snippets

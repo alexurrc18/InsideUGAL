@@ -2,7 +2,7 @@ _format_version: "1.1"
 
 services:
   - name: auth
-    url: http://supabase-auth:9999
+    url: http://supabase-auth:8081
     routes:
       - name: auth
         paths:
@@ -16,9 +16,3 @@ services:
           - /rest/v1
         strip_path: true
 
-plugins:
-  - name: request-transformer
-    config:
-      add:
-        headers:
-          - "apikey: ${ANON_KEY}"
