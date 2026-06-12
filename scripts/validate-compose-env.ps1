@@ -98,7 +98,8 @@ $required = @(
     "NEXT_PUBLIC_API_URL",
     "NEXT_PUBLIC_SUPABASE_URL",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-    "ALLOWED_ORIGINS"
+    "ALLOWED_ORIGINS",
+    "GEMINI_API_KEY"
 )
 
 foreach ($key in $required) {
