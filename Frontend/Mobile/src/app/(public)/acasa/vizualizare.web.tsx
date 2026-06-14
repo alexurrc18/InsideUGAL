@@ -12,25 +12,35 @@ import CalendarIcon from "@/assets/icons/svg/calendar.svg";
 import LocationIcon from "@/assets/icons/svg/location.svg";
 import PhoneIcon from "@/assets/icons/svg/phone.svg";
 import WebsiteIcon from "@/assets/icons/svg/globe-europe.svg";
+import MOCK_DATA from "@/constants/mock-data.json";
 
 function VizualizareScreen() {
-    const {
-        type,
-        title,
-        category,
-        content,
-        image,
-        location,
-        date_start,
-        date_end,
-        time_start,
-        time_end,
-        posted_at,
-        address,
-        phone,
-        website,
-        date
-    } = useLocalSearchParams();
+    const params = useLocalSearchParams();
+    const id = params.id as string;
+
+    let mockItem: any = null;
+    if (id) {
+        mockItem = MOCK_DATA.events.find(e => e.id === id) ||
+                   MOCK_DATA.faculties.find(f => f.id === id) ||
+                   MOCK_DATA.facilities.find(fac => fac.id === id);
+    }
+
+    const type = (params.type as string) || (mockItem ? (mockItem.id.startsWith("fac") ? "Facilitate" : mockItem.id.startsWith("f") ? "Facultate" : (mockItem.category === "Evenimente" ? "Eveniment" : "Anunț")) : undefined);
+    const title = (params.title as string) || mockItem?.title || "";
+    const category = (params.category as string) || mockItem?.category || (mockItem ? (mockItem.id.startsWith("fac") ? "Facilitate" : mockItem.id.startsWith("f") ? "Facultate" : "") : "");
+    const content = (params.content as string) || mockItem?.content || "";
+    const image = (params.image as string) || mockItem?.image || "";
+    const location = (params.location as string) || mockItem?.location || "";
+    const date_start = (params.date_start as string) || mockItem?.date_start || "";
+    const date_end = (params.date_end as string) || mockItem?.date_end || "";
+    const time_start = (params.time_start as string) || mockItem?.time_start || "";
+    const time_end = (params.time_end as string) || mockItem?.time_end || "";
+    const posted_at = (params.posted_at as string) || mockItem?.posted_at || "";
+    const address = (params.address as string) || mockItem?.address || "";
+    const phone = (params.phone as string) || mockItem?.phone || "";
+    const website = (params.website as string) || mockItem?.website || "";
+    const schedule = mockItem?.schedule || ""; // note: vizualizare.web doesn't extract schedule from search params but we keep it here for data consistency
+    const date = (params.date as string) || mockItem?.date || "";
 
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
     const theme = Colors[themeName];

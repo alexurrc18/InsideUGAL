@@ -22,7 +22,7 @@ export function Carousel<T>({ data, renderItem, keyExtractor, title, viewAllHref
                     {title && <Text style={[Typography.Heading3, { color: theme.text }]}>{title}</Text>}
                     {viewAllHref && (
                         <Pressable onPress={() => router.push(viewAllHref as any)}>
-                            <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>Vezi mai multe &gt;</Text>
+                            <Text style={[Typography.Paragraph2, { color: theme.primary }]}>Vezi mai multe &gt;</Text>
                         </Pressable>
                     )}
                 </View>
