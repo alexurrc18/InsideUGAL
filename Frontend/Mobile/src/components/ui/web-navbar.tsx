@@ -11,10 +11,11 @@
 //   - restul paginilor: solid mereu (nu au hero).
 //   - cand panoul hamburger e deschis, bara devine solida ca textul sa fie lizibil.
 // Textul ramane alb in toate starile. Aliniere: continutul sta intr-un WebContainer.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Image } from "expo-image";
 import { useRouter, usePathname } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ColorScheme, Colors, Spacing, WebContentMaxWidth, WebMaxScale } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -56,6 +57,7 @@ export function WebNavbar() {
   const router = useRouter();
   const pathname = usePathname();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const isCompact = width < WEB_COMPACT_BREAKPOINT;
 
   // Pe ecrane late WebContainer-ul scaleaza continutul (zoom), deci bara e vizual
@@ -65,6 +67,8 @@ export function WebNavbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   // Hide-on-scroll: bara ascunsa la scroll in jos, vizibila la scroll in sus.
   const [hidden, setHidden] = useState(false);
+  // Pozitia de scroll de la ultimul event (ref, ca sa o putem reseta la navigare).
+  const lastYRef = useRef(0);
 
   // Inchidem panoul cand navigam catre alta pagina sau cand ecranul devine lat.
   // Ajustam in timpul randarii (pattern recomandat de React pentru "state derivat
@@ -74,9 +78,6 @@ export function WebNavbar() {
   if (pathname !== lastPathname) {
     setLastPathname(pathname);
     if (menuOpen) setMenuOpen(false);
-    // La schimbarea paginii navbar-ul reapare (altfel ar ramane ascuns daca pagina
-    // anterioara fusese derulata in jos — starea persista, navbar-ul e in layout).
-    if (hidden) setHidden(false);
   }
   if (!isCompact && menuOpen) {
     setMenuOpen(false);
@@ -113,23 +114,31 @@ export function WebNavbar() {
   // fereastra), asa ca ascultam evenimentul `scroll` in faza de CAPTURE pe
   // document — prinde scroll-ul din orice container, fara sa cablam fiecare pagina.
   useEffect(() => {
-    let lastY = 0;
     const onScroll = (e: Event) => {
       const el = e.target as HTMLElement | null;
       if (!el || typeof el.scrollTop !== "number") return;
       const y = el.scrollTop;
       if (y <= NAVBAR_HEIGHT) {
         setHidden(false); // langa varf ramane mereu vizibila
-      } else if (y > lastY + 4) {
+      } else if (y > lastYRef.current + 4) {
         setHidden(true); // scroll in jos
-      } else if (y < lastY - 4) {
+      } else if (y < lastYRef.current - 4) {
         setHidden(false); // scroll in sus
       }
-      lastY = y;
+      lastYRef.current = y;
     };
     document.addEventListener("scroll", onScroll, true);
     return () => document.removeEventListener("scroll", onScroll, true);
   }, []);
+
+  // La fiecare schimbare de pagina, navbar-ul reapare si resetam baseline-ul de
+  // scroll. Altfel, daca pleci de pe o pagina cu navbar-ul ascuns (derulat in jos)
+  // catre una scurta (fara scroll), ar ramane ascuns fara cale de revenire.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHidden(false);
+    lastYRef.current = 0;
+  }, [pathname]);
 
   // Translatam bara in sus cand e ascunsa (dar nu cand panoul hamburger e deschis).
   const [hideAnim] = useState(() => new Animated.Value(0));
@@ -143,12 +152,16 @@ export function WebNavbar() {
 
   return (
     <Animated.View style={[styles.bar, { transform: [{ translateY: hideAnim }] }]} pointerEvents="box-none">
-      {/* Fundal solid (albastru de brand), fade in/out dupa pagina/scroll. Full-bleed. */}
+      {/* Fundal solid (albastru de brand), fade in/out dupa pagina/scroll. Full-bleed.
+          Il extindem in sus cu insets.top ca albastrul sa acopere si zona de
+          safe-area (status bar / notch), nu doar bara — altfel ramane o fasie
+          inchisa deasupra navbar-ului pe telefon. */}
       <Animated.View
         pointerEvents="none"
         style={[
           StyleSheet.absoluteFill,
           {
+            top: -insets.top,
             backgroundColor: theme.primary,
             opacity: bgOpacity,
             shadowColor: ColorScheme.pureBlack,

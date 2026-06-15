@@ -2,7 +2,7 @@
 //  - cog-ul se roteste (90deg)
 //  - sub el apare, cu fade + slide, cercul cu luna/soare (ThemeToggle) care comuta tema.
 // Se inchide la a doua apasare pe cog. Trebuie montat intr-un <ThemeProvider>.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Animated, Easing, Pressable, View } from "react-native";
 import { ColorScheme } from "@/constants/theme";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -27,6 +27,24 @@ export function ThemeMenu({ solid = true }: { solid?: boolean }) {
       useNativeDriver: true,
     }).start();
   };
+
+  // Cand meniul e deschis si pagina e derulata, il inchidem inapoi (cu animatia
+  // inversa). Scroll-ul se intampla in ScrollView-ul paginii, deci ascultam in
+  // faza de CAPTURE pe document, ca sa prindem orice container care deruleaza.
+  useEffect(() => {
+    if (!open) return;
+    const closeOnScroll = () => {
+      setOpen(false);
+      Animated.timing(anim, {
+        toValue: 0,
+        duration: 200,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    };
+    document.addEventListener("scroll", closeOnScroll, true);
+    return () => document.removeEventListener("scroll", closeOnScroll, true);
+  }, [open, anim]);
 
   const rotate = anim.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "90deg"] });
   const dropTranslate = anim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] });
