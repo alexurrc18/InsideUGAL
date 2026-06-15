@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Platform } from 'react-native';
 import { useTheme } from '@/hooks/use-theme';
+import { ColorScheme } from '@/constants/theme';
 import { getBuildingLetter, isFacilityOpen } from '@/utils/map-helper';
 
 import ForkKnifeIcon from '@/assets/icons/svg/fork-knife.svg';
@@ -19,7 +20,7 @@ export const MapPin = ({ name, facultyId }: MapPinProps) => {
   const letter = getBuildingLetter(name);
   const isFacility = facultyId === 'f8';
   const open = isFacility ? isFacilityOpen(name) : true;
-  const pinColor = isFacility ? (open ? theme.secondary : theme.textSecondary) : theme.primary;
+  const pinColor = isFacility ? (open ? theme.secondary : theme.textSecondary) : ColorScheme.white;
 
   const renderContent = () => {
     if (!isFacility) {
