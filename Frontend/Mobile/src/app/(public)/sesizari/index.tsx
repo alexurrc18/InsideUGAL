@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
-import { SesizareCard, Sesizare } from "@/components/ui/sesizare-card";
+import { SesizareCard, Sesizare } from "@/components/ui/display/sesizare-card";
 import MockData from "@/constants/mock-data.json";
 
 type FilterType = "mele" | "active" | "respinse" | "finalizate";

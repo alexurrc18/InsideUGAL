@@ -11,9 +11,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ColorScheme, Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { WebContainer } from "@/components/ui/web-container";
+import { WebContainer } from "@/components/ui/layout/web-container";
 import { getFormattedDate } from "@/utils/date";
-import { NewsCard, CategoryTag } from "@/components/ui/news-card";
+import { NewsCard, CategoryTag } from "@/components/ui/display/news-card";
 
 export interface HighlightItem {
   id: string;

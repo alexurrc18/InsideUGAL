@@ -11,7 +11,7 @@ import { useRouter, Stack } from "expo-router";
 
 import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
-import { CategoryHeader } from "@/components/ui/category-header";
+import { CategoryHeader } from "@/components/ui/display/category-header";
 import { settingsStore } from "@/utils/settings-store";
 
 import CloseIcon from "@/assets/icons/svg/x.svg";

@@ -7,7 +7,7 @@ import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
-import { WebContainer } from "@/components/ui/web-container";
+import { WebContainer } from "@/components/ui/layout/web-container";
 import MockData from "@/constants/mock-data.json";
 import { getTodayRomanianDate } from "@/utils/date";
 import XIcon from "@/assets/icons/svg/x.svg";

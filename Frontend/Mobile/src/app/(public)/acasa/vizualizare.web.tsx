@@ -8,10 +8,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { getFormattedDate, getReadingTime } from "@/utils/date";
-import { WebContainer } from "@/components/ui/web-container";
-import { Breadcrumbs, type Crumb } from "@/components/ui/breadcrumbs";
-import { CompactCard } from "@/components/ui/home-highlights";
-import { NewsCard } from "@/components/ui/news-card";
+import { WebContainer } from "@/components/ui/layout/web-container";
+import { Breadcrumbs, type Crumb } from "@/components/ui/navigation/breadcrumbs";
+import { CompactCard } from "@/components/ui/display/home-highlights";
+import { NewsCard } from "@/components/ui/display/news-card";
 import MOCK_DATA from "@/constants/mock-data.json";
 
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";

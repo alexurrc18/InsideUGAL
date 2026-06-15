@@ -18,9 +18,9 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
-import { WebContainer } from "@/components/ui/web-container";
+import { WebContainer } from "@/components/ui/layout/web-container";
 import { getFormattedDate } from "@/utils/date";
-import { CategoryTag } from "@/components/ui/news-card";
+import { CategoryTag } from "@/components/ui/display/news-card";
 
 export const HERO_HEIGHT = 560;
 const HERO_INTERVAL = 7000;

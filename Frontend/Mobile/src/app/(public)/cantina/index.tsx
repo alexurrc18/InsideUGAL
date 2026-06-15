@@ -2,9 +2,9 @@ import React, { useState, useMemo } from "react";
 import { View, ScrollView, useColorScheme } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Spacing } from "@/constants/theme";
-import { CategoryHeader } from "@/components/ui/category-header";
-import { Expandable } from "@/components/ui/expandable";
-import { MenuItem } from "@/components/ui/menu-item";
+import { CategoryHeader } from "@/components/ui/display/category-header";
+import { Expandable } from "@/components/ui/layout/expandable";
+import { MenuItem } from "@/components/ui/navigation/menu-item";
 import MockData from "@/constants/mock-data.json";
 
 interface Product {

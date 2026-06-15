@@ -7,8 +7,8 @@ import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import PlusIcon from "@/assets/icons/svg/plus.svg";
-import { CategoryHeader, FilterItem } from "@/components/ui/category-header";
-import { InteractiveGlass } from "@/components/ui/interactive-glass";
+import { CategoryHeader, FilterItem } from "@/components/ui/display/category-header";
+import { InteractiveGlass } from "@/components/ui/layout/interactive-glass";
 
 export const unstable_settings = {
   initialRouteName: "index",
