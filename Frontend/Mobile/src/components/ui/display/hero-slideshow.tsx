@@ -1,30 +1,15 @@
-// Hero slideshow pentru pagina Acasa pe web (folosit doar din acasa/index.web.tsx,
-// deci nu intra in bundle-ul de mobil). Inlocuieste bannerul static de sus cu un
-// carusel full-bleed care roteste automat ultimele anunturi.
-//
-// Tranzitia intre slide-uri: CROSSFADE al intregului slide (imagine + gradient +
-// text impreuna). Stivuim toate slide-urile absolut si animam doar `opacity`
-// fiecaruia (activ -> 1, restul -> 0). Asa textul nu mai "sare", ci se estompeaza
-// lin odata cu imaginea.
-//
-// Comportament:
-//  - schimba slide-ul automat la fiecare HERO_INTERVAL ms;
-//  - puncte jos (cate unul / slide) — click pentru salt manual, care reseteaza
-//    si cronometrul de auto-rotire;
-//  - click pe imagine => onPressItem(slide-ul activ).
-import { useEffect, useState } from "react";
-import { Animated, View, Text, Pressable, StyleSheet, Easing, useWindowDimensions } from "react-native";
+import { useEffect, useState, useRef } from "react";
+import { View, Text, Pressable, StyleSheet, ScrollView, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
-import { WebContainer } from "@/components/ui/layout/web-container";
 import { getFormattedDate } from "@/utils/date";
 import { CategoryTag } from "@/components/ui/display/news-card";
 
-export const HERO_HEIGHT = 560;
-const HERO_INTERVAL = 7000;
-const FADE_DURATION = 550;
+import { HERO_INTERVAL, HERO_HEIGHT_MOBILE as HERO_HEIGHT } from "./hero-config";
+
+export { HERO_HEIGHT };
 
 export interface HeroSlide {
   id: string;
@@ -42,121 +27,105 @@ interface HeroSlideshowProps {
 
 export function HeroSlideshow({ slides, onPressItem }: HeroSlideshowProps) {
   const { width: windowWidth } = useWindowDimensions();
-  const isMobile = windowWidth < 768;
   const [active, setActive] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
+  const autoRotateTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Cate o valoare de opacitate per slide (primul vizibil, restul ascunse).
-  const [opacities] = useState(() => slides.map((_, i) => new Animated.Value(i === 0 ? 1 : 0)));
-
-  // Crossfade la schimbarea slide-ului activ: ridicam activul la 1, restul la 0.
-  useEffect(() => {
-    Animated.parallel(
-      opacities.map((value, i) =>
-        Animated.timing(value, {
-          toValue: i === active ? 1 : 0,
-          duration: FADE_DURATION,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: false, // animam opacity pe web
-        })
-      )
-    ).start();
-  }, [active, opacities]);
-
-  // Auto-rotire: un timeout per slide. Cand `active` se schimba (auto sau manual),
-  // efectul se re-ruleaza si cronometrul reporneste de la zero.
-  useEffect(() => {
+  const startAutoRotate = () => {
+    stopAutoRotate();
     if (slides.length <= 1) return;
-    const id = setTimeout(() => {
-      setActive((i) => (i + 1) % slides.length);
+    autoRotateTimer.current = setInterval(() => {
+      const nextIndex = (active + 1) % slides.length;
+      scrollRef.current?.scrollTo({ x: nextIndex * windowWidth, animated: true });
     }, HERO_INTERVAL);
-    return () => clearTimeout(id);
-  }, [active, slides.length]);
+  };
+
+  const stopAutoRotate = () => {
+    if (autoRotateTimer.current) {
+      clearInterval(autoRotateTimer.current);
+    }
+  };
+
+  useEffect(() => {
+    startAutoRotate();
+    return () => stopAutoRotate();
+  }, [active, slides.length, windowWidth]);
+
+  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / windowWidth);
+    if (index !== active) {
+      setActive(index);
+    }
+  };
 
   if (slides.length === 0) return null;
 
-  const current = slides[active];
-
   return (
     <View style={[styles.container, { height: HERO_HEIGHT }]}>
-      {/* Slide-urile stivuite: fiecare cu imaginea, gradientul si textul lui. */}
-      {slides.map((slide, i) => (
-        <Animated.View
-          key={slide.id}
-          style={[styles.slide, { opacity: opacities[i] }]}
-          pointerEvents="none"
-        >
-          <Image
-            source={slide.image ? { uri: slide.image } : require("@/assets/images/campus-stiintei.png")}
-            style={StyleSheet.absoluteFill}
-            contentFit="cover"
-          />
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        onScrollBeginDrag={stopAutoRotate}
+        onScrollEndDrag={startAutoRotate}
+      >
+        {slides.map((slide) => (
+          <Pressable
+            key={slide.id}
+            style={{ width: windowWidth, height: HERO_HEIGHT }}
+            onPress={() => onPressItem(slide)}
+          >
+            <Image
+              source={slide.image ? { uri: slide.image } : require("@/assets/images/campus-stiintei.png")}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+            />
 
-          <LinearGradient
-            colors={["transparent", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.85)"]}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
+            <LinearGradient
+              colors={["transparent", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.85)"]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
 
-          <View style={styles.content}>
-            {/* paddingBottom calibrat ca textul sa stea deasupra punctelor de paginare
-                (care sunt la ~16-44px de jos) si sa nu se suprapuna cu ele. */}
-            <WebContainer style={{ justifyContent: "flex-end", paddingBottom: isMobile ? 56 : Spacing.xl3 }}>
-              <View style={{ paddingHorizontal: Spacing.lg }}>
+            <View style={styles.content}>
+              <View style={{ paddingHorizontal: Spacing.lg, paddingBottom: 40 }}>
                 {!!slide.category && <CategoryTag category={slide.category} />}
 
-                {/* Singurul titlu mai ingrosat de pe web: titlul mare de hero/banner
-                    ramane SemiBold, ca sa iasa in evidenta peste imagine. Restul
-                    titlurilor web sunt Regular/Medium (vezi typography.web.ts). */}
                 <Text
                   style={[
-                    Typography.Heading1,
-                    { color: ColorScheme.white, marginTop: Spacing.sm, fontFamily: "InstrumentSans-SemiBold", fontWeight: "600" },
+                    Typography.Heading2,
+                    { color: ColorScheme.white, marginTop: Spacing.xs }
                   ]}
                   numberOfLines={2}
                 >
                   {slide.title}
                 </Text>
 
-                <Text style={[Typography.Paragraph2, { color: ColorScheme.white, opacity: 0.9, marginTop: Spacing.xs }]}>
+                <Text style={[Typography.Paragraph2, { color: ColorScheme.white, opacity: 0.8, marginTop: Spacing.xxs }]}>
                   {[getFormattedDate(slide.date), slide.author].filter(Boolean).join("  ·  ")}
                 </Text>
               </View>
-            </WebContainer>
-          </View>
-        </Animated.View>
-      ))}
+            </View>
+          </Pressable>
+        ))}
+      </ScrollView>
 
-      {/* Umbra subtila sus: contrast pentru textul alb din navbar peste hero. */}
-      <LinearGradient
-        colors={["rgba(0,0,0,0.45)", "transparent"]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.topShade}
-        pointerEvents="none"
-      />
-
-      {/* Strat de navigare: click oriunde pe hero => deschide anuntul activ. */}
-      <Pressable style={StyleSheet.absoluteFill} onPress={() => onPressItem(current)} />
-
-      {/* Puncte: cate unul per slide, centrat jos. Deasupra stratului de navigare. */}
-      <View style={styles.dotsWrap} pointerEvents="box-none">
+      <View style={styles.dotsWrap} pointerEvents="none">
         <View style={styles.dots}>
-          {slides.map((slide, i) => {
-            const isActive = i === active;
-            return (
-              <Pressable
-                key={slide.id}
-                onPress={() => setActive(i)}
-                hitSlop={12}
-                accessibilityRole="button"
-                accessibilityLabel={`Anunțul ${i + 1} din ${slides.length}`}
-                style={({ hovered }: any) => [styles.dotHit, hovered && styles.dotHitHover]}
-              >
-                <View style={[styles.dot, isActive ? styles.dotActive : styles.dotInactive]} />
-              </Pressable>
-            );
-          })}
+          {slides.map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.dot,
+                i === active ? styles.dotActive : styles.dotInactive
+              ]}
+            />
+          ))}
         </View>
       </View>
     </View>
@@ -169,20 +138,6 @@ const styles = StyleSheet.create({
     position: "relative",
     overflow: "hidden",
   },
-  slide: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  topShade: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 160,
-  },
   content: {
     position: "absolute",
     top: 0,
@@ -191,44 +146,28 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: "flex-end",
   },
-  chip: {
-    alignSelf: "flex-start",
-    backgroundColor: ColorScheme.red,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: 999,
-  },
   dotsWrap: {
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: Spacing.lg,
+    bottom: Spacing.md,
     alignItems: "center",
   },
   dots: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.sm,
-  },
-  // Zona de click (mai mare decat punctul vizual) + tranzitie lina la hover pe web.
-  dotHit: {
-    paddingVertical: 10,
-    paddingHorizontal: 6,
-    ...({ transitionDuration: "150ms", transitionProperty: "transform" } as any),
-  },
-  dotHitHover: {
-    transform: [{ scale: 1.5 }],
+    gap: Spacing.xs,
   },
   dot: {
-    height: 8,
-    borderRadius: 4,
+    height: 6,
+    borderRadius: 3,
   },
   dotActive: {
-    width: 24,
+    width: 18,
     backgroundColor: ColorScheme.white,
   },
   dotInactive: {
-    width: 8,
-    backgroundColor: "rgba(255,255,255,0.5)",
+    width: 6,
+    backgroundColor: "rgba(255,255,255,0.4)",
   },
 });

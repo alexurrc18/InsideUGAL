@@ -8,7 +8,7 @@ import { WebContainer } from "@/components/ui/layout/web-container";
 import { Carousel } from "@/components/ui/display/carousel/carousel";
 import { CAROUSEL_CARD_MARGIN } from "@/components/ui/display/carousel/carousel.shared";
 import { NewsCard } from "@/components/ui/display/news-card";
-import { HeroSlideshow, HERO_HEIGHT } from "@/components/ui/display/hero-slideshow";
+import { HeroSlideshow, HERO_HEIGHT } from "@/components/ui/display/hero-slideshow.web";
 import { HomeHighlights } from "@/components/ui/display/home-highlights";
 import { NAVBAR_HEIGHT } from "@/components/ui/navigation/web-navbar";
 import { getFormattedDate, parseRomanianDate } from "@/utils/date";
