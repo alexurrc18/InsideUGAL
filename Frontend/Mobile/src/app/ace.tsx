@@ -7,11 +7,9 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
   Keyboard,
   LayoutAnimation,
   UIManager,
-  Alert,
   Linking,
   Animated,
   Easing,
@@ -49,13 +47,6 @@ interface ChatMessage {
     link?: string;
   };
 }
-
-const QUICK_REPLIES = [
-  "Noutăți și Evenimente",
-  "Unde este cantina?",
-  "Cum fac o sesizare?",
-  "Care sunt facultățile?",
-];
 
 const getMockResponse = (text: string): { text: string; imageUrl?: string; event?: ChatMessage['event'] } => {
   const cleanText = text.toLowerCase().trim();
@@ -372,6 +363,7 @@ const GlassBackground = React.memo(({ theme, themeWhite }: { theme: any; themeWh
     />
   );
 });
+GlassBackground.displayName = 'GlassBackground';
 
 interface ChatInputProps {
   onSend: (text: string) => void;
@@ -540,7 +532,7 @@ function ChatInput({ onSend, theme, themeWhite }: ChatInputProps) {
 }
 
 function GradientSpinner() {
-  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const [rotateAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -594,8 +586,8 @@ export default function AceScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const flatListRef = useRef<FlatList>(null);
 
-  const scaleClearAnim = useRef(new Animated.Value(1)).current;
-  const scaleCloseAnim = useRef(new Animated.Value(1)).current;
+  const [scaleClearAnim] = useState(() => new Animated.Value(1));
+  const [scaleCloseAnim] = useState(() => new Animated.Value(1));
 
   const handlePressInClear = () => {
     Animated.spring(scaleClearAnim, {

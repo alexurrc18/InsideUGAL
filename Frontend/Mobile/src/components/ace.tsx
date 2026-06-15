@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Pressable,
@@ -16,7 +16,7 @@ export function Ace() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const [scaleAnim] = useState(() => new Animated.Value(1));
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
