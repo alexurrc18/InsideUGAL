@@ -78,6 +78,32 @@
       "image": "https://feaa.ugal.ro/wp-content/uploads/feaa-amalia-paharnicu.jpg",
       "content": "Au fost afișate listele parțiale pentru bursele de merit aferente semestrului al doilea. Contestațiile se depun online.",
       "author_title": "Secretariat"
+    },
+    {
+      "id": "7",
+      "title": "Concurs de Programare UGAL Coding",
+      "date_start": "12 decembrie 2026",
+      "time_start": "09:00",
+      "date_end": "12 decembrie 2026",
+      "time_end": "15:00",
+      "posted_at": "1 decembrie 2026",
+      "author": "Asociația Studenților ACIEE",
+      "facultyId": "f1",
+      "category": "Evenimente",
+      "image": "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=1000",
+      "content": "Concursul anual de programare destinat studenților din cadrul ACIEE. Demonstrează-ți abilitățile și câștigă premii importante.",
+      "location": "Sala Computere, Corp Y"
+    },
+    {
+      "id": "8",
+      "title": "Lansarea platformei online InsideUGAL",
+      "date": "10 iunie 2026",
+      "posted_at": "8 iunie 2026",
+      "author": "Echipa IT UGAL",
+      "category": "Noutăți",
+      "image": "https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=1000",
+      "content": "A fost lansată noua platformă mobilă și web InsideUGAL pentru studenți. Află cele mai recente noutăți și programări într-un singur loc.",
+      "author_title": "Project Lead IT"
     }
   ],
   "faculties": [

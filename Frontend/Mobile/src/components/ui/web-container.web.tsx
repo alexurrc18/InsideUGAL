@@ -1,12 +1,16 @@
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { View, useWindowDimensions, type StyleProp, type ViewStyle } from "react-native";
-import { WebContentMaxWidth, WebMaxScale, WebSidePadding } from "@/constants/theme";
+import { WebContentMaxWidth, WebMaxScale, WebSidePadding, Spacing } from "@/constants/theme";
+
+// Sub aceasta latime suntem "pe telefon" (browser ingust): marginile laterale
+// se micsoreaza mult, ca sa nu irosim jumatate din ecran pe padding.
+export const WEB_COMPACT_BREAKPOINT = 768;
 
 /**
  * Canvas-ul de continut pe web (.web.tsx — mobilul NU il foloseste).
  *
  * Comportament in functie de latimea ferestrei, raportat la baseline-ul
- * WebContentMaxWidth (1100):
+ * WebContentMaxWidth (1200):
  *  - sub baseline: layout fluid normal, fara zoom. Continutul umple latimea
  *    (cu margine laterala WebSidePadding). Textul NU se micsoreaza.
  *  - peste baseline: continutul e fixat la latimea de baseline si tot ce e
@@ -34,29 +38,20 @@ export function WebContainer({
   padded?: boolean;
 }) {
   const { width } = useWindowDimensions();
-  const ref = useRef<View>(null);
 
   const scaling = width > WebContentMaxWidth;
-  const zoom = scaling ? Math.min(width / WebContentMaxWidth, WebMaxScale) : 1;
 
-  // `zoom` nu e o proprietate de stil React Native, deci o setam direct pe nodul
-  // DOM (suntem pe web, View randeaza un <div>).
-  useEffect(() => {
-    const node = ref.current as unknown as HTMLElement | null;
-    if (node) {
-      node.style.zoom = String(zoom);
-    }
-  }, [zoom]);
+  // Margine laterala responsiva: mica pe telefon, generoasa pe ecran lat.
+  const sidePadding = width < WEB_COMPACT_BREAKPOINT ? Math.min(Spacing.lg, WebSidePadding) : WebSidePadding;
 
   return (
     <View
-      ref={ref}
       style={[
         {
           width: scaling ? WebContentMaxWidth : "100%",
           maxWidth: WebContentMaxWidth,
           alignSelf: "center",
-          paddingHorizontal: padded ? WebSidePadding : 0,
+          paddingHorizontal: padded ? sidePadding : 0,
         },
         style,
       ]}

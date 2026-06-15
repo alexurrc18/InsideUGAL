@@ -82,13 +82,13 @@ export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
 
 // Margine laterala constanta pe web (desktop), folosita pe paginile din (public)
-export const WebSidePadding = 64;
+export const WebSidePadding = 0;
 
 // Latime de referinta ("design width") pe web, folosita prin WebContainer:
 //  - sub aceasta latime: layout fluid normal, fara zoom (textul nu se micsoreaza);
 //  - peste ea: tot continutul scaleaza proportional cu fereastra (zoom),
 //    plafonat la WebMaxScale ca sa nu devina urias pe ecrane foarte late.
-export const WebContentMaxWidth = 1100;
+export const WebContentMaxWidth = 1200;
 
 // Plafonul de scalare pe web. La 1.5 inseamna ca elementele cresc cel mult cu
 // 50% fata de marimea de la baseline; peste asta continutul ramane centrat si

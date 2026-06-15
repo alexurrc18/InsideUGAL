@@ -1,6 +1,10 @@
 import React from "react";
 import { View, type StyleProp, type ViewStyle } from "react-native";
 
+// Tinut sincronizat cu web-container.web.tsx (exista aici doar pentru rezolvarea
+// de tipuri pe non-web; varianta reala folosita e cea din .web.tsx).
+export const WEB_COMPACT_BREAKPOINT = 768;
+
 /**
  * Varianta de baza (native) a WebContainer.
  *

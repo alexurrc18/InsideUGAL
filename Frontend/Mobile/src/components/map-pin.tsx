@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Platform } from 'react-native';
 import { useTheme } from '@/hooks/use-theme';
+import { ColorScheme } from '@/constants/theme';
 import { getBuildingLetter, isFacilityOpen } from '@/utils/map-helper';
 
 import ForkKnifeIcon from '@/assets/icons/svg/fork-knife.svg';
@@ -24,7 +25,7 @@ export const MapPin = ({ name, facultyId }: MapPinProps) => {
   const renderContent = () => {
     if (!isFacility) {
       return (
-        <Text style={{ color: theme.textOnDark, fontSize: 13, fontWeight: 'bold', textAlign: 'center' }}>
+        <Text style={{ color: ColorScheme.white, fontSize: 13, fontWeight: 'bold', textAlign: 'center' }}>
           {letter}
         </Text>
       );
@@ -48,7 +49,7 @@ export const MapPin = ({ name, facultyId }: MapPinProps) => {
     }
 
     return (
-      <Text style={{ color: theme.textOnDark, fontSize: 13, fontWeight: 'bold', textAlign: 'center' }}>
+      <Text style={{ color: ColorScheme.white, fontSize: 13, fontWeight: 'bold', textAlign: 'center' }}>
         {letter}
       </Text>
     );
@@ -80,7 +81,7 @@ export const MapPin = ({ name, facultyId }: MapPinProps) => {
           width: 36,
           height: 36,
           borderWidth: 2,
-          borderColor: theme.background,
+          borderColor: ColorScheme.white,
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1,
@@ -99,7 +100,7 @@ export const MapPin = ({ name, facultyId }: MapPinProps) => {
           borderTopWidth: 8,
           borderLeftColor: 'transparent',
           borderRightColor: 'transparent',
-          borderTopColor: theme.background,
+          borderTopColor: ColorScheme.white,
           marginTop: -2,
           zIndex: 2,
         }}
