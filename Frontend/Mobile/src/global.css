@@ -18,6 +18,31 @@ body {
   overflow-x: hidden;
 }
 
+/* Linkurile din navbar (desktop): subliniere care creste de la stanga la dreapta
+   la hover si se retrage spre dreapta cand iei mouse-ul. Linkul activ ramane
+   subliniat permanent. */
+[data-navlink] {
+  position: relative;
+}
+[data-navlink]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 2px;
+  border-radius: 1px;
+  background-color: #f8f9fa;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 200ms ease;
+}
+[data-navlink]:hover::after,
+[data-navlink][data-active="true"]::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
 /* Bara de scroll a caruselelor pe desktop web: subțire, colorată, doar orizontală */
 [data-carousel] {
   overflow-x: auto !important;

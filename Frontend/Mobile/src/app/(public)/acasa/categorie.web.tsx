@@ -8,6 +8,7 @@ import { Typography } from "@/constants/typography";
 import { WebContainer } from "@/components/ui/web-container";
 import { NewsCard } from "@/components/ui/news-card";
 import { CategoryHeader, FilterItem } from "@/components/ui/category-header";
+import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { getFormattedDate } from "@/utils/date";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import MOCK_DATA from "@/constants/mock-data.json";
@@ -17,6 +18,7 @@ export default function CategoryScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
+  const contentTop = useWebContentTop();
   const router = useRouter();
 
   const [scrollY] = useState(() => new Animated.Value(0));
@@ -75,7 +77,9 @@ export default function CategoryScreen() {
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <Stack.Screen
         options={{
-          headerShown: true,
+          // Pe web ascundem header-ul de Stack: WebNavbar-ul (overlay) il acopera
+          // oricum, deci era spatiu mort care impingea continutul prea jos.
+          headerShown: false,
           headerShadowVisible: false,
           headerTransparent: false,
           headerStyle: {
@@ -125,7 +129,7 @@ export default function CategoryScreen() {
         scrollEventThrottle={16}
       >
         <WebContainer>
-          <View style={{ paddingTop: insets.top + 140, marginBottom: Spacing.lg }}>
+          <View style={{ paddingTop: contentTop, marginBottom: Spacing.lg }}>
               <CategoryHeader
                   title={(categoryTitle as string) || "Categorie"}
                   filters={categoryTitle === "Facultăți" ? undefined : facultyFilters}

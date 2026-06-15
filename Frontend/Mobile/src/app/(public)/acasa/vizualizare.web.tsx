@@ -8,6 +8,7 @@ import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { getFormattedDate, getReadingTime } from "@/utils/date";
 import { WebContainer } from "@/components/ui/web-container";
+import { Breadcrumbs, type Crumb } from "@/components/ui/breadcrumbs";
 import { CompactCard } from "@/components/ui/home-highlights";
 import { NewsCard } from "@/components/ui/news-card";
 import MOCK_DATA from "@/constants/mock-data.json";
@@ -104,6 +105,17 @@ function VizualizareScreen() {
     const readingTime = getReadingTime(content as string);
     const dateDisplay = category === "Noutăți" ? `${formattedDate} | ${readingTime}` : formattedDate;
 
+    // Breadcrumbs: Acasă / [categorie sau tip] / [titlu]. Segmentul de categorie
+    // duce la lista categoriei respective; ultimul (titlul) nu e clickabil.
+    const crumbCategory = (category as string) || (tipPagina as string);
+    const crumbs: Crumb[] = [
+        { label: "Acasă", href: "/(public)/acasa" },
+        ...(crumbCategory
+            ? [{ label: crumbCategory, href: `/(public)/acasa/categorie?title=${encodeURIComponent(crumbCategory)}` }]
+            : []),
+        { label: (title as string) || "Articol" },
+    ];
+
     return (
         <View style={{ flex: 1, backgroundColor: theme.background }}>
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + Spacing.xl }}>
@@ -128,6 +140,9 @@ function VizualizareScreen() {
                 </View>
 
                 <WebContainer style={{ paddingVertical: Spacing.xl, gap: Spacing.xxl }}>
+                    {/* Breadcrumbs pentru navigare clara pe paginile de continut. */}
+                    <Breadcrumbs items={crumbs} />
+
                     {/* Rand principal: continut (stanga) + sidebar Noutăți (dreapta).
                         gap putin mai mare ca sa "respire" intre coloana de text si carduri. */}
                     <View style={{ flexDirection: twoCol ? "row" : "column", gap: 40, alignItems: "flex-start" }}>

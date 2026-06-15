@@ -15,7 +15,7 @@ import { useEffect, useState } from "react";
 import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Image } from "expo-image";
 import { useRouter, usePathname } from "expo-router";
-import { ColorScheme, Colors, Spacing } from "@/constants/theme";
+import { ColorScheme, Colors, Spacing, WebContentMaxWidth, WebMaxScale } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useNavbarScrolled } from "@/contexts/web-scroll-context";
@@ -58,7 +58,13 @@ export function WebNavbar() {
   const { width } = useWindowDimensions();
   const isCompact = width < WEB_COMPACT_BREAKPOINT;
 
+  // Pe ecrane late WebContainer-ul scaleaza continutul (zoom), deci bara e vizual
+  // mai inalta de NAVBAR_HEIGHT. Reproducem zoom-ul ca sa o ascundem complet.
+  const zoom = width > WebContentMaxWidth ? Math.min(width / WebContentMaxWidth, WebMaxScale) : 1;
+
   const [menuOpen, setMenuOpen] = useState(false);
+  // Hide-on-scroll: bara ascunsa la scroll in jos, vizibila la scroll in sus.
+  const [hidden, setHidden] = useState(false);
 
   // Inchidem panoul cand navigam catre alta pagina sau cand ecranul devine lat.
   // Ajustam in timpul randarii (pattern recomandat de React pentru "state derivat
@@ -68,6 +74,9 @@ export function WebNavbar() {
   if (pathname !== lastPathname) {
     setLastPathname(pathname);
     if (menuOpen) setMenuOpen(false);
+    // La schimbarea paginii navbar-ul reapare (altfel ar ramane ascuns daca pagina
+    // anterioara fusese derulata in jos — starea persista, navbar-ul e in layout).
+    if (hidden) setHidden(false);
   }
   if (!isCompact && menuOpen) {
     setMenuOpen(false);
@@ -99,8 +108,41 @@ export function WebNavbar() {
   }, [menuOpen, panelAnim]);
   const panelTranslate = panelAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] });
 
+  // Hide-on-scroll: bara se ascunde la scroll in jos si reapare la scroll in sus.
+  // Scroll-ul se intampla in interiorul ScrollView-urilor fiecarei pagini (nu in
+  // fereastra), asa ca ascultam evenimentul `scroll` in faza de CAPTURE pe
+  // document — prinde scroll-ul din orice container, fara sa cablam fiecare pagina.
+  useEffect(() => {
+    let lastY = 0;
+    const onScroll = (e: Event) => {
+      const el = e.target as HTMLElement | null;
+      if (!el || typeof el.scrollTop !== "number") return;
+      const y = el.scrollTop;
+      if (y <= NAVBAR_HEIGHT) {
+        setHidden(false); // langa varf ramane mereu vizibila
+      } else if (y > lastY + 4) {
+        setHidden(true); // scroll in jos
+      } else if (y < lastY - 4) {
+        setHidden(false); // scroll in sus
+      }
+      lastY = y;
+    };
+    document.addEventListener("scroll", onScroll, true);
+    return () => document.removeEventListener("scroll", onScroll, true);
+  }, []);
+
+  // Translatam bara in sus cand e ascunsa (dar nu cand panoul hamburger e deschis).
+  const [hideAnim] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    Animated.timing(hideAnim, {
+      toValue: hidden && !menuOpen ? -(NAVBAR_HEIGHT * zoom + 8) : 0,
+      duration: 220,
+      useNativeDriver: false,
+    }).start();
+  }, [hidden, menuOpen, hideAnim, zoom]);
+
   return (
-    <View style={styles.bar} pointerEvents="box-none">
+    <Animated.View style={[styles.bar, { transform: [{ translateY: hideAnim }] }]} pointerEvents="box-none">
       {/* Fundal solid (albastru de brand), fade in/out dupa pagina/scroll. Full-bleed. */}
       <Animated.View
         pointerEvents="none"
@@ -152,10 +194,12 @@ export function WebNavbar() {
                     key={link.href}
                     onPress={() => router.push(link.href as any)}
                     accessibilityRole="link"
+                    // dataSet -> data-navlink / data-active pe <div>-ul web; sublinierea
+                    // animata e in global.css (hover stanga->dreapta, activ = permanent).
+                    {...({ dataSet: { navlink: "true", active: isActive ? "true" : "false" } } as any)}
                     style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, alignItems: "center" })}
                   >
                     <Text style={[Typography.Heading5, { color: ColorScheme.white }]}>{link.label}</Text>
-                    {isActive && <View style={styles.activeUnderline} />}
                   </Pressable>
                 );
               })}
@@ -213,7 +257,7 @@ export function WebNavbar() {
           </WebContainer>
         </Animated.View>
       )}
-    </View>
+    </Animated.View>
   );
 }
 
