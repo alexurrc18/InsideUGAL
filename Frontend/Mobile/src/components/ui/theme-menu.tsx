@@ -1,53 +1,80 @@
 // Meniu de tema (DOAR web). Trigger = iconita cog (rotita). La apasare:
 //  - cog-ul se roteste (90deg)
-//  - sub el apare, cu fade + slide, cercul cu luna/soare (ThemeToggle) care comuta tema.
-// Se inchide la a doua apasare pe cog. Trebuie montat intr-un <ThemeProvider>.
+//  - sub el apare, cu fade + slide, un meniu dreptunghiular (ca la anunturi) cu optiunile:
+//    - Luminos
+//    - Întunecat
+//    - Implicit dispozitivului
+// Se inchide la selectie sau la a doua apasare pe cog. Trebuie montat intr-un <ThemeProvider>.
 import { useEffect, useState } from "react";
-import { Animated, Easing, Pressable, View } from "react-native";
-import { ColorScheme } from "@/constants/theme";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Animated, Easing, Pressable, View, Text } from "react-native";
+import { ColorScheme, Spacing, Colors } from "@/constants/theme";
+import { Typography } from "@/constants/typography";
+import { useThemeContext } from "@/contexts/theme-context";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import CogIcon from "@/assets/icons/svg/cog.svg";
 
-// `solid` = starea navbarului. Cand e solid (albastru), cercul de tema e albastru
-// (se potriveste). Cand navbarul e transparent (peste hero), cercul devine
-// intunecat translucid ca sa nu mai fie un albastru care pluteste peste imagine.
-export function ThemeMenu({ solid = true }: { solid?: boolean }) {
-  const [open, setOpen] = useState(false);
+export function ThemeMenu({
+  solid = true,
+  open: controlledOpen,
+  onToggle,
+  onClose,
+}: {
+  solid?: boolean;
+  open?: boolean;
+  onToggle?: () => void;
+  onClose?: () => void;
+}) {
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : localOpen;
   const [anim] = useState(() => new Animated.Value(0)); // 0 = inchis, 1 = deschis
 
-  const circleBg = solid ? ColorScheme.blue : "rgba(0,0,0,0.45)";
+  const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
+  const theme = Colors[themeName];
+  const { themeMode, setThemeMode } = useThemeContext();
 
   const toggle = () => {
-    const next = !open;
-    setOpen(next);
+    if (onToggle) {
+      onToggle();
+    } else {
+      setLocalOpen(!localOpen);
+    }
+  };
+
+  const close = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      setLocalOpen(false);
+    }
+  };
+
+  useEffect(() => {
     Animated.timing(anim, {
-      toValue: next ? 1 : 0,
-      duration: 280,
+      toValue: open ? 1 : 0,
+      duration: open ? 280 : 200,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
-  };
+  }, [open, anim]);
 
   // Cand meniul e deschis si pagina e derulata, il inchidem inapoi (cu animatia
   // inversa). Scroll-ul se intampla in ScrollView-ul paginii, deci ascultam in
   // faza de CAPTURE pe document, ca sa prindem orice container care deruleaza.
   useEffect(() => {
     if (!open) return;
-    const closeOnScroll = () => {
-      setOpen(false);
-      Animated.timing(anim, {
-        toValue: 0,
-        duration: 200,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }).start();
-    };
+    const closeOnScroll = () => close();
     document.addEventListener("scroll", closeOnScroll, true);
     return () => document.removeEventListener("scroll", closeOnScroll, true);
-  }, [open, anim]);
+  }, [open]);
 
   const rotate = anim.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "90deg"] });
   const dropTranslate = anim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] });
+
+  const options = [
+    { id: "light" as const, label: "Luminos" },
+    { id: "dark" as const, label: "Întunecat" },
+    { id: "system" as const, label: "Implicit dispozitivului" }
+  ];
 
   return (
     <View style={{ position: "relative" }}>
@@ -71,29 +98,73 @@ export function ThemeMenu({ solid = true }: { solid?: boolean }) {
           }}
         >
           <Animated.View style={{ transform: [{ rotate }] }}>
-            <CogIcon width={16} height={16} color={ColorScheme.white} />
+            <CogIcon width={24} height={24} color={ColorScheme.white} />
           </Animated.View>
         </View>
       </Pressable>
 
-      {/* Dropdown: cercul lună/soare, apare in jos cu fade + slide. */}
+      {/* Dropdown: cardul de setări temă, aliniat la dreapta sub iconiță (ca la profil).
+          Colturi drepte (borderRadius: 0), shadow si aspect identic cu dropdown-ul de anunturi. */}
       <Animated.View
         pointerEvents={open ? "auto" : "none"}
-        // left:0 + right:0 + alignItems center => cercul se centreaza sub rotita
-        // (chiar daca e ceva mai lat decat ea).
         style={{
           position: "absolute",
           top: "100%",
-          left: 0,
           right: 0,
-          alignItems: "center",
           marginTop: 8,
+          minWidth: 200,
           opacity: anim,
           transform: [{ translateY: dropTranslate }],
         }}
       >
-        {/* Cerc mic (cat rotita) cu soare/luna; fundalul urmeaza starea navbarului. */}
-        <ThemeToggle size={16} backgroundColor={circleBg} borderColor={ColorScheme.white} color={ColorScheme.white} />
+        <View
+          style={{
+            backgroundColor: ColorScheme.pureWhite,
+            borderRadius: 0,
+            borderWidth: 0,
+            overflow: "hidden",
+            shadowColor: ColorScheme.pureBlack,
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.12,
+            shadowRadius: 16,
+            paddingVertical: Spacing.xs,
+          }}
+        >
+          {options.map((opt) => {
+            const isSelected = themeMode === opt.id;
+            return (
+              <Pressable
+                key={opt.id}
+                onPress={() => {
+                  setThemeMode(opt.id);
+                  close();
+                }}
+                accessibilityRole="button"
+                style={({ pressed, hovered }: any) => [
+                  {
+                    paddingHorizontal: Spacing.lg,
+                    paddingVertical: Spacing.md,
+                  },
+                  (pressed || hovered || isSelected) && { backgroundColor: "rgba(0, 0, 0, 0.05)" },
+                ]}
+              >
+                {({ pressed, hovered }: any) => (
+                  <Text
+                    style={[
+                      Typography.Heading5,
+                      {
+                        color: (pressed || hovered || isSelected) ? theme.primary : ColorScheme.black,
+                        fontFamily: isSelected ? "InstrumentSans-SemiBold" : "InstrumentSans-Medium",
+                      },
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                )}
+              </Pressable>
+            );
+          })}
+        </View>
       </Animated.View>
     </View>
   );

@@ -13,6 +13,7 @@ import { Typography } from "@/constants/typography";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { WebContainer } from "@/components/ui/web-container";
 import { getFormattedDate } from "@/utils/date";
+import { NewsCard, CategoryTag } from "@/components/ui/news-card";
 
 export interface HighlightItem {
   id: string;
@@ -39,62 +40,49 @@ function itemDate(item: HighlightItem) {
 
 /** Card orizontal compact: poza stanga, text dreapta. Latime flexibila (umple containerul). */
 export function CompactCard({ item, onPress }: { item: HighlightItem; onPress: () => void }) {
-  const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
-  const theme = Colors[themeName];
-
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.compact, { opacity: pressed ? 0.85 : 1 }]}>
-      <Image
-        source={item.image ? { uri: item.image } : FALLBACK_IMAGE}
-        style={styles.compactImage}
-        contentFit="cover"
-      />
-      <View style={styles.compactBody}>
-        {item.category ? (
-          <View style={styles.compactChip}>
-            <Text style={[Typography.Small1, { color: ColorScheme.white }]} numberOfLines={1}>
-              {item.category}
-            </Text>
-          </View>
-        ) : null}
-        <Text style={[Typography.Heading6, { color: theme.text }]} numberOfLines={2}>
-          {item.title}
-        </Text>
-        <Text style={[Typography.Small2, { color: theme.textSecondary }]} numberOfLines={1}>
-          {[itemDate(item), item.author].filter(Boolean).join("  ·  ")}
-        </Text>
-      </View>
-    </Pressable>
+    <NewsCard
+      variant="list"
+      title={item.title}
+      date={itemDate(item)}
+      author={item.author}
+      image={item.image}
+      category={item.category}
+      onPress={onPress}
+      width="100%"
+    />
   );
 }
 
 /** Card mare "featured": imagine full-bleed + gradient + text jos. */
 function FeaturedCard({ item, onPress }: { item: HighlightItem; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.featured, { opacity: pressed ? 0.92 : 1 }]}>
+    <Pressable 
+      onPress={onPress} 
+      style={({ pressed }) => [styles.featured, { opacity: pressed ? 0.92 : 1 }]}
+      {...({ dataSet: { card: "true" } } as any)}
+    >
       <Image
         source={item.image ? { uri: item.image } : FALLBACK_IMAGE}
-        style={StyleSheet.absoluteFill}
+        style={[StyleSheet.absoluteFill, { zIndex: 1, overflow: "hidden" }]}
         contentFit="cover"
       />
-      <LinearGradient
-        colors={["transparent", "rgba(0,0,0,0.4)", "rgba(0,0,0,0.85)"]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={styles.featuredBody}>
-        {item.category ? (
-          <View style={styles.chip}>
-            <Text style={[Typography.Small1, { color: ColorScheme.white }]}>{item.category}</Text>
-          </View>
-        ) : null}
-        <Text style={[Typography.Heading2, { color: ColorScheme.white, marginTop: Spacing.sm }]} numberOfLines={3}>
-          {item.title}
-        </Text>
-        <Text style={[Typography.Paragraph3, { color: ColorScheme.white, opacity: 0.9, marginTop: Spacing.xs }]}>
-          {[itemDate(item), item.author].filter(Boolean).join("  ·  ")}
-        </Text>
+      <View style={[StyleSheet.absoluteFill, { zIndex: 2 }]}>
+        <LinearGradient
+          colors={["transparent", "rgba(0,0,0,0.4)", "rgba(0,0,0,0.85)"]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.featuredBody}>
+          {!!item.category && <CategoryTag category={item.category} />}
+          <Text style={[Typography.Heading2, { color: ColorScheme.white, marginTop: Spacing.sm }]} numberOfLines={3}>
+            {item.title}
+          </Text>
+          <Text style={[Typography.Paragraph3, { color: ColorScheme.white, opacity: 0.9, marginTop: Spacing.xs }]}>
+            {[itemDate(item), item.author].filter(Boolean).join("  ·  ")}
+          </Text>
+        </View>
       </View>
     </Pressable>
   );
@@ -109,10 +97,10 @@ export function HomeHighlights({ featured, items, onPressItem, title = "Recomand
   if (!featured && items.length === 0) return null;
 
   return (
-    <WebContainer style={{ marginVertical: Spacing.lg }}>
+    <WebContainer style={{ marginVertical: Spacing.xl3 }}>
       <View style={{ paddingHorizontal: Spacing.lg }}>
         {title ? (
-          <Text style={[Typography.Heading4, { color: theme.text, marginBottom: Spacing.lg }]}>{title}</Text>
+          <Text style={[Typography.Heading1, { color: theme.text, marginBottom: Spacing.sm }]}>{title}</Text>
         ) : null}
 
         {stacked ? (

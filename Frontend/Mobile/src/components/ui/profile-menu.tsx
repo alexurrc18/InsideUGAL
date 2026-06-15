@@ -22,26 +22,46 @@ export const MOCK_USER = {
 // TODO: URL-ul real al Dashboard-ului.
 export const DASHBOARD_URL = "https://dashboard.insideugal.ro";
 
-export function ProfileMenu() {
+export function ProfileMenu({
+  open: controlledOpen,
+  onToggle,
+  onClose,
+}: {
+  open?: boolean;
+  onToggle?: () => void;
+  onClose?: () => void;
+}) {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const router = useRouter();
 
-  const [open, setOpen] = useState(false);
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : localOpen;
   const [anim] = useState(() => new Animated.Value(0));
 
-  const animateTo = (v: number) =>
-    Animated.timing(anim, { toValue: v, duration: 200, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-
   const toggle = () => {
-    const next = !open;
-    setOpen(next);
-    animateTo(next ? 1 : 0);
+    if (onToggle) {
+      onToggle();
+    } else {
+      setLocalOpen(!localOpen);
+    }
   };
   const close = () => {
-    setOpen(false);
-    animateTo(0);
+    if (onClose) {
+      onClose();
+    } else {
+      setLocalOpen(false);
+    }
   };
+
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: open ? 1 : 0,
+      duration: 200,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [open, anim]);
 
   // Inchide meniul la scroll (ca meniul de tema).
   useEffect(() => {
@@ -49,7 +69,6 @@ export function ProfileMenu() {
     const onScroll = () => close();
     document.addEventListener("scroll", onScroll, true);
     return () => document.removeEventListener("scroll", onScroll, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const dropTranslate = anim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] });
@@ -66,7 +85,7 @@ export function ProfileMenu() {
 
   const rowStyle = ({ pressed, hovered }: any) => [
     { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-    (pressed || hovered) && { backgroundColor: theme.background },
+    (pressed || hovered) && { backgroundColor: "rgba(0, 0, 0, 0.05)" },
   ];
 
   return (
@@ -89,7 +108,7 @@ export function ProfileMenu() {
             ...({ transitionDuration: "200ms", transitionProperty: "background-color" } as any),
           }}
         >
-          <UserIcon width={16} height={16} color={ColorScheme.white} />
+          <UserIcon width={24} height={24} color={ColorScheme.white} />
         </View>
       </Pressable>
 
@@ -108,32 +127,35 @@ export function ProfileMenu() {
       >
         <View
           style={{
-            backgroundColor: theme.surface,
-            borderRadius: Spacing.md,
-            borderWidth: 1,
-            borderColor: theme.border,
+            backgroundColor: ColorScheme.pureWhite,
+            borderRadius: 0,
+            borderWidth: 0,
             overflow: "hidden",
             shadowColor: ColorScheme.pureBlack,
             shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: 0.2,
+            shadowOpacity: 0.12,
             shadowRadius: 16,
           }}
         >
           {/* Antet: cine e conectat (nume + email). */}
           <View style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: 2 }}>
-            <Text style={[Typography.Heading5, { color: theme.text }]} numberOfLines={1}>
+            <Text style={[Typography.Heading5, { color: ColorScheme.black }]} numberOfLines={1}>
               {MOCK_USER.name}
             </Text>
-            <Text style={[Typography.Small1, { color: theme.textSecondary }]} numberOfLines={1}>
+            <Text style={[Typography.Small2, { color: ColorScheme.gray }]} numberOfLines={1}>
               {MOCK_USER.email}
             </Text>
           </View>
 
-          <View style={{ height: 1, backgroundColor: theme.border }} />
+          <View style={{ height: 1, backgroundColor: "#E5E7EB" }} />
 
           {MOCK_USER.hasDashboardAccess && (
             <Pressable onPress={handleDashboard} accessibilityRole="link" style={rowStyle}>
-              <Text style={[Typography.Heading5, { color: theme.text }]}>Dashboard</Text>
+              {({ pressed, hovered }: any) => (
+                <Text style={[Typography.Heading5, { color: (pressed || hovered) ? theme.primary : ColorScheme.black }]}>
+                  Dashboard
+                </Text>
+              )}
             </Pressable>
           )}
 

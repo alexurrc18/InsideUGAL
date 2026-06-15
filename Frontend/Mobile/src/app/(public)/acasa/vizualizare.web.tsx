@@ -156,7 +156,7 @@ function VizualizareScreen() {
 
                     {/* Rand principal: continut (stanga) + sidebar Noutăți (dreapta).
                         gap putin mai mare ca sa "respire" intre coloana de text si carduri. */}
-                    <View style={{ flexDirection: twoCol ? "row" : "column", gap: 40, alignItems: "flex-start" }}>
+                    <View style={{ flexDirection: twoCol ? "row" : "column", gap: 64, alignItems: "flex-start" }}>
                         {/* Stanga: continutul anuntului. */}
                         <View style={{ flex: 1, gap: Spacing.xxl, width: "100%" }}>
                             {tipPagina !== "Facultate" && (
@@ -246,7 +246,7 @@ function VizualizareScreen() {
                         {/* Dreapta: 3 carduri Noutăți, una sub alta. */}
                         {sidebarItems.length > 0 && (
                             <View style={{ width: twoCol ? SIDEBAR_WIDTH : "100%", gap: Spacing.lg }}>
-                                <Text style={[Typography.Heading4, { color: theme.text }]}>Articole similare</Text>
+                                <Text style={[Typography.Heading2, { color: theme.text }]}>Articole similare</Text>
                                 {sidebarItems.map((item) => (
                                     <CompactCard key={item.id} item={item} onPress={() => openItem(item)} />
                                 ))}
@@ -257,7 +257,7 @@ function VizualizareScreen() {
                     {/* Jos, sub tot: 3 carduri pe un rand. */}
                     {relatedItems.length > 0 && (
                         <View style={{ gap: Spacing.lg }}>
-                            <Text style={[Typography.Heading4, { color: theme.text }]}>Mai multe</Text>
+                            <Text style={[Typography.Heading2, { color: theme.text }]}>Mai multe</Text>
                             <View style={{ flexDirection: "row", gap: Spacing.lg }} onLayout={onRowLayout}>
                                 {bottomCardWidth > 0 &&
                                     relatedItems.map((item) => (

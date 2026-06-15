@@ -8,6 +8,7 @@ import { Typography } from "@/constants/typography";
 import { WebContainer } from "@/components/ui/web-container";
 import { NewsCard } from "@/components/ui/news-card";
 import { CategoryHeader, FilterItem } from "@/components/ui/category-header";
+import { Breadcrumbs, type Crumb } from "@/components/ui/breadcrumbs";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { getFormattedDate } from "@/utils/date";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
@@ -24,6 +25,11 @@ export default function CategoryScreen() {
   const [scrollY] = useState(() => new Animated.Value(0));
 
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
+
+  const crumbs: Crumb[] = [
+    { label: "Acasă", href: "/(public)/acasa" },
+    { label: (categoryTitle as string) || "Categorie" }
+  ];
 
   // Pregătim filtrele pentru facultăți (folosim noua interfață FilterItem)
   const facultyFilters: FilterItem[] = [
@@ -129,7 +135,11 @@ export default function CategoryScreen() {
         scrollEventThrottle={16}
       >
         <WebContainer>
-          <View style={{ paddingTop: contentTop, marginBottom: Spacing.lg }}>
+          <View style={{ paddingTop: contentTop, paddingHorizontal: Spacing.lg, marginTop: Spacing.md }}>
+              <Breadcrumbs items={crumbs} />
+          </View>
+
+          <View style={{ marginBottom: Spacing.lg, marginTop: Spacing.lg }}>
               <CategoryHeader
                   title={(categoryTitle as string) || "Categorie"}
                   filters={categoryTitle === "Facultăți" ? undefined : facultyFilters}

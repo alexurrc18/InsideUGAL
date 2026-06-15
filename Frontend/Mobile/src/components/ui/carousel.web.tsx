@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { Typography } from "@/constants/typography";
 import { Colors, Spacing } from "@/constants/theme";
 import { CAROUSEL_CARD_WIDTH, CAROUSEL_CARD_MARGIN, CarouselProps } from "./carousel.shared";
+import ChevronIcon from "@/assets/icons/svg/chevron-left.svg";
 
 export function Carousel<T>({ data, renderItem, keyExtractor, title, viewAllHref }: CarouselProps<T>) {
     const router = useRouter();
@@ -15,19 +16,30 @@ export function Carousel<T>({ data, renderItem, keyExtractor, title, viewAllHref
     const isDesktop = windowWidth >= 768;
 
     return (
-        <View style={{ marginVertical: Spacing.lg }}>
+        <View style={{ marginVertical: Spacing.xl3 }}>
             {(title || viewAllHref) && (
                 <View style={{
                     flexDirection: "row",
                     justifyContent: "space-between",
                     alignItems: "center",
                     paddingHorizontal: Spacing.lg,
-                    marginBottom: Spacing.lg
+                    marginBottom: Spacing.sm
                 }}>
-                    {title && <Text style={[Typography.Heading4, { color: theme.text }]}>{title}</Text>}
+                    {title && <Text style={[Typography.Heading1, { color: theme.text }]}>{title}</Text>}
                     {viewAllHref && (
-                        <Pressable onPress={() => router.push(viewAllHref as any)}>
-                            <Text style={[Typography.Paragraph2, { color: theme.primary }]}>Vezi mai multe &gt;</Text>
+                        <Pressable 
+                            onPress={() => router.push(viewAllHref as any)}
+                            style={({ pressed }) => ({
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 4,
+                                opacity: pressed ? 0.7 : 1,
+                            })}
+                        >
+                            <Text style={[Typography.Paragraph2, { color: theme.primary }]}>Vezi mai multe</Text>
+                            <View style={{ transform: [{ rotate: "180deg" }] }}>
+                                <ChevronIcon width={16} height={16} fill={theme.primary} color={theme.primary} />
+                            </View>
                         </Pressable>
                     )}
                 </View>

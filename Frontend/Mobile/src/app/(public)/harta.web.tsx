@@ -1,7 +1,7 @@
 // Varianta web a paginii Harta. Mobilul foloseste harta.tsx (neatins).
 //
 // Provocarea de aliniere: navbar-ul isi aliniaza continutul printr-un WebContainer
-// care, peste 1100px, aplica un `zoom` CSS (scaleaza tot continutul). Harta NU
+// care, peste 1200px, aplica un `zoom` CSS (scaleaza tot continutul). Harta NU
 // poate fi pusa intr-un WebContainer — `zoom`-ul ar deforma/innegura randarea
 // MapLibre. Asa ca reproducem in JS exact inset-ul orizontal al navbar-ului
 // (aceeasi geometrie ca WebContainer) si il aplicam ca padding simplu, fara zoom.
@@ -38,7 +38,7 @@ export default function HartaScreen() {
   const columnWidth = scaling ? WebContentMaxWidth * zoom : width;
   // Padding-ul lateral al WebContainer-ului e responsiv (mic pe ecran ingust), deci
   // il reproducem identic aici ca harta sa ramana aliniata cu titlul "Hartă".
-  const sidePadding = width < WEB_COMPACT_BREAKPOINT ? Spacing.lg : WebSidePadding;
+  const sidePadding = width < WEB_COMPACT_BREAKPOINT ? Math.min(Spacing.lg, WebSidePadding) : WebSidePadding;
   // Inset-ul orizontal pana la continutul navbarului (logo / "Hartă"):
   //   margine de centrare + (padding lateral + Spacing.lg) scalate cu zoom.
   const contentInset = (width - columnWidth) / 2 + (sidePadding + Spacing.lg) * zoom;

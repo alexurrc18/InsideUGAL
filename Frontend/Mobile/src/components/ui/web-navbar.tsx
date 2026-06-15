@@ -25,8 +25,9 @@ import { WebContainer, WEB_COMPACT_BREAKPOINT } from "@/components/ui/web-contai
 import { ThemeMenu } from "@/components/ui/theme-menu";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ProfileMenu, MOCK_USER, DASHBOARD_URL } from "@/components/ui/profile-menu";
+import ChevronIcon from "@/assets/icons/svg/chevron-left.svg";
 
-export const NAVBAR_HEIGHT = 60;
+export const NAVBAR_HEIGHT = 72;
 
 const LOGO = require("@/assets/images/logo.png");
 
@@ -91,6 +92,7 @@ export function WebNavbar() {
   const zoom = width > WebContentMaxWidth ? Math.min(width / WebContentMaxWidth, WebMaxScale) : 1;
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeMenu, setActiveMenu] = useState<"theme" | "profile" | null>(null);
   // Hide-on-scroll: bara ascunsa la scroll in jos, vizibila la scroll in sus.
   const [hidden, setHidden] = useState(false);
   // Pozitia de scroll de la ultimul event (ref, ca sa o putem reseta la navigare).
@@ -104,6 +106,7 @@ export function WebNavbar() {
   if (pathname !== lastPathname) {
     setLastPathname(pathname);
     if (menuOpen) setMenuOpen(false);
+    if (activeMenu) setActiveMenu(null);
   }
   if (!isCompact && menuOpen) {
     setMenuOpen(false);
@@ -246,23 +249,29 @@ export function WebNavbar() {
                     <View
                       key={link.label}
                       {...({ dataSet: { navdropdown: "true" } } as any)}
-                      style={{ position: "relative", justifyContent: "center" }}
+                      style={{ position: "relative", justifyContent: "center", height: NAVBAR_HEIGHT }}
                     >
                       <Pressable
                         onPress={() => router.push(link.dropdown![0].href as any)}
                         accessibilityRole="link"
                         {...({ dataSet: { navlink: "true", active: isActive ? "true" : "false" } } as any)}
-                        style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, alignItems: "center", justifyContent: "center" })}
+                        style={({ pressed }) => ({
+                          opacity: pressed ? 0.6 : 1,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 2,
+                        })}
                       >
                         <Text style={[Typography.Heading5, { color: ColorScheme.white }]}>{link.label}</Text>
+                        <View style={{ transform: [{ rotate: "-90deg" }] }}>
+                          <ChevronIcon width={20} height={20} fill={ColorScheme.white} color={ColorScheme.white} />
+                        </View>
                       </Pressable>
 
                       <View
                         {...({ dataSet: { dropdownMenu: "true" } } as any)}
-                        // Fundal in functie de navbar: albastru cand e solid, translucid
-                        // inchis cand navbarul e transparent (peste hero) — se asorteaza
-                        // si ramane lizibil.
-                        style={[styles.dropdown, { backgroundColor: solid ? theme.primary : "rgba(0,0,0,0.55)" }]}
+                        style={styles.dropdown}
                       >
                         {link.dropdown.map((sub) => (
                           <Pressable
@@ -271,10 +280,19 @@ export function WebNavbar() {
                             accessibilityRole="link"
                             style={({ pressed, hovered }: any) => [
                               styles.dropdownItem,
-                              (pressed || hovered) && { backgroundColor: "rgba(255,255,255,0.14)" },
+                              (pressed || hovered) && { backgroundColor: "rgba(0, 0, 0, 0.05)" },
                             ]}
                           >
-                            <Text style={[Typography.Heading5, { color: ColorScheme.white }]}>{sub.label}</Text>
+                            {({ pressed, hovered }: any) => (
+                              <Text
+                                style={[
+                                  Typography.Heading5,
+                                  { color: (pressed || hovered) ? theme.primary : ColorScheme.black },
+                                ]}
+                              >
+                                {sub.label}
+                              </Text>
+                            )}
                           </Pressable>
                         ))}
                       </View>
@@ -296,8 +314,19 @@ export function WebNavbar() {
                 );
               })}
 
-              <ThemeMenu solid={solid} />
-              <ProfileMenu />
+              <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.xs, marginLeft: Spacing.xl3 }}>
+                <ThemeMenu
+                  solid={solid}
+                  open={activeMenu === "theme"}
+                  onToggle={() => setActiveMenu(activeMenu === "theme" ? null : "theme")}
+                  onClose={() => activeMenu === "theme" && setActiveMenu(null)}
+                />
+                <ProfileMenu
+                  open={activeMenu === "profile"}
+                  onToggle={() => setActiveMenu(activeMenu === "profile" ? null : "profile")}
+                  onClose={() => activeMenu === "profile" && setActiveMenu(null)}
+                />
+              </View>
             </View>
           )}
         </View>
@@ -328,7 +357,7 @@ export function WebNavbar() {
                         accessibilityRole="link"
                         style={({ pressed }) => [styles.panelLink, { opacity: pressed ? 0.6 : 1 }]}
                       >
-                        <Text style={[Typography.Heading5, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
+                        <Text style={[Typography.Heading3, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
                           {sub.label}
                         </Text>
                       </Pressable>
@@ -350,7 +379,7 @@ export function WebNavbar() {
                 >
                   <Text
                     style={[
-                      Typography.Heading5,
+                      Typography.Heading3,
                       { color: ColorScheme.white, fontFamily: isActive ? "InstrumentSans-SemiBold" : "InstrumentSans-Medium" },
                     ]}
                   >
@@ -362,7 +391,7 @@ export function WebNavbar() {
 
             {/* Rand de tema: eticheta + comutator soare/luna. */}
             <View style={styles.panelThemeRow}>
-              <Text style={[Typography.Heading5, { color: ColorScheme.white }]}>Temă</Text>
+              <Text style={[Typography.Heading3, { color: ColorScheme.white }]}>Temă</Text>
               <ThemeToggle
                 size={20}
                 backgroundColor="rgba(255,255,255,0.15)"
@@ -373,7 +402,7 @@ export function WebNavbar() {
 
             {/* Profil (mobil): cine e conectat + Dashboard (daca are acces) + Deconectare. */}
             <View style={styles.panelProfile}>
-              <Text style={[Typography.Heading5, { color: ColorScheme.white }]} numberOfLines={1}>
+              <Text style={[Typography.Heading3, { color: ColorScheme.white }]} numberOfLines={1}>
                 {MOCK_USER.name}
               </Text>
               <Text style={[Typography.Small1, { color: "rgba(255,255,255,0.7)" }]} numberOfLines={1}>
@@ -388,7 +417,7 @@ export function WebNavbar() {
                 }}
                 style={({ pressed }) => [styles.panelLink, { opacity: pressed ? 0.6 : 1 }]}
               >
-                <Text style={[Typography.Heading5, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
+                <Text style={[Typography.Heading3, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
                   Dashboard
                 </Text>
               </Pressable>
@@ -400,7 +429,7 @@ export function WebNavbar() {
               }}
               style={({ pressed }) => [styles.panelLink, { opacity: pressed ? 0.6 : 1 }]}
             >
-              <Text style={[Typography.Heading5, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
+              <Text style={[Typography.Heading3, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
                 Deconectare
               </Text>
             </Pressable>
@@ -428,8 +457,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   logo: {
-    height: 40,
-    width: 40,
+    height: 48,
+    width: 48,
   },
   right: {
     flexDirection: "row",
@@ -445,13 +474,13 @@ const styles = StyleSheet.create({
     left: 0,
     paddingVertical: Spacing.xs,
     borderRadius: 0,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
+    backgroundColor: ColorScheme.pureWhite,
+    borderWidth: 0,
     minWidth: 180,
     overflow: "hidden",
     shadowColor: ColorScheme.pureBlack,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.12,
     shadowRadius: 16,
   },
   dropdownItem: {
@@ -499,8 +528,8 @@ const styles = StyleSheet.create({
 
 const hamburger = StyleSheet.create({
   box: {
-    width: 24,
-    height: 18,
+    width: 28,
+    height: 20,
     justifyContent: "space-between",
   },
   bar: {
@@ -511,12 +540,12 @@ const hamburger = StyleSheet.create({
   },
   // Stari pentru "X": bara de sus coboara+roteste, mijlocul dispare, jos urca+roteste.
   barTop: {
-    transform: [{ translateY: 8 }, { rotate: "45deg" }],
+    transform: [{ translateY: 9 }, { rotate: "45deg" }],
   },
   barMid: {
     opacity: 0,
   },
   barBottom: {
-    transform: [{ translateY: -8 }, { rotate: "-45deg" }],
+    transform: [{ translateY: -9 }, { rotate: "-45deg" }],
   },
 });

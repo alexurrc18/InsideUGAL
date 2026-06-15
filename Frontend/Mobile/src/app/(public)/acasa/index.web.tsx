@@ -97,7 +97,7 @@ export default function HomeScreen() {
         {/* Sectiune intre hero si carusele: 3 carduri compacte + 1 card mare. */}
         <HomeHighlights featured={featuredItem} items={highlightItems} onPressItem={handlePress} />
 
-        <WebContainer style={{ paddingTop: Spacing.lg, paddingBottom: insets.bottom + Spacing.sm, flex: 1 }}>
+        <WebContainer style={{ paddingTop: Spacing.xl3, paddingBottom: insets.bottom + Spacing.sm, flex: 1 }}>
           <Carousel
             title="Noutăți"
             data={noutati}

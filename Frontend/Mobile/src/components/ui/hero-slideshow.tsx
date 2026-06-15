@@ -13,16 +13,17 @@
 //    si cronometrul de auto-rotire;
 //  - click pe imagine => onPressItem(slide-ul activ).
 import { useEffect, useState } from "react";
-import { Animated, View, Text, Pressable, StyleSheet, Easing } from "react-native";
+import { Animated, View, Text, Pressable, StyleSheet, Easing, useWindowDimensions } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { WebContainer } from "@/components/ui/web-container";
 import { getFormattedDate } from "@/utils/date";
+import { CategoryTag } from "@/components/ui/news-card";
 
-export const HERO_HEIGHT = 460;
-const HERO_INTERVAL = 5000;
+export const HERO_HEIGHT = 560;
+const HERO_INTERVAL = 7000;
 const FADE_DURATION = 550;
 
 export interface HeroSlide {
@@ -40,6 +41,8 @@ interface HeroSlideshowProps {
 }
 
 export function HeroSlideshow({ slides, onPressItem }: HeroSlideshowProps) {
+  const { width: windowWidth } = useWindowDimensions();
+  const isMobile = windowWidth < 768;
   const [active, setActive] = useState(0);
 
   // Cate o valoare de opacitate per slide (primul vizibil, restul ascunse).
@@ -96,15 +99,11 @@ export function HeroSlideshow({ slides, onPressItem }: HeroSlideshowProps) {
           />
 
           <View style={styles.content}>
-            {/* paddingBottom mare ca textul sa stea deasupra punctelor de paginare
+            {/* paddingBottom calibrat ca textul sa stea deasupra punctelor de paginare
                 (care sunt la ~16-44px de jos) si sa nu se suprapuna cu ele. */}
-            <WebContainer style={{ justifyContent: "flex-end", paddingBottom: Spacing.xl4 }}>
+            <WebContainer style={{ justifyContent: "flex-end", paddingBottom: isMobile ? 56 : Spacing.xl3 }}>
               <View style={{ paddingHorizontal: Spacing.lg }}>
-                {slide.category ? (
-                  <View style={styles.chip}>
-                    <Text style={[Typography.Small1, { color: ColorScheme.white }]}>{slide.category}</Text>
-                  </View>
-                ) : null}
+                {!!slide.category && <CategoryTag category={slide.category} />}
 
                 {/* Singurul titlu mai ingrosat de pe web: titlul mare de hero/banner
                     ramane SemiBold, ca sa iasa in evidenta peste imagine. Restul
