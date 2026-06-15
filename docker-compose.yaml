@@ -39,6 +39,7 @@ services:
       dockerfile: Dockerfile
     environment:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+      HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}

@@ -85,7 +85,7 @@ export default function SesizariPage() {
       case 'In asteptare': return 'bg-amber-50 text-amber-700 border-amber-100';
       case 'In lucru': return 'bg-blue-50 text-blue-700 border-blue-100';
       case 'Respins': return 'bg-red-50 text-red-700 border-red-100';
-      case 'Inchis': return 'bg-slate-100 text-slate-500 border-slate-200';
+      case 'Inchis': return 'bg-background text-muted border-border';
     }
   };
 
@@ -97,8 +97,8 @@ export default function SesizariPage() {
         const isClosed = item.status === 'Inchis' || item.status === 'Respins';
         return (
           <div className={`space-y-1 ${isClosed ? 'opacity-50 text-slate-400' : ''}`}>
-            <p className="font-semibold text-slate-900">{item.title}</p>
-            <p className="text-xs text-slate-500 line-clamp-1">{item.description}</p>
+            <p className="font-semibold text-foregroundd">{item.title}</p>
+            <p className="text-xs text-muted line-clamp-1">{item.description}</p>
           </div>
         );
       }
@@ -109,7 +109,7 @@ export default function SesizariPage() {
       render: (item) => {
         const isClosed = item.status === 'Inchis' || item.status === 'Respins';
         return (
-          <span className={isClosed ? 'opacity-50 text-slate-400' : 'text-slate-700 font-medium'}>
+          <span className={isClosed ? 'opacity-50 text-slate-400' : 'text-foreground font-medium'}>
             {item.building}
           </span>
         );
@@ -121,7 +121,7 @@ export default function SesizariPage() {
       render: (item) => {
         const isClosed = item.status === 'Inchis' || item.status === 'Respins';
         return (
-          <span className={`text-slate-600 ${isClosed ? 'opacity-50' : ''}`}>
+          <span className={`text-muted ${isClosed ? 'opacity-50' : ''}`}>
             {currentUser.role === 'admin' ? item.authorName : '---'}
           </span>
         );
@@ -133,7 +133,7 @@ export default function SesizariPage() {
       render: (item) => {
         const isClosed = item.status === 'Inchis' || item.status === 'Respins';
         return (
-          <span className={`text-slate-500 text-xs whitespace-nowrap ${isClosed ? 'opacity-50' : ''}`}>
+          <span className={`text-muted text-xs whitespace-nowrap ${isClosed ? 'opacity-50' : ''}`}>
             {item.date}
           </span>
         );
@@ -214,7 +214,7 @@ export default function SesizariPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/60 w-fit">
+        <div className="flex bg-background p-1 rounded-xl border border-border/60 w-fit">
           {(([ 'all', 'my', 'active', 'closed' ] as const).map((tab) => (
             <button
               key={tab}
@@ -222,8 +222,8 @@ export default function SesizariPage() {
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 text-xs font-bold rounded-lg cursor-pointer transition-all uppercase ${
                 activeTab === tab 
-                  ? 'bg-white text-slate-800 shadow-xs' 
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? 'bg-card text-foreground shadow-xs' 
+                  : 'text-muted hover:text-foreground'
               }`}
             >
               {tab === 'all' && 'Toate'}
@@ -275,7 +275,7 @@ export default function SesizariPage() {
                 value={ticketForm.title || ''} 
                 onChange={e => setTicketForm({...ticketForm, title: e.target.value})} 
                 placeholder="Ex: Lipsă curent curent, Proiector defect..." 
-                className={`w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand ${isEditingOthersTicket ? 'bg-slate-50 text-slate-500 font-medium cursor-not-allowed' : ''}`}
+                className={`w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand ${isEditingOthersTicket ? 'bg-slate-50 text-muted font-medium cursor-not-allowed' : ''}`}
                 disabled={isEditingOthersTicket}
                 required 
               />
@@ -288,7 +288,7 @@ export default function SesizariPage() {
                   type="text" 
                   value={ticketForm.authorName || 'Sistem Admin'} 
                   disabled
-                  className="w-full border border-border p-2 rounded-lg bg-slate-50 text-slate-500 font-medium cursor-not-allowed focus:outline-none" 
+                  className="w-full border border-border p-2 rounded-lg bg-slate-50 text-muted font-medium cursor-not-allowed focus:outline-none" 
                 />
               </div>
             )}
@@ -299,7 +299,7 @@ export default function SesizariPage() {
                 <select
                   value={ticketForm.status}
                   onChange={(e) => setTicketForm({ ...ticketForm, status: e.target.value as TicketStatus })}
-                  className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm font-semibold text-slate-800 cursor-pointer"
+                  className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm font-semibold text-foreground cursor-pointer"
                 >
                   {statusOptions.map((opt) => (
                     <option key={opt} value={opt}>{opt}</option>
@@ -313,7 +313,7 @@ export default function SesizariPage() {
               <select
                 value={ticketForm.building || availableBuildings[0]}
                 onChange={(e) => setTicketForm({ ...ticketForm, building: e.target.value })}
-                className={`w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm font-medium ${isEditingOthersTicket ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : 'text-slate-700'}`}
+                className={`w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm font-medium ${isEditingOthersTicket ? 'bg-slate-50 text-muted cursor-not-allowed' : 'text-foreground'}`}
                 disabled={isEditingOthersTicket}
               >
                 {availableBuildings.map((bld) => (
@@ -329,7 +329,7 @@ export default function SesizariPage() {
                 onChange={e => setTicketForm({...ticketForm, description: e.target.value})} 
                 placeholder="Descrie pe scurt problema identificată..." 
                 rows={4}
-                className={`w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand resize-none ${isEditingOthersTicket ? 'bg-slate-50 text-slate-500 font-medium cursor-not-allowed' : ''}`}
+                className={`w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand resize-none ${isEditingOthersTicket ? 'bg-slate-50 text-muted font-medium cursor-not-allowed' : ''}`}
                 disabled={isEditingOthersTicket}
                 required 
               />
@@ -362,13 +362,13 @@ export default function SesizariPage() {
                       ? 'bg-emerald-50 border-emerald-200 text-emerald-700 cursor-default' 
                       : isEditingOthersTicket
                         ? 'bg-slate-50 border-border text-slate-400 cursor-not-allowed'
-                        : 'bg-white border-border text-slate-700 hover:bg-slate-50 cursor-pointer'
+                        : 'bg-card border-border text-foreground hover:bg-slate-50 cursor-pointer'
                   }`}
                   disabled={isEditingOthersTicket}
                 >
                   {ticketForm.image ? "✓ Imagine selectată" : "Alege fișier"}
                 </button>
-                <span className={`text-xs ${ticketForm.image ? 'text-slate-800 font-medium' : 'text-slate-400'}`}>
+                <span className={`text-xs ${ticketForm.image ? 'text-foreground font-medium' : 'text-slate-400'}`}>
                   {ticketForm.image ? ticketForm.image : "Niciun fișier selectat"}
                 </span>
                 {ticketForm.image && !isEditingOthersTicket && (

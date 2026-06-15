@@ -33,12 +33,14 @@ import os
 import base64
 import logging
 import io
+import uuid
 from pathlib import Path
 from huggingface_hub import AsyncInferenceClient
 from huggingface_hub.errors import HfHubHTTPError
 from pydantic import BaseModel
 from PIL import Image as PILImage
 from parser_schemas import ExtractedAnnouncementInfo
+from supabase import create_client, Client
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("image-generator-v2")
@@ -66,35 +68,42 @@ FACULTY_CANNY_MAP: dict[str, str] = {
 # ─────────────────────────────────────────────────────────────────────────────
 class ImageGenerationResult(BaseModel):
     success: bool
-    image_base64: str | None = None
+    image_url: str | None = None           # URL public din Supabase Storage (primar)
+    image_base64: str | None = None        # Fallback base64 daca Supabase nu e configurat
     error_message: str | None = None
     used_controlnet: bool = False          # nou in v2 — util pentru logging/debug
 
 
 class ImageServiceV2:
     def __init__(self, hf_api_key: str | None = None, assets_dir: str | None = None):
-        self.hf_client = AsyncInferenceClient(token=hf_api_key) if hf_api_key else None
+        self.hf_client = AsyncInferenceClient(
+            token=hf_api_key
+        ) if hf_api_key else None
 
         # ── Modele ──────────────────────────────────────────────────────────
         self.hf_text_model_id   = "meta-llama/Llama-3.3-70B-Instruct"
-
-        # Modelul ControlNet SDXL de pe HF Hub — folosit pentru image-to-image cu canny
-        # Acesta este un Space public Gradio; apelul se face prin hf_client.image_to_image()
         self.controlnet_model_id = "diffusers/controlnet-canny-sdxl-1.0"
-
-        # Fallback daca ControlNet nu e disponibil (v1 behavior)
         self.flux_model_id       = "black-forest-labs/FLUX.1-schnell"
 
+        # ── Supabase Storage ─────────────────────────────────────────────────
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
+        if supabase_url and supabase_key:
+            self.supabase: Client | None = create_client(supabase_url, supabase_key)
+            logger.info("Supabase Storage configurat pentru upload bannere.")
+        else:
+            self.supabase = None
+            logger.warning("Supabase credentials lipsa — bannere returnate ca base64 (fallback local).")
+
         # ── Assets ──────────────────────────────────────────────────────────
-        # Cauta assets/ relativ la fisierul curent daca nu e specificat explicit
         if assets_dir:
             self.assets_dir = Path(assets_dir)
         else:
             self.assets_dir = Path(__file__).parent / "assets" / "buildings"
 
-        logger.info(f"📁 Assets dir: {self.assets_dir}")
-        logger.info(f"🤖 ControlNet model: {self.controlnet_model_id}")
-        logger.info(f"🔄 Fallback model: {self.flux_model_id}")
+        logger.info(f"Assets dir: {self.assets_dir}")
+        logger.info(f"ControlNet model: {self.controlnet_model_id}")
+        logger.info(f"Fallback model: {self.flux_model_id}")
 
     # ─────────────────────────────────────────────────────────────────────────
     # Detectare Canny pe baza entitatii sursa
@@ -229,13 +238,33 @@ class ImageServiceV2:
         return image
 
     # ─────────────────────────────────────────────────────────────────────────
-    # PIL Image → base64 JPEG
+    # PIL Image → bytes JPEG
     # ─────────────────────────────────────────────────────────────────────────
     @staticmethod
-    def _pil_to_base64(image: PILImage.Image) -> str:
+    def _pil_to_bytes(image: PILImage.Image) -> bytes:
         buffered = io.BytesIO()
         image.save(buffered, format="JPEG", quality=90)
-        return base64.b64encode(buffered.getvalue()).decode("utf-8")
+        return buffered.getvalue()
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Upload in Supabase Storage bucket "images" → returneaza URL public
+    # ─────────────────────────────────────────────────────────────────────────
+    def _upload_to_storage(self, image_bytes: bytes) -> str | None:
+        if not self.supabase:
+            return None
+        try:
+            file_name = f"banners/{uuid.uuid4()}.jpg"
+            self.supabase.storage.from_("images").upload(
+                path=file_name,
+                file=image_bytes,
+                file_options={"content-type": "image/jpeg"}
+            )
+            public_url = self.supabase.storage.from_("images").get_public_url(file_name)
+            logger.info(f"Banner uploadat in Supabase Storage: {public_url}")
+            return public_url
+        except Exception as e:
+            logger.error(f"Eroare la upload banner in Supabase Storage: {e}")
+            return None
 
     # ─────────────────────────────────────────────────────────────────────────
     # Metoda publica principala (drop-in replacement pentru v1)
@@ -260,7 +289,7 @@ class ImageServiceV2:
                     image = await self._generate_with_controlnet(refined_prompt, canny_path)
                     used_controlnet = True
                 except Exception as e:
-                    logger.warning(f"⚠️  ControlNet a esuat ({e}), fallback la FLUX...")
+                    logger.warning(f"ControlNet a esuat ({e}), fallback la FLUX...")
                     image = await self._generate_with_flux(refined_prompt)
             else:
                 image = await self._generate_with_flux(refined_prompt)
@@ -269,20 +298,33 @@ class ImageServiceV2:
             if not isinstance(image, PILImage.Image):
                 raise ValueError(f"HF a returnat tip neasteptat: {type(image)}")
 
-            # 5. Conversie → base64
-            base64_encoded = self._pil_to_base64(image)
+            # 5. Conversie la bytes
+            image_bytes = self._pil_to_bytes(image)
 
-            return ImageGenerationResult(
-                success=True,
-                image_base64=f"data:image/jpeg;base64,{base64_encoded}",
-                used_controlnet=used_controlnet,
-            )
+            # 6. Upload in Supabase Storage (primar) sau fallback base64 (local dev)
+            public_url = self._upload_to_storage(image_bytes)
+
+            if public_url:
+                return ImageGenerationResult(
+                    success=True,
+                    image_url=public_url,
+                    used_controlnet=used_controlnet,
+                )
+            else:
+                # Fallback: returnam base64 daca Supabase nu e disponibil
+                logger.warning("Supabase Storage indisponibil — raspuns ca base64 (fallback).")
+                base64_encoded = base64.b64encode(image_bytes).decode("utf-8")
+                return ImageGenerationResult(
+                    success=True,
+                    image_base64=f"data:image/jpeg;base64,{base64_encoded}",
+                    used_controlnet=used_controlnet,
+                )
 
         except HfHubHTTPError as e:
-            logger.error(f"❌ Eroare HF API: {e}")
+            logger.error(f"Eroare HF API: {e}")
             raise e
         except Exception as e:
-            logger.error(f"❌ Eroare generare banner: {e}")
+            logger.error(f"Eroare generare banner: {e}")
             return ImageGenerationResult(success=False, error_message=str(e))
 
 

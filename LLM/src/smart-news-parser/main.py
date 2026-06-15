@@ -42,7 +42,11 @@ if HF_API_KEY:
 
 # Serviciu LLM si Image
 llm_service = LLMService()
-image_service = ImageServiceV2(hf_api_key=HF_API_KEY)
+if HF_API_KEY:
+    image_service = ImageServiceV2(hf_api_key=HF_API_KEY)
+else:
+    image_service = None
+    logger.warning("HUGGINGFACE_API_KEY lipseste — /api/v1/generate-banner va returna 503.")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -106,6 +110,11 @@ async def generate_banner(info: ExtractedAnnouncementInfo):
     Endpoint care primeste datele structurate ale unui anunt
     si genereaza o imagine de banner bazata pe ele.
     """
+    if image_service is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Generarea de bannere este dezactivata — HUGGINGFACE_API_KEY lipseste din configuratie."
+        )
     try:
         tip = info.tip_eveniment.value if hasattr(info.tip_eveniment, 'value') else info.tip_eveniment
         logger.info(f"🎨 Primire cerere generare banner pentru eveniment tip: {tip}")
