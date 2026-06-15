@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, useColorScheme, Pressable, Animated } from "react-native";
+import { View, Text, Pressable, Animated } from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
@@ -7,6 +8,8 @@ import { Typography } from "@/constants/typography";
 import { WebContainer } from "@/components/ui/web-container";
 import { NewsCard } from "@/components/ui/news-card";
 import { CategoryHeader, FilterItem } from "@/components/ui/category-header";
+import { Breadcrumbs, type Crumb } from "@/components/ui/breadcrumbs";
+import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { getFormattedDate } from "@/utils/date";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import MOCK_DATA from "@/constants/mock-data.json";
@@ -16,11 +19,17 @@ export default function CategoryScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
+  const contentTop = useWebContentTop();
   const router = useRouter();
 
   const [scrollY] = useState(() => new Animated.Value(0));
 
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
+
+  const crumbs: Crumb[] = [
+    { label: "Acasă", href: "/(public)/acasa" },
+    { label: (categoryTitle as string) || "Categorie" }
+  ];
 
   // Pregătim filtrele pentru facultăți (folosim noua interfață FilterItem)
   const facultyFilters: FilterItem[] = [
@@ -74,7 +83,9 @@ export default function CategoryScreen() {
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <Stack.Screen
         options={{
-          headerShown: true,
+          // Pe web ascundem header-ul de Stack: WebNavbar-ul (overlay) il acopera
+          // oricum, deci era spatiu mort care impingea continutul prea jos.
+          headerShown: false,
           headerShadowVisible: false,
           headerTransparent: false,
           headerStyle: {
@@ -124,7 +135,11 @@ export default function CategoryScreen() {
         scrollEventThrottle={16}
       >
         <WebContainer>
-          <View style={{ paddingTop: insets.top + 140, marginBottom: Spacing.lg }}>
+          <View style={{ paddingTop: contentTop, paddingHorizontal: Spacing.lg, marginTop: Spacing.md }}>
+              <Breadcrumbs items={crumbs} />
+          </View>
+
+          <View style={{ marginBottom: Spacing.lg, marginTop: Spacing.lg }}>
               <CategoryHeader
                   title={(categoryTitle as string) || "Categorie"}
                   filters={categoryTitle === "Facultăți" ? undefined : facultyFilters}

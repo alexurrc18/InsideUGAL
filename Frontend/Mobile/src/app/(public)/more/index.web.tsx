@@ -1,10 +1,12 @@
 import React from "react";
-import { View, Text, useColorScheme, Pressable, ScrollView } from "react-native";
+import { View, Text, Pressable, ScrollView } from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
 import { WebContainer } from "@/components/ui/web-container";
 import { CategoryHeader } from "@/components/ui/category-header";
+import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { Typography } from "@/constants/typography";
 import MockData from "@/constants/mock-data.json";
 
@@ -16,28 +18,28 @@ import TreeIcon from "@/assets/icons/svg/tree-alt.svg";
 import PhoneIcon from "@/assets/icons/svg/phone.svg";
 import GlobeIcon from "@/assets/icons/svg/globe-europe.svg";
 import UserIcon from "@/assets/icons/svg/user.svg";
-import SettingsIcon from "@/assets/icons/svg/cog.svg";
 
 export default function MoreScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
+  const contentTop = useWebContentTop();
   const router = useRouter();
 
   const renderIcon = (iconName: string, color: string) => {
     switch (iconName) {
       case "bus":
-        return <BusIcon width={44} height={44} color={color} />;
+        return <BusIcon width={36} height={36} color={color} />;
       case "dino":
-        return <DinoIcon width={44} height={44} color={color} />;
+        return <DinoIcon width={36} height={36} color={color} />;
       case "film-roll-alt":
-        return <FilmIcon width={44} height={44} color={color} />;
+        return <FilmIcon width={36} height={36} color={color} />;
       case "tree-alt":
-        return <TreeIcon width={44} height={44} color={color} />;
+        return <TreeIcon width={36} height={36} color={color} />;
       case "phone":
-        return <PhoneIcon width={44} height={44} color={color} />;
+        return <PhoneIcon width={36} height={36} color={color} />;
       case "globe":
-        return <GlobeIcon width={44} height={44} color={color} />;
+        return <GlobeIcon width={36} height={36} color={color} />;
       default:
         return null;
     }
@@ -48,7 +50,7 @@ export default function MoreScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingTop: insets.top + Spacing.md,
+          paddingTop: contentTop,
           paddingBottom: insets.bottom + Spacing.xxl,
         }}
       >
@@ -61,20 +63,18 @@ export default function MoreScreen() {
               flexDirection: "row", 
               flexWrap: "wrap", 
               paddingHorizontal: Spacing.lg, 
-              gap: Spacing.md,
+              gap: Spacing.sm,
               justifyContent: "flex-start",
-              marginTop: Spacing.md,
-              marginBottom: Spacing.xl
+              marginTop: Spacing.xs,
+              marginBottom: Spacing.sm
             }}
           >
             {/* Item: Profil */}
             <Pressable
               onPress={() => router.push("/(auth)")}
               style={({ pressed }) => ({
-                width: "30.5%",
-                aspectRatio: 0.85,
-                padding: Spacing.sm,
-                justifyContent: "center",
+                width: "18%",
+                paddingVertical: Spacing.sm,
                 alignItems: "center",
                 opacity: pressed ? 0.6 : 1,
                 gap: Spacing.xs,
@@ -82,14 +82,14 @@ export default function MoreScreen() {
             >
               <View 
                 style={{ 
-                  width: 56, 
-                  height: 56, 
+                  width: 48,
+                  height: 48,
                   justifyContent: "center", 
                   alignItems: "center",
                   marginBottom: 2
                 }}
               >
-                <UserIcon width={44} height={44} color={theme.primary} />
+                <UserIcon width={36} height={36} color={theme.primary} />
               </View>
               <Text 
                 style={{ 
@@ -105,47 +105,10 @@ export default function MoreScreen() {
               </Text>
             </Pressable>
 
-            {/* Item: Setări */}
-            <Pressable
-              onPress={() => router.push({ pathname: "/(public)/more/setari" })}
-              style={({ pressed }) => ({
-                width: "30.5%",
-                aspectRatio: 0.85,
-                padding: Spacing.sm,
-                justifyContent: "center",
-                alignItems: "center",
-                opacity: pressed ? 0.6 : 1,
-                gap: Spacing.xs,
-              })}
-            >
-              <View 
-                style={{ 
-                  width: 56, 
-                  height: 56, 
-                  justifyContent: "center", 
-                  alignItems: "center",
-                  marginBottom: 2
-                }}
-              >
-                <SettingsIcon width={44} height={44} color={theme.primary} />
-              </View>
-              <Text 
-                style={{ 
-                  fontSize: 14,
-                  fontFamily: "InstrumentSans-Medium",
-                  fontWeight: "500",
-                  color: theme.text,
-                  textAlign: "center"
-                }} 
-                numberOfLines={2}
-              >
-                Setări
-              </Text>
-            </Pressable>
           </View>
 
           {/* Section Title */}
-          <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.xl, marginBottom: Spacing.md }}>
+          <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.sm, marginBottom: Spacing.sm }}>
             <Text style={[Typography.Heading4, { color: theme.text }]}>Vizitează Galați</Text>
           </View>
 
@@ -155,7 +118,7 @@ export default function MoreScreen() {
               flexDirection: "row", 
               flexWrap: "wrap", 
               paddingHorizontal: Spacing.lg, 
-              gap: Spacing.md,
+              gap: Spacing.sm,
               justifyContent: "flex-start"
             }}
           >
@@ -168,10 +131,8 @@ export default function MoreScreen() {
                     params: { categoryId: cat.id, title: cat.title }
                   })}
                   style={({ pressed }) => ({
-                    width: "30.5%", // Calculates to approximately 3 columns with gap
-                    aspectRatio: 0.85,
-                    padding: Spacing.sm,
-                    justifyContent: "center",
+                    width: "18%",
+                    paddingVertical: Spacing.sm,
                     alignItems: "center",
                     opacity: pressed ? 0.6 : 1,
                     gap: Spacing.xs,
@@ -179,8 +140,8 @@ export default function MoreScreen() {
                 >
                   <View 
                     style={{ 
-                      width: 56, 
-                      height: 56, 
+                      width: 48,
+                      height: 48, 
                       justifyContent: "center", 
                       alignItems: "center",
                       marginBottom: 2

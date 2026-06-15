@@ -24,7 +24,7 @@ export const getFormattedDate = (dateStr?: string) => {
     const dayOfWeek = dayNames[d.getDay()];
     const shortMonth = shortMonths[monthIndex];
 
-    return `${dayOfWeek}, ${day} ${shortMonth}`;
+    return `${dayOfWeek}, ${day} ${shortMonth} ${year}`;
 };
 
 /**

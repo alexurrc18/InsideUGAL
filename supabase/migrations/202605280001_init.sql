@@ -2,6 +2,31 @@
 -- 1. CREARE TIPURI ENUM
 -- ==========================================================
 
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE SCHEMA IF NOT EXISTS auth;
+CREATE SCHEMA IF NOT EXISTS storage;
+
+CREATE OR REPLACE FUNCTION auth.uid()
+RETURNS uuid
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid
+$$;
+
+CREATE TABLE IF NOT EXISTS storage.buckets (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    owner UUID,
+    public BOOLEAN DEFAULT FALSE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS bname ON storage.buckets USING BTREE (name);
+
 DO $$ 
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
@@ -165,6 +190,9 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
     assigned_role public.user_role;
+    profile_first_name text;
+    profile_last_name text;
+    profile_username text;
 BEGIN
     -- Logica inteligentă de alocare a rolurilor
     IF NEW.email = 'admin@ugal.ro' THEN
@@ -175,6 +203,22 @@ BEGIN
         assigned_role := 'STUDENT'::public.user_role;
     END IF;
 
+    profile_first_name := COALESCE(
+        NULLIF(NEW.raw_user_meta_data->>'first_name', ''),
+        NULLIF(NEW.raw_user_meta_data->>'full_name', ''),
+        'Student'
+    );
+    profile_last_name := COALESCE(
+        NULLIF(NEW.raw_user_meta_data->>'last_name', ''),
+        'UGAL'
+    );
+    profile_username := COALESCE(
+        NULLIF(NEW.raw_user_meta_data->>'preferred_username', ''),
+        NULLIF(NEW.raw_user_meta_data->>'username', ''),
+        split_part(NEW.email, '@', 1),
+        NEW.id::text
+    );
+
     -- Inserarea profilului complet
     INSERT INTO public.profiles (
         id, email, first_name, last_name, username, role
@@ -182,20 +226,32 @@ BEGIN
     VALUES (
         NEW.id, 
         NEW.email, 
-        COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'first_name', 'Student'), 
-        COALESCE(NEW.raw_user_meta_data->>'last_name', 'UGAL'), 
-        COALESCE(NEW.raw_user_meta_data->>'preferred_username', split_part(NEW.email, '@', 1)), 
+        profile_first_name,
+        profile_last_name,
+        profile_username,
         assigned_role
-    );
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        email = EXCLUDED.email,
+        first_name = EXCLUDED.first_name,
+        last_name = EXCLUDED.last_name,
+        username = EXCLUDED.username,
+        role = EXCLUDED.role,
+        updated_at = NOW();
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Conectăm funcția de mai sus la momentul în care un user e creat în Supabase Auth
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-    AFTER INSERT ON auth.users
-    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+DO $$
+BEGIN
+    IF to_regclass('auth.users') IS NOT NULL THEN
+        DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+        CREATE TRIGGER on_auth_user_created
+            AFTER INSERT ON auth.users
+            FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+    END IF;
+END $$;
 
 -- Declanșatoare Update (Setează timestampul automat când editezi un rând)
 CREATE TRIGGER handle_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();

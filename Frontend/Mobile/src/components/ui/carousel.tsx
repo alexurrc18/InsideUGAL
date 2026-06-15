@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { Typography } from "@/constants/typography";
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { CAROUSEL_CARD_WIDTH, CAROUSEL_CARD_MARGIN, CarouselProps } from "./carousel.shared";
+import ChevronIcon from "@/assets/icons/svg/chevron-left.svg";
 
 export function Carousel<T>({ data, renderItem, keyExtractor, title, viewAllHref }: CarouselProps<T>) {
     const router = useRouter();
@@ -21,8 +22,19 @@ export function Carousel<T>({ data, renderItem, keyExtractor, title, viewAllHref
                 }}>
                     {title && <Text style={[Typography.Heading3, { color: theme.text }]}>{title}</Text>}
                     {viewAllHref && (
-                        <Pressable onPress={() => router.push(viewAllHref as any)}>
-                            <Text style={[Typography.Paragraph2, { color: theme.primary }]}>Vezi mai multe &gt;</Text>
+                        <Pressable 
+                            onPress={() => router.push(viewAllHref as any)}
+                            style={({ pressed }) => ({
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 4,
+                                opacity: pressed ? 0.7 : 1,
+                            })}
+                        >
+                            <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>Vezi mai multe</Text>
+                            <View style={{ transform: [{ rotate: "180deg" }] }}>
+                                <ChevronIcon width={16} height={16} fill={ColorScheme.white} color={ColorScheme.white} />
+                            </View>
                         </Pressable>
                     )}
                 </View>

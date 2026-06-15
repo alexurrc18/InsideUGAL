@@ -108,7 +108,7 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect }: M
       el.style.zIndex = Math.round((90 - b.lat) * 1000000).toString();
 
       const root = createRoot(el);
-      root.render(<MapPin name={b.name} facultyId={b.facultyId} theme={Colors[themeName]} />);
+      root.render(<MapPin name={b.name} facultyId={b.facultyId} />);
       rootsRef.current.push(root);
 
       el.addEventListener('click', (e) => {
