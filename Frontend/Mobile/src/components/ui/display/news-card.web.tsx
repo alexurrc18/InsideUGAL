@@ -89,7 +89,7 @@ export function NewsCard({
                         {title}
                     </Text>
                     {(!!date || !!author) && (
-                        <Text style={[Typography.Small2, { color: theme.textSecondary }]} numberOfLines={1}>
+                        <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]} numberOfLines={1}>
                             {[date, author].filter(Boolean).join("  ·  ")}
                         </Text>
                     )}
@@ -120,7 +120,7 @@ export function NewsCard({
 
                 <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, zIndex: 2 }}>
                     <LinearGradient
-                        colors={["rgba(0, 0, 0, 0.85)", "rgba(0, 0, 0, 0.2)", "transparent"]}
+                        colors={["rgba(0, 0, 0, 0.8)", "rgba(0, 0, 0, 0.2)", "transparent"]}
                         start={{ x: 0.5, y: 1.0 }}
                         end={{ x: 0.5, y: 0.0 }}
                         style={{
@@ -163,7 +163,7 @@ export function NewsCard({
 
             <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, zIndex: 2 }}>
                 <LinearGradient
-                    colors={["rgba(0, 0, 0, 0.95)", "rgba(0, 0, 0, 0.5)", "transparent"]}
+                    colors={["rgba(0, 0, 0, 0.8)", "rgba(0, 0, 0, 0.2)", "transparent"]}
                     start={{ x: 0.5, y: 1.0 }}
                     end={{ x: 0.5, y: 0.0 }}
                     style={{
@@ -175,16 +175,16 @@ export function NewsCard({
                     }}
                 />
 
-                <View style={{ flex: 1, padding: Spacing.lg, justifyContent: "flex-end" }}>
-                    <Text style={[Typography.Paragraph3, { color: "white", opacity: 0.8 }]}>
-                        {date}
-                    </Text>
-                    <Text style={[Typography.Heading4, { color: "white", marginBottom: Spacing.xs }]}>
+                <View style={{ flex: 1, padding: Spacing.lg, justifyContent: "flex-end", gap: Spacing.xxs }}>
+                    {!!category && <CategoryTag category={category} />}
+                    <Text style={[Typography.Heading4, { color: "white" }]} numberOfLines={2}>
                         {title}
                     </Text>
-                    <Text style={[Typography.Paragraph3, { color: "white", opacity: 0.8 }]}>
-                        {author}
-                    </Text>
+                    {(!!date || !!author) && (
+                        <Text style={[Typography.Paragraph3, { color: "white", opacity: 0.8 }]} numberOfLines={1}>
+                            {[date, author].filter(Boolean).join("  ·  ")}
+                        </Text>
+                    )}
                 </View>
             </View>
         </Pressable>

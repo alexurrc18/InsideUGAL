@@ -186,7 +186,7 @@ export function WebNavbar() {
           solida, albastrul (opacity 1) il acopera complet. Extins in sus cu insets.top. */}
       <LinearGradient
         pointerEvents="none"
-        colors={["rgba(0,0,0,0.9)", "rgba(0,0,0,0)"]}
+        colors={["rgba(0,0,0,0.8)", "rgba(0,0,0,0)"]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={[StyleSheet.absoluteFill, { top: -insets.top }]}

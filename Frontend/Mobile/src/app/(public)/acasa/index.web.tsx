@@ -106,6 +106,7 @@ export default function HomeScreen() {
             renderItem={({ item, index }) => (
               <NewsCard
                 title={item.title}
+                category={item.category}
                 date={getFormattedDate(item.date)}
                 author={item.author}
                 image={item.image}
@@ -122,6 +123,7 @@ export default function HomeScreen() {
             renderItem={({ item, index }) => (
               <NewsCard
                 title={item.title}
+                category={item.category}
                 date={getFormattedDate(item.date_start || item.date)}
                 author={item.author}
                 image={item.image}

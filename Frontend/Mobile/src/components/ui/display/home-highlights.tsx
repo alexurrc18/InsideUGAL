@@ -69,7 +69,7 @@ function FeaturedCard({ item, onPress }: { item: HighlightItem; onPress: () => v
       />
       <View style={[StyleSheet.absoluteFill, { zIndex: 2 }]}>
         <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.4)", "rgba(0,0,0,0.85)"]}
+          colors={["transparent", "rgba(0,0,0,0.4)", "rgba(0,0,0,0.8)"]}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
           style={StyleSheet.absoluteFill}

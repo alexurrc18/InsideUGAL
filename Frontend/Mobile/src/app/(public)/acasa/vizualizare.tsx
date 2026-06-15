@@ -1,7 +1,8 @@
-import { View, Text, ScrollView, useColorScheme, Linking, TouchableOpacity, Alert } from "react-native";
+import { View, Text, ScrollView, useColorScheme, Linking, TouchableOpacity, Alert, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { getFormattedDate, getReadingTime } from "@/utils/date";
@@ -72,7 +73,12 @@ function VizualizareScreen() {
                         contentFit="cover"
                     />
 
-                    <View style={{ flex: 1, padding: Spacing.lg, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.3)" }}>
+                    <LinearGradient
+                        colors={["transparent", "rgba(0,0,0,0.8)"]}
+                        style={StyleSheet.absoluteFill}
+                    />
+
+                    <View style={{ flex: 1, padding: Spacing.lg, justifyContent: "flex-end" }}>
                         <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
                             {category || (tipPagina === "Facultate" ? "Facultate" : tipPagina === "Facilitate" ? "Facilitate" : "Categorie")}
                         </Text>

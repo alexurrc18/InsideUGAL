@@ -27,7 +27,11 @@ export default function HomeScreen() {
   // Ultimele 3 anunturi (Noutăți), cele mai recente primele, pentru hero.
   const heroItems = [...noutati]
     .sort((a, b) => parseRomanianDate(b.date).getTime() - parseRomanianDate(a.date).getTime())
-    .slice(0, 3);
+    .slice(0, 3)
+    .map(item => ({
+      ...item,
+      category: item.category || "Noutăți"
+    }));
 
   const handleFacilityPress = (facility: any) => {
     router.push({
@@ -93,6 +97,7 @@ export default function HomeScreen() {
             renderItem={({ item, index }) => (
               <NewsCard
                 title={item.title}
+                category={item.category}
                 date={getFormattedDate(item.date)}
                 author={item.author}
                 image={item.image}
@@ -109,6 +114,7 @@ export default function HomeScreen() {
             renderItem={({ item, index }) => (
               <NewsCard
                 title={item.title}
+                category={item.category}
                 date={getFormattedDate(item.date_start || item.date)}
                 author={item.author}
                 image={item.image}

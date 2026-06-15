@@ -31,9 +31,9 @@ export function Carousel<T>({ data, renderItem, keyExtractor, title, viewAllHref
                                 opacity: pressed ? 0.7 : 1,
                             })}
                         >
-                            <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>Vezi mai multe</Text>
+                            <Text style={[Typography.Paragraph2, { color: theme.primary }]}>Vezi mai multe</Text>
                             <View style={{ transform: [{ rotate: "180deg" }] }}>
-                                <ChevronIcon width={16} height={16} fill={ColorScheme.white} color={ColorScheme.white} />
+                                <ChevronIcon width={16} height={16} fill={theme.primary} color={theme.primary} />
                             </View>
                         </Pressable>
                     )}
