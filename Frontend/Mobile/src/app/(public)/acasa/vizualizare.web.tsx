@@ -3,9 +3,10 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
-import { Colors, ColorScheme, Spacing, WebSidePadding } from "@/constants/theme";
+import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { getFormattedDate, getReadingTime } from "@/utils/date";
+import { WebContainer } from "@/components/ui/web-container";
 
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
 import LocationIcon from "@/assets/icons/svg/location.svg";
@@ -55,6 +56,7 @@ function VizualizareScreen() {
     return (
         <View style={{ flex: 1, backgroundColor: theme.background }}>
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + Spacing.xl }}>
+                {/* Banner full-bleed: ramane pe toata latimea, in afara canvas-ului scalat */}
                 <View style={{ width: "100%", height: 320 }}>
                     <Image
                         source={image ? { uri: image as string } : require("@/assets/images/campus-stiintei.png")}
@@ -62,19 +64,19 @@ function VizualizareScreen() {
                         contentFit="cover"
                     />
 
-                    <View style={{ flex: 1, paddingTop: Spacing.lg, paddingBottom: Spacing.lg, paddingHorizontal: WebSidePadding, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.3)" }}>
-                        <View style={{ width: "100%" }}>
+                    <View style={{ flex: 1, paddingVertical: Spacing.lg, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.3)" }}>
+                        <WebContainer>
                         <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
                             {category || (tipPagina === "Facultate" ? "Facultate" : "Categorie")}
                         </Text>
                         <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
                             {title || "Titlu"}
                         </Text>
-                        </View>
+                        </WebContainer>
                     </View>
                 </View>
 
-                <View style={{ padding: Spacing.lg, paddingHorizontal: WebSidePadding, gap: Spacing.xxl }}>
+                <WebContainer style={{ paddingVertical: Spacing.lg, gap: Spacing.xxl }}>
                     {tipPagina !== "Facultate" && (
                         <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>
                             {dateDisplay || "Dată necunoscută"}
@@ -167,7 +169,7 @@ function VizualizareScreen() {
                             {content || "Conținutul nu este disponibil."}
                         </Text>
                     </View>
-                </View>
+                </WebContainer>
             </ScrollView>
         </View>
     );

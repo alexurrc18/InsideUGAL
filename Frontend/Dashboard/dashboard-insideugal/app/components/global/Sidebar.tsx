@@ -61,7 +61,7 @@ export default function Sidebar() {
             aria-label={collapsed ? "Arată sidebarul" : "Ascunde sidebarul"}
             aria-expanded={!collapsed}
             onClick={() => setCollapsed((current) => !current)}
-            className="flex h-9 w-9 items-center justify-center rounded-md text-sidebar-muted transition-colors hover:bg-white/10 hover:text-white"
+            className="flex h-9 w-9 items-center justify-center rounded-md text-sidebar-muted transition-colors hover:bg-card/10 hover:text-white"
           >
             <Menu size={18} />
           </button>
@@ -87,7 +87,7 @@ export default function Sidebar() {
                 } ${
                   active
                     ? "bg-sidebar-active text-white"
-                    : "text-sidebar-muted hover:bg-white/10 hover:text-white"
+                    : "text-sidebar-muted hover:bg-card/10 hover:text-white"
                 }`}
               >
                 <Icon size={18} className="flex-shrink-0" />

@@ -14,9 +14,10 @@ from dotenv import load_dotenv
 from llm_optimizer import LLMOptimizer
 
 BASE_DIR = Path(__file__).resolve().parent
-SMART_NEWS_PARSER = BASE_DIR / "smart-news-parser"
-MODUL_MARIUS      = BASE_DIR / "modul-marius"
-CHATBOT_MARIUS    = BASE_DIR / "ChatBot-Marius"
+SRC_DIR = BASE_DIR / "src"
+SMART_NEWS_PARSER = SRC_DIR / "smart-news-parser"
+MODUL_MARIUS      = SRC_DIR / "modul-marius"
+CHATBOT_MARIUS    = SRC_DIR / "ChatBot"
 
 # Load environment variables from the LLM root .env
 # In Docker, compose environment variables should take precedence over local .env values.
@@ -39,39 +40,38 @@ def load_module(name: str, path: Path, extra_paths: list[Path] | None = None):
     finally:
         sys.path[:] = old_sys_path
 
-smart_news_schemas = load_module(
-    "smart_news_schemas",
-    SMART_NEWS_PARSER / "schemas.py",
+smart_news_image_service = load_module(
+    "smart_news_image_service",
+    SMART_NEWS_PARSER / "image_service_v2.py",
     extra_paths=[SMART_NEWS_PARSER],
 )
-old_schemas = sys.modules.get("schemas")
-sys.modules["schemas"] = smart_news_schemas
-smart_news_service = load_module(
-    "smart_news_service",
-    SMART_NEWS_PARSER / "llm_service.py",
-    extra_paths=[SMART_NEWS_PARSER],
-)
-if old_schemas is None:
-    sys.modules.pop("schemas", None)
-else:
-    sys.modules["schemas"] = old_schemas
-
 mod_marius_schemas = load_module(
     "mod_marius_schemas",
     MODUL_MARIUS / "schemas.py",
     extra_paths=[MODUL_MARIUS],
 )
-old_schemas = sys.modules.get("schemas")
 sys.modules["schemas"] = mod_marius_schemas
 mod_marius_functions = load_module(
     "mod_marius_functions",
     MODUL_MARIUS / "functions" / "llm_functions.py",
     extra_paths=[MODUL_MARIUS, MODUL_MARIUS / "functions"],
 )
-if old_schemas is None:
-    sys.modules.pop("schemas", None)
-else:
-    sys.modules["schemas"] = old_schemas
+sys.modules.pop("schemas", None)
+
+smart_news_schemas = load_module(
+    "smart_news_schemas",
+    SMART_NEWS_PARSER / "parser_schemas.py",
+    extra_paths=[SMART_NEWS_PARSER],
+)
+sys.modules["schemas"] = mod_marius_schemas
+sys.modules["llm_functions"] = mod_marius_functions
+smart_news_service = load_module(
+    "smart_news_service",
+    SMART_NEWS_PARSER / "llm_service.py",
+    extra_paths=[SMART_NEWS_PARSER],
+)
+sys.modules.pop("schemas", None)
+sys.modules.pop("llm_functions", None)
 
 campus_chat_service = load_module(
     "campus_chat_service",
@@ -83,11 +83,21 @@ API_KEY = os.getenv("GEMINI_API_KEY", "").strip().strip("'").strip('"')
 if not API_KEY:
     raise ValueError("GEMINI_API_KEY este necesar pentru LLM combined service.")
 
+HF_API_KEY = os.getenv("HUGGINGFACE_API_KEY", "").strip().strip("'").strip('"')
+
 logger = logging.getLogger("llm-integration")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-llm_service = smart_news_service.LLMService(api_key=API_KEY)
-llm_optimizer_service = LLMOptimizer(api_key=API_KEY)
+llm_service = smart_news_service.LLMService()
+if HF_API_KEY:
+    image_service = smart_news_image_service.ImageServiceV2(hf_api_key=HF_API_KEY)
+else:
+    image_service = None
+    logger.warning(
+        "HUGGINGFACE_API_KEY lipseste — generarea de bannere este dezactivata. "
+        "Adauga cheia in .env pentru a activa ImageServiceV2."
+    )
+llm_optimizer_service = LLMOptimizer(api_key=API_KEY, supabase_client=mod_marius_functions.supabase_client)
 
 app = FastAPI(
     title="InsideUGAL LLM Integrated Service",
@@ -110,6 +120,7 @@ def health_check():
         "service": "InsideUGAL LLM Integrated Service",
         "endpoints": [
             "/api/v1/extract-announcement-info",
+            "/api/v1/generate-banner",
             "/api/v1/upload-pdf",
             "/api/v1/ask",
             "/api/v1/summary",
@@ -129,6 +140,28 @@ async def extract_announcement_info(request: smart_news_schemas.AnnouncementRequ
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+@app.post("/api/v1/generate-banner", response_model=smart_news_image_service.ImageGenerationResult)
+async def generate_banner(info: smart_news_schemas.ExtractedAnnouncementInfo):
+    if image_service is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Generarea de bannere este dezactivata — HUGGINGFACE_API_KEY lipseste din configuratie."
+        )
+    try:
+        logger.info("Primire cerere generare banner pentru eveniment.")
+        result = await image_service.generate_announcement_banner(info)
+        
+        if not result.success:
+            raise HTTPException(status_code=500, detail=result.error_message)
+            
+        return result
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Eroare la generarea banner-ului: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Eroare interna la generarea imaginii: {str(exc)}")
+
+
 def process_pdf_background(pdf_path: str, pdf_id: str):
     """Functie care ruleaza in background pentru a procesa si indexa PDF-ul."""
     try:
@@ -144,34 +177,37 @@ def process_pdf_background(pdf_path: str, pdf_id: str):
             path_obj.unlink()
 
 
+ALLOWED_EXTENSIONS = {".pdf", ".docx", ".txt", ".pptx"}
+
 @app.post("/api/v1/upload-pdf")
 async def upload_pdf(background_tasks: BackgroundTasks, pdf: UploadFile = File(...)):
-    if not pdf.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Fisierul trebuie sa fie PDF.")
+    ext = os.path.splitext(pdf.filename.lower())[1]
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"Format nesupорtat. Formate acceptate: {', '.join(ALLOWED_EXTENSIONS)}")
 
     pdf_id = str(uuid.uuid4())
     file_bytes = await pdf.read()
 
-    # 1. Salvăm PDF-ul fizic în Supabase Storage
+    # 1. Salvăm fișierul în Supabase Storage
     try:
         mod_marius_functions.supabase_client.storage.from_("documents").upload(
-            path=f"{pdf_id}.pdf",
+            path=f"{pdf_id}{ext}",
             file=file_bytes,
-            file_options={"content-type": "application/pdf"}
+            file_options={"content-type": pdf.content_type or "application/octet-stream"}
         )
     except Exception as exc:
         logger.error("Eroare la upload in Supabase Storage: %s", exc)
         raise HTTPException(status_code=500, detail="Eroare la salvarea fisierului in cloud.")
-        
-    # 2. Creăm un fișier temporar doar pentru AI, care se va șterge singur după
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+
+    # 2. Fișier temporar pentru procesare AI
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
     temp_file.write(file_bytes)
     temp_file.close()
 
-    # 3. Trimitem task-ul asincron (folosind calea fișierului temporar)
+    # 3. Procesare în background
     background_tasks.add_task(process_pdf_background, temp_file.name, pdf_id)
 
-    return {"pdf_id": pdf_id, "message": "PDF-ul a fost primit si va fi procesat in background."}
+    return {"pdf_id": pdf_id, "message": "Documentul a fost primit si va fi procesat in background."}
 
 
 @app.post("/api/v1/ask", response_model=mod_marius_schemas.AnswerQuestionOutput)
@@ -245,7 +281,11 @@ def campus_chat(request: CampusChatRequest):
         raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
 
     # 2. Verificare Semantic Cache
-    cached_answer = llm_optimizer_service.get_cached_answer(request.question)
+    try:
+        cached_answer = llm_optimizer_service.get_cached_answer(request.question)
+    except Exception as cache_exc:
+        logger.warning("Semantic cache error (ignorat): %s", cache_exc)
+        cached_answer = None
     if cached_answer:
         return CampusChatResponse(
             answer=cached_answer,

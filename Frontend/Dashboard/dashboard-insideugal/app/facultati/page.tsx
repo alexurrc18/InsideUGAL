@@ -85,22 +85,22 @@ export default function Page() {
     {
       header: 'Nume Facultăți',
       key: 'name',
-      render: (item) => <span className="font-semibold text-slate-900">{item.name}</span>
+      render: (item) => <span className="font-semibold text-foregrounddd">{item.name}</span>
     },
     {
       header: 'Adresă',
       key: 'address',
-      render: (item) => <span className="text-slate-600">{item.address}</span>
+      render: (item) => <span className="text-muted">{item.address}</span>
     },
     {
       header: 'Telefon',
       key: 'phone',
-      render: (item) => <span className="text-slate-600 whitespace-nowrap">{item.phone}</span>
+      render: (item) => <span className="text-muted whitespace-nowrap">{item.phone}</span>
     },
     {
       header: 'E-mail',
       key: 'email',
-      render: (item) => <span className="text-slate-600">{item.email}</span>
+      render: (item) => <span className="text-muted">{item.email}</span>
     },
     {
       header: 'Website',
@@ -144,12 +144,12 @@ export default function Page() {
     {
       header: 'Nume Clădire',
       key: 'name',
-      render: (item) => <span className="font-semibold text-slate-900">{item.name}</span>
+      render: (item) => <span className="font-semibold text-foreground">{item.name}</span>
     },
     {
       header: 'Locație',
       key: 'location',
-      render: (item) => <span className="text-slate-600">{item.location}</span>
+      render: (item) => <span className="text-muted">{item.location}</span>
     },
     {
       header: 'Facultăți',
@@ -246,18 +246,18 @@ export default function Page() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/60 w-fit">
+        <div className="flex bg-background p-1 rounded-xl border border-border/60 w-fit">
           <button
             type="button"
             onClick={() => setActiveTab('facultati')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg cursor-pointer transition-all ${activeTab === 'facultati' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
+            className={`px-4 py-2 text-xs font-bold rounded-lg cursor-pointer transition-all ${activeTab === 'facultati' ? 'bg-card text-foreground shadow-xs' : 'text-muted hover:text-foreground'}`}
           >
             Facultăți
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('cladiri')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg cursor-pointer transition-all ${activeTab === 'cladiri' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
+            className={`px-4 py-2 text-xs font-bold rounded-lg cursor-pointer transition-all ${activeTab === 'cladiri' ? 'bg-card text-foreground shadow-xs' : 'text-muted hover:text-foreground'}`}
           >
             Clădiri
           </button>
@@ -291,7 +291,7 @@ export default function Page() {
               <select
                 value={targetType}
                 onChange={(e) => setTargetType(e.target.value as 'facultati' | 'cladiri')}
-                className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm cursor-pointer font-medium text-slate-700"
+                className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm cursor-pointer font-medium text-foreground"
               >
                 <option value="facultati">Facultăți</option>
                 <option value="cladiri">Clădiri</option>
@@ -383,7 +383,7 @@ export default function Page() {
                   {availableAcronyms.map((acronym) => {
                     const isChecked = buildingForm.faculties?.includes(acronym);
                     return (
-                      <label key={acronym} className="flex items-center space-x-2.5 text-xs font-medium text-slate-600 cursor-pointer select-none">
+                      <label key={acronym} className="flex items-center space-x-2.5 text-xs font-medium text-muted cursor-pointer select-none">
                         <input
                           type="checkbox"
                           checked={isChecked || false}
