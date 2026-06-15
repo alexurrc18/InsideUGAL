@@ -53,24 +53,24 @@ export default function CantinaScreen() {
   const currentMenu = DAILY_SCHEDULE[selectedDay] || DAILY_SCHEDULE["luni"];
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
+    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top + Spacing.md }}>
+      <CategoryHeader 
+        title="Cantina" 
+        filters={daysFilter}
+        selectedFilterId={selectedDay}
+        onSelectFilter={(id) => id && setSelectedDay(id)}
+      />
+
       <ScrollView 
         style={{ flex: 1 }} 
         contentContainerStyle={{ 
           paddingBottom: insets.bottom + Spacing.xxl,
-          paddingTop: insets.top + Spacing.md 
+          paddingTop: Spacing.xs 
         }}
       >
-        <CategoryHeader 
-          title="Cantina" 
-          filters={daysFilter}
-          selectedFilterId={selectedDay}
-          onSelectFilter={(id) => id && setSelectedDay(id)}
-        />
-
         <View style={{ gap: Spacing.sm }}>
           {Object.entries(currentMenu).map(([category, productIds]) => (
-            <Expandable key={category} title={category} initialExpanded={category === "Meniul Zilei"}>
+            <Expandable key={category} title={category} initialExpanded={false}>
               <View style={{ gap: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: Spacing.sm }}>
                 {productIds.map((id, index) => {
                   const product = PRODUCT_DATABASE[id];

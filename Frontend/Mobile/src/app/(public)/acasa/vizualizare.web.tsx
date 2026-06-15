@@ -11,7 +11,7 @@ import { getFormattedDate, getReadingTime } from "@/utils/date";
 import { WebContainer } from "@/components/ui/layout/web-container";
 import { Breadcrumbs, type Crumb } from "@/components/ui/navigation/breadcrumbs";
 import { CompactCard } from "@/components/ui/display/home-highlights";
-import { NewsCard } from "@/components/ui/display/news-card";
+import { NewsCard, CategoryTag } from "@/components/ui/display/news-card";
 import MOCK_DATA from "@/constants/mock-data.json";
 
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
@@ -147,10 +147,14 @@ function VizualizareScreen() {
                     />
 
                     <View style={{ flex: 1, paddingVertical: Spacing.lg, justifyContent: "flex-end" }}>
-                        <WebContainer>
-                            <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
-                                {category || (tipPagina === "Facultate" ? "Facultate" : "Categorie")}
-                            </Text>
+                        <WebContainer style={{ gap: Spacing.xs }}>
+                            {category && (tipPagina === "Eveniment" || tipPagina === "Anunț") ? (
+                                <CategoryTag category={category} />
+                            ) : (
+                                <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
+                                    {category || (tipPagina === "Facultate" ? "Facultate" : "Categorie")}
+                                </Text>
+                            )}
                             <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
                                 {title || "Titlu"}
                             </Text>

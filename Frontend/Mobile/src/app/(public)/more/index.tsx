@@ -47,11 +47,9 @@ export default function MoreScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingTop: insets.top + Spacing.md,
           paddingBottom: insets.bottom + Spacing.xxl,
         }}
       >
-        <CategoryHeader title="Mai multe" />
 
         {/* Profile & Settings Grid */}
         <View 

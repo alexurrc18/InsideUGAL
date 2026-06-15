@@ -1,6 +1,7 @@
-import { View, Text, ScrollView, useColorScheme, Linking, TouchableOpacity, Alert, StyleSheet } from "react-native";
+import { useState } from "react";
+import { View, Text, ScrollView, useColorScheme, Linking, TouchableOpacity, Alert, StyleSheet, Platform, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
@@ -12,10 +13,27 @@ import LocationIcon from "@/assets/icons/svg/location.svg";
 import PhoneIcon from "@/assets/icons/svg/phone.svg";
 import WebsiteIcon from "@/assets/icons/svg/globe-europe.svg";
 import MOCK_DATA from "@/constants/mock-data.json";
+import { CategoryTag } from "@/components/ui/display/news-card";
+import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 
 function VizualizareScreen() {
     const params = useLocalSearchParams();
     const id = params.id as string;
+    const router = useRouter();
+    const { width } = useWindowDimensions();
+    const [scrolledPast, setScrolledPast] = useState(false);
+
+    const isDesktop = Platform.OS === "web" || width >= 768;
+
+    const handleScroll = (event: any) => {
+        if (isDesktop) return;
+        const offsetY = event.nativeEvent.contentOffset.y;
+        if (offsetY > 240) {
+            if (!scrolledPast) setScrolledPast(true);
+        } else {
+            if (scrolledPast) setScrolledPast(false);
+        }
+    };
 
     // Look up mock data if id is provided
     let mockItem: any = null;
@@ -65,7 +83,40 @@ function VizualizareScreen() {
 
     return (
         <View style={{ flex: 1, backgroundColor: theme.background }}>
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + Spacing.xl }}>
+            <Stack.Screen
+                options={{
+                    headerTransparent: true,
+                    headerBackground: () => (
+                        <View 
+                            style={{ 
+                                flex: 1, 
+                                backgroundColor: theme.background, 
+                                opacity: scrolledPast ? 1 : 0 
+                            }} 
+                        />
+                    ),
+                    headerShadowVisible: false,
+                    headerTintColor: scrolledPast ? theme.text : ColorScheme.white,
+                    headerTitle: scrolledPast ? (title || "Detalii") : "",
+                    headerLeft: () => (
+                        <TouchableOpacity 
+                            onPress={() => router.back()} 
+                            style={{ 
+                                alignItems: "center",
+                                justifyContent: "center",
+                            }}
+                        >
+                            <BackIcon width={24} height={24} color={scrolledPast ? theme.text : ColorScheme.white} />
+                        </TouchableOpacity>
+                    ),
+                }}
+            />
+            <ScrollView 
+                style={{ flex: 1 }} 
+                contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + Spacing.xl }}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+            >
                 <View style={{ width: "100%", height: 320 }}>
                     <Image
                         source={image ? { uri: image as string } : require("@/assets/images/campus-stiintei.png")}
@@ -78,10 +129,14 @@ function VizualizareScreen() {
                         style={StyleSheet.absoluteFill}
                     />
 
-                    <View style={{ flex: 1, padding: Spacing.lg, justifyContent: "flex-end" }}>
-                        <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
-                            {category || (tipPagina === "Facultate" ? "Facultate" : tipPagina === "Facilitate" ? "Facilitate" : "Categorie")}
-                        </Text>
+                    <View style={{ flex: 1, padding: Spacing.lg, justifyContent: "flex-end", gap: Spacing.xs }}>
+                        {category && (tipPagina === "Eveniment" || tipPagina === "Anunț") ? (
+                            <CategoryTag category={category} />
+                        ) : (
+                            <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
+                                {category || (tipPagina === "Facultate" ? "Facultate" : tipPagina === "Facilitate" ? "Facilitate" : "Categorie")}
+                            </Text>
+                        )}
                         <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
                             {title || "Titlu"}
                         </Text>

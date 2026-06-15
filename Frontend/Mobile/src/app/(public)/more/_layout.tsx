@@ -1,6 +1,8 @@
 import { Stack } from "expo-router";
-import { useColorScheme } from "react-native";
-import { Colors } from "@/constants/theme";
+import { useColorScheme, View } from "react-native";
+import { Colors, Spacing } from "@/constants/theme";
+import { CategoryHeader } from "@/components/ui/display/category-header";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export const unstable_settings = {
   initialRouteName: "index",
@@ -9,6 +11,7 @@ export const unstable_settings = {
 export default function MoreLayout() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
+  const insets = useSafeAreaInsets();
 
   return (
     <Stack screenOptions={{
@@ -26,7 +29,12 @@ export default function MoreLayout() {
       <Stack.Screen
         name="index"
         options={{
-          headerShown: false,
+          headerShown: true,
+          header: () => (
+            <View style={{ backgroundColor: theme.background, paddingTop: insets.top + Spacing.md }}>
+              <CategoryHeader title="Mai multe" />
+            </View>
+          ),
         }}
       />
       <Stack.Screen

@@ -163,7 +163,7 @@ export function NewsCard({
 
             <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, zIndex: 2 }}>
                 <LinearGradient
-                    colors={["rgba(0, 0, 0, 0.8)", "rgba(0, 0, 0, 0.2)", "transparent"]}
+                    colors={["rgba(0, 0, 0, 0.8)", "rgba(0, 0, 0, 0.5)", "transparent"]}
                     start={{ x: 0.5, y: 1.0 }}
                     end={{ x: 0.5, y: 0.0 }}
                     style={{
