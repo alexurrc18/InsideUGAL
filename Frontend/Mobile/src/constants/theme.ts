@@ -33,6 +33,7 @@ export const Colors = {
     background: ColorScheme.white,
     border: ColorScheme.lightGray,
     surface: ColorScheme.pureWhite,
+    card: ColorScheme.pureWhite,
 
     primary: ColorScheme.blue,
     secondary: ColorScheme.red,
@@ -45,6 +46,7 @@ export const Colors = {
     background: ColorScheme.black,
     border: ColorScheme.gray,
     surface: ColorScheme.pureBlack,
+    card: '#1C1C1E',
 
     primary: ColorScheme.blue,
     secondary: ColorScheme.red,
