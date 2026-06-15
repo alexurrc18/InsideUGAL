@@ -31,7 +31,7 @@ print("Se încarcă indexul RAG...")
 rag = RAGEngine()
 print(f"RAG gata — {rag.collection.count()} chunk-uri indexate.")
 
-RESCRAPE_INTERVAL_HOURS = 1
+RESCRAPE_INTERVAL_HOURS = 24
 
 def _run_scraper(full_rebuild: bool = False):
     try:
@@ -236,21 +236,27 @@ def chat():
         return jsonify({"error": "Mesaj gol"}), 400
 
     sources: list[str] = []
+    backend_context = ""
 
-    if is_menu_question(user_message):
+    # Încearcă Supabase (anunțuri, meniuri, facultăți etc.) — prioritate maximă
+    backend_context = backend_client.fetch_context(user_message)
+
+    if backend_context:
+        context = backend_context
+        sources = []
+    elif is_menu_question(user_message):
+        # Supabase nu are date de meniu — fallback pe scraping live
         menu_text = fetch_canteen_menu()
         if menu_text:
             context = f"MENIUL CANTINEI (actualizat live astăzi):\n{menu_text}\n\nPrezintă meniul structurat pe categorii cu prețurile."
+            backend_context = f"**Meniul cantinei (astăzi):**\n\n{menu_text}"
         else:
             context = "Meniul cantinei nu a putut fi preluat acum. Trimite utilizatorul la: https://campus.ugal.ro/ccps/meniu-studenti/"
+            backend_context = "Meniul cantinei nu este disponibil momentan. Verifică la: https://campus.ugal.ro/ccps/meniu-studenti/"
     else:
-        backend_context = backend_client.fetch_context(user_message)
-        if backend_context:
-            context = backend_context
-            sources = []
-        else:
-            raw_context, sources = rag.query_with_sources(user_message, n_results=3)
-            context = raw_context or "Nu am găsit informații specifice. Îndrumă utilizatorul spre https://www.ugal.ro/"
+        raw_context, sources = rag.query_with_sources(user_message, n_results=3)
+        context = raw_context or "Nu am găsit informații specifice. Îndrumă utilizatorul spre https://www.ugal.ro/"
+        backend_context = raw_context  # fallback direct dacă Gemini pică
 
     system = SYSTEM_BASE + context
 
@@ -321,13 +327,15 @@ def chat():
                 print(f"[Gemini] Stream error: {e}")
                 stream_failed = True
 
-            if full_content or not stream_failed:
+            if not stream_failed:
                 assistant_message = "".join(full_content)
                 if assistant_message:
                     llm_cache.set(cache_key, assistant_message)
                 suggestions = _generate_suggestions(user_message, assistant_message)
                 yield f"data: {json.dumps({'done': True, 'sources': sources, 'suggestions': suggestions})}\n\n"
                 return
+            if stream_failed and full_content:
+                yield f"data: {json.dumps({'clear': True})}\n\n"
 
         if backend_context:
             answer = backend_context
@@ -335,9 +343,9 @@ def chat():
             sources.clear()
             lang = _detect_lang(user_message)
             if lang == "en":
-                answer = "I don't have specific information about this. Find details at: https://www.ugal.ro/ or contact the faculty secretariat directly."
+                answer = "I don't have details on this right now. You can find more information at https://www.ugal.ro/ or contact the faculty secretariat directly."
             else:
-                answer = "Nu am informații specifice despre asta. Găsești detalii la: https://www.ugal.ro/ sau contactează direct secretariatul facultății."
+                answer = "Nu am detalii despre asta în acest moment. Poți găsi mai multe informații la https://www.ugal.ro/ sau contactează direct secretariatul facultății."
         for token in re.split(r"(\s+)", answer):
             if token:
                 full_content.append(token)
