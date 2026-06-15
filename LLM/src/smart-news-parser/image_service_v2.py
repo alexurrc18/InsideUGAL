@@ -40,6 +40,7 @@ from pydantic import BaseModel
 from PIL import Image as PILImage, ImageOps
 
 from parser_schemas import ExtractedAnnouncementInfo
+from supabase import create_client, Client
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("image-generator-v2")
@@ -67,8 +68,8 @@ CANNY_SUFFIX = "_canny"
 # ─────────────────────────────────────────────────────────────────────────────
 class ImageGenerationResult(BaseModel):
     success: bool
-    image_url: str | None = None
-    image_base64: str | None = None
+    image_url: str | None = None           # URL public din Supabase Storage (primar)
+    image_base64: str | None = None        # Fallback base64 daca Supabase nu e configurat
     error_message: str | None = None
     used_image_to_image: bool = False
     used_flux_fallback: bool = False
@@ -96,10 +97,12 @@ class ImageServiceV2:
         if supabase_url and supabase_key:
             try:
                 from supabase import create_client
-                self.supabase = create_client(supabase_url, supabase_key)
-                logger.info("✅ Supabase Storage configurat.")
+                self.supabase: Client | None = create_client(supabase_url, supabase_key)
+                logger.info("✅ Supabase Storage configurat pentru upload bannere.")
             except ImportError:
                 logger.warning("supabase package lipsește — upload Storage dezactivat.")
+        else:
+            logger.warning("Supabase credentials lipsa — bannere returnate ca base64 (fallback local).")
 
         # ── Assets ───────────────────────────────────────────────────────────
         self.assets_dir = Path(assets_dir) if assets_dir else Path(__file__).parent / "assets" / "buildings"
