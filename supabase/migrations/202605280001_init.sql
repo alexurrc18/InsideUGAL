@@ -19,10 +19,13 @@ $$;
 CREATE TABLE IF NOT EXISTS storage.buckets (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
+    owner UUID,
     public BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS bname ON storage.buckets USING BTREE (name);
 
 DO $$ 
 BEGIN
@@ -187,6 +190,9 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
     assigned_role public.user_role;
+    profile_first_name text;
+    profile_last_name text;
+    profile_username text;
 BEGIN
     -- Logica inteligentă de alocare a rolurilor
     IF NEW.email = 'admin@ugal.ro' THEN
@@ -197,6 +203,22 @@ BEGIN
         assigned_role := 'STUDENT'::public.user_role;
     END IF;
 
+    profile_first_name := COALESCE(
+        NULLIF(NEW.raw_user_meta_data->>'first_name', ''),
+        NULLIF(NEW.raw_user_meta_data->>'full_name', ''),
+        'Student'
+    );
+    profile_last_name := COALESCE(
+        NULLIF(NEW.raw_user_meta_data->>'last_name', ''),
+        'UGAL'
+    );
+    profile_username := COALESCE(
+        NULLIF(NEW.raw_user_meta_data->>'preferred_username', ''),
+        NULLIF(NEW.raw_user_meta_data->>'username', ''),
+        split_part(NEW.email, '@', 1),
+        NEW.id::text
+    );
+
     -- Inserarea profilului complet
     INSERT INTO public.profiles (
         id, email, first_name, last_name, username, role
@@ -204,11 +226,18 @@ BEGIN
     VALUES (
         NEW.id, 
         NEW.email, 
-        COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'first_name', 'Student'), 
-        COALESCE(NEW.raw_user_meta_data->>'last_name', 'UGAL'), 
-        COALESCE(NEW.raw_user_meta_data->>'preferred_username', split_part(NEW.email, '@', 1)), 
+        profile_first_name,
+        profile_last_name,
+        profile_username,
         assigned_role
-    );
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        email = EXCLUDED.email,
+        first_name = EXCLUDED.first_name,
+        last_name = EXCLUDED.last_name,
+        username = EXCLUDED.username,
+        role = EXCLUDED.role,
+        updated_at = NOW();
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
