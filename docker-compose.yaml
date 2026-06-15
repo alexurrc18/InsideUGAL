@@ -201,6 +201,60 @@ services:
       PGRST_DB_ANON_ROLE: anon
     networks:
       - internal
+  supabase-storage-init:
+    image: supabase/postgres:15.8.1.085
+    restart: "no"
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./supabase/post-init/ensure_storage_schema.sql:/tmp/ensure_storage_schema.sql:ro
+    command: >
+      sh -c "psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres}
+      -v ON_ERROR_STOP=1 -f /tmp/ensure_storage_schema.sql"
+    networks:
+      - internal
+  supabase-storage:
+    image: supabase/storage-api:v1.60.4
+    restart: unless-stopped
+    depends_on:
+      supabase-rest:
+        condition: service_started
+      supabase-storage-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://127.0.0.1:5000/status
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    environment:
+      ANON_KEY: ${SUPABASE_ANON_KEY:-}
+      SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      AUTH_JWT_SECRET: ${SUPABASE_JWT_SECRET}
+      POSTGREST_URL: http://supabase-rest:3000
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
+      STORAGE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL:-http://localhost:8004}
+      REQUEST_ALLOW_X_FORWARDED_PATH: "true"
+      FILE_SIZE_LIMIT: ${STORAGE_FILE_SIZE_LIMIT:-52428800}
+      STORAGE_BACKEND: file
+      GLOBAL_S3_BUCKET: ${STORAGE_BUCKET_PATH:-storage}
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: ${STORAGE_TENANT_ID:-insideugal}
+      REGION: ${STORAGE_REGION:-local}
+      ENABLE_IMAGE_TRANSFORMATION: "false"
+    volumes:
+      - supabase-storage-data:/var/lib/storage
+    networks:
+      - internal
   supabase-kong:
     image: kong:2.8.1
     restart: unless-stopped
@@ -208,6 +262,8 @@ services:
       supabase-auth:
         condition: service_started
       supabase-rest:
+        condition: service_started
+      supabase-storage:
         condition: service_started
     environment:
       KONG_DATABASE: "off"
@@ -336,3 +392,4 @@ networks:
     internal: true
 volumes:
   supabase-db-data: {}
+  supabase-storage-data: {}

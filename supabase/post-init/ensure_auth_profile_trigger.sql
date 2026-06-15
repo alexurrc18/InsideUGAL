@@ -39,6 +39,7 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
     assigned_role public.user_role;
+    metadata_role text;
     profile_email text;
     profile_first_name text;
     profile_last_name text;
@@ -46,7 +47,21 @@ DECLARE
 BEGIN
     profile_email := COALESCE(NULLIF(NEW.email, ''), NEW.id::text || '@local.invalid');
 
-    IF profile_email = 'admin@ugal.ro' THEN
+    metadata_role := upper(NULLIF(COALESCE(
+        NEW.raw_user_meta_data->>'role',
+        NEW.raw_user_meta_data->>'user_role'
+    ), ''));
+
+    IF metadata_role IN (
+        'STUDENT',
+        'STUDENT_RESPONSABIL',
+        'PROFESOR',
+        'HEAD_CANTINA',
+        'HEAD_FACULTATI',
+        'HEAD_ADMIN'
+    ) THEN
+        assigned_role := metadata_role::public.user_role;
+    ELSIF profile_email = 'admin@ugal.ro' THEN
         assigned_role := 'HEAD_ADMIN'::public.user_role;
     ELSIF profile_email LIKE 'profesor.%@ugal.ro' THEN
         assigned_role := 'PROFESOR'::public.user_role;

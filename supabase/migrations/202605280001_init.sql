@@ -19,10 +19,13 @@ $$;
 CREATE TABLE IF NOT EXISTS storage.buckets (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
+    owner UUID,
     public BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS bname ON storage.buckets USING BTREE (name);
 
 DO $$ 
 BEGIN

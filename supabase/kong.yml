@@ -15,4 +15,10 @@ services:
         paths:
           - /rest/v1
         strip_path: true
-
+  - name: storage
+    url: http://supabase-storage:5000
+    routes:
+      - name: storage
+        paths:
+          - /storage/v1
+        strip_path: true
