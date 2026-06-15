@@ -175,7 +175,7 @@ function EventsPageContent() {
     { 
       header: 'Titlu', 
       key: 'title',
-      render: (item) => <span className="font-semibold text-slate-900">{item.title}</span>
+      render: (item) => <span className="font-semibold text-foreground">{item.title}</span>
     },
     { 
       header: 'Descriere', 
@@ -231,7 +231,7 @@ function EventsPageContent() {
           <button
             type="button"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center justify-between min-w-[140px] border border-border px-4 py-2.5 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-slate-700"
+            className="flex items-center justify-between min-w-[140px] border border-border px-4 py-2.5 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-foreground"
           >
             <span>{selectedFaculty}</span>
             <svg className={`w-4 h-4 ml-2 text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -240,12 +240,12 @@ function EventsPageContent() {
           </button>
 
           {isDropdownOpen && (
-            <div className="absolute left-0 top-full mt-1.5 w-48 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
+            <div className="absolute left-0 top-full mt-1.5 w-48 bg-card border border-border rounded-xl shadow-lg py-1 z-50">
               {allFilterOptions.map(faculty => (
                 <div
                   key={faculty}
                   onClick={() => { setSelectedFaculty(faculty); setIsDropdownOpen(false); }}
-                  className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedFaculty === faculty ? 'bg-blue-50 text-blue-600 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
+                  className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedFaculty === faculty ? 'bg-blue-50 text-blue-600 font-bold' : 'text-muted hover:bg-slate-50'}`}
                 >
                   <span>{faculty}</span>
                 </div>
@@ -355,7 +355,7 @@ function EventsPageContent() {
                       <button
                         type="button"
                         onClick={() => toggleFacultySelection(faculty)}
-                        className={`pr-7 pl-2.5 py-1 rounded-md text-xs font-medium border transition-all cursor-pointer relative ${isSelected ? 'bg-blue-50 border-blue-200 text-blue-600 font-semibold' : 'bg-white border-border text-slate-500 hover:border-slate-300'}`}
+                        className={`pr-7 pl-2.5 py-1 rounded-md text-xs font-medium border transition-all cursor-pointer relative ${isSelected ? 'bg-blue-50 border-blue-200 text-blue-600 font-semibold' : 'bg-card border-border text-muted hover:border-slate-300'}`}
                       >
                         {faculty}
                       </button>
@@ -387,7 +387,7 @@ function EventsPageContent() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 flex items-center justify-center gap-2 border border-border px-4 py-2 rounded-md text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 transition-all cursor-pointer w-full"
+                    className="flex-1 flex items-center justify-center gap-2 border border-border px-4 py-2 rounded-md text-xs font-semibold text-foreground bg-card hover:bg-slate-50 transition-all cursor-pointer w-full"
                   >
                     <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -441,7 +441,7 @@ function EventsPageContent() {
           </div>
 
           <div className="sticky bottom-0 bg-background pt-4 border-t border-border z-10 flex justify-end space-x-2">
-            <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-border rounded-lg text-slate-500 text-xs cursor-pointer hover:bg-slate-50 transition-colors">Anulează</button>
+            <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-border rounded-lg text-muted text-xs cursor-pointer hover:bg-slate-50 transition-colors">Anulează</button>
             <button type="submit" className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold cursor-pointer hover:opacity-90 transition-opacity">Salvează</button>
           </div>
         </form>
@@ -452,7 +452,7 @@ function EventsPageContent() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="p-6 text-sm text-slate-500">Se încarcă evenimentele...</div>}>
+    <Suspense fallback={<div className="p-6 text-sm text-muted">Se încarcă evenimentele...</div>}>
       <EventsPageContent />
     </Suspense>
   );
