@@ -14,7 +14,9 @@ import {
   Alert,
   Linking,
   Animated,
+  Easing,
 } from 'react-native';
+import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import { Image } from 'expo-image';
 import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
@@ -537,6 +539,52 @@ function ChatInput({ onSend, theme, themeWhite }: ChatInputProps) {
   );
 }
 
+function GradientSpinner() {
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 1000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [rotateAnim]);
+
+  const rotate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  return (
+    <Animated.View style={{ transform: [{ rotate }], width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+        <Defs>
+          <SvgLinearGradient id="ace-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor="#3476d6" />
+            <Stop offset="30%" stopColor="#5861b8" />
+            <Stop offset="65%" stopColor="#742d73" />
+            <Stop offset="100%" stopColor="#dc1647" />
+          </SvgLinearGradient>
+        </Defs>
+        <Circle
+          cx={12}
+          cy={12}
+          r={9}
+          stroke="url(#ace-grad)"
+          strokeWidth={3}
+          strokeLinecap="round"
+          strokeDasharray="40 16"
+        />
+      </Svg>
+    </Animated.View>
+  );
+}
+
 export default function AceScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -758,56 +806,9 @@ export default function AceScreen() {
             ListEmptyComponent={null}
             ListFooterComponent={
               isTyping ? (
-                <View style={{ width: '100%', marginVertical: Spacing.sm, gap: Spacing.xs }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
-                    <Image
-                      source={require('@/assets/images/logo.png')}
-                      style={{ width: 18, height: 18 }}
-                      contentFit="contain"
-                    />
-                    <Text style={{ ...Typography.Paragraph3, fontWeight: '700', color: theme.textSecondary }}>Ace</Text>
-                  </View>
-                  <View style={{ alignSelf: 'flex-start', paddingVertical: Spacing.sm }}>
-                    <ActivityIndicator size="small" color={theme.primary} />
-                  </View>
-                </View>
-              ) : messages.length === 1 && !keyboardVisible ? (
-                <View
-                  style={{
-                    alignItems: 'center',
-                    marginTop: Spacing.lg,
-                    gap: Spacing.md,
-                    paddingBottom: 20,
-                    width: '100%',
-                  }}
-                >
-                  <Text style={{ ...Typography.Paragraph2, color: theme.textSecondary, fontWeight: '600' }}>
-                    Întrebări sugerate:
-                  </Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: Spacing.sm, maxWidth: 320 }}>
-                    {QUICK_REPLIES.map((item) => (
-                      <Pressable
-                        key={item}
-                        onPress={() => handleSend(item)}
-                        style={({ pressed }) => [
-                          {
-                            borderRadius: 20,
-                            paddingHorizontal: Spacing.md,
-                            paddingVertical: Spacing.sm,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: theme.surface,
-                            borderWidth: 1,
-                            borderColor: theme.border + '20',
-                          },
-                          {
-                            opacity: pressed ? 0.7 : 1,
-                          },
-                        ]}
-                      >
-                        <Text style={[Typography.Paragraph3, { color: theme.text, fontWeight: '500' }]}>{item}</Text>
-                      </Pressable>
-                    ))}
+                <View style={{ width: '100%', marginVertical: Spacing.sm }}>
+                  <View style={{ alignSelf: 'flex-start', paddingVertical: Spacing.xs }}>
+                    <GradientSpinner />
                   </View>
                 </View>
               ) : null
@@ -825,46 +826,19 @@ export default function AceScreen() {
                 justifyContent: 'center',
                 alignItems: 'center',
                 paddingHorizontal: Spacing.lg,
-                paddingBottom: 120,
-                gap: Spacing.xl,
+                paddingBottom: keyboardVisible ? 40 : 120,
+                gap: Spacing.md,
                 pointerEvents: 'box-none',
               }}
             >
-              <Image
-                source={require('@/assets/images/logo.png')}
-                style={{ width: 64, height: 64, marginBottom: -10 }}
-                contentFit="contain"
+              <SparkleIcon
+                width={48}
+                height={48}
+                style={{ marginBottom: Spacing.xs }}
               />
               <Text style={{ ...Typography.Heading3, color: theme.text, textAlign: 'center' }}>
                 Cu ce te pot ajuta azi?
               </Text>
-              
-              {/* Suggestions Grid */}
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: Spacing.sm, maxWidth: 320 }}>
-                {QUICK_REPLIES.map((item) => (
-                  <Pressable
-                    key={item}
-                    onPress={() => handleSend(item)}
-                    style={({ pressed }) => [
-                      {
-                        borderRadius: 20,
-                        paddingHorizontal: Spacing.md,
-                        paddingVertical: Spacing.sm,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: theme.surface,
-                        borderWidth: 1,
-                        borderColor: theme.border + '20',
-                      },
-                      {
-                        opacity: pressed ? 0.7 : 1,
-                      },
-                    ]}
-                  >
-                    <Text style={[Typography.Paragraph3, { color: theme.text, fontWeight: '500' }]}>{item}</Text>
-                  </Pressable>
-                ))}
-              </View>
             </View>
           ) : null}
 
