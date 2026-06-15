@@ -9,9 +9,20 @@ import {
 } from "./api-schemas";
 import type { ApiErrorBody, ApiRequestOptions } from "./api-types";
 
-const apiBaseUrl =
+export const apiBaseUrl =
   process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") ??
-  "http://localhost:8000";
+  "http://localhost:8002";
+
+export function getAuthHeaders(headers?: HeadersInit): Headers {
+  const requestHeaders = new Headers(headers);
+  if (!requestHeaders.has("Authorization") && typeof window !== "undefined") {
+    const token = window.localStorage.getItem("access_token");
+    if (token) {
+      requestHeaders.set("Authorization", `Bearer ${token}`);
+    }
+  }
+  return requestHeaders;
+}
 
 export class ApiClientError extends Error {
   readonly body: ApiErrorBody | null;
@@ -35,6 +46,8 @@ function toHeaders(headers: HeadersInit | undefined, hasJsonBody: boolean) {
   if (!requestHeaders.has("Accept")) {
     requestHeaders.set("Accept", "application/json");
   }
+
+  getAuthHeaders(requestHeaders).forEach((value, key) => requestHeaders.set(key, value));
 
   return requestHeaders;
 }

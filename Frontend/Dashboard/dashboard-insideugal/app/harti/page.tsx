@@ -6,6 +6,7 @@ import Modal from "../components/ui/Modal";
 import { Card, CardContent } from "../components/ui/Card";
 import MapView from "../components/MapView";
 import MapComponent from "../components/MapComponent";
+import { apiBaseUrl, getAuthHeaders } from "@/lib/api-client";
 
 interface Cladire {
   id: number;
@@ -87,6 +88,10 @@ const emptyForm: FormState = {
   name: "", faculty_id: "", lat: "", lng: "",
   adresa: "", telefon: "", website: "", program: "", descriere: ""
 };
+
+function authHeaders(): HeadersInit {
+  return getAuthHeaders({ "Content-Type": "application/json" });
+}
 
 function CladireForm({
   formState,
@@ -202,39 +207,47 @@ export default function HartiPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [cladiri, setCladiri] = useState<Cladire[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isAddExpanded, setIsAddExpanded] = useState(false);
   const [isEditExpanded, setIsEditExpanded] = useState(false);
   const [addForm, setAddForm] = useState<FormState>(emptyForm);
   const [editForm, setEditForm] = useState<FormState>(emptyForm);
 
-  const API = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
-
   useEffect(() => {
     async function fetchLocations() {
+      setError(null);
+      setLoading(true);
       try {
-        const res = await fetch(`${API}/locations/`);
+        const res = await fetch(`${apiBaseUrl}/locations/`, {
+          headers: authHeaders(),
+        });
         if (!res.ok) {
-          throw new Error(`Eroare API: ${res.status}`);
+          const body = await res.json().catch(() => null);
+          const message = isRecord(body) && typeof body.detail === "string"
+            ? body.detail
+            : `Eroare API: ${res.status}`;
+          throw new Error(message);
         }
         const data = await res.json();
         console.log("Date primite de la backend:", data);
         setCladiri(normalizeCladiri(data));
       } catch (error) {
         console.error("Eroare la preluarea locațiilor:", error);
+        setError(error instanceof Error ? error.message : "Nu s-au putut incarca locatiile.");
         setCladiri([]);
       } finally {
         setLoading(false);
       }
     }
     fetchLocations();
-  }, [API]);
+  }, []);
 
   const handleAdd = async () => {
     if (!addForm.name) return;
     try {
-      const res = await fetch(`${API}/locations/`, {
+      const res = await fetch(`${apiBaseUrl}/locations/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({
           name: addForm.name,
           faculty_id: addForm.faculty_id ? parseInt(addForm.faculty_id) : null,
@@ -276,9 +289,9 @@ export default function HartiPage() {
   const handleEditSave = async () => {
     if (!editingId) return;
     try {
-      const res = await fetch(`${API}/locations/${editingId}`, {
+      const res = await fetch(`${apiBaseUrl}/locations/${editingId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({
           name: editForm.name,
           faculty_id: editForm.faculty_id ? parseInt(editForm.faculty_id) : null,
@@ -303,7 +316,7 @@ export default function HartiPage() {
 
   const handleDelete = async (id: number) => {
     try {
-      await fetch(`${API}/locations/${id}`, { method: "DELETE" });
+      await fetch(`${apiBaseUrl}/locations/${id}`, { method: "DELETE", headers: authHeaders() });
       setCladiri(cladiri.filter(c => c.id !== id));
     } catch (e) {
       console.error("Eroare la ștergere:", e);
@@ -368,6 +381,12 @@ export default function HartiPage() {
           <CardContent className="p-0">
             {loading ? (
               <div className="p-8 text-center text-muted text-sm">Se încarcă locațiile...</div>
+            ) : error ? (
+              <div className="p-8">
+                <div className="border border-red-200 bg-red-50 text-red-700 rounded-lg p-3 text-sm">
+                  {error}
+                </div>
+              </div>
             ) : cladiri.length === 0 ? (
               <div className="p-8 text-center text-muted text-sm">Nicio locație înregistrată.</div>
             ) : (

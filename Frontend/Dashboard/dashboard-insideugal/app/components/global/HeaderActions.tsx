@@ -1,8 +1,8 @@
 "use client";
 
-import { Bell, UserRound, Sun, Moon } from "lucide-react";
+import { Bell, UserRound } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { useTheme } from "../../providers";
+import { apiBaseUrl } from "@/lib/api-client";
 
 interface Announcement {
   id: number;
@@ -15,7 +15,6 @@ interface Announcement {
 const STORAGE_KEY = "last_seen_announcement_id";
 
 export default function HeaderActions() {
-  const { isDark, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(false);
@@ -26,12 +25,15 @@ export default function HeaderActions() {
     async function fetchAnnouncements() {
       setLoading(true);
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
-        const res = await fetch(`${baseUrl}/announcements/`);
+        // Fallback de siguranță: dacă nu găsește .env, folosește direct adresa locală
+        const res = await fetch(`${apiBaseUrl}/announcements/`);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
         const data: Announcement[] = await res.json();
         const latest = data.slice(0, 5);
         setAnnouncements(latest);
+
+        // Calculează câte sunt "necitite" față de ultima vizită
         const lastSeen = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
         const unseen = latest.filter((a) => a.id > lastSeen).length;
         setUnreadCount(unseen);
@@ -45,9 +47,11 @@ export default function HeaderActions() {
     fetchAnnouncements();
   }, []);
 
+  // Noua funcție care se ocupă de click-ul pe clopoțel și resetează unreadCount
   const handleToggleNotifications = () => {
     const willOpen = !open;
     setOpen(willOpen);
+
     if (willOpen && announcements.length > 0) {
       const maxId = Math.max(...announcements.map((a) => a.id));
       localStorage.setItem(STORAGE_KEY, String(maxId));
@@ -67,33 +71,11 @@ export default function HeaderActions() {
 
   return (
     <div className="flex items-center gap-2">
-
-      {/* Buton Light Mode */}
-      <button
-        type="button"
-        aria-label="Mod luminos"
-        onClick={() => isDark && toggleTheme()}
-        className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
-      >
-        <Sun size={18} />
-      </button>
-
-      {/* Buton Dark Mode */}
-      <button
-        type="button"
-        aria-label="Mod întunecat"
-        onClick={() => !isDark && toggleTheme()}
-        className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
-      >
-        <Moon size={18} />
-      </button>
-
-      {/* Bell */}
       <div className="relative" ref={dropdownRef}>
         <button
           type="button"
           aria-label="Notificări"
-          onClick={handleToggleNotifications}
+          onClick={handleToggleNotifications} // Funcția corectată atașată aici
           className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
         >
           <Bell size={18} />
@@ -112,6 +94,7 @@ export default function HeaderActions() {
                 <span className="text-xs text-muted">{announcements.length} anunțuri</span>
               )}
             </div>
+
             <div className="max-h-80 overflow-y-auto">
               {loading ? (
                 <div className="flex flex-col gap-2 px-4 py-4">
@@ -130,16 +113,26 @@ export default function HeaderActions() {
                 </div>
               ) : (
                 announcements.map((a, idx) => (
-                  <div key={a.id} className={`px-4 py-3 hover:bg-background transition-colors cursor-pointer ${idx < announcements.length - 1 ? "border-b border-border" : ""}`}>
+                  <div
+                    key={a.id}
+                    className={`px-4 py-3 hover:bg-background transition-colors cursor-pointer ${
+                      idx < announcements.length - 1 ? "border-b border-border" : ""
+                    }`}
+                  >
                     <p className="text-sm font-medium text-foreground leading-snug">{a.title}</p>
                     <p className="text-xs text-muted mt-0.5 line-clamp-2 leading-relaxed">{a.content}</p>
                     <p className="text-xs text-muted mt-1.5 opacity-70">
-                      {new Date(a.created_at).toLocaleDateString("ro-RO", { day: "numeric", month: "short", year: "numeric" })}
+                      {new Date(a.created_at).toLocaleDateString("ro-RO", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
                     </p>
                   </div>
                 ))
               )}
             </div>
+
             {announcements.length > 0 && (
               <div className="border-t border-border px-4 py-2.5">
                 <button className="w-full text-center text-xs text-brand hover:underline">
@@ -151,7 +144,6 @@ export default function HeaderActions() {
         )}
       </div>
 
-      {/* User */}
       <button
         type="button"
         aria-label="Cont"
