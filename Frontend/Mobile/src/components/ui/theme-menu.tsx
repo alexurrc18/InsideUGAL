@@ -61,16 +61,17 @@ export function ThemeMenu({ solid = true }: { solid?: boolean }) {
       >
         <View
           style={{
-            padding: 8,
+            padding: 6,
             borderRadius: 999,
-            borderWidth: 1,
-            borderColor: ColorScheme.white,
+            // Fara border; cand meniul e deschis, fundalul se umple (fade lin pe web).
+            backgroundColor: open ? "rgba(255,255,255,0.2)" : "transparent",
             alignItems: "center",
             justifyContent: "center",
+            ...({ transitionDuration: "200ms", transitionProperty: "background-color" } as any),
           }}
         >
           <Animated.View style={{ transform: [{ rotate }] }}>
-            <CogIcon width={20} height={20} color={ColorScheme.white} />
+            <CogIcon width={16} height={16} color={ColorScheme.white} />
           </Animated.View>
         </View>
       </Pressable>
@@ -78,18 +79,21 @@ export function ThemeMenu({ solid = true }: { solid?: boolean }) {
       {/* Dropdown: cercul lună/soare, apare in jos cu fade + slide. */}
       <Animated.View
         pointerEvents={open ? "auto" : "none"}
+        // left:0 + right:0 + alignItems center => cercul se centreaza sub rotita
+        // (chiar daca e ceva mai lat decat ea).
         style={{
           position: "absolute",
           top: "100%",
+          left: 0,
           right: 0,
-          marginTop: 10,
+          alignItems: "center",
+          marginTop: 8,
           opacity: anim,
           transform: [{ translateY: dropTranslate }],
         }}
       >
-        {/* Cerc cu border alb, EXACT cat rotita (size 20) ca sa fie centrat.
-            Fundalul (albastru / intunecat) urmeaza starea navbarului. */}
-        <ThemeToggle size={20} backgroundColor={circleBg} borderColor={ColorScheme.white} color={ColorScheme.white} />
+        {/* Cerc mic (cat rotita) cu soare/luna; fundalul urmeaza starea navbarului. */}
+        <ThemeToggle size={16} backgroundColor={circleBg} borderColor={ColorScheme.white} color={ColorScheme.white} />
       </Animated.View>
     </View>
   );

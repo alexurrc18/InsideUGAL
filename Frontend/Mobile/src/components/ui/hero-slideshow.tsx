@@ -96,7 +96,9 @@ export function HeroSlideshow({ slides, onPressItem }: HeroSlideshowProps) {
           />
 
           <View style={styles.content}>
-            <WebContainer style={{ justifyContent: "flex-end", paddingBottom: Spacing.xl }}>
+            {/* paddingBottom mare ca textul sa stea deasupra punctelor de paginare
+                (care sunt la ~16-44px de jos) si sa nu se suprapuna cu ele. */}
+            <WebContainer style={{ justifyContent: "flex-end", paddingBottom: Spacing.xl4 }}>
               <View style={{ paddingHorizontal: Spacing.lg }}>
                 {slide.category ? (
                   <View style={styles.chip}>

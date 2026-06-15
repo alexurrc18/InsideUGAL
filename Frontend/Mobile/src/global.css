@@ -43,6 +43,23 @@ body {
   transform-origin: left;
 }
 
+/* Meniul "Anunțuri" din navbar: ascuns implicit, apare la hover pe containerul
+   parinte (cu fade + slide). `visibility` + `pointer-events` il scot complet din
+   interactiune cand e ascuns. */
+[data-dropdown-menu] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition: opacity 180ms ease, transform 180ms ease, visibility 180ms;
+}
+[data-navdropdown]:hover [data-dropdown-menu] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
 /* Bara de scroll a caruselelor pe desktop web: subțire, colorată, doar orizontală */
 [data-carousel] {
   overflow-x: auto !important;

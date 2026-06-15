@@ -12,8 +12,9 @@
 //   - cand panoul hamburger e deschis, bara devine solida ca textul sa fie lizibil.
 // Textul ramane alb in toate starile. Aliniere: continutul sta intr-un WebContainer.
 import { useEffect, useRef, useState } from "react";
-import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Animated, Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, usePathname } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ColorScheme, Colors, Spacing, WebContentMaxWidth, WebMaxScale } from "@/constants/theme";
@@ -23,6 +24,7 @@ import { useNavbarScrolled } from "@/contexts/web-scroll-context";
 import { WebContainer, WEB_COMPACT_BREAKPOINT } from "@/components/ui/web-container";
 import { ThemeMenu } from "@/components/ui/theme-menu";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ProfileMenu, MOCK_USER, DASHBOARD_URL } from "@/components/ui/profile-menu";
 
 export const NAVBAR_HEIGHT = 60;
 
@@ -30,13 +32,37 @@ const LOGO = require("@/assets/images/logo.png");
 
 // Link-urile = aceleasi destinatii care erau in NativeTabs. `match` e segmentul cu
 // care comparam pathname-ul (care vine fara grupul "(public)") ca sa stim activul.
-const LINKS: { label: string; href: string; match: string }[] = [
-  { label: "Acasă", href: "/(public)/acasa", match: "/acasa" },
+// `exact` -> activ doar pe potrivire exacta (Acasă, ca sa nu se aprinda si pe
+// sub-paginile /acasa/...). `dropdown` -> element cu sub-meniu la hover (Anunțuri).
+type NavItem = {
+  label: string;
+  href?: string;
+  match: string;
+  exact?: boolean;
+  dropdown?: { label: string; href: string }[];
+};
+
+const LINKS: NavItem[] = [
+  { label: "Acasă", href: "/(public)/acasa", match: "/acasa", exact: true },
+  {
+    label: "Anunțuri",
+    match: "/acasa/categorie",
+    dropdown: [
+      { label: "Noutăți", href: "/(public)/acasa/categorie?title=Noutăți" },
+      { label: "Evenimente", href: "/(public)/acasa/categorie?title=Evenimente" },
+    ],
+  },
   { label: "Hartă", href: "/(public)/harta", match: "/harta" },
   { label: "Cantină", href: "/(public)/cantina", match: "/cantina" },
   { label: "Sesizări", href: "/(public)/sesizari", match: "/sesizari" },
   { label: "Mai multe", href: "/(public)/more", match: "/more" },
 ];
+
+// Activ daca pathname-ul se potriveste cu segmentul link-ului.
+function isLinkActive(pathname: string, item: NavItem): boolean {
+  if (item.exact) return pathname === item.match || pathname === "/";
+  return pathname.startsWith(item.match);
+}
 
 // Hamburger din 3 bare (nu avem icon dedicat in assets). Devine "X" cand e deschis:
 // bara de sus si de jos se rotesc, cea din mijloc dispare.
@@ -152,6 +178,17 @@ export function WebNavbar() {
 
   return (
     <Animated.View style={[styles.bar, { transform: [{ translateY: hideAnim }] }]} pointerEvents="box-none">
+      {/* Cand navbarul e transparent (peste hero), un gradient negru sus->transparent
+          jos da contrast textului alb. Sta SUB fundalul albastru: cand bara devine
+          solida, albastrul (opacity 1) il acopera complet. Extins in sus cu insets.top. */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={["rgba(0,0,0,0.9)", "rgba(0,0,0,0)"]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={[StyleSheet.absoluteFill, { top: -insets.top }]}
+      />
+
       {/* Fundal solid (albastru de brand), fade in/out dupa pagina/scroll. Full-bleed.
           Il extindem in sus cu insets.top ca albastrul sa acopere si zona de
           safe-area (status bar / notch), nu doar bara — altfel ramane o fasie
@@ -201,16 +238,58 @@ export function WebNavbar() {
             /* Ecran lat: link-uri + meniu tema */
             <View style={styles.right}>
               {LINKS.map((link) => {
-                const isActive = pathname.startsWith(link.match);
+                const isActive = isLinkActive(pathname, link);
+
+                // Element cu dropdown (Anunțuri): la hover cade meniul (global.css).
+                if (link.dropdown) {
+                  return (
+                    <View
+                      key={link.label}
+                      {...({ dataSet: { navdropdown: "true" } } as any)}
+                      style={{ position: "relative", justifyContent: "center" }}
+                    >
+                      <Pressable
+                        onPress={() => router.push(link.dropdown![0].href as any)}
+                        accessibilityRole="link"
+                        {...({ dataSet: { navlink: "true", active: isActive ? "true" : "false" } } as any)}
+                        style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, alignItems: "center", justifyContent: "center" })}
+                      >
+                        <Text style={[Typography.Heading5, { color: ColorScheme.white }]}>{link.label}</Text>
+                      </Pressable>
+
+                      <View
+                        {...({ dataSet: { dropdownMenu: "true" } } as any)}
+                        // Fundal in functie de navbar: albastru cand e solid, translucid
+                        // inchis cand navbarul e transparent (peste hero) — se asorteaza
+                        // si ramane lizibil.
+                        style={[styles.dropdown, { backgroundColor: solid ? theme.primary : "rgba(0,0,0,0.55)" }]}
+                      >
+                        {link.dropdown.map((sub) => (
+                          <Pressable
+                            key={sub.href}
+                            onPress={() => router.push(sub.href as any)}
+                            accessibilityRole="link"
+                            style={({ pressed, hovered }: any) => [
+                              styles.dropdownItem,
+                              (pressed || hovered) && { backgroundColor: "rgba(255,255,255,0.14)" },
+                            ]}
+                          >
+                            <Text style={[Typography.Heading5, { color: ColorScheme.white }]}>{sub.label}</Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    </View>
+                  );
+                }
+
+                // Link normal. Activul e indicat prin sublinierea din global.css.
                 return (
                   <Pressable
                     key={link.href}
                     onPress={() => router.push(link.href as any)}
                     accessibilityRole="link"
-                    // dataSet -> data-navlink / data-active pe <div>-ul web; sublinierea
-                    // animata e in global.css (hover stanga->dreapta, activ = permanent).
                     {...({ dataSet: { navlink: "true", active: isActive ? "true" : "false" } } as any)}
-                    style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, alignItems: "center" })}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, alignItems: "center", justifyContent: "center" })}
                   >
                     <Text style={[Typography.Heading5, { color: ColorScheme.white }]}>{link.label}</Text>
                   </Pressable>
@@ -218,6 +297,7 @@ export function WebNavbar() {
               })}
 
               <ThemeMenu solid={solid} />
+              <ProfileMenu />
             </View>
           )}
         </View>
@@ -234,7 +314,30 @@ export function WebNavbar() {
         >
           <WebContainer style={{ paddingVertical: Spacing.sm }}>
             {LINKS.map((link) => {
-              const isActive = pathname.startsWith(link.match);
+              // Pe mobil, elementul cu dropdown (Anunțuri) se desfasoara in sub-link-uri.
+              if (link.dropdown) {
+                return (
+                  <View key={link.label}>
+                    {link.dropdown.map((sub) => (
+                      <Pressable
+                        key={sub.href}
+                        onPress={() => {
+                          router.push(sub.href as any);
+                          setMenuOpen(false);
+                        }}
+                        accessibilityRole="link"
+                        style={({ pressed }) => [styles.panelLink, { opacity: pressed ? 0.6 : 1 }]}
+                      >
+                        <Text style={[Typography.Heading5, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
+                          {sub.label}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                );
+              }
+
+              const isActive = isLinkActive(pathname, link);
               return (
                 <Pressable
                   key={link.href}
@@ -267,6 +370,40 @@ export function WebNavbar() {
                 color={ColorScheme.white}
               />
             </View>
+
+            {/* Profil (mobil): cine e conectat + Dashboard (daca are acces) + Deconectare. */}
+            <View style={styles.panelProfile}>
+              <Text style={[Typography.Heading5, { color: ColorScheme.white }]} numberOfLines={1}>
+                {MOCK_USER.name}
+              </Text>
+              <Text style={[Typography.Small1, { color: "rgba(255,255,255,0.7)" }]} numberOfLines={1}>
+                {MOCK_USER.email}
+              </Text>
+            </View>
+            {MOCK_USER.hasDashboardAccess && (
+              <Pressable
+                onPress={() => {
+                  setMenuOpen(false);
+                  Linking.openURL(DASHBOARD_URL).catch(() => {});
+                }}
+                style={({ pressed }) => [styles.panelLink, { opacity: pressed ? 0.6 : 1 }]}
+              >
+                <Text style={[Typography.Heading5, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
+                  Dashboard
+                </Text>
+              </Pressable>
+            )}
+            <Pressable
+              onPress={() => {
+                setMenuOpen(false);
+                router.push("/(auth)");
+              }}
+              style={({ pressed }) => [styles.panelLink, { opacity: pressed ? 0.6 : 1 }]}
+            >
+              <Text style={[Typography.Heading5, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
+                Deconectare
+              </Text>
+            </Pressable>
           </WebContainer>
         </Animated.View>
       )}
@@ -299,12 +436,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.xl,
   },
-  activeUnderline: {
-    marginTop: 4,
-    height: 2,
-    width: "100%",
-    borderRadius: 1,
-    backgroundColor: ColorScheme.white,
+  // Meniul "Anunțuri" (desktop): apare sub element. Vizibilitatea o face global.css
+  // (la hover pe containerul [data-navdropdown]). Colturi drepte, chenar subtil si
+  // umbra discreta; fundal solid (primary) ca sa fie lizibil si peste hero.
+  dropdown: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    paddingVertical: Spacing.xs,
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+    minWidth: 180,
+    overflow: "hidden",
+    shadowColor: ColorScheme.pureBlack,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+  },
+  dropdownItem: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
   },
   // Panoul hamburger sta lipit sub bara. Il urcam 1px (suprapunere peste bara) ca
   // sa nu ramana o linie transparenta intre bara si panou la densitati de pixeli
@@ -334,6 +486,14 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "rgba(255,255,255,0.25)",
+  },
+  panelProfile: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    marginTop: Spacing.xs,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(255,255,255,0.25)",
+    gap: 2,
   },
 });
 

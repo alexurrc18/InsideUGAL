@@ -20,12 +20,12 @@ export const MapPin = ({ name, facultyId }: MapPinProps) => {
   const letter = getBuildingLetter(name);
   const isFacility = facultyId === 'f8';
   const open = isFacility ? isFacilityOpen(name) : true;
-  const pinColor = isFacility ? (open ? theme.secondary : theme.textSecondary) : ColorScheme.white;
+  const pinColor = isFacility ? (open ? theme.secondary : theme.textSecondary) : theme.primary;
 
   const renderContent = () => {
     if (!isFacility) {
       return (
-        <Text style={{ color: theme.textOnDark, fontSize: 13, fontWeight: 'bold', textAlign: 'center' }}>
+        <Text style={{ color: ColorScheme.white, fontSize: 13, fontWeight: 'bold', textAlign: 'center' }}>
           {letter}
         </Text>
       );
@@ -49,7 +49,7 @@ export const MapPin = ({ name, facultyId }: MapPinProps) => {
     }
 
     return (
-      <Text style={{ color: theme.textOnDark, fontSize: 13, fontWeight: 'bold', textAlign: 'center' }}>
+      <Text style={{ color: ColorScheme.white, fontSize: 13, fontWeight: 'bold', textAlign: 'center' }}>
         {letter}
       </Text>
     );
@@ -81,7 +81,7 @@ export const MapPin = ({ name, facultyId }: MapPinProps) => {
           width: 36,
           height: 36,
           borderWidth: 2,
-          borderColor: theme.background,
+          borderColor: ColorScheme.white,
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1,
@@ -100,7 +100,7 @@ export const MapPin = ({ name, facultyId }: MapPinProps) => {
           borderTopWidth: 8,
           borderLeftColor: 'transparent',
           borderRightColor: 'transparent',
-          borderTopColor: theme.background,
+          borderTopColor: ColorScheme.white,
           marginTop: -2,
           zIndex: 2,
         }}

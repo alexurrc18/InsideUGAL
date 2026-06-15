@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Linking, TouchableOpacity, Alert, useWindowDimensions, type LayoutChangeEvent } from "react-native";
+import { View, Text, ScrollView, Linking, TouchableOpacity, Alert, useWindowDimensions, StyleSheet, type LayoutChangeEvent } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { getFormattedDate, getReadingTime } from "@/utils/date";
@@ -127,7 +128,17 @@ function VizualizareScreen() {
                         contentFit="cover"
                     />
 
-                    <View style={{ flex: 1, paddingVertical: Spacing.lg, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.3)" }}>
+                    {/* Gradient pentru lizibilitatea titlului (care e jos): transparent
+                        sus -> negru jos. */}
+                    <LinearGradient
+                        pointerEvents="none"
+                        colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.85)"]}
+                        start={{ x: 0.5, y: 0 }}
+                        end={{ x: 0.5, y: 1 }}
+                        style={StyleSheet.absoluteFill}
+                    />
+
+                    <View style={{ flex: 1, paddingVertical: Spacing.lg, justifyContent: "flex-end" }}>
                         <WebContainer>
                             <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
                                 {category || (tipPagina === "Facultate" ? "Facultate" : "Categorie")}

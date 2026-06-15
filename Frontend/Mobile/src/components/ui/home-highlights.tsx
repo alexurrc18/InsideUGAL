@@ -112,7 +112,7 @@ export function HomeHighlights({ featured, items, onPressItem, title = "Recomand
     <WebContainer style={{ marginVertical: Spacing.lg }}>
       <View style={{ paddingHorizontal: Spacing.lg }}>
         {title ? (
-          <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.lg }]}>{title}</Text>
+          <Text style={[Typography.Heading4, { color: theme.text, marginBottom: Spacing.lg }]}>{title}</Text>
         ) : null}
 
         {stacked ? (

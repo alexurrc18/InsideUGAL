@@ -24,7 +24,7 @@ export function Carousel<T>({ data, renderItem, keyExtractor, title, viewAllHref
                     paddingHorizontal: Spacing.lg,
                     marginBottom: Spacing.lg
                 }}>
-                    {title && <Text style={[Typography.Heading3, { color: theme.text }]}>{title}</Text>}
+                    {title && <Text style={[Typography.Heading4, { color: theme.text }]}>{title}</Text>}
                     {viewAllHref && (
                         <Pressable onPress={() => router.push(viewAllHref as any)}>
                             <Text style={[Typography.Paragraph2, { color: theme.primary }]}>Vezi mai multe &gt;</Text>
