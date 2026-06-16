@@ -215,7 +215,7 @@ services:
     volumes:
       - ./supabase/post-init/ensure_storage_schema.sql:/tmp/ensure_storage_schema.sql:ro
     command: >
-      sh -c "psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres}
+      sh -c "psql -h supabase-db -p ${POSTGRES_PORT:-5432} -U postgres -d ${POSTGRES_DB:-postgres}
       -v ON_ERROR_STOP=1 -f /tmp/ensure_storage_schema.sql"
     networks:
       - internal
