@@ -106,6 +106,8 @@ services:
   supabase-db:
     image: supabase/postgres:15.8.1.085
     restart: unless-stopped
+    ports:
+    - "${POSTGRES_HOST_PORT:-54399}:${POSTGRES_PORT:-5432}"
     healthcheck:
       test:
       - CMD-SHELL

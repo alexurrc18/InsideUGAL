@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_admin
+from app.api.pagination import PaginationParams, paginated_response
 from app.db.database import get_db
 from app.models import schemas
 from app.repositories.category_repo import CategoryRepository
@@ -10,9 +11,13 @@ router = APIRouter(prefix="/categories", tags=["Categories"])
 repo = CategoryRepository()
 
 
-@router.get("/", response_model=list[schemas.CategoryResponse])
-async def read_categories(session: AsyncSession = Depends(get_db)):
-    return await repo.get_all(session)
+@router.get("/", response_model=schemas.PaginatedResponse[schemas.CategoryResponse])
+async def read_categories(
+    pagination: PaginationParams = Depends(),
+    session: AsyncSession = Depends(get_db),
+):
+    items, total = await repo.get_page(session, limit=pagination.size, offset=pagination.offset)
+    return paginated_response(items, total, pagination)
 
 
 @router.get("/{category_id}", response_model=schemas.CategoryResponse)
