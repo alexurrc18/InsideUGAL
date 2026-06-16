@@ -1,7 +1,7 @@
 "use client";
 
 import Image from 'next/image';
-import React, { useState, useMemo, useRef, useEffect, Suspense } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback, Suspense } from 'react';
 import Table, { Column } from '../components/ui/Table';
 import Modal from '../components/ui/Modal';
 import { useSearchParams } from "next/navigation";
@@ -26,6 +26,38 @@ const availableFacultiesFromSystem = [
   "AC", "FIE", "ACIEE", "Mecanică", "SIA", "Litere", "Drept", "Medicină", "Economie"
 ];
 
+type AnnouncementApiItem = {
+  id: number;
+  type: "NOUTATE" | "EVENIMENT";
+  title: string;
+  content: string;
+  image_url?: string | null;
+  faculty_id?: number | null;
+  location_name?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type PaginatedAnnouncementsResponse = {
+  items: AnnouncementApiItem[];
+  total: number;
+  page: number;
+  size: number;
+  total_pages: number;
+};
+
+const toDateInputValue = (value?: string | null) => {
+  if (!value) return new Date().toISOString().split('T')[0];
+  return value.split('T')[0];
+};
+
+const toEventDateTime = (value?: string | null) => {
+  const dateValue = toDateInputValue(value);
+  return new Date(`${dateValue}T00:00:00`).toISOString();
+};
+
 function EventsPageContent() {
   const searchParams = useSearchParams();
   const [data, setData] = useState<EventItem[]>([]);
@@ -43,43 +75,50 @@ function EventsPageContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002";
+  const baseUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8002").replace(/\/$/, "");
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
+    const eventsUrl = `${baseUrl}/announcements/?announcement_type=EVENIMENT`;
+    console.log("[Events] fetchEvents start", { url: eventsUrl });
     setIsDataLoading(true);
     try {
-      const res = await fetch(`${baseUrl}/announcements/`);
+      const res = await fetch(eventsUrl);
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const apiData = await res.json();
+      const apiData = await res.json() as PaginatedAnnouncementsResponse;
+      const items = Array.isArray(apiData.items) ? apiData.items : [];
       
-      const mappedEvents: EventItem[] = apiData.map((item: any) => ({
+      const mappedEvents: EventItem[] = items.map((item) => ({
         id: String(item.id),
         title: item.title,
-        description: item.description || '',
-        publishDate: item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
-        faculties: item.faculty ? [item.faculty.name] : [],
+        description: item.content || '',
+        publishDate: toDateInputValue(item.start_date || item.created_at),
+        faculties: item.faculty_id ? [`Facultatea #${item.faculty_id}`] : [],
         thumbnail: item.image_url || '',
-        eventLink: item.external_link || '',
-        pdfFiles: item.attachments ? item.attachments.map((a: any) => ({ name: a.name, url: a.url })) : []
+        eventLink: '',
+        pdfFiles: []
       }));
+      console.log("[Events] fetchEvents setData", { raw: apiData, mapped: mappedEvents });
       setData(mappedEvents);
     } catch (error) {
-      console.error("EEroare la preluarea datelor din backend:", error);
+      console.error("Eroare la preluarea datelor din backend:", error);
+      setData([]);
       alert("Nu există conexiune cu backend-ul pentru modulul de Evenimente! Verifică dacă serverul Python/FastAPI este pornit local.");
     } finally {
       setIsDataLoading(false);
     }
-  };
+  }, [baseUrl]);
 
   useEffect(() => {
-    fetchEvents();
-  }, []);
+    void Promise.resolve().then(fetchEvents);
+  }, [fetchEvents]);
 
   useEffect(() => {
     if (searchParams.get("open") === "true") {
-      setFormState({ faculties: [], pdfFiles: [] });
-      setNewFacultyInput('');
-      setActiveModal('add');
+      queueMicrotask(() => {
+        setFormState({ faculties: [], pdfFiles: [] });
+        setNewFacultyInput('');
+        setActiveModal('add');
+      });
     }
   }, [searchParams]);
 
@@ -97,9 +136,9 @@ function EventsPageContent() {
 
   useEffect(() => {
     if (initialFaculties.length > 0) {
-      setDynamicFaculties(initialFaculties);
+      queueMicrotask(() => setDynamicFaculties(initialFaculties));
     }
-  }, [data]);
+  }, [initialFaculties]);
 
   const allFilterOptions = useMemo(() => {
     return ['Toate', ...dynamicFaculties];
@@ -246,11 +285,12 @@ function EventsPageContent() {
     
     const payload = {
       title: formState.title || 'Eveniment Nou',
-      description: formState.description || '',
-      post_type: "EVENT", 
+      content: formState.description || '',
+      type: "EVENIMENT",
       image_url: formState.thumbnail || null,
-      external_link: formState.eventLink || null,
-      faculty_id: 1, 
+      faculty_id: 1,
+      start_date: toEventDateTime(formState.publishDate),
+      end_date: null,
     };
 
     try {
@@ -264,7 +304,13 @@ function EventsPageContent() {
         const response = await fetch(`${baseUrl}/announcements/${selectedItem?.id}`, {
           method: "PATCH",
           headers: headers,
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            title: payload.title,
+            content: payload.content,
+            type: payload.type,
+            start_date: payload.start_date,
+            end_date: payload.end_date,
+          })
         });
         if (!response.ok) throw new Error("Eroare la actualizarea pe server.");
       } else {
@@ -280,26 +326,7 @@ function EventsPageContent() {
       setActiveModal(null);
     } catch (error) {
       console.error("Eroare salvare backend:", error);
-      alert("Salvarea a eșuat! Nu există conexiune activă cu backend-ul. Datele vor fi salvate local în sesiune, dar nu se vor propaga în baza de date.");
-      
-      if (activeModal === 'edit') {
-        setData(data.map(item => item.id === selectedItem?.id ? { ...item, ...formState } as EventItem : item));
-      } else {
-        const today = new Date();
-        const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        const newEvent: EventItem = {
-          id: `ev-${Date.now()}`,
-          title: formState.title || 'Eveniment Nou',
-          description: formState.description || '',
-          publishDate: formattedDate,
-          faculties: formState.faculties || [],
-          thumbnail: formState.thumbnail || '',
-          eventLink: formState.eventLink || '',
-          pdfFiles: formState.pdfFiles || []
-        };
-        setData([newEvent, ...data]);
-      }
-      setActiveModal(null);
+      alert("Salvarea a eșuat! Nu există conexiune activă cu backend-ul sau payload-ul a fost respins.");
     }
   };
 
@@ -313,14 +340,13 @@ function EventsPageContent() {
         headers: token ? { "Authorization": `Bearer ${token}` } : {}
       });
       if (response.status === 204 || response.ok) {
-        setData(data.filter(a => a.id !== id));
+        await fetchEvents();
       } else {
         throw new Error("Eroare la ștergerea de pe server.");
       }
     } catch (error) {
       console.error("Eroare delete backend:", error);
       alert("Ștergerea a eșuat. Lipsește conexiunea cu serverul de backend!");
-      setData(data.filter(a => a.id !== id));
     }
   };
 
