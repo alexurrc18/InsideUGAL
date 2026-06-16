@@ -3,13 +3,14 @@ import json
 import os
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import get_current_profile
 from app.db.database import get_db
 from app.models.models import Profile, QuestionsHistory
+from app.rate_limit import limiter, LLM_RATE_LIMIT
 
 router = APIRouter(prefix="/api/v1/llm", tags=["LLM"])
 
@@ -43,7 +44,9 @@ async def _stream_response(answer: str, user_question: str, current_profile: Pro
 
 
 @router.post("/ask/stream")
+@limiter.limit(LLM_RATE_LIMIT)
 async def ask_chatbot_stream(
+    request: Request,
     current_profile: Profile = Depends(get_current_profile),
     session: AsyncSession = Depends(get_db),
 ):

@@ -1,13 +1,14 @@
 import os
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import get_current_profile
 from app.db.database import get_db
 from app.models.models import Profile, QuestionsHistory
+from app.rate_limit import limiter, LLM_RATE_LIMIT
 
 router = APIRouter(prefix="/api/v1/llm", tags=["LLM"])
 
@@ -15,7 +16,9 @@ LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://llm:8000")
 
 
 @router.post("/ask")
+@limiter.limit(LLM_RATE_LIMIT)
 async def ask_chatbot(
+    request: Request,
     current_profile: Profile = Depends(get_current_profile),
     session: AsyncSession = Depends(get_db),
 ):
