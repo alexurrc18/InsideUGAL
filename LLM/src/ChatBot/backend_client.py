@@ -76,6 +76,10 @@ _KEYWORDS = {
         "clădire", "cladire", "sala", "sală", "corp", "adresă", "adresa",
         "unde se află", "unde este", "unde e", "unde gasesc",
         "location", "locations", "building", "room", "where is", "where are",
+        "cămin", "camin", "cămine", "camine", "căminul", "caminul", "cazare",
+        "dormitory", "dorm", "student housing",
+        "sală de sport", "sala de sport", "sport", "fitness", "gym", "piscină", "piscina",
+        "bibliotecă", "biblioteca", "library",
     ],
     "daily_menus": [
         "meniu", "meniuri", "cantina", "cantină", "mancare", "mâncare",
@@ -275,6 +279,23 @@ _TABLE_MAP = {
     "menu_products":    ("menu_products",    None,                   "menu_id.asc",     20,  _fmt_menu_products),
     "products":         ("products",         "/products",            "id.asc",          20,  _fmt_products),
 }
+
+
+# ── Deep link vizualizare ────────────────────────────────────────────────────
+
+def fetch_entity_link(question: str) -> str:
+    """Returnează /(public)/acasa/vizualizare?id=<id> pentru primul anunț sau facultate relevant."""
+    intents = detect_intent(question)
+    for intent in intents:
+        if intent == "announcements":
+            items = _fetch("announcements", "/announcements", "created_at.desc", 1)
+            if items and items[0].get("id"):
+                return f"/(public)/acasa/vizualizare?id={items[0]['id']}"
+        elif intent == "faculties":
+            items = _fetch("faculties", "/faculties", "id.asc", 1)
+            if items and items[0].get("id"):
+                return f"/(public)/acasa/vizualizare?id={items[0]['id']}"
+    return ""
 
 
 # ── Funcție principală ───────────────────────────────────────────────────────
