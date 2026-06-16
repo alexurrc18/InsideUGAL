@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 # Variabila de mediu pentru a proteja mediul local
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
-async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
     return JSONResponse(
         status_code=429,
         content={"detail": "Too many requests. Please try again later."},
@@ -56,7 +56,6 @@ app = FastAPI(
 )
 
 # Rate Limiting Configuration
-limiter = Limiter(key_func=get_remote_address, default_limits=["60 per minute"])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
