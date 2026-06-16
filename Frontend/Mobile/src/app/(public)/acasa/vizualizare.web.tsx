@@ -8,10 +8,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { getFormattedDate, getReadingTime } from "@/utils/date";
-import { WebContainer } from "@/components/ui/web-container";
-import { Breadcrumbs, type Crumb } from "@/components/ui/breadcrumbs";
-import { CompactCard } from "@/components/ui/home-highlights";
-import { NewsCard } from "@/components/ui/news-card";
+import { WebContainer } from "@/components/ui/layout/web-container";
+import { Breadcrumbs, type Crumb } from "@/components/ui/navigation/breadcrumbs";
+import { CompactCard } from "@/components/ui/display/home-highlights";
+import { NewsCard, CategoryTag } from "@/components/ui/display/news-card";
 import MOCK_DATA from "@/constants/mock-data.json";
 
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
@@ -140,17 +140,21 @@ function VizualizareScreen() {
                         sus -> negru jos. */}
                     <LinearGradient
                         pointerEvents="none"
-                        colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.85)"]}
+                        colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.8)"]}
                         start={{ x: 0.5, y: 0 }}
                         end={{ x: 0.5, y: 1 }}
                         style={StyleSheet.absoluteFill}
                     />
 
                     <View style={{ flex: 1, paddingVertical: Spacing.lg, justifyContent: "flex-end" }}>
-                        <WebContainer>
-                            <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
-                                {category || (tipPagina === "Facultate" ? "Facultate" : "Categorie")}
-                            </Text>
+                        <WebContainer style={{ gap: Spacing.xs }}>
+                            {category && (tipPagina === "Eveniment" || tipPagina === "Anunț") ? (
+                                <CategoryTag category={category} />
+                            ) : (
+                                <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
+                                    {category || (tipPagina === "Facultate" ? "Facultate" : "Categorie")}
+                                </Text>
+                            )}
                             <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
                                 {title || "Titlu"}
                             </Text>

@@ -9,7 +9,7 @@ import { View } from "react-native";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { WebScrollProvider } from "@/contexts/web-scroll-context";
-import { WebNavbar } from "@/components/ui/web-navbar";
+import { WebNavbar } from "@/components/ui/navigation/web-navbar";
 
 export default function PublicWebLayout() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;

@@ -13,8 +13,8 @@ import { useRouter, Stack } from "expo-router";
 
 import { Colors, Spacing, WebSidePadding } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
-import { CategoryHeader } from "@/components/ui/category-header";
-import { WebContainer } from "@/components/ui/web-container";
+import { CategoryHeader } from "@/components/ui/display/category-header";
+import { WebContainer } from "@/components/ui/layout/web-container";
 import { settingsStore } from "@/utils/settings-store";
 
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";

@@ -21,10 +21,10 @@ import { ColorScheme, Colors, Spacing, WebContentMaxWidth, WebMaxScale } from "@
 import { Typography } from "@/constants/typography";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useNavbarScrolled } from "@/contexts/web-scroll-context";
-import { WebContainer, WEB_COMPACT_BREAKPOINT } from "@/components/ui/web-container";
-import { ThemeMenu } from "@/components/ui/theme-menu";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { ProfileMenu, MOCK_USER, DASHBOARD_URL } from "@/components/ui/profile-menu";
+import { WebContainer, WEB_COMPACT_BREAKPOINT } from "@/components/ui/layout/web-container";
+import { ThemeMenu } from "@/components/ui/navigation/theme-menu";
+import { ThemeToggle } from "@/components/ui/navigation/theme-toggle";
+import { ProfileMenu, MOCK_USER, DASHBOARD_URL } from "@/components/ui/navigation/profile-menu";
 import ChevronIcon from "@/assets/icons/svg/chevron-left.svg";
 
 export const NAVBAR_HEIGHT = 72;
@@ -186,7 +186,7 @@ export function WebNavbar() {
           solida, albastrul (opacity 1) il acopera complet. Extins in sus cu insets.top. */}
       <LinearGradient
         pointerEvents="none"
-        colors={["rgba(0,0,0,0.9)", "rgba(0,0,0,0)"]}
+        colors={["rgba(0,0,0,0.8)", "rgba(0,0,0,0)"]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={[StyleSheet.absoluteFill, { top: -insets.top }]}

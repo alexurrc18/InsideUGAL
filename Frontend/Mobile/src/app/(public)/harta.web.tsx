@@ -18,9 +18,9 @@ import {
   WebMaxScale,
   WebSidePadding,
 } from "@/constants/theme";
-import Map from "@/components/map";
-import { CategoryHeader } from "@/components/ui/category-header";
-import { WebContainer, WEB_COMPACT_BREAKPOINT } from "@/components/ui/web-container";
+import Map from "@/components/map/map";
+import { CategoryHeader } from "@/components/ui/display/category-header";
+import { WebContainer, WEB_COMPACT_BREAKPOINT } from "@/components/ui/layout/web-container";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import MockData from "@/constants/mock-data.json";
 
