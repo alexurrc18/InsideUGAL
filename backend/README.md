@@ -1,35 +1,68 @@
 # InsideUGAL - Backend API
 
-Acesta este nucleul aplicației **InsideUGAL**, responsabil de logica de business, gestionarea datelor și expunerea API-urilor pentru aplicația mobilă a studenților.
+Acesta este nucleul aplicatiei **InsideUGAL**, responsabil de logica de business, gestionarea datelor si expunerea API-urilor pentru aplicatia mobila a studentilor.
 
 ## Stack Tehnologic
 
 - **Limbaj:** Python 3.10+
 - **Framework API:** FastAPI
 - **Server ASGI:** Uvicorn
-- **Bază de date:** PostgreSQL, găzduit via Supabase
-- **Extensii DB:** PostGIS, pentru geolocații și hartă
+- **Baza de date:** PostgreSQL, gazduit via Supabase
+- **Extensii DB:** PostGIS, pentru geolocatii si harta
 - **ORM / Conectivitate:** SQLAlchemy + geoalchemy2 + psycopg2-binary
 - **Validare date:** Pydantic
-- **Autentificare:** Gestionată nativ via Supabase Auth / JWT
+- **Autentificare:** Gestionata nativ via Supabase Auth / JWT
 
 ## Backend
 
-Tot codul Python al proiectului este organizat în folderul `/backend`. Branch-ul `backend` conține structura curentă pentru API, configurarea FastAPI și rutele de bază pregătite pentru integrarea cu Frontend-ul.
+Codul activ al API-ului este in `app/`. Folderul `backend/` pastreaza configuratia Docker/requirements si notele pentru rularea serviciului.
 
-Baza de date folosită este **PostgreSQL**, găzduită în **Supabase**. Schemele și tabelele sunt gestionate de echipa de Infrastructură, iar backend-ul se conectează la ele prin variabila `DATABASE_URL` definită în fișierul `.env`.
+Baza de date folosita este **PostgreSQL**, gazduita in **Supabase**. Schemele si tabelele sunt gestionate de echipa de infrastructura, iar backend-ul se conecteaza la ele prin variabila `DATABASE_URL` definita in fisierul `.env`.
 
-## Instalare și Configurare
+## Progres backend
 
-### 1. Cerințe preliminare
+Pana acum pe partea de backend au fost implementate:
+
+- FastAPI app cu routere pentru autentificare, profile, anunturi, sesizari, locatii, facultati, categorii, produse, meniuri zilnice si meniuri cantina.
+- SQLAlchemy async cu repository layer in `app/repositories/` pentru acces la baza de date.
+- Scheme Pydantic pentru request/response in `app/models/schemas.py`.
+- Integrare Supabase pentru Auth/JWT si Storage upload pentru imagini la anunturi si sesizari.
+- Verificari de rol pentru admin, responsabili, profesori si utilizatori autentificati.
+- Conversie coordonate PostGIS pentru raspunsurile de locatii.
+- Paginare bounded pentru endpointurile de lista, ca aplicatia mobila sa nu primeasca toate randurile din baza de date intr-un singur request.
+
+### Contract paginare
+
+Endpointurile de tip lista accepta:
+
+- `page`, default `1`, minim `1`
+- `size`, default `20`, maxim `50`
+
+Raspunsul are forma:
+
+```json
+{
+  "items": [],
+  "total": 0,
+  "page": 1,
+  "size": 20,
+  "total_pages": 0
+}
+```
+
+Endpointuri paginate: `/announcements`, `/complaints`, `/locations`, `/faculties`, `/categories`, `/products`, `/profiles`, `/daily-menus`, `/cafeteria_menus`.
+
+## Instalare si Configurare
+
+### 1. Cerinte preliminare
 
 - Python 3.10+
 - Git instalat
-- Credențialele Supabase (`DATABASE_URL`) primite de la echipa de Infrastructură
+- Credentialele Supabase (`DATABASE_URL`) primite de la echipa de infrastructura
 
-### 2. Clonare și navigare
+### 2. Clonare si navigare
 
 ```bash
-git clone [https://github.com/alexurrc18/InsideUGAL.git](https://github.com/alexurrc18/InsideUGAL.git)
+git clone https://github.com/alexurrc18/InsideUGAL.git
 cd InsideUGAL/backend
 ```

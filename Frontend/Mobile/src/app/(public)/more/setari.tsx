@@ -15,7 +15,7 @@ import * as WebBrowser from "expo-web-browser";
 
 import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
-import { CategoryHeader } from "@/components/ui/category-header";
+import { CategoryHeader } from "@/components/ui/display/category-header";
 import { settingsStore } from "@/utils/settings-store";
 
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";

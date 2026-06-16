@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_roles
 from app.api.crud import ensure_exists
+from app.api.pagination import PaginationParams, paginated_response
 from app.db.database import get_db
 from app.models import models, schemas
 from app.repositories.location_repo import LocationRepository
@@ -19,9 +20,13 @@ async def validate_faculty(payload: BaseModel, db: AsyncSession) -> None:
         await ensure_exists(db, models.Faculty, faculty_id, "Faculty not found.")
 
 
-@router.get("/", response_model=list[schemas.LocationResponse])
-async def read_locations(session: AsyncSession = Depends(get_db)):
-    return await repo.get_all_for_response(session)
+@router.get("/", response_model=schemas.PaginatedResponse[schemas.LocationResponse])
+async def read_locations(
+    pagination: PaginationParams = Depends(),
+    session: AsyncSession = Depends(get_db),
+):
+    items, total = await repo.get_page_for_response(session, limit=pagination.size, offset=pagination.offset)
+    return paginated_response(items, total, pagination)
 
 
 @router.get("/{location_id}", response_model=schemas.LocationResponse)

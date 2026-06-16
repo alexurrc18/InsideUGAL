@@ -4,11 +4,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.database import get_db
 from app.api.auth_deps import require_admin
+from app.api.pagination import PaginationParams, paginated_response
+from app.db.database import get_db
+from app.models import schemas
 
 ValidatePayload = Callable[[BaseModel, AsyncSession], Awaitable[None]]
 
@@ -55,10 +57,16 @@ def create_crud_router(
         await db.refresh(db_item)
         return db_item
 
-    @router.get("/", response_model=list[response_schema])  # type: ignore[valid-type]
-    async def list_items(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
-        result = await db.execute(select(model).offset(skip).limit(limit))
-        return result.scalars().all()
+    @router.get("/", response_model=schemas.PaginatedResponse[response_schema])  # type: ignore[valid-type]
+    async def list_items(
+        pagination: PaginationParams = Depends(),
+        db: AsyncSession = Depends(get_db),
+    ):
+        total_result = await db.execute(select(func.count()).select_from(model))
+        total = total_result.scalar_one()
+
+        result = await db.execute(select(model).offset(pagination.offset).limit(pagination.size))
+        return paginated_response(list(result.scalars().all()), total, pagination)
 
     @router.get("/{item_id}", response_model=response_schema) # type: ignore[valid-type]
     async def get_item(item_id: str, db: AsyncSession = Depends(get_db)):  

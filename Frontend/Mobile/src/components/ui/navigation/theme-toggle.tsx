@@ -9,6 +9,8 @@ interface ThemeToggleProps {
   color?: string;
   /** Culoarea cercului. Implicit gri-ul navbarului web (#272727). */
   backgroundColor?: string;
+  /** Daca e setata, deseneaza un border circular de aceasta culoare (fundal poate fi transparent). */
+  borderColor?: string;
   size?: number;
 }
 
@@ -16,7 +18,7 @@ interface ThemeToggleProps {
  * Buton care comuta tema (DOAR pe web). Foloseste ThemeContext, deci
  * trebuie montat in interiorul unui <ThemeProvider>.
  */
-export function ThemeToggle({ color = ColorScheme.white, backgroundColor = "#272727", size = 24 }: ThemeToggleProps) {
+export function ThemeToggle({ color = ColorScheme.white, backgroundColor = "#272727", borderColor, size = 24 }: ThemeToggleProps) {
   const { scheme, toggleTheme } = useThemeContext();
   const isDark = scheme === "dark";
 
@@ -38,6 +40,7 @@ export function ThemeToggle({ color = ColorScheme.white, backgroundColor = "#272
           borderRadius: 999,
           alignItems: "center",
           justifyContent: "center",
+          ...(borderColor ? { borderWidth: 1, borderColor } : {}),
         }}
       >
         <Icon width={size} height={size} color={color} />

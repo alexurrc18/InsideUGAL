@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_roles
+from app.api.pagination import PaginationParams, paginated_response
 from app.db.database import get_db
 from app.models import schemas
 from app.repositories.faculty_repo import FacultyRepository
@@ -11,9 +12,13 @@ repo = FacultyRepository()
 manage_faculties = require_roles(schemas.UserRole.HEAD_ADMIN, schemas.UserRole.HEAD_FACULTATI)
 
 
-@router.get("/", response_model=list[schemas.FacultyResponse])
-async def read_faculties(session: AsyncSession = Depends(get_db)):
-    return await repo.get_all(session)
+@router.get("/", response_model=schemas.PaginatedResponse[schemas.FacultyResponse])
+async def read_faculties(
+    pagination: PaginationParams = Depends(),
+    session: AsyncSession = Depends(get_db),
+):
+    items, total = await repo.get_page(session, limit=pagination.size, offset=pagination.offset)
+    return paginated_response(items, total, pagination)
 
 
 @router.get("/{faculty_id}", response_model=schemas.FacultyResponse)

@@ -49,7 +49,7 @@
       "facultyId": "f5",
       "category": "Noutăți",
       "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRrvLpegvQvOniv6QIbBLAB50za2oHinfK75g&s",
-      "content": "Învață bazele designului grafic folosind instrumente moderne. Workshop-ul este gratuit pentru toți studenții UGAL.",
+      "content": "Te invităm la un workshop intensiv de design grafic organizat în acest weekend (Sâmbătă și Duminică, 27-28 Mai, între orele 10:00 și 14:00). Evenimentul se va desfășura în format fizic la Facultatea de Litere (Corp A, sala A12) și este complet gratuit pentru toți studenții UGAL.\n\nCe vom aborda pe parcursul celor două zile?\n- Introducere în Design Thinking și principiile fundamentale ale designului de interfață (UI/UX).\n- Fundamentele designului vizual: structură și layout, teoria culorilor, contraste și ierarhie tipografică.\n- Figma de la zero la avansați: lucrul cu componente flexibile, auto-layout și realizarea de prototipuri animate interactive.\n- Cum se construiește un design system simplu și scalabil.\n- Portofoliul de design: sfaturi practice despre cum să-ți prezinți proiectele pentru a atrage atenția recrutorilor.\n\nCerințe de participare:\n- Laptop personal cu un browser web actualizat (recomandat Chrome/Firefox).\n- Un cont gratuit pe platforma Figma creat în prealabil.\n- Dorință de implicare și mult entuziasm!\n\nNu este necesară experiență anterioară în utilizarea uneltelor de design grafic, cursul fiind structurat pentru a fi accesibil oricărui nivel de pregătire. Înscrierile sunt deschise până Vineri la ora 18:00 și se pot face prin completarea formularului primit pe adresa de email instituțională sau prin scanarea codului QR de la avizierul corpului A. Locurile sunt limitate la maximum 25 de participanți pentru a asigura o coordonare interactivă de calitate.",
       "author_title": "Senior Designer"
     },
     {
@@ -78,6 +78,32 @@
       "image": "https://feaa.ugal.ro/wp-content/uploads/feaa-amalia-paharnicu.jpg",
       "content": "Au fost afișate listele parțiale pentru bursele de merit aferente semestrului al doilea. Contestațiile se depun online.",
       "author_title": "Secretariat"
+    },
+    {
+      "id": "7",
+      "title": "Concurs de Programare UGAL Coding",
+      "date_start": "12 decembrie 2026",
+      "time_start": "09:00",
+      "date_end": "12 decembrie 2026",
+      "time_end": "15:00",
+      "posted_at": "1 decembrie 2026",
+      "author": "Asociația Studenților ACIEE",
+      "facultyId": "f1",
+      "category": "Evenimente",
+      "image": "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=1000",
+      "content": "Concursul anual de programare destinat studenților din cadrul ACIEE. Demonstrează-ți abilitățile și câștigă premii importante.",
+      "location": "Sala Computere, Corp Y"
+    },
+    {
+      "id": "8",
+      "title": "Lansarea platformei online InsideUGAL",
+      "date": "10 iunie 2026",
+      "posted_at": "8 iunie 2026",
+      "author": "Echipa IT UGAL",
+      "category": "Noutăți",
+      "image": "https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=1000",
+      "content": "A fost lansată noua platformă mobilă și web InsideUGAL pentru studenți. Află cele mai recente noutăți și programări într-un singur loc.",
+      "author_title": "Project Lead IT"
     }
   ],
   "faculties": [

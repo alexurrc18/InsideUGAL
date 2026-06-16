@@ -2,6 +2,9 @@
 
 import { Bell, UserRound } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { useTheme } from "../../providers";
+import { useRouter } from "next/navigation"; // 1. Am adăugat importul pentru router
+import { apiBaseUrl } from "@/lib/api-client";
 
 interface Announcement {
   id: number;
@@ -14,6 +17,8 @@ interface Announcement {
 const STORAGE_KEY = "last_seen_announcement_id";
 
 export default function HeaderActions() {
+  const router = useRouter(); // 2. Am inițializat router-ul aici
+  const { isDark, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(false);
@@ -25,9 +30,7 @@ export default function HeaderActions() {
       setLoading(true);
       try {
         // Fallback de siguranță: dacă nu găsește .env, folosește direct adresa locală
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-        
-        const res = await fetch(`${baseUrl}/announcements/`);
+        const res = await fetch(`${apiBaseUrl}/announcements/`);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         
         const data: Announcement[] = await res.json();
@@ -145,9 +148,11 @@ export default function HeaderActions() {
         )}
       </div>
 
+      {/* User - Acum trimite către pagina de login */}
       <button
         type="button"
         aria-label="Cont"
+        onClick={() => router.push("/login")} // 3. Am adăugat acțiunea de navigare
         className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
       >
         <UserRound size={18} />

@@ -3,7 +3,7 @@ import { View, Text, useColorScheme, Pressable, ScrollView } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
-import { CategoryHeader } from "@/components/ui/category-header";
+import { CategoryHeader } from "@/components/ui/display/category-header";
 import { Typography } from "@/constants/typography";
 import MockData from "@/constants/mock-data.json";
 
@@ -47,11 +47,9 @@ export default function MoreScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingTop: insets.top + Spacing.md,
           paddingBottom: insets.bottom + Spacing.xxl,
         }}
       >
-        <CategoryHeader title="Mai multe" />
 
         {/* Profile & Settings Grid */}
         <View 

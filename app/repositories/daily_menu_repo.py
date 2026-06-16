@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -17,6 +17,26 @@ class DailyMenuRepository(CRUDRepository[DailyMenu]):
 
         result = await session.execute(query)
         return list(result.scalars().unique().all())
+
+    async def get_page(
+        self,
+        session: AsyncSession,
+        *,
+        limit: int,
+        offset: int,
+        day_of_week: int | None = None,
+    ) -> tuple[list[DailyMenu], int]:
+        query = select(DailyMenu).options(selectinload(DailyMenu.products)).order_by(DailyMenu.day_of_week.asc())
+        count_query = select(DailyMenu)
+        if day_of_week is not None:
+            query = query.where(DailyMenu.day_of_week == day_of_week)
+            count_query = count_query.where(DailyMenu.day_of_week == day_of_week)
+
+        total_result = await session.execute(select(func.count()).select_from(count_query.subquery()))
+        total = total_result.scalar_one()
+
+        result = await session.execute(query.limit(limit).offset(offset))
+        return list(result.scalars().unique().all()), total
 
     async def get_by_id(self, session: AsyncSession, menu_id: int) -> DailyMenu | None:
         result = await session.execute(

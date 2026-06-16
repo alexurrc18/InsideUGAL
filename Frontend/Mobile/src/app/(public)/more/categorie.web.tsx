@@ -1,11 +1,14 @@
 import React, { useState } from "react";
-import { View, Text, useColorScheme, Linking, Pressable, Animated } from "react-native";
+import { View, Text, Linking, Pressable, Animated } from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
-import { Colors, Spacing, WebSidePadding } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
-import { NewsCard } from "@/components/ui/news-card";
-import { CategoryHeader } from "@/components/ui/category-header";
+import { NewsCard } from "@/components/ui/display/news-card";
+import { CategoryHeader } from "@/components/ui/display/category-header";
+import { WebContainer } from "@/components/ui/layout/web-container";
+import { useWebContentTop } from "@/hooks/use-web-content-top";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import MOCK_DATA from "@/constants/mock-data.json";
 
@@ -14,6 +17,7 @@ export default function MoreCategoryScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
+  const contentTop = useWebContentTop();
   const router = useRouter();
 
   const [scrollY] = useState(() => new Animated.Value(0));
@@ -46,7 +50,10 @@ export default function MoreCategoryScreen() {
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <Stack.Screen
         options={{
-          headerShown: true,
+          // Pe web nu aratam header-ul de Stack: WebNavbar-ul (overlay) il acopera
+          // oricum, deci era doar spatiu mort care impingea continutul mai jos decat
+          // pe sesizari/harta. Asa top-ul se aliniaza cu celelalte pagini.
+          headerShown: false,
           headerShadowVisible: false,
           headerStyle: {
             backgroundColor: theme.background,
@@ -85,8 +92,8 @@ export default function MoreCategoryScreen() {
 
       <Animated.ScrollView 
         style={{ flex: 1 }} 
-        contentContainerStyle={{ 
-          paddingTop: insets.top + 140,
+        contentContainerStyle={{
+          paddingTop: contentTop,
           paddingBottom: insets.bottom + Spacing.xxl
         }}
         onScroll={Animated.event(
@@ -95,16 +102,16 @@ export default function MoreCategoryScreen() {
         )}
         scrollEventThrottle={16}
       >
-        <View style={{ width: "100%", paddingHorizontal: WebSidePadding }}>
+        <WebContainer>
           <View style={{ marginBottom: Spacing.lg }}>
-            <CategoryHeader 
+            <CategoryHeader
               title={(categoryTitle as string) || "Ghid"}
             />
           </View>
 
           <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>
             {filteredData.map((item: any) => (
-              <NewsCard 
+              <NewsCard
                 key={item.id}
                 variant="list"
                 title={item.title}
@@ -120,7 +127,7 @@ export default function MoreCategoryScreen() {
               Nu există elemente în această categorie.
             </Text>
           )}
-        </View>
+        </WebContainer>
       </Animated.ScrollView>
     </View>
   );
