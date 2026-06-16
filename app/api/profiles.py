@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from supabase import Client, create_client
 
 from app.api.auth_deps import get_current_profile, require_admin
+from app.api.pagination import PaginationParams, paginated_response
 from app.db.database import get_db
 from app.models import schemas
 from app.repositories.profile_repo import ProfileRepository
@@ -25,9 +26,14 @@ router = APIRouter(prefix="/profiles", tags=["Profiles"])
 repo = ProfileRepository()
 
 
-@router.get("/", response_model=list[schemas.ProfileResponse])
-async def read_profiles(session: AsyncSession = Depends(get_db), current_user: str = Depends(require_admin)):
-    return await repo.get_all(session)
+@router.get("/", response_model=schemas.PaginatedResponse[schemas.ProfileResponse])
+async def read_profiles(
+    pagination: PaginationParams = Depends(),
+    session: AsyncSession = Depends(get_db),
+    current_user: str = Depends(require_admin),
+):
+    items, total = await repo.get_page(session, limit=pagination.size, offset=pagination.offset)
+    return paginated_response(items, total, pagination)
 
 
 @router.get("/me", response_model=schemas.ProfileResponse)

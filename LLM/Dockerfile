@@ -1,18 +1,29 @@
-FROM python:3.11-slim
+# Build stage
+FROM python:3.11-slim as builder
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+WORKDIR /app
 
-WORKDIR /app/LLM
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc g++ \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+COPY requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
 
+# Final stage
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copy installed dependencies from builder
+COPY --from=builder /root/.local /root/.local
 COPY . .
+
+# Ensure scripts in .local/bin are in PATH
+ENV PATH=/root/.local/bin:$PATH
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 

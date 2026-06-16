@@ -12,6 +12,18 @@
   --brand: #003a70;
 }
 
+html.dark {
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --card: #1e293b;
+  --border: #334155;
+  --muted: #94a3b8;
+  --sidebar: #003a70;
+  --sidebar-active: rgba(255, 255, 255, 0.16);
+  --sidebar-muted: #cbd5e1;
+  --brand: #003a70;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

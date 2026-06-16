@@ -49,7 +49,7 @@
       "facultyId": "f5",
       "category": "Noutăți",
       "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRrvLpegvQvOniv6QIbBLAB50za2oHinfK75g&s",
-      "content": "Învață bazele designului grafic folosind instrumente moderne. Workshop-ul este gratuit pentru toți studenții UGAL.",
+      "content": "Te invităm la un workshop intensiv de design grafic organizat în acest weekend (Sâmbătă și Duminică, 27-28 Mai, între orele 10:00 și 14:00). Evenimentul se va desfășura în format fizic la Facultatea de Litere (Corp A, sala A12) și este complet gratuit pentru toți studenții UGAL.\n\nCe vom aborda pe parcursul celor două zile?\n- Introducere în Design Thinking și principiile fundamentale ale designului de interfață (UI/UX).\n- Fundamentele designului vizual: structură și layout, teoria culorilor, contraste și ierarhie tipografică.\n- Figma de la zero la avansați: lucrul cu componente flexibile, auto-layout și realizarea de prototipuri animate interactive.\n- Cum se construiește un design system simplu și scalabil.\n- Portofoliul de design: sfaturi practice despre cum să-ți prezinți proiectele pentru a atrage atenția recrutorilor.\n\nCerințe de participare:\n- Laptop personal cu un browser web actualizat (recomandat Chrome/Firefox).\n- Un cont gratuit pe platforma Figma creat în prealabil.\n- Dorință de implicare și mult entuziasm!\n\nNu este necesară experiență anterioară în utilizarea uneltelor de design grafic, cursul fiind structurat pentru a fi accesibil oricărui nivel de pregătire. Înscrierile sunt deschise până Vineri la ora 18:00 și se pot face prin completarea formularului primit pe adresa de email instituțională sau prin scanarea codului QR de la avizierul corpului A. Locurile sunt limitate la maximum 25 de participanți pentru a asigura o coordonare interactivă de calitate.",
       "author_title": "Senior Designer"
     },
     {
@@ -78,6 +78,32 @@
       "image": "https://feaa.ugal.ro/wp-content/uploads/feaa-amalia-paharnicu.jpg",
       "content": "Au fost afișate listele parțiale pentru bursele de merit aferente semestrului al doilea. Contestațiile se depun online.",
       "author_title": "Secretariat"
+    },
+    {
+      "id": "7",
+      "title": "Concurs de Programare UGAL Coding",
+      "date_start": "12 decembrie 2026",
+      "time_start": "09:00",
+      "date_end": "12 decembrie 2026",
+      "time_end": "15:00",
+      "posted_at": "1 decembrie 2026",
+      "author": "Asociația Studenților ACIEE",
+      "facultyId": "f1",
+      "category": "Evenimente",
+      "image": "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=1000",
+      "content": "Concursul anual de programare destinat studenților din cadrul ACIEE. Demonstrează-ți abilitățile și câștigă premii importante.",
+      "location": "Sala Computere, Corp Y"
+    },
+    {
+      "id": "8",
+      "title": "Lansarea platformei online InsideUGAL",
+      "date": "10 iunie 2026",
+      "posted_at": "8 iunie 2026",
+      "author": "Echipa IT UGAL",
+      "category": "Noutăți",
+      "image": "https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=1000",
+      "content": "A fost lansată noua platformă mobilă și web InsideUGAL pentru studenți. Află cele mai recente noutăți și programări într-un singur loc.",
+      "author_title": "Project Lead IT"
     }
   ],
   "faculties": [
@@ -298,5 +324,273 @@
     { "id": "b11", "name": "Cantina Universitate", "facultyId": "f8", "lat": 45.43887442628822, "lng": 28.056094396753004, "description": "Cantină studențească." },
     { "id": "b12", "name": "Centrul de Consiliere", "facultyId": "f8", "lat": 45.43843053625073, "lng": 28.056011430581535, "description": "Centrul de Consiliere și Orientare în Carieră.", "schedule": "Luni-Vineri: 08:00 - 14:00" },
     { "id": "b13", "name": "Cabinet Medical", "facultyId": "f8", "lat": 45.45335468796397, "lng": 28.05171517115972, "description": "Cabinet Medical studențesc." }
+  ],
+  "reports": [
+    {
+      "id": "1",
+      "title": "Problemă cu încălzirea în sala de curs",
+      "category": "Infrastructură",
+      "status": "active",
+      "date": "8 iunie 2026",
+      "description": "Caloriferul din laboratorul 302 nu se încălzește suficient de ieri seară. Este destul de frig în sală.",
+      "location": "Corp D",
+      "isUserReport": true,
+      "image": "https://campus.ugal.ro/ccps/wp-content/uploads/photo-gallery/DJI_0238.jpg?bwg=1639133115",
+      "images": [
+        "https://campus.ugal.ro/ccps/wp-content/uploads/photo-gallery/DJI_0238.jpg?bwg=1639133115",
+        "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?q=80&w=1000",
+        "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=1000"
+      ]
+    },
+    {
+      "id": "2",
+      "title": "Bec ars pe coridorul principal",
+      "category": "Iluminat public",
+      "status": "finalizate",
+      "date": "2 iunie 2026",
+      "description": "Becul principal din fața sălii de conferințe s-a ars de câteva zile.",
+      "location": "Corp Y",
+      "isUserReport": true,
+      "image": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=1000",
+      "images": [
+        "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=1000",
+        "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?q=80&w=1000"
+      ]
+    },
+    {
+      "id": "3",
+      "title": "Ușă defectă la sala de curs B02",
+      "category": "Infrastructură",
+      "status": "respinse",
+      "date": "25 mai 2026",
+      "description": "Mecanismul de închidere al ușii de la sala B02 este blocat și ușa nu se mai închide complet.",
+      "location": "Corp D (Domnească)",
+      "isUserReport": false,
+      "image": "https://litere.ugal.ro/images/2018/litere.gif",
+      "images": [
+        "https://litere.ugal.ro/images/2018/litere.gif",
+        "https://images.unsplash.com/photo-1590069261209-f8e9b8642343?q=80&w=1000"
+      ]
+    },
+    {
+      "id": "4",
+      "title": "Filtru de apă nefuncțional",
+      "category": "Facilități",
+      "status": "active",
+      "date": "7 iunie 2026",
+      "description": "Dispenserul de apă de la etajul 1 al corpului D nu mai curge deloc.",
+      "location": "Corp D",
+      "isUserReport": false,
+      "image": "https://biblioteca.ugal.ro/images/logo-new.jpeg",
+      "images": [
+        "https://biblioteca.ugal.ro/images/logo-new.jpeg"
+      ]
+    },
+    {
+      "id": "5",
+      "title": "Geam crăpat în laboratorul de informatică",
+      "category": "Infrastructură",
+      "status": "finalizate",
+      "date": "5 iunie 2026",
+      "description": "Geamul din colțul drept al sălii de calculatoare s-a fisurat în urma unei furtuni.",
+      "location": "Corp AN",
+      "isUserReport": false,
+      "image": "https://ing.ugal.ro/Resurse/2024/WhatsApp_Image_2024-09-17_at_11.48.08.jpeg",
+      "images": [
+      ]
+    }
+  ],
+  "cityGuideCategories": [
+    { "id": "transport", "title": "Transport", "description": "Autobuze, troleibuze, tramvaie și trenuri", "iconName": "bus" },
+    { "id": "muzee", "title": "Muzee", "description": "Istorie, artă vizuală și științe", "iconName": "dino" },
+    { "id": "divertisment", "title": "Divertisment", "description": "Teatre, cinema și cumpărături", "iconName": "film-roll-alt" },
+    { "id": "parcuri", "title": "Parcuri", "description": "Faleza Dunării și spații verzi", "iconName": "tree-alt" }
+  ],
+  "cityGuide": [
+    {
+      "id": "cg1",
+      "title": "Transurb Galați",
+      "categoryId": "transport",
+      "image": "https://transurbgalati.ro/includes/img/Program_Circulatie_Imagine2.png",
+      "address": "Transport Public Local",
+      "website": "https://transurbgalati.ro/"
+    },
+    {
+      "id": "cg2",
+      "title": "Bolt",
+      "categoryId": "transport",
+      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSxTOYvyvSt5h77CUAcdV4JYlRLXl0DmdToNg&s",
+      "address": "Ridesharing",
+      "website": "https://bolt.eu/"
+    },
+    {
+      "id": "cg3",
+      "title": "Uber",
+      "categoryId": "transport",
+      "image": "https://cdn.mos.cms.futurecdn.net/tQxVwcJSowYD7xwWDYidd9.jpg",
+      "address": "Ridesharing",
+      "website": "https://www.uber.com/ro/en/"
+    },
+    {
+      "id": "cg4",
+      "title": "CFR Călători",
+      "categoryId": "transport",
+      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRnLckileJO0qaWVplVmWNlGduyFW16ffQGbA&s",
+      "address": "Transport Feroviar",
+      "website": "https://bilete.cfrcalatori.ro/ro-RO/Itineraries"
+    },
+    {
+      "id": "cg5",
+      "title": "Complexul Muzeal de Ştiinţele Naturii \"Răzvan Angheluţă\"",
+      "categoryId": "muzee",
+      "image": "https://cmsngl.ro/wp-content/uploads/2025/12/1.-Home-coperta-site.jpg",
+      "address": "Str. Regimentul 11 Siret, 1",
+      "website": "http://www.cmsngl.ro"
+    },
+    {
+      "id": "cg7",
+      "title": "Muzeul de Artă Vizuală",
+      "categoryId": "muzee",
+      "image": "https://ghidulmuzeelor.cimec.ro/P/Ghid/6934502_02.jpg",
+      "address": "Strada Tecuci nr.7, bloc V3",
+      "website": "http://www.mavgl.ro"
+    },
+    {
+      "id": "cg8",
+      "title": "Teatrul Dramatic „Fani Tardini”",
+      "categoryId": "divertisment",
+      "image": "https://fanitardini.ro/wp-content/uploads/2025/08/2021.03.11-Cum-ajungi-la-teatru.jpg",
+      "address": "Strada Domnească nr. 59",
+      "website": "https://www.fanitardini.ro/"
+    },
+    {
+      "id": "cg9",
+      "title": "Teatrul Național de Operă și Operetă „Nae Leonard”",
+      "categoryId": "divertisment",
+      "image": "https://naeleonard.ro/wp-content/uploads/2018/04/teatrul-muzical-nae-leonard_702.jpg",
+      "address": "Strada Mihai Bravu nr. 50",
+      "website": "https://www.naeleonard.ro/"
+    },
+    {
+      "id": "cg10",
+      "title": "Cinema City",
+      "categoryId": "divertisment",
+      "image": "https://www.filmneweurope.com/media/k2/items/cache/7c4c9e3c9a7b3f2addccba76aeb9c9b5_XL.jpg",
+      "address": "Bulevardul George Coșbuc nr. 251",
+      "website": "https://www.cinemacity.ro/"
+    },
+    {
+      "id": "cg11",
+      "title": "Shopping City Galați",
+      "categoryId": "divertisment",
+      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTaBKjGIOcBKCuW_NOsO0WrFLhV_JGvZrc20g&s",
+      "address": "Bulevardul George Coșbuc nr. 251",
+      "website": "https://shoppingcitygalati.ro/"
+    },
+    {
+      "id": "cg12",
+      "title": "Faleza Dunării",
+      "categoryId": "parcuri",
+      "image": "https://www.bursa.ro/_img/articole/mare/402892.jpg",
+      "address": "Bulevardul Marea Unire, Galați",
+      "website": "https://www.viziteazagalati.ro/"
+    },
+    {
+      "id": "cg13",
+      "title": "Grădina Publică",
+      "categoryId": "parcuri",
+      "image": "https://scontent.ftce2-1.fna.fbcdn.net/v/t39.30808-6/503431772_3062836593885042_847571313377193039_n.jpg?stp=dst-jpg_tt6&cstp=mx2048x1150&ctp=s2048x1150&_nc_cat=103&ccb=1-7&_nc_sid=0b6b33&_nc_ohc=arW2I5eoeDgQ7kNvwFnmmye&_nc_oc=Adpszgy2uZly2F5RMtT_2NkZVfCat2w6fClxI_ZCYK8Ap55vX06-ATqmUpOdISWDvNqbFTwIHReHHZn0Je6rttIC&_nc_zt=23&_nc_ht=scontent.ftce2-1.fna&_nc_gid=DEUoi1gOJRYl1N_DcBv2mg&_nc_ss=7b2a8&oh=00_Af8w5mAiUVqmySSPFJQZ9QO6r-GwXKrDy6xe1H4i5Kv_SQ&oe=6A2F8A88",
+      "address": "Strada Domnească, Galați",
+      "website": ""
+    },
+    {
+      "id": "cg14",
+      "title": "Parcul \"Mihai Eminescu\"",
+      "categoryId": "parcuri",
+      "image": "https://www.viata-libera.ro/images/galerie/eminescu9sept2019/07.jpg",
+      "address": "Strada Domnească, Galați",
+      "website": ""
+    },
+    {
+      "id": "cg21",
+      "title": "Parcul \"Carol I\"",
+      "categoryId": "parcuri",
+      "image": "https://presagalati.ro/wp-content/uploads/2023/08/366329328_865720094912638_8561746592446678372_n.jpg",
+      "address": "Strada Domnească nr. 251, Galați",
+      "website": ""
+    },
+    {
+      "id": "cg28",
+      "title": "Spicu / Aleea de la P-uri",
+      "categoryId": "parcuri",
+      "image": "https://telem.ro/wp-content/uploads/2023/11/centru-Galati.jpg",
+      "address": "Strada Domnească, Galați",
+      "website": ""
+    },
+    {
+      "id": "cg22",
+      "title": "Parcul Turn TV",
+      "categoryId": "parcuri",
+      "image": "https://www.bursa.ro/_img/articole/mare/488960.jpg",
+      "address": "Strada Victor Vâlcovici nr. 2, Galați",
+      "website": ""
+    },
+    {
+      "id": "cg23",
+      "title": "Parcul Corneliu Coposu",
+      "categoryId": "parcuri",
+      "image": "https://cdn.adh.reperio.news/image-d/df93b06f-a6cf-4cc5-90e5-28d987f1080d/index.jpeg?p=w%3D650%26f%3Dwebp%26q%3D91",
+      "address": "Strada Cloșca, Galați",
+      "website": ""
+    },
+    {
+      "id": "cg24",
+      "title": "Parcul de aventură",
+      "categoryId": "parcuri",
+      "image": "https://www.radiovacanta.ro/wp-content/uploads/2023/07/galati-parc-aventura-foto-primaria-galati.jpg",
+      "address": "Strada Saturn nr. 42, Galați",
+      "website": ""
+    },
+    {
+      "id": "cg25",
+      "title": "Parcul Rizer",
+      "categoryId": "parcuri",
+      "image": "https://cdn.adh.reperio.news/image-1/13ef753e-4453-474d-a156-4439d31b0c06/index.jpeg?p=a%3D1%26co%3D1.05%26w%3D700%26h%3D750%26r%3Dcontain%26f%3Dwebp",
+      "address": "Strada Traian nr. 199, Galați",
+      "website": ""
+    },
+    {
+      "id": "cg26",
+      "title": "Parc Aventura \"Pădurea Gârboavele\"",
+      "categoryId": "parcuri",
+      "image": "https://cdn.adh.reperio.news/image-a/afa14d36-4370-4ca4-aa19-f1bdb1db8453/index.jpeg?p=f%3Djpeg%26w%3D1200%26h%3D630%26r%3Dcover",
+      "address": "Pădurea Gârboavele, Comuna Tulucești, Galați",
+      "website": "https://www.spjadppgalati.ro/escape-land/"
+    },
+    {
+      "id": "cg27",
+      "title": "Parcul Viva",
+      "categoryId": "parcuri",
+      "image": "https://www.ct100.ro/wp-content/uploads/2022/06/parcul-viva-galati-7.jpg",
+      "address": "Strada Regimentul 11 Siret, Galați",
+      "website": ""
+    },
+
+    {
+      "id": "cg19",
+      "title": "Dunărea Mall",
+      "categoryId": "divertisment",
+      "image": "https://lh3.googleusercontent.com/gps-cs-s/APNQkAErgXErUviW3PxNFgfUiAjx-UL8ChJI2rQnMtCRhLZDTP_bWAHzADRqvzMkfd8I7D_5TlCVWq3wmFSiyk_FDbnuVBk8qHYuPZGAayCRXIFVM-UWuy8rKLiT8egSrblzyLfwi2zlVL_6S52s=s1360-w1360-h1020",
+      "address": "Strada Brăilei nr. 220 A",
+      "website": ""
+    },
+    {
+      "id": "cg20",
+      "title": "Winmarkt Galați",
+      "categoryId": "divertisment",
+      "image": "https://www.bikeworks.ro/wp-content/uploads/2017/05/winmarkt-galati.jpg",
+      "address": "Strada Domnească nr. 24",
+      "website": "https://www.winmarkt.ro/galati/"
+    }
   ]
 }
