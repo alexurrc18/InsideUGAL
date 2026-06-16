@@ -8,7 +8,7 @@ import {
 import { useTheme } from '@/hooks/use-theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { InteractiveGlass } from './ui/interactive-glass';
+import { InteractiveGlass } from './interactive-glass';
 import SparkleIcon from '@/assets/icons/svg/message-circle-star.svg';
 
 export function Ace() {

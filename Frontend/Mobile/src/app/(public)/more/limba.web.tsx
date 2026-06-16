@@ -11,8 +11,8 @@ import { useRouter, Stack } from "expo-router";
 
 import { Colors, Spacing, WebSidePadding } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
-import { CategoryHeader } from "@/components/ui/category-header";
-import { WebContainer } from "@/components/ui/web-container";
+import { CategoryHeader } from "@/components/ui/display/category-header";
+import { WebContainer } from "@/components/ui/layout/web-container";
 import { settingsStore } from "@/utils/settings-store";
 
 import CloseIcon from "@/assets/icons/svg/x.svg";

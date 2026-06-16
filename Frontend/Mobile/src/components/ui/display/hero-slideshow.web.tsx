@@ -18,13 +18,13 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
-import { WebContainer } from "@/components/ui/web-container";
+import { WebContainer } from "@/components/ui/layout/web-container";
 import { getFormattedDate } from "@/utils/date";
-import { CategoryTag } from "@/components/ui/news-card";
+import { CategoryTag } from "@/components/ui/display/news-card";
 
-export const HERO_HEIGHT = 560;
-const HERO_INTERVAL = 7000;
-const FADE_DURATION = 550;
+import { HERO_INTERVAL, FADE_DURATION, HERO_HEIGHT_WEB as HERO_HEIGHT } from "./hero-config";
+
+export { HERO_HEIGHT };
 
 export interface HeroSlide {
   id: string;
@@ -92,7 +92,7 @@ export function HeroSlideshow({ slides, onPressItem }: HeroSlideshowProps) {
           />
 
           <LinearGradient
-            colors={["transparent", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.85)"]}
+            colors={["transparent", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.8)"]}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
             style={StyleSheet.absoluteFill}

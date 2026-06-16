@@ -4,13 +4,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
 
-import { WebContainer } from "@/components/ui/web-container";
-import { Carousel } from "@/components/ui/carousel";
-import { CAROUSEL_CARD_MARGIN } from "@/components/ui/carousel.shared";
-import { NewsCard } from "@/components/ui/news-card";
-import { HeroSlideshow, HERO_HEIGHT } from "@/components/ui/hero-slideshow";
-import { HomeHighlights } from "@/components/ui/home-highlights";
-import { NAVBAR_HEIGHT } from "@/components/ui/web-navbar";
+import { WebContainer } from "@/components/ui/layout/web-container";
+import { Carousel } from "@/components/ui/display/carousel/carousel";
+import { CAROUSEL_CARD_MARGIN } from "@/components/ui/display/carousel/carousel.shared";
+import { NewsCard } from "@/components/ui/display/news-card";
+import { HeroSlideshow, HERO_HEIGHT } from "@/components/ui/display/hero-slideshow.web";
+import { HomeHighlights } from "@/components/ui/display/home-highlights";
+import { NAVBAR_HEIGHT } from "@/components/ui/navigation/web-navbar";
 import { getFormattedDate, parseRomanianDate } from "@/utils/date";
 import { useWebScrollAware } from "@/contexts/web-scroll-context";
 import MOCK_DATA from "@/constants/mock-data.json";
@@ -106,6 +106,7 @@ export default function HomeScreen() {
             renderItem={({ item, index }) => (
               <NewsCard
                 title={item.title}
+                category={item.category}
                 date={getFormattedDate(item.date)}
                 author={item.author}
                 image={item.image}
@@ -122,6 +123,7 @@ export default function HomeScreen() {
             renderItem={({ item, index }) => (
               <NewsCard
                 title={item.title}
+                category={item.category}
                 date={getFormattedDate(item.date_start || item.date)}
                 author={item.author}
                 image={item.image}

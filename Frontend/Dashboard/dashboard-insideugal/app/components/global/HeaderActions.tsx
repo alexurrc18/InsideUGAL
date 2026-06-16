@@ -2,6 +2,8 @@
 
 import { Bell, UserRound } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { useTheme } from "../../providers";
+import { useRouter } from "next/navigation"; // 1. Am adăugat importul pentru router
 import { apiBaseUrl } from "@/lib/api-client";
 
 interface Announcement {
@@ -15,6 +17,8 @@ interface Announcement {
 const STORAGE_KEY = "last_seen_announcement_id";
 
 export default function HeaderActions() {
+  const router = useRouter(); // 2. Am inițializat router-ul aici
+  const { isDark, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(false);
@@ -144,9 +148,11 @@ export default function HeaderActions() {
         )}
       </div>
 
+      {/* User - Acum trimite către pagina de login */}
       <button
         type="button"
         aria-label="Cont"
+        onClick={() => router.push("/login")} // 3. Am adăugat acțiunea de navigare
         className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
       >
         <UserRound size={18} />

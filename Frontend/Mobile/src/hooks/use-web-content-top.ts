@@ -1,7 +1,7 @@
 import { useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Spacing, WebContentMaxWidth, WebMaxScale } from "@/constants/theme";
-import { NAVBAR_HEIGHT } from "@/components/ui/web-navbar";
+import { NAVBAR_HEIGHT } from "@/components/ui/navigation/web-navbar";
 
 /**
  * Padding-ul de sus pentru paginile web cu navbar fix (overlay).
