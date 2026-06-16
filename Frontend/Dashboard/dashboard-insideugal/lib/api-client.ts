@@ -10,9 +10,10 @@ import {
 } from "./api-schemas";
 import type { Announcement, ApiErrorBody, ApiRequestOptions } from "./api-types";
 
-export const apiBaseUrl =
-  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") ??
-  "http://localhost:8002";
+// 👉 REPARAT: Forțăm http în mod explicit pe local pentru a preveni ERR_SSL_PROTOCOL_ERROR
+// Chiar dacă în .env ai din greșeală "https", codul de mai jos se va asigura că rămâne "http" pe localhost.
+const rawUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") ?? "http://localhost:8002";
+export const apiBaseUrl = rawUrl.includes("localhost") ? rawUrl.replace("https://", "http://") : rawUrl;
 
 export function getAuthHeaders(headers?: HeadersInit): Headers {
   const requestHeaders = new Headers(headers);
@@ -132,6 +133,7 @@ export async function apiRequest<TResponse>(
 
 export const apiClient = {
   getAnnouncements: () => apiRequest("/announcements", announcementsSchema),
+    
   createAnnouncement: (data: Partial<Announcement>) => 
     apiRequest("/announcements", announcementSchema, {
       method: "POST",

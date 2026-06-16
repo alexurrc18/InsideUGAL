@@ -3,7 +3,7 @@
 import { Bell, UserRound } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "../../providers";
-import { useRouter } from "next/navigation"; // 1. Am adăugat importul pentru router
+import { useRouter } from "next/navigation"; 
 import { apiBaseUrl } from "@/lib/api-client";
 
 interface Announcement {
@@ -17,7 +17,7 @@ interface Announcement {
 const STORAGE_KEY = "last_seen_announcement_id";
 
 export default function HeaderActions() {
-  const router = useRouter(); // 2. Am inițializat router-ul aici
+  const router = useRouter(); 
   const { isDark, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -29,18 +29,31 @@ export default function HeaderActions() {
     async function fetchAnnouncements() {
       setLoading(true);
       try {
-        // Fallback de siguranță: dacă nu găsește .env, folosește direct adresa locală
         const res = await fetch(`${apiBaseUrl}/announcements/`);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         
-        const data: Announcement[] = await res.json();
-        const latest = data.slice(0, 5);
-        setAnnouncements(latest);
+        const data = await res.json();
+        
+        // 👉 REZOLVARE PENTRU data.items: Gestionăm formatul paginat { items: [], total: ... }
+        let items: Announcement[] = [];
+        if (Array.isArray(data)) {
+          items = data;
+        } else if (data && typeof data === 'object' && Array.isArray(data.items)) {
+          items = data.items;
+        } else {
+          console.error("Backend-ul nu a returnat un format recunoscut:", data);
+        }
 
-        // Calculează câte sunt "necitite" față de ultima vizită
-        const lastSeen = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
-        const unseen = latest.filter((a) => a.id > lastSeen).length;
-        setUnreadCount(unseen);
+        if (items.length > 0) {
+          const latest = items.slice(0, 5);
+          setAnnouncements(latest);
+
+          // Calculează câte sunt "necitite" față de ultima vizită
+          const lastSeen = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
+          const unseen = latest.filter((a) => a.id > lastSeen).length;
+          setUnreadCount(unseen);
+        }
+
       } catch (error) {
         console.error("Eroare la preluarea anunțurilor:", error);
         setAnnouncements([]);
@@ -51,7 +64,6 @@ export default function HeaderActions() {
     fetchAnnouncements();
   }, []);
 
-  // Noua funcție care se ocupă de click-ul pe clopoțel și resetează unreadCount
   const handleToggleNotifications = () => {
     const willOpen = !open;
     setOpen(willOpen);
@@ -79,7 +91,7 @@ export default function HeaderActions() {
         <button
           type="button"
           aria-label="Notificări"
-          onClick={handleToggleNotifications} // Funcția corectată atașată aici
+          onClick={handleToggleNotifications} 
           className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
         >
           <Bell size={18} />
@@ -148,11 +160,10 @@ export default function HeaderActions() {
         )}
       </div>
 
-      {/* User - Acum trimite către pagina de login */}
       <button
         type="button"
         aria-label="Cont"
-        onClick={() => router.push("/login")} // 3. Am adăugat acțiunea de navigare
+        onClick={() => router.push("/login")} 
         className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
       >
         <UserRound size={18} />
