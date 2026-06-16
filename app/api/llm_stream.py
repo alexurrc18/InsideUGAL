@@ -3,7 +3,8 @@ import json
 import os
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Requestfrom fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import get_current_profile
