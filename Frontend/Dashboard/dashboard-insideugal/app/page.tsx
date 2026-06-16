@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Card, 
@@ -21,6 +21,13 @@ export default function Page() {
     actiune: "",
     catreCine: "Toate",
   });
+
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      router.replace("/login");
+    }
+  }, [router]);
 
   const dateDefault = [
     { id: 1, titlu: "Evenimente Viitoare", numar: 14 },

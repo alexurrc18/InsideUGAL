@@ -21,7 +21,6 @@ export default function LoginPage() {
     formData.append("password", password);
 
     try {
-      // Folosim http://localhost:8000 pentru dezvoltare locală
       const response = await fetch("http://localhost:8000/auth/login", {
         method: "POST",
         headers: {
