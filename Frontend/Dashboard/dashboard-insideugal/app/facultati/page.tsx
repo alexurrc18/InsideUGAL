@@ -33,7 +33,7 @@ export default function Page() {
   const [buildingForm, setBuildingForm] = useState<Partial<BuildingItem>>({ faculties: [] });
   const [isDataLoading, setIsDataLoading] = useState<boolean>(false);
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002";
 
   const fetchFaculties = async () => {
     setIsDataLoading(true);

@@ -43,7 +43,7 @@ function EventsPageContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002";
 
   const fetchEvents = async () => {
     setIsDataLoading(true);
