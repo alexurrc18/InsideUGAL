@@ -43,7 +43,7 @@ async def test_student_can_create_read_update_and_delete_own_complaint(
     complaint_id = created["id"]
     list_response = await client.get("/complaints/", headers=student.headers)
     assert list_response.status_code == 200
-    assert any(complaint["id"] == complaint_id for complaint in list_response.json())
+    assert any(complaint["id"] == complaint_id for complaint in list_response.json()["items"])
 
     read_response = await client.get(f"/complaints/{complaint_id}", headers=student.headers)
     assert read_response.status_code == 200
@@ -102,7 +102,7 @@ async def test_student_sees_only_own_complaints_and_cannot_read_other_student_co
 
     list_response = await client.get("/complaints/", headers=owner.headers)
     assert list_response.status_code == 200
-    complaint_ids = {complaint["id"] for complaint in list_response.json()}
+    complaint_ids = {complaint["id"] for complaint in list_response.json()["items"]}
     assert owner_complaint_id in complaint_ids
     assert other_complaint_id not in complaint_ids
 
@@ -145,7 +145,7 @@ async def test_staff_can_filter_and_update_complaint_status(
         headers=staff.headers,
     )
     assert filter_response.status_code == 200
-    filtered_ids = {complaint["id"] for complaint in filter_response.json()}
+    filtered_ids = {complaint["id"] for complaint in filter_response.json()["items"]}
     assert complaint_id in filtered_ids
 
 

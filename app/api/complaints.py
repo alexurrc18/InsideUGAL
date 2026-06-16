@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import get_current_profile, get_current_user, is_role
 from app.api.crud import ensure_exists
+from app.api.pagination import PaginationParams, paginated_response
 from app.db.database import get_db
 from app.models import models, schemas
 from app.repositories.complaint_repo import ComplaintRepository
@@ -28,16 +29,25 @@ async def validate_complaint_refs(payload: BaseModel, db: AsyncSession, user_id:
         await ensure_exists(db, models.Location, location_id, "Location not found.")
 
 
-@router.get("/", response_model=list[schemas.ComplaintResponse])
+@router.get("/", response_model=schemas.PaginatedResponse[schemas.ComplaintResponse])
 async def read_complaints(
     complaint_status: schemas.ComplaintStatus | None = None,
     location_id: int | None = None,
+    pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_db),
     profile=Depends(get_current_profile),
 ):
     status_value = complaint_status.value if complaint_status else None
     user_id = None if is_role(profile, staff_roles) else str(profile.id)
-    return await repo.get_all(session, status=status_value, location_id=location_id, user_id=user_id)
+    items, total = await repo.get_page(
+        session,
+        limit=pagination.size,
+        offset=pagination.offset,
+        status=status_value,
+        location_id=location_id,
+        user_id=user_id,
+    )
+    return paginated_response(items, total, pagination)
 
 
 @router.get("/{complaint_id}", response_model=schemas.ComplaintResponse)

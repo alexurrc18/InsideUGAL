@@ -12,7 +12,12 @@ async def test_announcements_public_list_and_missing_detail(client: AsyncClient)
     missing_response = await client.get("/announcements/999999")
 
     assert list_response.status_code == 200
-    assert isinstance(list_response.json(), list)
+    body = list_response.json()
+    assert isinstance(body["items"], list)
+    assert body["page"] == 1
+    assert body["size"] == 20
+    assert body["total"] >= len(body["items"])
+    assert "total_pages" in body
     assert missing_response.status_code == 404
     assert missing_response.json()["detail"] == "Announcement not found."
 
@@ -70,7 +75,7 @@ async def test_author_can_create_read_filter_update_and_delete_announcement(
         f"/announcements/?announcement_type={schemas.PostType.EVENIMENT.value}&faculty_id={faculty.id}"
     )
     assert filter_response.status_code == 200
-    assert any(announcement["id"] == announcement_id for announcement in filter_response.json())
+    assert any(announcement["id"] == announcement_id for announcement in filter_response.json()["items"])
 
     invalid_update_response = await client.patch(
         f"/announcements/{announcement_id}",

@@ -66,6 +66,20 @@ class LocationRepository(CRUDRepository[Location]):
         result = await session.execute(self._response_select())
         return [self._row_to_response(row) for row in result.all()]
 
+    async def get_page_for_response(
+        self,
+        session: AsyncSession,
+        *,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[dict[str, Any]], int]:
+        query = self._response_select().order_by(Location.name.asc())
+        total_result = await session.execute(select(func.count()).select_from(Location))
+        total = total_result.scalar_one()
+
+        result = await session.execute(query.limit(limit).offset(offset))
+        return [self._row_to_response(row) for row in result.all()], total
+
     async def get_response_by_id(self, session: AsyncSession, location_id: int) -> dict[str, Any] | None:
         result = await session.execute(self._response_select().where(Location.id == location_id))
         row = result.first()

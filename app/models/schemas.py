@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional, List
+from typing import Generic, Optional, List, TypeVar
 from uuid import UUID
 from datetime import datetime
 from decimal import Decimal
@@ -12,6 +12,17 @@ from geoalchemy2.shape import to_shape
 # ==========================================
 # ENUM-URI
 # ==========================================
+T = TypeVar("T")
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: List[T]
+    total: int
+    page: int
+    size: int
+    total_pages: int
+
+
 class UserRole(str, Enum):
     STUDENT = "STUDENT"
     STUDENT_RESPONSABIL = "STUDENT_RESPONSABIL"
