@@ -5,7 +5,10 @@ import React, { useState, useMemo, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Table, { Column } from '../components/ui/Table';
 import Modal from '../components/ui/Modal';
-import { Announcement, mockAnnouncements, PdfFile } from '../data/announcements';
+import { Announcement, PdfFile } from '../data/announcements';
+
+import { useAnnouncements, useCreateAnnouncement, useUpdateAnnouncement, useDeleteAnnouncement } from '@/hooks/useDashboardApi';
+import { Announcement as BackendAnnouncement } from '@/lib/api-types';
 
 const availableFacultiesFromSystem = [
   "AC",
@@ -21,7 +24,11 @@ const availableFacultiesFromSystem = [
 
 // Recomandare react-doctor: Componentă extrasă în scope-ul modulului pentru performanță stabilă la randare
 function AnnouncementsContent() {
-  const [data, setData] = useState<Announcement[]>(mockAnnouncements);
+  const { data: backendData, isLoading, isError, error } = useAnnouncements();
+  const createMutation = useCreateAnnouncement();
+  const updateMutation = useUpdateAnnouncement();
+  const deleteMutation = useDeleteAnnouncement();
+
   const [activeModal, setActiveModal] = useState<'add' | 'edit' | 'details' | null>(null);
   const [selectedItem, setSelectedItem] = useState<Announcement | null>(null);
   const [formState, setFormState] = useState<Partial<Announcement>>({});
@@ -33,6 +40,20 @@ function AnnouncementsContent() {
   const pdfInputRef = useRef<HTMLInputElement>(null);
   
   const searchParams = useSearchParams();
+
+  const data = useMemo(() => {
+    if (!backendData) return [];
+    return backendData.map((item: BackendAnnouncement): Announcement => ({
+      id: item.id.toString(),
+      title: item.title,
+      description: item.content,
+      publishDate: new Date(item.created_at).toLocaleDateString('ro-RO'),
+      faculties: [], // Backend doesn't provide faculties yet
+      thumbnail: '', // Backend doesn't provide thumbnail yet
+      eventLink: '', // Backend doesn't provide eventLink yet
+      pdfFiles: []  // Backend doesn't provide pdfFiles yet
+    }));
+  }, [backendData]);
 
   // Corecție critică react-doctor: Adăugat return cleanup() pentru a preveni pierderile de memorie (memory leaks)
   useEffect(() => {
@@ -62,6 +83,12 @@ function AnnouncementsContent() {
   }, [data]);
 
   const [dynamicFaculties, setDynamicFaculties] = useState<string[]>(initialFaculties);
+
+  useEffect(() => {
+    if (initialFaculties.length > 0 && dynamicFaculties.length === 0) {
+      setDynamicFaculties(initialFaculties);
+    }
+  }, [initialFaculties, dynamicFaculties.length]);
 
   const allFilterOptions = useMemo(() => {
     return ['Toate', ...dynamicFaculties];
@@ -128,7 +155,11 @@ function AnnouncementsContent() {
             Editare
           </button>
           <button type="button" className="text-green-600 hover:text-green-800 font-medium hover:underline cursor-pointer" onClick={() => console.info(`Shared: ${item.title}`)}>Share</button>
-          <button type="button" className="text-red-500 hover:text-red-700 font-medium hover:underline cursor-pointer" onClick={() => setData(data.filter(a => a.id !== item.id))}>Ștergere</button>
+          <button type="button" className="text-red-500 hover:text-red-700 font-medium hover:underline cursor-pointer" onClick={() => {
+            if (confirm('Ești sigur că vrei să ștergi acest anunț?')) {
+              deleteMutation.mutate(parseInt(item.id));
+            }
+          }}>Ștergere</button>
         </div>
       )
     }
@@ -207,25 +238,25 @@ function AnnouncementsContent() {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (activeModal === 'edit') {
-      setData(data.map(item => item.id === selectedItem?.id ? { ...item, ...formState } as Announcement : item));
-    } else {
-      const today = new Date();
-      const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    const backendPayload: Partial<BackendAnnouncement> = {
+      title: formState.title || '',
+      content: formState.description || '',
+      is_pinned: false,
+    };
 
-      const newAnnouncement: Announcement = {
-        id: `ann-${Date.now()}`,
-        title: formState.title || 'Anunț Nou',
-        description: formState.description || '',
-        publishDate: formattedDate,
-        faculties: formState.faculties || [],
-        thumbnail: formState.thumbnail || '',
-        eventLink: formState.eventLink || '',
-        pdfFiles: formState.pdfFiles || []
-      };
-      setData([newAnnouncement, ...data]);
+    if (activeModal === 'edit' && selectedItem) {
+      updateMutation.mutate({ 
+        id: parseInt(selectedItem.id), 
+        data: backendPayload 
+      }, {
+        onSuccess: () => setActiveModal(null)
+      });
+    } else {
+      createMutation.mutate(backendPayload, {
+        onSuccess: () => setActiveModal(null)
+      });
     }
-    setActiveModal(null);
   };
 
   return (
@@ -269,14 +300,24 @@ function AnnouncementsContent() {
       </div>
         
       <div className="bg-card border border-border rounded-2xl shadow-xs overflow-hidden">
-        <Table 
-          data={filteredData} 
-          columns={columns} 
-          onRowClick={(item) => { 
-            setSelectedItem(item); 
-            setActiveModal('details'); 
-          }} 
-        />
+        {isLoading ? (
+          <div className="p-12 text-center text-sm text-muted animate-pulse">
+            Se încarcă noutățile...
+          </div>
+        ) : isError ? (
+          <div className="p-12 text-center text-sm text-red-500">
+            Eroare la încărcarea noutăților: {error?.message || 'Eroare necunoscută'}
+          </div>
+        ) : (
+          <Table 
+            data={filteredData} 
+            columns={columns} 
+            onRowClick={(item) => { 
+              setSelectedItem(item); 
+              setActiveModal('details'); 
+            }} 
+          />
+        )}
       </div>
 
       <Modal isOpen={activeModal === 'details'} onClose={() => setActiveModal(null)} title="Vizualizare Anunț">

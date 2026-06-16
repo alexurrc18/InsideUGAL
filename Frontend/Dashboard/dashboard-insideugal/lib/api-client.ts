@@ -1,13 +1,14 @@
-import type { z } from "zod";
+import { z } from "zod";
 
 import {
+  announcementSchema,
   announcementsSchema,
   coursesSchema,
   facultiesSchema,
   facultySchema,
   userSchema,
 } from "./api-schemas";
-import type { ApiErrorBody, ApiRequestOptions } from "./api-types";
+import type { Announcement, ApiErrorBody, ApiRequestOptions } from "./api-types";
 
 export const apiBaseUrl =
   process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") ??
@@ -131,6 +132,20 @@ export async function apiRequest<TResponse>(
 
 export const apiClient = {
   getAnnouncements: () => apiRequest("/announcements", announcementsSchema),
+  createAnnouncement: (data: Partial<Announcement>) => 
+    apiRequest("/announcements", announcementSchema, {
+      method: "POST",
+      body: data,
+    }),
+  updateAnnouncement: (id: number, data: Partial<Announcement>) =>
+    apiRequest(`/announcements/${id}`, announcementSchema, {
+      method: "PUT",
+      body: data,
+    }),
+  deleteAnnouncement: (id: number) =>
+    apiRequest(`/announcements/${id}`, z.any(), {
+      method: "DELETE",
+    }),
   getCourses: () => apiRequest("/courses", coursesSchema),
   getFaculties: () => apiRequest("/faculties", facultiesSchema),
   getFaculty: (id: number) => apiRequest(`/faculties/${id}`, facultySchema),
