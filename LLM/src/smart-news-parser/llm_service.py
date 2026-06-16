@@ -68,7 +68,38 @@ class LLMService:
         )
 
         try:
-            raw_text = _call(prompt, function_name="extract_announcement_info")
+            raw_text = None
+            openrouter_key = os.getenv("OPENROUTER_API_KEY")
+            
+            if openrouter_key:
+                try:
+                    logger.info("Incercam extragerea textului via OpenRouter (GPT-4o-mini)...")
+                    import requests
+                    response = requests.post(
+                        url="https://openrouter.ai/api/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {openrouter_key}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": "openai/gpt-4o-mini",
+                            "messages": [
+                                {
+                                    "role": "user",
+                                    "content": prompt
+                                }
+                            ]
+                        },
+                        timeout=30
+                    )
+                    response.raise_for_status()
+                    data = response.json()
+                    raw_text = data['choices'][0]['message']['content']
+                except Exception as e:
+                    logger.warning(f"OpenRouter a picat ({e}). Facem fallback la modelul gratuit existent...")
+            
+            if not raw_text:
+                raw_text = _call(prompt, function_name="extract_announcement_info")
 
             import re
             json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
@@ -101,10 +132,10 @@ class LLMService:
             self.cache.set(
                 cache_key=cache_key,
                 response=result_obj.model_dump_json(),
-                model="gemini-smart-news-parser",
+                model="openrouter-smart-news-parser",
                 ttl_hours=24
             )
-            logger.info("Raspuns Gemini salvat in llm_cache (smart_news).")
+            logger.info("Raspuns LLM (OpenRouter) salvat in llm_cache (smart_news).")
 
             return result_obj
 
