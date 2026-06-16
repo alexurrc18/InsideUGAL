@@ -29,6 +29,7 @@ from app.api.errors import (
     http_exception_handler,
     validation_exception_handler,
 )
+from app.middleware.timing import TimingMiddleware
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -101,6 +102,9 @@ async def add_request_id_middleware(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Request-ID"] = request_id
     return response
+
+
+app.add_middleware(TimingMiddleware)
 
 app.include_router(profiles.router)
 app.include_router(faculties.router)
