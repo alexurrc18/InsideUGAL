@@ -95,7 +95,11 @@ class LLMOptimizer:
         best_answer = None
 
         for entry in response.data:
-            score = self._cosine_similarity(new_vector, entry["embedding"])
+            emb = entry["embedding"]
+            if isinstance(emb, str):
+                import json as _json
+                emb = _json.loads(emb)
+            score = self._cosine_similarity(new_vector, emb)
             if score > best_match_score:
                 best_match_score = score
                 best_answer = entry["answer"]
@@ -114,8 +118,11 @@ class LLMOptimizer:
             
         embedding = self.generate_embedding(user_input)
         if embedding:
-            self.supabase_client.table("semantic_cache").insert({
-                "question": user_input,
-                "embedding": embedding,
-                "answer": answer
-            }).execute()
+            try:
+                self.supabase_client.table("semantic_cache").insert({
+                    "question": user_input,
+                    "embedding": embedding,
+                    "answer": answer
+                }).execute()
+            except Exception as e:
+                logger.warning("Nu am putut salva in semantic_cache: %s", e)

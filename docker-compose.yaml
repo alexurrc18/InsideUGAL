@@ -7,12 +7,13 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
-      SUPABASE_URL: ${SUPABASE_URL:-http://supabase-kong:8000}
+      SUPABASE_URL: http://supabase-kong:8000
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
-      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      ALLOWED_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
     restart: unless-stopped
     depends_on:
       supabase-db:
@@ -38,10 +39,11 @@ services:
       dockerfile: Dockerfile
     environment:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+      HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
-      SUPABASE_URL: ${SUPABASE_URL:-http://supabase-kong:8000}
+      SUPABASE_URL: http://supabase-kong:8000
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       ALLOWED_ORIGINS: ${LLM_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
     restart: unless-stopped
@@ -79,11 +81,9 @@ services:
           cpus: '0.50'
           memory: 512M
     healthcheck:
-      test:
-      - CMD-SHELL
-      - curl -fsS http://127.0.0.1:3000/ >/dev/null
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000', (res) => res.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))\""]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
       start_period: 20s
     ports:
@@ -93,11 +93,11 @@ services:
     - internal
     labels:
     - traefik.enable=true
-    - traefik.docker.network=coolify
-    - traefik.http.routers.insideugal-frontend.rule=Host(insideugal.ro)
+    - traefik.docker.network=${TRAEFIK_DOCKER_NETWORK:-coolify}
+    - traefik.http.routers.insideugal-frontend.rule=Host(`${FRONTEND_HOST:-insideugal.ro}`)
     - traefik.http.routers.insideugal-frontend.entrypoints=https
     - traefik.http.routers.insideugal-frontend.tls=true
-    - traefik.http.routers.insideugal-frontend-http.rule=Host(insideugal.ro)
+    - traefik.http.routers.insideugal-frontend-http.rule=Host(`${FRONTEND_HOST:-insideugal.ro}`)
     - traefik.http.routers.insideugal-frontend-http.entrypoints=http
     - traefik.http.routers.insideugal-frontend-http.middlewares=insideugal-redirect-https
     - traefik.http.routers.insideugal-frontend-http.service=insideugal-frontend
@@ -106,6 +106,8 @@ services:
   supabase-db:
     image: supabase/postgres:15.8.1.085
     restart: unless-stopped
+    ports:
+    - "${POSTGRES_HOST_PORT:-54399}:${POSTGRES_PORT:-5432}"
     healthcheck:
       test:
       - CMD-SHELL
@@ -128,7 +130,11 @@ services:
     - supabase-db-data:/var/lib/postgresql/data
     - ./supabase/migrations/00_init_roles.sql:/docker-entrypoint-initdb.d/00_init_roles.sql:ro
     - ./supabase/migrations/202605280001_init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
-    - ./supabase/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
+    - ./supabase/migrations/20260604081436_adaugare_pgvector_si_chunkuri.sql:/docker-entrypoint-initdb.d/02_pgvector_document_chunks.sql:ro
+    - ./supabase/migrations/20260604084954_adaugare_bucket_documente.sql:/docker-entrypoint-initdb.d/03_documents_bucket.sql:ro
+    - ./supabase/migrations/20260608000001_chatbot_chunks.sql:/docker-entrypoint-initdb.d/04_chatbot_chunks.sql:ro
+    - ./supabase/migrations/20260610185900_create_cache_table.sql:/docker-entrypoint-initdb.d/05_llm_cache.sql:ro
+    - ./supabase/seed.sql:/docker-entrypoint-initdb.d/99_seed.sql:ro
     networks:
     - internal
   supabase-auth:
@@ -139,15 +145,50 @@ services:
         condition: service_healthy
     environment:
       GOTRUE_DB_DRIVER: postgres
-      GOTRUE_DB_DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}?sslmode=disable
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:postgres@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}?sslmode=disable
+      GOTRUE_DB_NAMESPACE: auth
       GOTRUE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       GOTRUE_JWT_EXP: ${JWT_EXPIRY:-3600}
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_ADMIN_ROLES: service_role
       GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:3000}
       API_EXTERNAL_URL: http://localhost:8004/auth/v1
       GOTRUE_API_EXTERNAL_URL: http://localhost:8004/auth/v1
       GOTRUE_DB_MAX_POOL_SIZE: 20
+      GOTRUE_LOG_LEVEL: debug
+      GOTRUE_LOG_FORMAT: json
       GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
       GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_PASSWORD_MIN_LENGTH: 6
+      GOTRUE_PASSWORD_REQUIRED_CHARACTERS: ""
+      GOTRUE_SECURITY_CAPTCHA_ENABLED: "false"
+    ports:
+      - 9999:8081
+    networks:
+      - internal
+  supabase-post-init:
+    image: supabase/postgres:15.8.1.085
+    restart: "no"
+    depends_on:
+      supabase-auth:
+        condition: service_started
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./supabase/post-init/ensure_auth_profile_trigger.sql:/tmp/ensure_auth_profile_trigger.sql:ro
+    command: >
+      sh -c "for i in $$(seq 1 90); do
+      if psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -tAc \"select to_regclass('auth.users') is not null\" | grep -q t; then
+      echo \"auth.users is ready; applying post-init SQL\";
+      psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -v ON_ERROR_STOP=1 -f /tmp/ensure_auth_profile_trigger.sql;
+      exit $$?;
+      fi;
+      echo \"waiting for auth.users ($$i/90)\";
+      sleep 2;
+      done;
+      echo \"auth.users was not ready after 180s; skipping post-init so compose can continue\";
+      exit 0"
     networks:
       - internal
   supabase-rest:
@@ -163,6 +204,60 @@ services:
       PGRST_DB_ANON_ROLE: anon
     networks:
       - internal
+  supabase-storage-init:
+    image: supabase/postgres:15.8.1.085
+    restart: "no"
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./supabase/post-init/ensure_storage_schema.sql:/tmp/ensure_storage_schema.sql:ro
+    command: >
+      sh -c "psql -h supabase-db -p ${POSTGRES_PORT:-5432} -U postgres -d ${POSTGRES_DB:-postgres}
+      -v ON_ERROR_STOP=1 -f /tmp/ensure_storage_schema.sql"
+    networks:
+      - internal
+  supabase-storage:
+    image: supabase/storage-api:v1.60.4
+    restart: unless-stopped
+    depends_on:
+      supabase-rest:
+        condition: service_started
+      supabase-storage-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://127.0.0.1:5000/status
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    environment:
+      ANON_KEY: ${SUPABASE_ANON_KEY:-}
+      SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      AUTH_JWT_SECRET: ${SUPABASE_JWT_SECRET}
+      POSTGREST_URL: http://supabase-rest:3000
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
+      STORAGE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL:-http://localhost:8004}
+      REQUEST_ALLOW_X_FORWARDED_PATH: "true"
+      FILE_SIZE_LIMIT: ${STORAGE_FILE_SIZE_LIMIT:-52428800}
+      STORAGE_BACKEND: file
+      GLOBAL_S3_BUCKET: ${STORAGE_BUCKET_PATH:-storage}
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: ${STORAGE_TENANT_ID:-insideugal}
+      REGION: ${STORAGE_REGION:-local}
+      ENABLE_IMAGE_TRANSFORMATION: "false"
+    volumes:
+      - supabase-storage-data:/var/lib/storage
+    networks:
+      - internal
   supabase-kong:
     image: kong:2.8.1
     restart: unless-stopped
@@ -171,9 +266,15 @@ services:
         condition: service_started
       supabase-rest:
         condition: service_started
+      supabase-storage:
+        condition: service_started
     environment:
       KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+      KONG_LOG_LEVEL: debug
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      ANON_KEY: ${SUPABASE_ANON_KEY:-}
     volumes:
       - ./supabase/kong.yml:/var/lib/kong/kong.yml:ro
     ports:
@@ -217,11 +318,14 @@ services:
       PGRST_DB_EXTRA_SEARCH_PATH: public,extensions
       DEFAULT_ORGANIZATION_NAME: ${STUDIO_DEFAULT_ORGANIZATION:-InsideUGAL}
       DEFAULT_PROJECT_NAME: ${STUDIO_DEFAULT_PROJECT:-InsideUGAL}
-      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL:-http://localhost:8082}
-      SUPABASE_URL: http://localhost:8082
-      NEXT_PUBLIC_SUPABASE_URL: http://localhost:8082
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL:-http://localhost:8004}
+      SUPABASE_URL: http://supabase-kong:8000
+      NEXT_PUBLIC_SUPABASE_URL: http://localhost:8004
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       AUTH_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       SNIPPETS_MANAGEMENT_FOLDER: /tmp/snippets
       EDGE_FUNCTIONS_MANAGEMENT_FOLDER: /tmp/edge-functions
@@ -261,11 +365,34 @@ services:
       - public
     labels:
       - traefik.enable=false
+
+  security-scan:
+    container_name: security-scan
+    image: zaproxy/zap-stable:latest
+    profiles:
+      - security
+    depends_on:
+      frontend:
+        condition: service_healthy
+    volumes:
+      - ./security-reports:/zap/wrk:rw
+    user: root
+    command: >
+      zap-baseline.py -t http://frontend:3000 
+      -r security-audit-report.html 
+      -I
+    networks:
+      - public
+      - internal
 networks:
   public:
+    name: ${PUBLIC_NETWORK_NAME:-insideugal_public}
+    external: ${PUBLIC_NETWORK_EXTERNAL:-false}
+  coolify:
     name: coolify
     external: true
   internal:
     internal: true
 volumes:
   supabase-db-data: {}
+  supabase-storage-data: {}

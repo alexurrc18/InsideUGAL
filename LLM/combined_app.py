@@ -89,7 +89,14 @@ logger = logging.getLogger("llm-integration")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 llm_service = smart_news_service.LLMService()
-image_service = smart_news_image_service.ImageServiceV2(hf_api_key=HF_API_KEY)
+if HF_API_KEY:
+    image_service = smart_news_image_service.ImageServiceV2(hf_api_key=HF_API_KEY)
+else:
+    image_service = None
+    logger.warning(
+        "HUGGINGFACE_API_KEY lipseste — generarea de bannere este dezactivata. "
+        "Adauga cheia in .env pentru a activa ImageServiceV2."
+    )
 llm_optimizer_service = LLMOptimizer(api_key=API_KEY, supabase_client=mod_marius_functions.supabase_client)
 
 app = FastAPI(
@@ -135,6 +142,11 @@ async def extract_announcement_info(request: smart_news_schemas.AnnouncementRequ
 
 @app.post("/api/v1/generate-banner", response_model=smart_news_image_service.ImageGenerationResult)
 async def generate_banner(info: smart_news_schemas.ExtractedAnnouncementInfo):
+    if image_service is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Generarea de bannere este dezactivata — HUGGINGFACE_API_KEY lipseste din configuratie."
+        )
     try:
         logger.info("Primire cerere generare banner pentru eveniment.")
         result = await image_service.generate_announcement_banner(info)
@@ -269,7 +281,11 @@ def campus_chat(request: CampusChatRequest):
         raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
 
     # 2. Verificare Semantic Cache
-    cached_answer = llm_optimizer_service.get_cached_answer(request.question)
+    try:
+        cached_answer = llm_optimizer_service.get_cached_answer(request.question)
+    except Exception as cache_exc:
+        logger.warning("Semantic cache error (ignorat): %s", cache_exc)
+        cached_answer = None
     if cached_answer:
         return CampusChatResponse(
             answer=cached_answer,

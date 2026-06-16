@@ -3,8 +3,8 @@ import { View, Platform } from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '@/constants/theme';
-import Map from '@/components/map';
-import { CategoryHeader } from '@/components/ui/category-header';
+import Map from '@/components/map/map';
+import { CategoryHeader } from '@/components/ui/display/category-header';
 import MockData from '@/constants/mock-data.json';
 
 export default function HartaScreen() {

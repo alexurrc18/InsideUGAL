@@ -2,28 +2,49 @@ import sys
 import os
 import json
 import logging
+import hashlib
 import asyncio
 from datetime import datetime
-from pydantic import ValidationError
 from parser_schemas import ExtractedAnnouncementInfo
 
 # Add modul-marius/functions to path to import llm_functions
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "modul-marius", "functions")))
 from llm_functions import _call
 
+# Add shared to path for SupabaseCache
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "shared")))
+from supabase_cache import SupabaseCache
+
 logger = logging.getLogger("smart-news-parser")
 
 class LLMService:
     def __init__(self):
-        # Configuration is now handled centrally in llm_functions
-        pass
+        # Cache shared la nivel de platforma (tabela llm_cache din Supabase)
+        self.cache = SupabaseCache()
+
+    def _make_cache_key(self, text: str) -> str:
+        """Genereaza o cheie unica de cache bazata pe hash-ul textului anuntului."""
+        return "smart_news:" + hashlib.sha256(text.strip().lower().encode()).hexdigest()
 
     async def extract_announcement_info(self, text: str) -> ExtractedAnnouncementInfo:
         return await asyncio.to_thread(self._extract_sync, text)
 
     def _extract_sync(self, text: str) -> ExtractedAnnouncementInfo:
+        cache_key = self._make_cache_key(text)
+
+        # 1. Verificam cache-ul inainte sa apelam Gemini
+        cached_json = self.cache.get(cache_key)
+        if cached_json:
+            logger.info("Cache HIT pentru anunt (smart_news). Raspuns returnat din llm_cache.")
+            try:
+                result_dict = json.loads(cached_json)
+                return ExtractedAnnouncementInfo(**result_dict)
+            except Exception as e:
+                logger.warning(f"Cache corupt, regeneram raspunsul: {e}")
+
+        # 2. Cache MISS — apelam Gemini
         now = datetime.now().strftime("%Y-%m-%d %H:%M")
-        
+
         prompt = (
             "Esti un expert in analiza de text academic pentru Universitatea 'Dunarea de Jos' din Galati (UGAL).\n"
             f"DATA CURENTA: {now}\n\n"
@@ -48,8 +69,7 @@ class LLMService:
 
         try:
             raw_text = _call(prompt, function_name="extract_announcement_info")
-            
-            # Use regex to find the JSON object within the text, ignoring conversational wrappers
+
             import re
             json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
             if json_match:
@@ -57,7 +77,7 @@ class LLMService:
 
             if not raw_text:
                 raise ValueError("LLM returned an empty response.")
-                
+
             result_dict = json.loads(raw_text)
 
             # Normalize data before Pydantic validation
@@ -70,12 +90,22 @@ class LLMService:
                 result_dict['urgenta_estimata'] = "medie"
             if not result_dict.get('rezumat_notificare'):
                 result_dict['rezumat_notificare'] = "Anunt important"
-                
+
             for list_field in ['public_tinta', 'actiuni_extrase', 'taguri_cheie', 'penalizari_sau_reguli', 'linkuri_utile']:
                 if result_dict.get(list_field) is None:
                     result_dict[list_field] = []
 
             result_obj = ExtractedAnnouncementInfo(**result_dict)
+
+            # 3. Salvam in cache pentru viitoarele apeluri identice (TTL: 24h)
+            self.cache.set(
+                cache_key=cache_key,
+                response=result_obj.model_dump_json(),
+                model="gemini-smart-news-parser",
+                ttl_hours=24
+            )
+            logger.info("Raspuns Gemini salvat in llm_cache (smart_news).")
+
             return result_obj
 
         except Exception as e:
