@@ -35,7 +35,6 @@ export default function Page() {
 
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-  // 1. CONEXIUNE BACKEND: GET Facultăți + ALERTĂ EROARE CONEXIUNE
   const fetchFaculties = async () => {
     setIsDataLoading(true);
     try {
@@ -60,7 +59,6 @@ export default function Page() {
     }
   };
 
-  // 2. CONEXIUNE BACKEND: GET Clădiri/Locații + ALERTĂ EROARE CONEXIUNE
   const fetchBuildings = async () => {
     setIsDataLoading(true);
     try {
@@ -98,7 +96,11 @@ export default function Page() {
   const handleDeleteFaculty = async (id: string, name: string) => {
     if (!confirm(`Sigur dorești să ștergi facultatea "${name}"?`)) return;
     try {
-      const response = await fetch(`${baseUrl}/faculties/${id}`, { method: "DELETE" });
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(`${baseUrl}/faculties/${id}`, { 
+        method: "DELETE",
+        headers: token ? { "Authorization": `Bearer ${token}` } : {}
+      });
       if (response.ok || response.status === 204) {
         setFaculties(prev => prev.filter(f => f.id !== id));
       }
@@ -112,7 +114,11 @@ export default function Page() {
   const handleDeleteBuilding = async (id: string, name: string) => {
     if (!confirm(`Sigur dorești să ștergi clădirea "${name}"?`)) return;
     try {
-      const response = await fetch(`${baseUrl}/locations/${id}`, { method: "DELETE" });
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(`${baseUrl}/locations/${id}`, { 
+        method: "DELETE",
+        headers: token ? { "Authorization": `Bearer ${token}` } : {}
+      });
       if (response.ok || response.status === 204) {
         setBuildings(prev => prev.filter(b => b.id !== id));
       }
@@ -255,6 +261,12 @@ export default function Page() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const token = localStorage.getItem("access_token");
+    const headers = {
+      "Content-Type": "application/json",
+      ...(token ? { "Authorization": `Bearer ${token}` } : {})
+    };
+
     if (targetType === 'facultati') {
       const payload = {
         name: facultyForm.name || '',
@@ -268,13 +280,13 @@ export default function Page() {
         if (activeModal === 'edit' && selectedId) {
           await fetch(`${baseUrl}/faculties/${selectedId}`, {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            headers: headers,
             body: JSON.stringify(payload)
           });
         } else {
           await fetch(`${baseUrl}/faculties/`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: headers,
             body: JSON.stringify(payload)
           });
         }
@@ -294,13 +306,13 @@ export default function Page() {
         if (activeModal === 'edit' && selectedId) {
           await fetch(`${baseUrl}/locations/${selectedId}`, {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            headers: headers,
             body: JSON.stringify(payload)
           });
         } else {
           await fetch(`${baseUrl}/locations/`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: headers,
             body: JSON.stringify(payload)
           });
         }
