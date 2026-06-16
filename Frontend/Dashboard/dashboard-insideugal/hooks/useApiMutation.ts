@@ -31,14 +31,14 @@ export function useApiMutation<TData, TVariables>({
   return useMutation({
     ...options,
     mutationFn,
-    onSuccess: async (data, variables, context) => {
+    onSuccess: async (data, variables, context, mutation) => {
       if (invalidateKeys) {
         await Promise.all(
           invalidateKeys.map((key) => queryClient.invalidateQueries({ queryKey: key }))
         );
       }
       if (options.onSuccess) {
-        await options.onSuccess(data, variables, context);
+        await options.onSuccess(data, variables, context, mutation);
       }
     },
   });
