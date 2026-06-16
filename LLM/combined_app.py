@@ -9,6 +9,7 @@ from pathlib import Path
 from importlib.util import spec_from_file_location, module_from_spec
 from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from llm_optimizer import LLMOptimizer
@@ -126,6 +127,7 @@ def health_check():
             "/api/v1/summary",
             "/api/v1/delete-pdf/{pdf_id}",
             "/api/v1/campus-chat",
+            "/api/v1/campus-chat/stream",
         ],
     }
 
@@ -269,6 +271,7 @@ class CampusChatResponse(BaseModel):
     answer: str
     sources: list[str]
     suggestions: list[str]
+    link: str = ""
 
 
 @app.post("/api/v1/campus-chat", response_model=CampusChatResponse)
@@ -297,16 +300,34 @@ def campus_chat(request: CampusChatRequest):
         result = campus_chat_service.campus_chat(question=request.question)
         if "error" in result:
             raise HTTPException(status_code=500, detail=result["error"])
-            
+
         # 3. Salvare în cache după răspuns cu succes
         llm_optimizer_service.save_to_cache(request.question, result["answer"])
-        
+
         return CampusChatResponse(**result)
     except HTTPException:
         raise
     except Exception as exc:
         logger.error("Eroare campus-chat: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/v1/campus-chat/stream")
+def campus_chat_stream(request: CampusChatRequest):
+    if not request.question.strip():
+        raise HTTPException(status_code=400, detail="Câmpul 'question' nu poate fi gol.")
+
+    if not llm_optimizer_service.check_prompt_safety(request.question):
+        raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
+
+    return StreamingResponse(
+        campus_chat_service.campus_chat_stream(question=request.question),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 if __name__ == "__main__":
