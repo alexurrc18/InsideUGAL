@@ -6,10 +6,11 @@ import { Image } from "expo-image";
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 
-import { Carousel } from "@/components/ui/carousel";
-import { CAROUSEL_CARD_MARGIN } from "@/components/ui/carousel.shared";
-import { NewsCard } from "@/components/ui/news-card";
-import { getFormattedDate } from "@/utils/date";
+import { Carousel } from "@/components/ui/display/carousel/carousel";
+import { CAROUSEL_CARD_MARGIN } from "@/components/ui/display/carousel/carousel.shared";
+import { NewsCard } from "@/components/ui/display/news-card";
+import { HeroSlideshow } from "@/components/ui/display/hero-slideshow";
+import { getFormattedDate, parseRomanianDate } from "@/utils/date";
 import MOCK_DATA from "@/constants/mock-data.json";
 
 export default function HomeScreen() {
@@ -22,6 +23,15 @@ export default function HomeScreen() {
   const evenimente = MOCK_DATA.events.filter(e => e.category === "Evenimente");
   const facultati = MOCK_DATA.faculties;
   const facilitati = MOCK_DATA.facilities;
+
+  // Ultimele 3 anunturi (Noutăți), cele mai recente primele, pentru hero.
+  const heroItems = [...noutati]
+    .sort((a, b) => parseRomanianDate(b.date).getTime() - parseRomanianDate(a.date).getTime())
+    .slice(0, 3)
+    .map(item => ({
+      ...item,
+      category: item.category || "Noutăți"
+    }));
 
   const handleFacilityPress = (facility: any) => {
     router.push({
@@ -76,22 +86,7 @@ export default function HomeScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={{ width: "100%", height: 285 }}>
-          <Image
-            source={require("@/assets/images/campus-stiintei.png")}
-            style={{ width: "100%", height: "100%", position: "absolute" }}
-            contentFit="cover"
-          />
-
-          <View style={{ flex: 1, padding: Spacing.lg, justifyContent: "flex-end", width: "100%", maxWidth: 1200, alignSelf: "center" }}>
-            <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
-              Astăzi, 27 mai
-            </Text>
-            <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
-              Descoperă
-            </Text>
-          </View>
-        </View>
+        <HeroSlideshow slides={heroItems} onPressItem={handlePress} />
 
         <View style={{paddingTop: Spacing.lg, paddingBottom: insets.bottom + Spacing.sm, flex: 1, width: "100%", maxWidth: 1200, alignSelf: "center"}}>
           <Carousel
@@ -102,6 +97,7 @@ export default function HomeScreen() {
             renderItem={({ item, index }) => (
               <NewsCard
                 title={item.title}
+                category={item.category}
                 date={getFormattedDate(item.date)}
                 author={item.author}
                 image={item.image}
@@ -118,6 +114,7 @@ export default function HomeScreen() {
             renderItem={({ item, index }) => (
               <NewsCard
                 title={item.title}
+                category={item.category}
                 date={getFormattedDate(item.date_start || item.date)}
                 author={item.author}
                 image={item.image}

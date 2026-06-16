@@ -7,11 +7,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { getFormattedDate } from "@/utils/date";
-import { Carousel } from "@/components/ui/carousel";
-import { CAROUSEL_CARD_MARGIN } from "@/components/ui/carousel.shared";
+import { Carousel } from "@/components/ui/display/carousel/carousel";
+import { CAROUSEL_CARD_MARGIN } from "@/components/ui/display/carousel/carousel.shared";
 import MockData from "@/constants/mock-data.json";
-import { CategoryHeader } from "@/components/ui/category-header";
-import { WebContainer } from "@/components/ui/web-container";
+import { CategoryHeader } from "@/components/ui/display/category-header";
+import { WebContainer } from "@/components/ui/layout/web-container";
 
 import LocationIcon from "@/assets/icons/svg/location.svg";
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";

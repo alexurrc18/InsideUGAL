@@ -21,10 +21,10 @@ import { Spacing } from '@/constants/theme';
 import { Typography } from '@/constants/typography';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GlassView } from 'expo-glass-effect';
-import { InteractiveGlass } from '@/components/ui/interactive-glass';
+import { InteractiveGlass } from '@/components/ui/layout/interactive-glass';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { NewsCard } from '@/components/ui/news-card';
+import { NewsCard } from '@/components/ui/display/news-card';
 import MOCK_DATA from '@/constants/mock-data.json';
 
 import CloseIcon from '@/assets/icons/svg/x.svg';

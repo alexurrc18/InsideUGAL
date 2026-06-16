@@ -3,7 +3,7 @@ import React from 'react';
 import { useColorScheme, View } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { useNavigation } from 'expo-router';
-import { Ace } from '@/components/ace';
+import { Ace } from '@/components/ui/layout/ace';
 
 export default function TabLayout() {
     const navigation = useNavigation<any>();
