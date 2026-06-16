@@ -45,7 +45,6 @@ function EventsPageContent() {
 
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-  // 1. CONEXIUNE BACKEND: GET Evenimente + ALERTĂ EROARE CONEXIUNE
   const fetchEvents = async () => {
     setIsDataLoading(true);
     try {
@@ -78,7 +77,6 @@ function EventsPageContent() {
 
   useEffect(() => {
     if (searchParams.get("open") === "true") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormState({ faculties: [], pdfFiles: [] });
       setNewFacultyInput('');
       setActiveModal('add');
@@ -198,6 +196,7 @@ function EventsPageContent() {
     setIsAiLoading(true);
 
     try {
+      const token = localStorage.getItem("access_token");
       const entitateSursa = formState.faculties && formState.faculties.length > 0 
         ? `Facultatea de ${formState.faculties[0]}` 
         : "Dashboard UGAL";
@@ -206,17 +205,18 @@ function EventsPageContent() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
           materie_sau_subiect: formState.title,
           entitate_sursa: entitateSursa, 
           tip_eveniment: "CONCURS",
-          urgenta_estimata: "MEDIE",
-          public_tinta: ["Studenti"],
+          urgența_estimată: "MEDIE",
+          public_țintă: ["Studenti"],
           deadline_absolut: new Date().toISOString(),
-          locatie: "Campus UGAL",
+          locație: "Campus UGAL",
           rezumat_notificare: formState.description,
-          actiuni_extrase: ["Detalii"],
+          acțiuni_extrase: ["Detalii"],
           taguri_cheie: formState.faculties || ["Eveniment"]
         }),
       });
@@ -241,7 +241,6 @@ function EventsPageContent() {
     }
   };
 
-  // 2. CONEXIUNE BACKEND: POST / PATCH la salvare + ALERTĂ AVERTIZARE CONEXIUNE
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -255,17 +254,23 @@ function EventsPageContent() {
     };
 
     try {
+      const token = localStorage.getItem("access_token");
+      const headers = {
+        "Content-Type": "application/json",
+        ...(token ? { "Authorization": `Bearer ${token}` } : {})
+      };
+
       if (activeModal === 'edit') {
         const response = await fetch(`${baseUrl}/announcements/${selectedItem?.id}`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: headers,
           body: JSON.stringify(payload)
         });
         if (!response.ok) throw new Error("Eroare la actualizarea pe server.");
       } else {
         const response = await fetch(`${baseUrl}/announcements/`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: headers,
           body: JSON.stringify(payload)
         });
         if (!response.ok) throw new Error("Eroare la crearea pe server.");
@@ -302,8 +307,10 @@ function EventsPageContent() {
     if (!confirm(`Sigur vrei să ștergi evenimentul "${name}"?`)) return;
 
     try {
+      const token = localStorage.getItem("access_token");
       const response = await fetch(`${baseUrl}/announcements/${id}`, {
-        method: "DELETE"
+        method: "DELETE",
+        headers: token ? { "Authorization": `Bearer ${token}` } : {}
       });
       if (response.status === 204 || response.ok) {
         setData(data.filter(a => a.id !== id));
@@ -614,7 +621,7 @@ function EventsPageContent() {
             </div>
 
             <div>
-              <span className="block text-xs font-semibold text-foreground mb-1">Documente atașate (PDF)</span>
+              <label className="block text-xs font-semibold text-foreground mb-1">Documente atașate (PDF)</label>
               <div className="p-3 border border-dashed border-border rounded-lg bg-background/50 flex flex-col gap-2">
                 <input 
                   type="file" 
