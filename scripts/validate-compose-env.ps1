@@ -148,4 +148,19 @@ if ($envValues["SUPABASE_JWT_SECRET"].Length -lt 32) {
 Test-Hs256Jwt $envValues["SUPABASE_ANON_KEY"] $envValues["SUPABASE_JWT_SECRET"] "anon" "SUPABASE_ANON_KEY"
 Test-Hs256Jwt $envValues["SUPABASE_SERVICE_ROLE_KEY"] $envValues["SUPABASE_JWT_SECRET"] "service_role" "SUPABASE_SERVICE_ROLE_KEY"
 
+$compose = Get-Content -LiteralPath "docker-compose.yaml" -Raw
+foreach ($expected in @(
+    'GOTRUE_JWT_SECRET: ${SUPABASE_JWT_SECRET}',
+    'PGRST_JWT_SECRET: ${SUPABASE_JWT_SECRET}',
+    'JWT_SECRET: ${SUPABASE_JWT_SECRET}'
+)) {
+    if ($compose -notlike "*$expected*") {
+        Fail "docker-compose.yaml nu contine configurarea JWT asteptata: $expected"
+    }
+}
+
+if ($compose -like "*00_init_roles.sql:/docker-entrypoint-initdb.d/*") {
+    Fail "00_init_roles.sql nu trebuie montat in /docker-entrypoint-initdb.d; intra in conflict cu init-ul intern Supabase care creeaza rolurile anon/authenticated/service_role."
+}
+
 Write-Host "OK: .env este valid pentru docker compose local."

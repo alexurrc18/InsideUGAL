@@ -1,5 +1,9 @@
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models import schemas
+from tests.integration_helpers import create_profile
 
 
 @pytest.mark.asyncio
@@ -8,3 +12,40 @@ async def test_list_locations_returns_list(client: AsyncClient) -> None:
 
     assert response.status_code == 200
     assert isinstance(response.json(), list)
+
+
+@pytest.mark.asyncio
+async def test_location_coordinates_are_serialized_as_json(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    admin = await create_profile(db_session, role=schemas.UserRole.HEAD_ADMIN)
+
+    create_response = await client.post(
+        "/locations/",
+        headers=admin.headers,
+        json={
+            "name": "QA Map Building",
+            "faculty_id": None,
+            "coordinates": {
+                "latitude": 45.4361,
+                "longitude": 28.0552,
+            },
+        },
+    )
+
+    assert create_response.status_code == 201
+    created = create_response.json()
+    assert created["coordinates"] == {
+        "latitude": 45.4361,
+        "longitude": 28.0552,
+    }
+
+    read_response = await client.get(f"/locations/{created['id']}")
+
+    assert read_response.status_code == 200
+    body = read_response.json()
+    assert body["coordinates"] == {
+        "latitude": 45.4361,
+        "longitude": 28.0552,
+    }

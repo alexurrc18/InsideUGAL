@@ -1,4 +1,5 @@
-import { Pressable, Text, useColorScheme, View, Platform } from "react-native";
+import { useRef } from "react";
+import { Pressable, Text, useColorScheme, View, Platform, Animated } from "react-native";
 import { Stack, useRouter, useGlobalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -7,7 +8,7 @@ import { Typography } from "@/constants/typography";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import PlusIcon from "@/assets/icons/svg/plus.svg";
 import { CategoryHeader, FilterItem } from "@/components/ui/category-header";
-import { GlassView } from "expo-glass-effect";
+import { InteractiveGlass } from "@/components/ui/interactive-glass";
 
 export const unstable_settings = {
   initialRouteName: "index",
@@ -20,6 +21,28 @@ export default function SesizariLayout() {
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
   const activeFilter = (params.filter as string) || "mele";
+
+  const scalePlusAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressInPlus = () => {
+    Animated.spring(scalePlusAnim, {
+      toValue: 1.12,
+      useNativeDriver: true,
+      stiffness: 300,
+      damping: 15,
+      mass: 0.5,
+    }).start();
+  };
+
+  const handlePressOutPlus = () => {
+    Animated.spring(scalePlusAnim, {
+      toValue: 1.0,
+      useNativeDriver: true,
+      stiffness: 300,
+      damping: 15,
+      mass: 0.5,
+    }).start();
+  };
 
   const filters: FilterItem[] = [
     { id: "mele", title: "Sesizările mele" },
@@ -56,39 +79,45 @@ export default function SesizariLayout() {
                 }}
                 autoAbbreviate={false}
                 rightElement={
-                  <Pressable 
-                    onPress={() => router.push("/(public)/sesizari/adauga")} 
-                    style={({ pressed }) => [
-                      {
-                        opacity: pressed ? 0.7 : 1
-                      }
-                    ]}
-                  >
-                    {Platform.OS === "ios" ? (
-                      <GlassView
+                  Platform.OS === 'ios' ? (
+                    <Pressable
+                      onPress={() => router.push("/(public)/sesizari/adauga")}
+                      style={{ padding: 0 }}
+                    >
+                      <InteractiveGlass
                         style={{
                           padding: Spacing.xs,
                           borderRadius: 20,
-                          justifyContent: "center",
-                          alignItems: "center",
-                          overflow: "hidden"
                         }}
                       >
                         <PlusIcon width={24} height={24} color={theme.text} style={{margin: 5}} />
-                      </GlassView>
-                    ) : (
-                      <View
-                        style={{
-                          padding: Spacing.xs,
-                          borderRadius: 20,
-                          justifyContent: "center",
-                          alignItems: "center"
-                        }}
-                      >
-                        <PlusIcon width={32} height={32} color={theme.text} />
-                      </View>
-                    )}
-                  </Pressable>
+                      </InteractiveGlass>
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      onPress={() => router.push("/(public)/sesizari/adauga")}
+                      onPressIn={handlePressInPlus}
+                      onPressOut={handlePressOutPlus}
+                      style={({ pressed }) => [
+                        {
+                          opacity: pressed ? 0.85 : 1
+                        }
+                      ]}
+                    >
+                      <Animated.View style={{ transform: [{ scale: scalePlusAnim }] }}>
+                        <View
+                          style={{
+                            padding: Spacing.xs,
+                            borderRadius: 20,
+                            justifyContent: "center",
+                            alignItems: "center"
+                          }}
+                        >
+                          <PlusIcon width={32} height={32} color={theme.text} />
+                        </View>
+                      </Animated.View>
+                    </Pressable>
+                  )
                 }
               />
             </View>

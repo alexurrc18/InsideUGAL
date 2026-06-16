@@ -18,7 +18,6 @@ export default function LineupLayout() {
     return (
         <Stack screenOptions={{
             headerShadowVisible: false,
-            animation: 'none',
         }}>
 
             {/* INDEX*/}
