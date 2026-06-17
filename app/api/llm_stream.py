@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+from typing import AsyncGenerator
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -22,7 +23,9 @@ def _chunk_text(text: str, chunk_size: int = 10) -> list[str]:
     return [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
 
 
-async def _stream_response(answer: str, user_question: str, current_profile: Profile, session: AsyncSession):
+async def _stream_response(
+    answer: str, user_question: str, current_profile: Profile, session: AsyncSession
+) -> AsyncGenerator[str, None]:
     try:
         for chunk in _chunk_text(answer, 10):
             yield f"data: {json.dumps({'content': chunk, 'cached': False})}\n\n"
@@ -37,6 +40,13 @@ async def _stream_response(answer: str, user_question: str, current_profile: Pro
             )
         )
         await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
+
+    yield "data: [DONE]\n\n"
+
+
 class StreamRequest(BaseModel):
     """Model pentru corpul cererii de streaming."""
     question: str
@@ -44,7 +54,7 @@ class StreamRequest(BaseModel):
 
 async def _real_stream_response(
     question: str, current_profile: Profile, session: AsyncSession
-):
+) -> AsyncGenerator[str, None]:
     """
     Streaming real: conectare la endpoint-ul SSE al serviciului LLM
     și retransmitere a evenimentelor către client.
@@ -110,19 +120,6 @@ async def ask_chatbot_stream(
     session: AsyncSession = Depends(get_db),
 ):
     try:
-        async with httpx.AsyncClient() as client:
-            llm_resp = await client.post(
-                f"{LLM_SERVICE_URL}/api/v1/campus-chat",
-                json={"question": "placeholder"},
-                timeout=30.0,
-            )
-            llm_resp.raise_for_status()
-            response_data = llm_resp.json()
-
-        answer = response_data.get("answer", "")
-
-        return StreamingResponse(
-            _stream_response(answer, "placeholder", current_profile, session),
         return StreamingResponse(
             _real_stream_response(body.question, current_profile, session),
             media_type="text/event-stream",
