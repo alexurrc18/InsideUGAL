@@ -1,30 +1,22 @@
 """
 image_service_v2.py
 ===================
-InsideUGAL v2.0 – Image Service cu HF image-to-image + FLUX fallback
+InsideUGAL v2.0 – Image Service cu OpenRouter (Grok-Imagine) + FLUX fallback
 
 Flow v2.0:
-    1. LLM (Llama-3.3-70B via HF) generează prompt vizual din JSON anunț
-    2. Se detectează facultatea din `entitate_sursa`
-    3. Se încarcă poza ORIGINALĂ (color, fără fundal) a clădirii din assets/
-    4. Se trimite prompt + poză la HF Inference API (image-to-image cu SDXL)
-    5. Fallback la FLUX.1-schnell (HF) text-to-image dacă poza lipsește sau eșuează
-
-Structura assets (poze color curate, NU canny):
-    smart-news-parser/
-    └── assets/
-        └── buildings/
-            ├── inginerie/
-            │   ├── img1_cleanup.png   ← poza originală după background removal
-            │   └── img2_cleanup.png
-            ├── aciee/
-            │   └── corp_Y12.png
-            └── ...
+    1. LLM-ul de extragere a generat deja JSON-ul anunțului.
+    2. Dacă anunțul este pur administrativ și există o clădire setată în assets (ex. `assets/buildings/[facultate]/banner_[facultate].png`), se folosește acel banner direct.
+    3. Dacă anunțul este mai general/dinamic, LLM-ul generează un prompt vizual bazat pe contextul JSON.
+    4. Se generează o imagine via OpenRouter (`x-ai/grok-imagine-image-quality`).
+    5. Dacă OpenRouter pică sau nu e disponibil, se face fallback pe HuggingFace cu `FLUX.1-schnell`.
+    6. Se face auto-crop (tăiere) forțat la 16:9, iar apoi conversie la JPEG pentru a evita erori de canal alpha (RGBA).
+    7. Banner-ul rezultat se uploadează în Supabase și se returnează URL-ul public.
 
 Variabile de mediu necesare (.env):
-    HUGGINGFACE_API_KEY   — pentru LLM (Llama), SDXL image-to-image și FLUX fallback
-    SUPABASE_URL          — optional, pentru upload banner
-    SUPABASE_SERVICE_KEY  — optional
+    OPENROUTER_API_KEY    — pentru Grok-Imagine (sau alte modele de generare de imagini de pe OpenRouter)
+    HUGGINGFACE_API_KEY   — pentru generare prompt (Llama 3) și pentru fallback generare imagini (FLUX)
+    SUPABASE_URL          — pentru upload banner
+    SUPABASE_SERVICE_KEY  — pentru autentificare upload Supabase
 """
 
 import os
