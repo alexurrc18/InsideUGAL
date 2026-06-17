@@ -70,8 +70,7 @@ services:
     networks:
     - public
     - internal
-
-  frontend:
+  dashboard:
     build:
       context: ./Frontend/Dashboard/dashboard-insideugal
       dockerfile: Dockerfile

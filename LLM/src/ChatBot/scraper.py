@@ -1,14 +1,11 @@
 import re
 import time
-import warnings
+import logging
 import requests
-import urllib3
 import fitz  # PyMuPDF
 from bs4 import BeautifulSoup
 
-# ugal.ro și admitere.ugal.ro au certificat SSL nerecunoscut pe Mac —
-# dezactivăm verificarea doar pentru scraping intern, nu pentru prod
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+logger = logging.getLogger(__name__)
 
 BASE_URL  = "https://aciee.ugal.ro"
 UGAL_URL  = "https://www.ugal.ro"
@@ -61,11 +58,11 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; FACIEEBot/1.0)"
 }
 
-VERIFY_SSL = {
-    "https://aciee.ugal.ro": True,
-    "https://www.ugal.ro": False,
-    "https://www.admitere.ugal.ro": False,
-}
+# Certificatele SSL ale unor domenii UGAL sunt auto-semnate sau expirate.
+# Dezactivăm avertismentele doar pentru request-urile noastre de scraping,
+# NU global pentru tot procesul.
+_scrape_session = requests.Session()
+_scrape_session.headers.update(HEADERS)
 
 def _clean_html(soup: BeautifulSoup, source_url: str) -> str:
     # Elimină elemente irelevante
@@ -142,7 +139,7 @@ def scrape_faciee() -> list[dict]:
     for path in PAGES:
         url = BASE_URL + path
         try:
-            resp = requests.get(url, headers=HEADERS, timeout=12)
+            resp = _scrape_session.get(url, timeout=12, verify=True)
             if resp.status_code != 200:
                 continue
 
@@ -171,7 +168,7 @@ def scrape_faciee() -> list[dict]:
                 pdf_urls_seen.add(href)
 
                 try:
-                    pdf_resp = requests.get(href, headers=HEADERS, timeout=20)
+                    pdf_resp = _scrape_session.get(href, timeout=20)
                     if pdf_resp.status_code != 200:
                         continue
                     pdf_text = _parse_pdf(pdf_resp.content, href)
@@ -287,14 +284,15 @@ FACULTY_SITES = {
 }
 
 
-def _scrape_site(base: str, pages: list[str], prefix: str) -> list[dict]:
+def _scrape_site(base: str, pages: list[str], prefix: str, ssl_verify: bool = True) -> list[dict]:
+    if not ssl_verify:
+        logger.warning(f"SSL verification disabled for {base}")
     chunks = []
     chunk_idx = 0
-    ssl_verify = next((v for k, v in VERIFY_SSL.items() if base.startswith(k)), True)
     for path in pages:
         url = base + path
         try:
-            resp = requests.get(url, headers=HEADERS, timeout=12, verify=ssl_verify)
+            resp = _scrape_session.get(url, timeout=12, verify=ssl_verify)
             if resp.status_code != 200:
                 continue
             soup = BeautifulSoup(resp.text, "html.parser")
@@ -317,21 +315,21 @@ def _scrape_site(base: str, pages: list[str], prefix: str) -> list[dict]:
 
 def scrape_ugal_general() -> list[dict]:
     print(f"[Scraper] UGAL general — {len(UGAL_PAGES)} pagini...")
-    return _scrape_site(UGAL_URL, UGAL_PAGES, "ugal")
+    return _scrape_site(UGAL_URL, UGAL_PAGES, "ugal", ssl_verify=False)
 
 
 def scrape_admitere() -> list[dict]:
     print(f"[Scraper] Admitere UGAL — {len(ADM_PAGES)} pagini...")
-    return _scrape_site(ADM_URL, ADM_PAGES, "adm")
+    return _scrape_site(ADM_URL, ADM_PAGES, "adm", ssl_verify=False)
 
 
 def scrape_faculties() -> list[dict]:
     """Scrape-uiește toate site-urile de facultăți UGAL."""
     chunks = []
     for prefix, base_url in FACULTY_SITES.items():
-        print(f"[Scraper] Facultate {prefix} ({base_url})...")
-        VERIFY_SSL[base_url] = False
-        chunks += _scrape_site(base_url, FACULTY_COMMON_PAGES, prefix)
+        logger.info(f"Facultate {prefix} ({base_url})...")
+        # Majoritatea site-urilor de facultăți au certificate SSL problematice
+        chunks += _scrape_site(base_url, FACULTY_COMMON_PAGES, prefix, ssl_verify=False)
     return chunks
 
 

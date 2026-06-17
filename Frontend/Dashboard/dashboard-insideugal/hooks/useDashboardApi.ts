@@ -10,7 +10,7 @@ import {
 
 export function useAnnouncements() {
   return useApiQuery({
-    path: "/announcements",
+    path: "/announcements/",
     queryKey: ["announcements"],
     schema: announcementsSchema,
   });

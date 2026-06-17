@@ -130,7 +130,7 @@ export async function apiRequest<TResponse>(
 }
 
 export const apiClient = {
-  getAnnouncements: () => apiRequest("/announcements", announcementsSchema),
+  getAnnouncements: () => apiRequest("/announcements/", announcementsSchema),
   getCourses: () => apiRequest("/courses", coursesSchema),
   getFaculties: () => apiRequest("/faculties", facultiesSchema),
   getFaculty: (id: number) => apiRequest(`/faculties/${id}`, facultySchema),
