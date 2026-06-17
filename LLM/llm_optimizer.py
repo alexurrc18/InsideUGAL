@@ -77,7 +77,7 @@ class LLMOptimizer:
     def get_cached_answer(self, user_input: str, threshold: float = 0.95) -> Optional[str]:
         """
         Verifică dacă o întrebare cu o similaritate semantică de peste threshold a mai fost pusă.
-        Folosește RPC pgvector pentru căutare eficientă (O(log n) vs O(n)).
+        (Versiunea clasică O(n) prin scanarea memoriei)
         """
         if not self.supabase_client:
             return None
@@ -87,24 +87,44 @@ class LLMOptimizer:
             return None
 
         try:
-            # Folosim RPC pgvector pentru căutare eficientă (O(log n) vs O(n))
-            result = self.supabase_client.rpc(
-                "match_semantic_cache",
-                {
-                    "query_embedding": new_vector,
-                    "match_threshold": threshold,
-                    "match_count": 1,
-                }
-            ).execute()
+            res = self.supabase_client.table("semantic_cache").select("question, answer, embedding").execute()
+            if not res.data:
+                return None
+            
+            best_score = -1.0
+            best_answer = None
 
-            if result.data and len(result.data) > 0:
-                logger.info(f"Cache Hit! Scor: {result.data[0].get('similarity', 0):.4f}")
-                return result.data[0]["answer"]
+            for row in res.data:
+                cached_emb = row.get("embedding")
+                if not cached_emb:
+                    continue
+                
+                import json
+                if isinstance(cached_emb, str):
+                    cached_emb = json.loads(cached_emb)
+
+                score = self._cosine_similarity(new_vector, cached_emb)
+                if score > best_score:
+                    best_score = score
+                    best_answer = row.get("answer")
+
+            if best_score >= threshold:
+                logger.info(f"Cache Hit! Scor: {best_score:.4f}")
+                return best_answer
+            
         except Exception as e:
-            logger.warning("Semantic cache RPC error (fallback to miss): %s", e)
+            logger.warning("Semantic cache error (ignorat): %s", e)
 
         logger.info("Cache Miss.")
         return None
+
+    def _cosine_similarity(self, vec1: list[float], vec2: list[float]) -> float:
+        import numpy as np
+        v1 = np.array(vec1)
+        v2 = np.array(vec2)
+        if np.linalg.norm(v1) == 0 or np.linalg.norm(v2) == 0:
+            return 0.0
+        return float(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))
 
     def save_to_cache(self, user_input: str, answer: str):
         """Salvează o nouă întrebare în Supabase cache."""
