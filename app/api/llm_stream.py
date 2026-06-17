@@ -1,5 +1,7 @@
+import asyncio
 import json
 import os
+from typing import AsyncGenerator
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -17,6 +19,34 @@ router = APIRouter(prefix="/api/v1/llm", tags=["LLM"])
 LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://llm:8000")
 
 
+def _chunk_text(text: str, chunk_size: int = 10) -> list[str]:
+    return [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
+
+
+async def _stream_response(
+    answer: str, user_question: str, current_profile: Profile, session: AsyncSession
+) -> AsyncGenerator[str, None]:
+    try:
+        for chunk in _chunk_text(answer, 10):
+            yield f"data: {json.dumps({'content': chunk, 'cached': False})}\n\n"
+            await asyncio.sleep(0.05)
+
+        session.add(
+            QuestionsHistory(
+                user_id=str(current_profile.id),
+                question=user_question,
+                answer=answer,
+                pdf_id="campus-chat",
+            )
+        )
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
+
+    yield "data: [DONE]\n\n"
+
+
 class StreamRequest(BaseModel):
     """Model pentru corpul cererii de streaming."""
     question: str
@@ -24,7 +54,7 @@ class StreamRequest(BaseModel):
 
 async def _real_stream_response(
     question: str, current_profile: Profile, session: AsyncSession
-):
+) -> AsyncGenerator[str, None]:
     """
     Streaming real: conectare la endpoint-ul SSE al serviciului LLM
     și retransmitere a evenimentelor către client.
