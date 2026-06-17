@@ -5,6 +5,8 @@
   "dependencies": {
     "@expo/ui": "~56.0.13",
     "@maplibre/maplibre-react-native": "^11.3.3",
+    "@react-native-async-storage/async-storage": "^3.1.1",
+    "axios": "^1.18.0",
     "expo": "~56.0.4",
     "expo-build-properties": "^56.0.17",
     "expo-constants": "~56.0.15",

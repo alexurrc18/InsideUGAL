@@ -85,3 +85,24 @@ export const getTodayRomanianDate = (): string => {
     const year = d.getFullYear();
     return `${day} ${month} ${year}`;
 };
+
+/**
+ * Convertește o dată ISO (ex: "2026-06-16T12:00:00Z") în format text românesc ("16 iunie 2026")
+ */
+export const isoToRomanianDateStr = (isoStr?: string): string => {
+  if (!isoStr) return "";
+  try {
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return isoStr;
+    const months = [
+        "ianuarie", "februarie", "martie", "aprilie", "mai", "iunie",
+        "iulie", "august", "septembrie", "octombrie", "noiembrie", "decembrie"
+    ];
+    const day = d.getDate();
+    const month = months[d.getMonth()];
+    const year = d.getFullYear();
+    return `${day} ${month} ${year}`;
+  } catch (e) {
+    return isoStr;
+  }
+};
