@@ -80,7 +80,7 @@ export default function HeaderActions() {
         )}
       </div>
 
-      <Link href="/conturi" className="p-2 rounded-lg hover:bg-accent" aria-label="Profil">
+      <Link href="/login" className="p-2 rounded-lg hover:bg-accent" aria-label="Autentificare">
         <UserCircle className="h-5 w-5 text-foreground" />
       </Link>
     </div>
