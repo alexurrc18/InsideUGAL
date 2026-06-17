@@ -46,13 +46,14 @@ RESCRAPE_INTERVAL_HOURS = 24
 
 def _run_scraper(full_rebuild: bool = False):
     try:
-        with _rag_lock:
-            if full_rebuild:
-                print("[Scraper] Rebuild complet — șterg indexul vechi...")
+        if full_rebuild:
+            print("[Scraper] Rebuild complet — șterg indexul vechi...")
+            with _rag_lock:
                 rag.rebuild()
-            chunks = scrape_all()
+        chunks = scrape_all()
+        with _rag_lock:
             rag.ingest(chunks)
-            print(f"[Scraper] Index actualizat: {rag.collection.count()} chunk-uri totale.")
+        print(f"[Scraper] Index actualizat: {rag.collection.count()} chunk-uri totale.")
     except Exception as e:
         print(f"[Scraper] Eroare: {e}")
 
