@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View } from 'react-native';
+import { View, Platform } from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '@/constants/theme';
-import Map from '@/components/map';
-import { CategoryHeader } from '@/components/ui/category-header';
+import Map from '@/components/map/map';
+import { CategoryHeader } from '@/components/ui/display/category-header';
 import MockData from '@/constants/mock-data.json';
 
 export default function HartaScreen() {
@@ -30,7 +30,7 @@ export default function HartaScreen() {
     <View style={{ 
       flex: 1, 
       backgroundColor: theme.background,
-      paddingTop: insets.top + Spacing.md
+      paddingTop: insets.top + Spacing.md + (Platform.OS === 'web' ? 80 : 0)
     }}>
       <CategoryHeader 
         title='Hartă'

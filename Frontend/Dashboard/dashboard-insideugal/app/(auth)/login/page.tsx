@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-// Importuri corectate exact după arborele tău de directoare (aflat în app/components/ui)
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/Card";
 import { Input } from "@/app/components/ui/Input";
 import { Button } from "@/app/components/ui/Button";
+import { apiBaseUrl } from "@/lib/api-client";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -18,12 +18,11 @@ export default function LoginPage() {
     setLoading(true);
 
     const formData = new URLSearchParams();
-    formData.append("username", email); // Pentru FastAPI OAuth2
+    formData.append("username", email);
     formData.append("password", password);
 
     try {
-      // Modifică cu portul real al backend-ului tău dacă nu e 8000
-      const response = await fetch("https://127.0.0.1:8000/auth/login", {
+      const response = await fetch(`${apiBaseUrl}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -40,7 +39,6 @@ export default function LoginPage() {
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("token_type", data.token_type);
 
-      // Redirecționează utilizatorul după logare spre acasă
       window.location.href = "/";
       
     } catch (err: unknown) {

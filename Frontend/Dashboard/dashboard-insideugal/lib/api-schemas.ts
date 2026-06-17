@@ -55,13 +55,25 @@ export const courseSchema = z.object({
 
 export const announcementSchema = z.object({
   id: z.number().int(),
+  type: z.enum(["NOUTATE", "EVENIMENT"]),
   title: z.string(),
   content: z.string(),
-  created_by: z.number().int(),
-  is_pinned: z.boolean(),
-  expires_at: isoDateSchema.nullable(),
+  image_url: z.string().nullable(),
+  faculty_id: z.number().int().nullable(),
+  location_name: z.string().nullable(),
+  start_date: isoDateSchema.nullable(),
+  end_date: isoDateSchema.nullable(),
+  created_by: z.uuid(),
   created_at: isoDateSchema,
   updated_at: isoDateSchema,
+});
+
+export const paginatedAnnouncementsSchema = z.object({
+  items: z.array(announcementSchema),
+  total: z.number().int(),
+  page: z.number().int(),
+  size: z.number().int(),
+  total_pages: z.number().int(),
 });
 
 export const enrollmentSchema = z.object({
@@ -85,5 +97,5 @@ export const facultiesSchema = z.array(facultySchema);
 export const studentsSchema = z.array(studentSchema);
 export const professorsSchema = z.array(professorSchema);
 export const coursesSchema = z.array(courseSchema);
-export const announcementsSchema = z.array(announcementSchema);
+export const announcementsSchema = paginatedAnnouncementsSchema;
 export const enrollmentsSchema = z.array(enrollmentSchema);

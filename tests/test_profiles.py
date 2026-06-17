@@ -64,7 +64,7 @@ async def test_admin_can_create_read_update_and_delete_profile(
 
     list_response = await client.get("/profiles/", headers=admin.headers)
     assert list_response.status_code == 200
-    assert any(profile["id"] == new_user_id for profile in list_response.json())
+    assert any(profile["id"] == new_user_id for profile in list_response.json()["items"])
 
     read_response = await client.get(f"/profiles/{new_user_id}", headers=admin.headers)
     assert read_response.status_code == 200

@@ -31,6 +31,43 @@ app/
 - **Model layer** (`models/`): Database schema (`models.py`) and serialization / deserialization rules (`schemas.py`).
 - **DB layer** (`db/`): Engine configuration, session management and connection lifecycle.
 
+## Backend progress
+
+- Implemented async FastAPI routers for profiles, announcements, complaints, locations, faculties, categories, products, daily menus and cafeteria menus.
+- Added repository classes per domain so SQLAlchemy queries and transactions stay outside the route handlers.
+- Added Supabase JWT/profile dependencies and role checks for admin, faculty, cafeteria, professor and student representative flows.
+- Integrated Supabase Storage upload endpoints for announcement and complaint images.
+- Added PostGIS location serialization so map coordinates are returned as `{latitude, longitude}` objects.
+- Added bounded pagination for collection endpoints with `page` and `size` query parameters.
+
+## Pagination contract
+
+Collection endpoints return a paginated object instead of an unbounded array:
+
+```json
+{
+  "items": [],
+  "total": 0,
+  "page": 1,
+  "size": 20,
+  "total_pages": 0
+}
+```
+
+Use `?page=1&size=20` on list endpoints. `page` starts at `1`; `size` defaults to `20` and is capped at `50`.
+
+Paginated endpoints include:
+
+- `GET /announcements`
+- `GET /complaints`
+- `GET /locations`
+- `GET /faculties`
+- `GET /categories`
+- `GET /products`
+- `GET /profiles`
+- `GET /daily-menus`
+- `GET /cafeteria_menus`
+
 ## Prerequisites
 
 - Python 3.10+

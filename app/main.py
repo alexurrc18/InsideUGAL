@@ -3,7 +3,6 @@ import logging
 import uuid
 import os
 
-# Essential security and utility imports
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,8 +36,10 @@ from app.rate_limit import limiter
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Definire handler personalizat pentru Rate Limit (soluție pentru versiuni noi slowapi)
-async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+# Variabila de mediu pentru a proteja mediul local
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
     return JSONResponse(
         status_code=429,
         content={"detail": "Too many requests. Please try again later."},
@@ -46,26 +47,8 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 
 app = FastAPI(
     title="InsideUGAL API",
-    description="""
-## API-ul platformei InsideUGAL
-
-O platformă academică modernă pentru studenții Universității "Dunărea de Jos" din Galați.
-
-### Funcționalități principale
-
-- **Profile & Microsoft SSO** - Autentificare și gestionare profiluri utilizatori prin integrare Microsoft
-- **Facultăți & Locații (GIS)** - Informații complete despre facultăți și localizare pe hartă
-- **Sesizări studenți** - Sistem de raportare și urmărire a sesizărilor pentru problemele universitare
-- **Meniu cantină** - Meniul zilnic al cantinei universitare cu informații despre produse
-- **Asistent AI LLM** - Asistent virtual bazat pe inteligență artificială pentru răspunsuri la întrebări frecvente
-
-Documentație completă și exemplu de utilizare disponibilă la repository-ul oficial.
-""",
+    description="API-ul platformei InsideUGAL...",
     version="1.0.0",
-    contact={
-        "name": "Echipa InsideUGAL",
-        "url": "https://github.com/alexurrc18/InsideUGAL",
-    },
     exception_handlers={
         Exception: global_exception_handler,
         StarletteHTTPException: http_exception_handler,
@@ -77,8 +60,10 @@ Documentație completă și exemplu de utilizare disponibilă la repository-ul o
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
-# CORS Configuration
-allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+allowed_origins_raw = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001",
+)
 allowed_origins = [origin.strip() for origin in allowed_origins_raw.split(",") if origin.strip()]
 
 app.add_middleware(
@@ -89,7 +74,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Trusted Host Configuration
 allowed_hosts_raw = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,*.local,test")
 allowed_hosts = [host.strip() for host in allowed_hosts_raw.split(",") if host.strip()]
 
@@ -104,7 +88,11 @@ async def add_security_headers_middleware(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    
+    # HSTS aplicat DOAR în producție
+    if ENVIRONMENT == "production":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        
     return response
 
 @app.middleware("http")

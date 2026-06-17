@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.models import Announcement
@@ -23,6 +23,27 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
 
         result = await session.execute(query)
         return list(result.scalars().all())
+
+    async def get_page(
+        self,
+        session: AsyncSession,
+        *,
+        limit: int,
+        offset: int,
+        announcement_type: str | None = None,
+        faculty_id: int | None = None,
+    ) -> tuple[list[Announcement], int]:
+        query = select(Announcement).order_by(Announcement.created_at.desc())
+        if announcement_type is not None:
+            query = query.where(Announcement.type == announcement_type)
+        if faculty_id is not None:
+            query = query.where(Announcement.faculty_id == faculty_id)
+
+        total_result = await session.execute(select(func.count()).select_from(query.order_by(None).subquery()))
+        total = total_result.scalar_one()
+
+        result = await session.execute(query.limit(limit).offset(offset))
+        return list(result.scalars().all()), total
 
     async def create_for_user(self, session: AsyncSession, announcement_in: AnnouncementCreate, user_id: str) -> Announcement:
         return await self.create(session, announcement_in, created_by=user_id)

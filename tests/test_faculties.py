@@ -7,4 +7,9 @@ async def test_list_faculties_returns_list(client: AsyncClient) -> None:
     response = await client.get("/faculties/")
 
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
+    body = response.json()
+    assert isinstance(body["items"], list)
+    assert body["page"] == 1
+    assert body["size"] == 20
+    assert body["total"] >= len(body["items"])
+    assert "total_pages" in body

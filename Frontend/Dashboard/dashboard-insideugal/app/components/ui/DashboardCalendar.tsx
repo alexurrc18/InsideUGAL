@@ -67,7 +67,7 @@ const EventDayButton = ({ day, modifiers, className, style, ...props }: DayButto
       {hasEvent && (
         <span
           className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${
-            modifiers.selected ? "bg-white" : "bg-brand"
+            modifiers.selected ? "bg-card" : "bg-brand"
           }`}
         />
       )}
@@ -128,7 +128,7 @@ export default function DashboardCalendar({ events = [] }: DashboardCalendarProp
           {hasEvent && (
             <span
               className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${
-                modifiers.selected ? "bg-white" : "bg-brand"
+                modifiers.selected ? "bg-card" : "bg-brand"
               }`}
             />
           )}

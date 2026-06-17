@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_roles
 from app.api.crud import ensure_exists
+from app.api.pagination import PaginationParams, paginated_response
 from app.db.database import get_db
 from app.models import models, schemas
 from app.repositories.announcement_repo import AnnouncementRepository
@@ -29,6 +30,20 @@ async def validate_announcement_refs(payload: BaseModel, db: AsyncSession) -> No
         await ensure_exists(db, models.Faculty, faculty_id, "Faculty not found.")
 
 
+def validate_announcement_dates(payload: schemas.AnnouncementCreate) -> None:
+    if payload.type == schemas.PostType.EVENIMENT:
+        if payload.start_date is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="start_date is required for EVENIMENT announcements.",
+            )
+        if payload.end_date is not None and payload.end_date < payload.start_date:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="end_date must be after start_date.",
+            )
+
+
 def assert_can_manage_announcement(profile, announcement: models.Announcement | None = None) -> None:
     if profile.role == schemas.UserRole.STUDENT_RESPONSABIL.value:
         if announcement is not None and announcement.created_by != str(profile.id):
@@ -37,14 +52,22 @@ def assert_can_manage_announcement(profile, announcement: models.Announcement | 
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Nu ai permisiuni suficiente.")
 
 
-@router.get("/", response_model=list[schemas.AnnouncementResponse])
+@router.get("/", response_model=schemas.PaginatedResponse[schemas.AnnouncementResponse])
 async def read_announcements(
     announcement_type: schemas.PostType | None = None,
     faculty_id: int | None = None,
+    pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_db),
 ):
     type_value = announcement_type.value if announcement_type else None
-    return await repo.get_all(session, announcement_type=type_value, faculty_id=faculty_id)
+    items, total = await repo.get_page(
+        session,
+        limit=pagination.size,
+        offset=pagination.offset,
+        announcement_type=type_value,
+        faculty_id=faculty_id,
+    )
+    return paginated_response(items, total, pagination)
 
 
 @router.get("/{announcement_id}", response_model=schemas.AnnouncementResponse)
@@ -62,6 +85,7 @@ async def create_announcement(
     profile=Depends(manage_announcements),
 ):
     await validate_announcement_refs(announcement_in, session)
+    validate_announcement_dates(announcement_in)
     return await repo.create_for_user(session, announcement_in, user_id=profile.id)
 
 

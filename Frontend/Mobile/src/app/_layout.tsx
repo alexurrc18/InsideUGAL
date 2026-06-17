@@ -7,7 +7,8 @@ import { Colors } from "@/constants/theme";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
+import { View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -16,12 +17,11 @@ SplashScreen.setOptions({
   fade: true
 });
 
-
-
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
+  const insets = useSafeAreaInsets();
 
   const [loaded] = useFonts({
     "InstrumentSans-Bold": require("@/assets/fonts/InstrumentSans-Bold.ttf"),
@@ -40,13 +40,16 @@ export default function RootLayout() {
     return null;
   }
 
-
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <View style={{ flex: 1 }}>
+
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(public)" options={{ animation: 'none' }} />
-          <Stack.Screen name="(auth)" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="(auth)" options={{ presentation: 'formSheet' }} />
+          <Stack.Screen name="ace" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
         </Stack>
+      </View>
     </ThemeProvider>
   );
 }
