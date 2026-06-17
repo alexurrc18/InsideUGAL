@@ -9,9 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 import app.api.announcements as announcements
 import app.api.auth as auth
@@ -21,6 +20,7 @@ import app.api.complaints as complaints
 import app.api.daily_menus as daily_menus
 import app.api.faculties as faculties
 import app.api.llm as llm
+import app.api.llm_stream as llm_stream
 import app.api.locations as locations
 import app.api.products as products
 import app.api.profiles as profiles
@@ -30,6 +30,7 @@ from app.api.errors import (
     validation_exception_handler,
 )
 from app.middleware.timing import TimingMiddleware
+from app.rate_limit import limiter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -37,7 +38,7 @@ logger = logging.getLogger(__name__)
 # Variabila de mediu pentru a proteja mediul local
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
-async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
     return JSONResponse(
         status_code=429,
         content={"detail": "Too many requests. Please try again later."},
@@ -54,7 +55,7 @@ app = FastAPI(
     },
 )
 
-limiter = Limiter(key_func=get_remote_address, default_limits=["60 per minute"])
+# Rate Limiting Configuration
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
@@ -105,6 +106,7 @@ async def add_request_id_middleware(request: Request, call_next):
 
 
 app.add_middleware(TimingMiddleware)
+app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(profiles.router)
 app.include_router(faculties.router)
@@ -117,3 +119,4 @@ app.include_router(complaints.router)
 app.include_router(announcements.router)
 app.include_router(auth.router)
 app.include_router(llm.router)
+app.include_router(llm_stream.router)
