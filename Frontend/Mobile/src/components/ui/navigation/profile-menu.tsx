@@ -24,7 +24,6 @@ export const DASHBOARD_URL = "https://dashboard.insideugal.ro";
 
 export function ProfileMenu({
   open: controlledOpen,
-  onToggle,
   onClose,
 }: {
   open?: boolean;
@@ -39,13 +38,6 @@ export function ProfileMenu({
   const open = controlledOpen !== undefined ? controlledOpen : localOpen;
   const [anim] = useState(() => new Animated.Value(0));
 
-  const toggle = () => {
-    if (onToggle) {
-      onToggle();
-    } else {
-      setLocalOpen(!localOpen);
-    }
-  };
   const close = () => {
     if (onClose) {
       onClose();
@@ -77,6 +69,10 @@ export function ProfileMenu({
     close();
     Linking.openURL(DASHBOARD_URL).catch(() => {});
   };
+  const handleProfilePress = () => {
+    close();
+    router.push("/(auth)");
+  };
   const handleLogout = () => {
     close();
     // TODO: sterge token-ul/sesiunea cand login-ul e conectat.
@@ -92,10 +88,10 @@ export function ProfileMenu({
     <View style={{ position: "relative" }}>
       {/* Trigger: iconita user, fara border, cu fundal plin cand e deschis (ca rotita). */}
       <Pressable
-        onPress={toggle}
+        onPress={handleProfilePress}
         hitSlop={8}
-        accessibilityRole="button"
-        accessibilityLabel="Profil"
+        accessibilityRole="link"
+        accessibilityLabel="Autentificare"
         style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
       >
         <View

@@ -1,9 +1,8 @@
 "use client";
 
-import { Bell, UserRound } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
-import { useTheme } from "../../providers";
-import { useRouter } from "next/navigation"; // 1. Am adăugat importul pentru router
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import { Bell, UserCircle } from "lucide-react";
 import { apiBaseUrl } from "@/lib/api-client";
 
 interface Announcement {
@@ -11,152 +10,79 @@ interface Announcement {
   title: string;
   content: string;
   created_at: string;
-  announcement_type?: string;
 }
 
-const STORAGE_KEY = "last_seen_announcement_id";
+interface AnnouncementsResponse {
+  items?: Announcement[];
+}
 
 export default function HeaderActions() {
-  const router = useRouter(); // 2. Am inițializat router-ul aici
-  const { isDark, toggleTheme } = useTheme();
-  const [open, setOpen] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    async function fetchAnnouncements() {
-      setLoading(true);
+    const fetchAnnouncements = async () => {
       try {
-        // Fallback de siguranță: dacă nu găsește .env, folosește direct adresa locală
-        const res = await fetch(`${apiBaseUrl}/announcements/`);
+        const token = localStorage.getItem("access_token");
+        const res = await fetch(`${apiBaseUrl}/announcements/`, {
+          method: "GET",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        
-        const data: Announcement[] = await res.json();
-        const latest = data.slice(0, 5);
-        setAnnouncements(latest);
-
-        // Calculează câte sunt "necitite" față de ultima vizită
-        const lastSeen = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
-        const unseen = latest.filter((a) => a.id > lastSeen).length;
-        setUnreadCount(unseen);
+        const data = await res.json() as AnnouncementsResponse | Announcement[];
+        setAnnouncements(Array.isArray(data) ? data : data.items ?? []);
       } catch (error) {
-        console.error("Eroare la preluarea anunțurilor:", error);
+        console.error("Eroare la preluarea anunturilor:", error);
         setAnnouncements([]);
-      } finally {
-        setLoading(false);
       }
-    }
-    fetchAnnouncements();
-  }, []);
+    };
 
-  // Noua funcție care se ocupă de click-ul pe clopoțel și resetează unreadCount
-  const handleToggleNotifications = () => {
-    const willOpen = !open;
-    setOpen(willOpen);
-
-    if (willOpen && announcements.length > 0) {
-      const maxId = Math.max(...announcements.map((a) => a.id));
-      localStorage.setItem(STORAGE_KEY, String(maxId));
-      setUnreadCount(0);
-    }
-  };
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    void fetchAnnouncements();
   }, []);
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="relative" ref={dropdownRef}>
+    <div className="relative flex items-center gap-1">
+      <div className="relative">
         <button
           type="button"
-          aria-label="Notificări"
-          onClick={handleToggleNotifications} // Funcția corectată atașată aici
-          className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
+          onClick={() => setIsOpen((open) => !open)}
+          className="p-2 rounded-lg hover:bg-accent relative"
+          aria-label="Notificari"
         >
-          <Bell size={18} />
-          {unreadCount > 0 && (
-            <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
+          <Bell className="h-5 w-5 text-foreground" />
+          {announcements.length > 0 && (
+            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full" />
           )}
         </button>
 
-        {open && (
-          <div className="absolute right-0 top-full mt-2 w-80 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-              <h3 className="text-sm font-semibold text-foreground">Notificări</h3>
-              {announcements.length > 0 && (
-                <span className="text-xs text-muted">{announcements.length} anunțuri</span>
-              )}
-            </div>
-
-            <div className="max-h-80 overflow-y-auto">
-              {loading ? (
-                <div className="flex flex-col gap-2 px-4 py-4">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="animate-pulse space-y-1.5">
-                      <div className="h-3 w-3/4 rounded bg-border" />
-                      <div className="h-2.5 w-full rounded bg-border" />
-                      <div className="h-2 w-1/3 rounded bg-border" />
-                    </div>
-                  ))}
-                </div>
-              ) : announcements.length === 0 ? (
-                <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
-                  <Bell size={24} className="text-muted opacity-40" />
-                  <p className="text-sm text-muted">Nicio notificare momentan</p>
-                </div>
-              ) : (
-                announcements.map((a, idx) => (
-                  <div
-                    key={a.id}
-                    className={`px-4 py-3 hover:bg-background transition-colors cursor-pointer ${
-                      idx < announcements.length - 1 ? "border-b border-border" : ""
-                    }`}
-                  >
-                    <p className="text-sm font-medium text-foreground leading-snug">{a.title}</p>
-                    <p className="text-xs text-muted mt-0.5 line-clamp-2 leading-relaxed">{a.content}</p>
-                    <p className="text-xs text-muted mt-1.5 opacity-70">
-                      {new Date(a.created_at).toLocaleDateString("ro-RO", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </p>
+        {isOpen && (
+          <div className="absolute right-0 mt-2 w-80 bg-card border border-border rounded-xl shadow-lg p-4 z-50 max-h-96 overflow-y-auto">
+            <h3 className="font-bold text-sm text-foreground mb-3">Notificari si anunturi</h3>
+            {announcements.length === 0 ? (
+              <p className="text-xs text-muted text-center py-4">Nu exista anunturi noi.</p>
+            ) : (
+              <div className="space-y-3">
+                {announcements.map((ann) => (
+                  <div key={ann.id} className="border-b border-border/50 pb-2 last:border-0 last:pb-0">
+                    <h4 className="font-semibold text-xs text-foreground">{ann.title}</h4>
+                    <p className="text-[11px] text-muted mt-0.5 line-clamp-2">{ann.content}</p>
                   </div>
-                ))
-              )}
-            </div>
-
-            {announcements.length > 0 && (
-              <div className="border-t border-border px-4 py-2.5">
-                <button className="w-full text-center text-xs text-brand hover:underline">
-                  Vezi toate anunțurile
-                </button>
+                ))}
               </div>
             )}
+            <div className="mt-3 border-t border-border/60 pt-3">
+              <Link href="/noutati" className="block text-center text-xs font-semibold text-brand hover:underline" onClick={() => setIsOpen(false)}>
+                Vezi toate anunturile
+              </Link>
+            </div>
           </div>
         )}
       </div>
 
-      {/* User - Acum trimite către pagina de login */}
-      <button
-        type="button"
-        aria-label="Cont"
-        onClick={() => router.push("/login")} // 3. Am adăugat acțiunea de navigare
-        className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
-      >
-        <UserRound size={18} />
-      </button>
+      <Link href="/login" className="p-2 rounded-lg hover:bg-accent" aria-label="Autentificare">
+        <UserCircle className="h-5 w-5 text-foreground" />
+      </Link>
     </div>
   );
 }

@@ -1,10 +1,16 @@
 import hashlib
-import sys
-import os
+import importlib.util
+from pathlib import Path
 from typing import Optional
-# Adaugă shared în path
-sys.path.append(os.path.join(os.path.dirname(__file__), '../shared'))
-from supabase_cache import SupabaseCache
+
+# Import curat fără sys.path hack
+_spec = importlib.util.spec_from_file_location(
+    "supabase_cache",
+    Path(__file__).parent.parent / "shared" / "supabase_cache.py"
+)
+_mod = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_mod)
+SupabaseCache = _mod.SupabaseCache
 
 cache = SupabaseCache()
 

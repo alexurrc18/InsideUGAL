@@ -1,40 +1,79 @@
-import asyncio
 import json
 import os
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import get_current_profile
 from app.db.database import get_db
 from app.models.models import Profile, QuestionsHistory
+from app.rate_limit import limiter, LLM_RATE_LIMIT
 
 router = APIRouter(prefix="/api/v1/llm", tags=["LLM"])
 
 LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://llm:8000")
 
 
-def _chunk_text(text: str, chunk_size: int = 10) -> list[str]:
-    return [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
+class StreamRequest(BaseModel):
+    """Model pentru corpul cererii de streaming."""
+    question: str
 
 
-async def _stream_response(answer: str, user_question: str, current_profile: Profile, session: AsyncSession):
+async def _real_stream_response(
+    question: str, current_profile: Profile, session: AsyncSession
+):
+    """
+    Streaming real: conectare la endpoint-ul SSE al serviciului LLM
+    și retransmitere a evenimentelor către client.
+    """
+    full_answer = ""
+
     try:
-        for chunk in _chunk_text(answer, 10):
-            yield f"data: {json.dumps({'content': chunk, 'cached': False})}\n\n"
-            await asyncio.sleep(0.05)
+        async with httpx.AsyncClient() as client:
+            async with client.stream(
+                "POST",
+                f"{LLM_SERVICE_URL}/api/v1/campus-chat/stream",
+                json={"question": question},
+                timeout=60.0,
+            ) as resp:
+                resp.raise_for_status()
 
-        session.add(
-            QuestionsHistory(
-                user_id=str(current_profile.id),
-                question=user_question,
-                answer=answer,
-                pdf_id="campus-chat",
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+
+                    payload = line[len("data: "):]
+
+                    # Semnalul de final de stream
+                    if payload.strip() == "[DONE]":
+                        break
+
+                    try:
+                        chunk_data = json.loads(payload)
+                        content = chunk_data.get("content", "")
+                        full_answer += content
+                    except json.JSONDecodeError:
+                        # Ignorăm linii malformate
+                        continue
+
+                    # Retransmitem evenimentul SSE către client
+                    yield f"data: {json.dumps({'content': content, 'cached': False})}\n\n"
+
+        # Salvăm răspunsul complet în istoricul de întrebări
+        if full_answer:
+            session.add(
+                QuestionsHistory(
+                    user_id=str(current_profile.id),
+                    question=question,
+                    answer=full_answer,
+                    pdf_id="campus-chat",
+                )
             )
-        )
-        await session.commit()
+            await session.commit()
+
     except Exception:
         await session.rollback()
         raise
@@ -43,24 +82,16 @@ async def _stream_response(answer: str, user_question: str, current_profile: Pro
 
 
 @router.post("/ask/stream")
+@limiter.limit(LLM_RATE_LIMIT)
 async def ask_chatbot_stream(
+    body: StreamRequest,
+    request: Request,
     current_profile: Profile = Depends(get_current_profile),
     session: AsyncSession = Depends(get_db),
 ):
     try:
-        async with httpx.AsyncClient() as client:
-            llm_resp = await client.post(
-                f"{LLM_SERVICE_URL}/api/v1/campus-chat",
-                json={"question": "placeholder"},
-                timeout=30.0,
-            )
-            llm_resp.raise_for_status()
-            response_data = llm_resp.json()
-
-        answer = response_data.get("answer", "")
-
         return StreamingResponse(
-            _stream_response(answer, "placeholder", current_profile, session),
+            _real_stream_response(body.question, current_profile, session),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
