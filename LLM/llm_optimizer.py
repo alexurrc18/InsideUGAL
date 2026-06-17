@@ -2,7 +2,6 @@ import json
 import logging
 import os
 from typing import Optional
-import numpy as np
 
 from google import genai
 from google.genai import types
@@ -26,6 +25,12 @@ class LLMOptimizer:
         """
         Evaluează dacă prompt-ul este sigur sau este o tentativă de Prompt Injection/Jailbreak.
         """
+        # Scurtătură: întrebări scurte și simple sunt aproape sigur safe
+        if len(user_input) < 200 and not any(kw in user_input.lower() for kw in [
+            "ignore", "forget", "pretend", "jailbreak", "dan", "bypass",
+            "system prompt", "instrucțiuni", "instructiuni"
+        ]):
+            return True
         system_instruction = (
             "Ești un sistem de securitate strict pentru un asistent AI universitar (InsideUGAL). "
             "Analizează textul utilizatorului și determină dacă intenția este curată. "
@@ -57,14 +62,6 @@ class LLMOptimizer:
             # pentru a nu bloca complet aplicația studenților (fail-open)
             return True 
 
-    def _cosine_similarity(self, vec1: list[float], vec2: list[float]) -> float:
-        """Calculează distanța cosinus între doi vectori."""
-        v1 = np.array(vec1)
-        v2 = np.array(vec2)
-        if np.linalg.norm(v1) == 0 or np.linalg.norm(v2) == 0:
-            return 0.0
-        return float(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))
-
     def generate_embedding(self, text: str) -> list[float]:
         """Generează reprezentarea vectorială a textului folosind modelul de embeddings."""
         try:
@@ -80,6 +77,7 @@ class LLMOptimizer:
     def get_cached_answer(self, user_input: str, threshold: float = 0.95) -> Optional[str]:
         """
         Verifică dacă o întrebare cu o similaritate semantică de peste threshold a mai fost pusă.
+        Folosește RPC pgvector pentru căutare eficientă (O(log n) vs O(n)).
         """
         if not self.supabase_client:
             return None
@@ -87,26 +85,23 @@ class LLMOptimizer:
         new_vector = self.generate_embedding(user_input)
         if not new_vector:
             return None
-        
-        # Query semantic search via Supabase RPC or direct table query
-        response = self.supabase_client.table("semantic_cache").select("embedding, answer").execute()
-        
-        best_match_score = 0.0
-        best_answer = None
 
-        for entry in response.data:
-            emb = entry["embedding"]
-            if isinstance(emb, str):
-                import json as _json
-                emb = _json.loads(emb)
-            score = self._cosine_similarity(new_vector, emb)
-            if score > best_match_score:
-                best_match_score = score
-                best_answer = entry["answer"]
+        try:
+            # Folosim RPC pgvector pentru căutare eficientă (O(log n) vs O(n))
+            result = self.supabase_client.rpc(
+                "match_semantic_cache",
+                {
+                    "query_embedding": new_vector,
+                    "match_threshold": threshold,
+                    "match_count": 1,
+                }
+            ).execute()
 
-        if best_match_score >= threshold:
-            logger.info(f"Cache Hit! Scor: {best_match_score:.4f}")
-            return best_answer
+            if result.data and len(result.data) > 0:
+                logger.info(f"Cache Hit! Scor: {result.data[0].get('similarity', 0):.4f}")
+                return result.data[0]["answer"]
+        except Exception as e:
+            logger.warning("Semantic cache RPC error (fallback to miss): %s", e)
 
         logger.info("Cache Miss.")
         return None

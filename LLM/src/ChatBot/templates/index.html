@@ -47,6 +47,14 @@
       <button class="quick-btn" data-q="Ce facultati are UGAL?">🎓 Facultăți</button>
     </div>
 
+    <!-- Recording Overlay -->
+    <div id="recording-overlay" style="display: none;">
+      <div class="recording-indicator">
+        <span class="red-dot"></span>
+        <span class="recording-text">Te ascult... Vorbește acum.</span>
+      </div>
+    </div>
+
     <div class="chat-input-area">
       <label class="upload-btn" id="file-label" title="Atașează o imagine din fișiere">
         📁
@@ -58,7 +66,8 @@
         <button id="img-clear" title="Șterge imaginea">✕</button>
       </div>
       <textarea id="user-input" placeholder="Scrie o întrebare despre facultate..." rows="1" maxlength="500"></textarea>
-<button id="send-btn" title="Trimite">➤</button>
+      <button id="mic-btn" title="Ține apăsat pentru a vorbi (Mesaj vocal)">🎤</button>
+      <button id="send-btn" title="Trimite">➤</button>
     </div>
   </div>
 
