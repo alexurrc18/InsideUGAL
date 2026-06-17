@@ -15,7 +15,7 @@ import pybreaker
 import cache as llm_cache
 import backend_client
 
-from shared import (
+from chatbot_shared import (
     SYSTEM_PROMPT, GEMINI_MODEL,
     detect_link, detect_lang, generate_suggestions,
     MIN_ANSWER_LENGTH_FOR_SOURCES,

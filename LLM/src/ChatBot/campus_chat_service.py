@@ -13,7 +13,7 @@ from rag_engine import RAGEngine
 import backend_client
 import cache as llm_cache
 
-from shared import (
+from chatbot_shared import (
     SYSTEM_PROMPT, GEMINI_MODEL,
     detect_link, generate_suggestions,
     MIN_ANSWER_LENGTH_FOR_SOURCES,
