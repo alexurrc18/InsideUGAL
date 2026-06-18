@@ -13,6 +13,8 @@ import { HomeHighlights } from "@/components/ui/display/home-highlights";
 import { NAVBAR_HEIGHT } from "@/components/ui/navigation/web-navbar";
 import { getFormattedDate, parseRomanianDate } from "@/utils/date";
 import { useWebScrollAware } from "@/contexts/web-scroll-context";
+import { useMockLoading } from "@/hooks/use-mock-loading";
+import { HomeSkeleton } from "@/components/ui/display/skeletons";
 import MOCK_DATA from "@/constants/mock-data.json";
 
 export default function HomeScreen() {
@@ -23,6 +25,10 @@ export default function HomeScreen() {
 
   // Navbar transparent pana trece de hero. Pragul = inaltimea hero-ului minus navbar.
   const scrollProps = useWebScrollAware(HERO_HEIGHT - NAVBAR_HEIGHT);
+
+  // Cat timp se "incarca" datele, aratam skeleton-ul. Inlocuieste `useMockLoading`
+  // cu starea reala de incarcare cand vine backend-ul.
+  const loading = useMockLoading();
 
   const noutati = MOCK_DATA.events.filter(e => e.category === "Noutăți");
   const evenimente = MOCK_DATA.events.filter(e => e.category === "Evenimente");
@@ -91,6 +97,10 @@ export default function HomeScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} {...scrollProps}>
+        {loading ? (
+          <HomeSkeleton />
+        ) : (
+        <>
         {/* Hero slideshow full-bleed: ultimele 3 anunturi, auto-rotire + puncte. */}
         <HeroSlideshow slides={heroItems} onPressItem={handlePress} />
 
@@ -163,6 +173,8 @@ export default function HomeScreen() {
             )}
           />
         </WebContainer>
+        </>
+        )}
       </ScrollView>
     </View>
   );

@@ -58,12 +58,9 @@ export const announcementSchema = z.object({
   type: z.enum(["NOUTATE", "EVENIMENT"]),
   title: z.string(),
   content: z.string(),
-  image_url: z.string().nullable(),
-  faculty_id: z.number().int().nullable(),
-  location_name: z.string().nullable(),
-  start_date: isoDateSchema.nullable(),
-  end_date: isoDateSchema.nullable(),
-  created_by: z.uuid(),
+  created_by: z.union([z.number().int(), z.string()]), // Acceptă atât ID-uri numerice cât și UUID-uri/Usernames
+  is_pinned: z.boolean().default(false),
+  expires_at: isoDateSchema.nullable().optional(),
   created_at: isoDateSchema,
   updated_at: isoDateSchema,
 });
@@ -92,10 +89,19 @@ export const apiErrorSchema = z.object({
   code: z.string().optional(),
 });
 
+export const createPaginatedResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
+  z.object({
+    items: z.array(itemSchema),
+    total: z.number().int(),
+    page: z.number().int(),
+    size: z.number().int(),
+    total_pages: z.number().int(),
+  });
+
 export const usersSchema = z.array(userSchema);
 export const facultiesSchema = z.array(facultySchema);
 export const studentsSchema = z.array(studentSchema);
 export const professorsSchema = z.array(professorSchema);
 export const coursesSchema = z.array(courseSchema);
-export const announcementsSchema = paginatedAnnouncementsSchema;
+export const announcementsSchema = createPaginatedResponseSchema(announcementSchema);
 export const enrollmentsSchema = z.array(enrollmentSchema);

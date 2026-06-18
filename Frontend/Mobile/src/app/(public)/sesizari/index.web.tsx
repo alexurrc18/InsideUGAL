@@ -8,6 +8,8 @@ import { Typography } from "@/constants/typography";
 import { WebContainer } from "@/components/ui/layout/web-container";
 import { CategoryHeader, FilterItem } from "@/components/ui/display/category-header";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
+import { useMockLoading } from "@/hooks/use-mock-loading";
+import { SesizariListSkeleton } from "@/components/ui/display/skeletons";
 import { SesizareCard, Sesizare } from "@/components/ui/display/sesizare-card";
 import MockData from "@/constants/mock-data.json";
 import PlusIcon from "@/assets/icons/svg/plus.svg";
@@ -30,6 +32,8 @@ export default function SesizariScreen() {
 
   const [reports, setReports] = useState<Sesizare[]>(MockData.reports as Sesizare[]);
   const [activeFilter, setActiveFilter] = useState<FilterType>("mele");
+
+  const loading = useMockLoading();
 
   // Reimprospatam lista la fiecare revenire pe ecran (ex: dupa ce s-a adaugat o
   // sesizare noua si s-a dat back), la fel ca pe mobil.
@@ -98,28 +102,32 @@ export default function SesizariScreen() {
             }
           />
 
-          <View style={{ paddingHorizontal: Spacing.lg, gap: Spacing.md, marginTop: Spacing.xs }}>
-            {filteredData.map((item) => (
-              <Pressable
-                key={item.id}
-                onPress={() => handleCardPress(item)}
-                style={({ pressed }) => [{ opacity: pressed ? 0.9 : 1 }]}
-              >
-                <SesizareCard item={item} />
-              </Pressable>
-            ))}
+          {loading ? (
+            <SesizariListSkeleton />
+          ) : (
+            <View style={{ paddingHorizontal: Spacing.lg, gap: Spacing.md, marginTop: Spacing.xs }}>
+              {filteredData.map((item) => (
+                <Pressable
+                  key={item.id}
+                  onPress={() => handleCardPress(item)}
+                  style={({ pressed }) => [{ opacity: pressed ? 0.9 : 1 }]}
+                >
+                  <SesizareCard item={item} />
+                </Pressable>
+              ))}
 
-            {filteredData.length === 0 && (
-              <View style={{ alignItems: "center", justifyContent: "center", paddingVertical: 64 }}>
-                <Text style={[Typography.Heading5, { color: theme.text, marginBottom: Spacing.xs }]}>
-                  Nicio sesizare în această secțiune
-                </Text>
-                <Text style={[Typography.Paragraph3, { color: theme.textSecondary, textAlign: "center" }]}>
-                  Momentan nu există înregistrări.
-                </Text>
-              </View>
-            )}
-          </View>
+              {filteredData.length === 0 && (
+                <View style={{ alignItems: "center", justifyContent: "center", paddingVertical: 64 }}>
+                  <Text style={[Typography.Heading5, { color: theme.text, marginBottom: Spacing.xs }]}>
+                    Nicio sesizare în această secțiune
+                  </Text>
+                  <Text style={[Typography.Paragraph3, { color: theme.textSecondary, textAlign: "center" }]}>
+                    Momentan nu există înregistrări.
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
         </WebContainer>
       </ScrollView>
     </View>

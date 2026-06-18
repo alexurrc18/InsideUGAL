@@ -6,6 +6,16 @@ import { Input } from "@/app/components/ui/Input";
 import { Button } from "@/app/components/ui/Button";
 import { apiBaseUrl } from "@/lib/api-client";
 
+function extractAccessToken(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const token = (payload as Record<string, unknown>).access_token;
+
+  return typeof token === "string" && token.trim() ? token : null;
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,14 +40,25 @@ export default function LoginPage() {
         body: formData.toString(),
       });
 
-      const data = await response.json();
+      const data: unknown = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Autentificare eșuată");
+        const detail = data && typeof data === "object" ? (data as Record<string, unknown>).detail : null;
+        throw new Error(typeof detail === "string" ? detail : "Autentificare e\u0219uat\u0103");
       }
 
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("token_type", data.token_type);
+      const accessToken = extractAccessToken(data);
+      if (!accessToken) {
+        throw new Error("Raspunsul de autentificare nu contine un access_token valid.");
+      }
+
+      const tokenType =
+        data && typeof data === "object" && typeof (data as Record<string, unknown>).token_type === "string"
+          ? ((data as Record<string, unknown>).token_type as string)
+          : "bearer";
+
+      localStorage.setItem("access_token", accessToken);
+      localStorage.setItem("token_type", tokenType);
 
       window.location.href = "/";
       
@@ -108,3 +129,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

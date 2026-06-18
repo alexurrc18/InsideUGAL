@@ -38,7 +38,6 @@ const cspHeader = `
     frame-ancestors 'none';
     connect-src ${connectSrc};
     worker-src blob:;
-    upgrade-insecure-requests;
 `.replace(/\s{2,}/g, ' ').trim();
 const nextConfig: NextConfig = {
   output: "standalone",

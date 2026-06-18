@@ -3,6 +3,7 @@ Modul partajat — centralizează constantele, prompt-ul de sistem,
 funcțiile de navigare, detectare limbă și generare sugestii.
 Folosit de app.py și campus_chat_service.py pentru a elimina duplicarea codului.
 """
+import re
 from google.genai import types as genai_types
 
 # ── Constante ──────────────────────────────────────────────────────────────────
@@ -119,12 +120,20 @@ def detect_link(question: str) -> str:
 
 def detect_lang(text: str) -> str:
     """Detectează limba textului pe baza markerilor specifici (en / ro)."""
-    en_markers = [
-        "what", "how", "when", "where", "who", "which", "are", "is", "the",
-        "admission", "requirements", "bachelor", "master", "scholarship",
-        "program", "faculty", "university", "fee", "cost", "contact",
-    ]
-    return "en" if sum(1 for w in en_markers if w in text.lower()) >= 2 else "ro"
+    # Cuvinte exclusiv englezești (nu apar în română)
+    _EN_STRONG = {
+        "what", "how", "when", "where", "who", "which",
+        "bachelor", "scholarship", "requirements", "enrollment", "deadline",
+    }
+    # Cuvinte ambigue (pot fi împrumutate și în română) — necesită mai multe
+    _EN_AMBIGUOUS = {
+        "admission", "faculty", "university", "fee", "cost", "schedule",
+        "campus", "courses", "grades", "tuition",
+    }
+    words = set(re.findall(r'\b[a-z]+\b', text.lower()))
+    strong = sum(1 for w in _EN_STRONG if w in words)
+    ambiguous = sum(1 for w in _EN_AMBIGUOUS if w in words)
+    return "en" if strong >= 1 or ambiguous >= 3 else "ro"
 
 
 # ── Generare sugestii cu detectare automată a limbii ──────────────────────────
