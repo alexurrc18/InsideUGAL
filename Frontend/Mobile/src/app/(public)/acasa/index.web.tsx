@@ -15,7 +15,6 @@ import { HomeHighlights } from "@/components/ui/display/home-highlights";
 import { NAVBAR_HEIGHT } from "@/components/ui/navigation/web-navbar";
 import { getFormattedDate, parseRomanianDate, isoToRomanianDateStr, getTodayRomanianDate } from "@/utils/date";
 import { useWebScrollAware } from "@/contexts/web-scroll-context";
-import MOCK_DATA from "@/constants/mock-data.json";
 import api, { storage } from "@/services/api";
 import { ErrorState } from "@/components/ui/display/error-state";
 

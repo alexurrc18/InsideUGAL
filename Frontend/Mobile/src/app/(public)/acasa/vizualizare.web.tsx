@@ -12,7 +12,6 @@ import { WebContainer } from "@/components/ui/layout/web-container";
 import { Breadcrumbs, type Crumb } from "@/components/ui/navigation/breadcrumbs";
 import { CompactCard } from "@/components/ui/display/home-highlights";
 import { NewsCard, CategoryTag } from "@/components/ui/display/news-card";
-import MOCK_DATA from "@/constants/mock-data.json";
 import api, { storage } from "@/services/api";
 
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
@@ -50,6 +49,7 @@ function VizualizareScreen() {
     };
 
     const [itemData, setItemData] = useState<any>(initialItem.title ? initialItem : null);
+    const [relatedPool, setRelatedPool] = useState<any[]>([]);
 
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
     const theme = Colors[themeName];
@@ -65,11 +65,33 @@ function VizualizareScreen() {
     useEffect(() => {
         let isMounted = true;
 
+        const loadRelated = async () => {
+            try {
+                let cachedStr = await storage.getItem('cached_announcements');
+                let items = [];
+                if (cachedStr) {
+                    items = JSON.parse(cachedStr);
+                } else {
+                    const res = await api.get('/announcements/', { params: { page: 1, size: 20 } });
+                    if (res.data?.items) {
+                        items = res.data.items;
+                    }
+                }
+                if (isMounted) {
+                    setRelatedPool(items);
+                }
+            } catch (err) {
+                console.warn('[API] Error loading related announcements:', err);
+            }
+        };
+
         const loadData = async () => {
             if (!id) {
                 setLoading(false);
                 return;
             }
+
+            loadRelated();
 
             // Try loading from cached announcements first for instant rendering!
             try {
@@ -214,35 +236,7 @@ function VizualizareScreen() {
                             }
                         }
                     } catch (apiErr) {
-                        console.warn("[API] Could not fetch details, falling back to mock:", apiErr);
-                    }
-                }
-
-                if (!fetchedItem && id) {
-                    const mock = (MOCK_DATA.events.find(e => e.id === id) ||
-                                  MOCK_DATA.faculties.find(f => f.id === id) ||
-                                  MOCK_DATA.facilities.find(fac => fac.id === id)) as any;
-                    if (mock) {
-                        fetchedItem = {
-                            id: mock.id,
-                            type: mock.category === "Evenimente" ? "Eveniment" : (mock.id.startsWith("fac") ? "Facilitate" : (mock.id.startsWith("f") ? "Facultate" : "Anunț")),
-                            title: mock.title || (mock as any).name || "Titlu necunoscut",
-                            category: mock.category || (mock.id.startsWith("fac") ? "Facilitate" : mock.id.startsWith("f") ? "Facultate" : ""),
-                            content: mock.content || (mock as any).description || "Conținut necunoscut",
-                            image: mock.image || "",
-                            location: mock.location || "Locație necunoscută",
-                            date_start: mock.date_start || "",
-                            date_end: mock.date_end || "",
-                            time_start: mock.time_start || "",
-                            time_end: mock.time_end || "",
-                            posted_at: mock.posted_at || "",
-                            date: mock.date || mock.date_start || "Dată necunoscută",
-                            author: mock.author || "Autor necunoscut",
-                            address: (mock as any).address || "Adresă necunoscută",
-                            phone: (mock as any).phone || "",
-                            website: (mock as any).website || "",
-                            schedule: (mock as any).schedule || "",
-                        };
+                        console.warn("[API] Could not fetch details:", apiErr);
                     }
                 }
 
@@ -286,7 +280,26 @@ function VizualizareScreen() {
     // Anunturi inrudite: prioritizam aceeasi categorie ca articolul curent, apoi
     // completam cu restul. Excludem articolul curent (dupa titlu). Sidebar-ul ia
     // primele, "Mai multe" ia urmatoarele (distincte de sidebar).
-    const pool = MOCK_DATA.events.filter((e) => e.title !== title);
+    const pool = relatedPool
+        .filter((item: any) => item.title !== title)
+        .map((item: any) => ({
+            id: item.id.toString(),
+            type: item.type === "NOUTATE" ? "Anunț" : "Eveniment",
+            title: item.title || "Titlu necunoscut",
+            category: item.type === "NOUTATE" ? "Noutăți" : "Evenimente",
+            content: item.content || "Conținut necunoscut",
+            image: item.image_url || "",
+            location: item.location_name || "Locație necunoscută",
+            date_start: isoToRomanianDateStr(item.start_date) || "",
+            date_end: isoToRomanianDateStr(item.end_date) || "",
+            time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
+            time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
+            posted_at: isoToRomanianDateStr(item.created_at) || "",
+            date: isoToRomanianDateStr(item.start_date) || "Dată necunoscută",
+            author: item.author || "Autor necunoscut",
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+        }));
     const sameCategory = pool.filter((e) => e.category === (category as string));
     const otherCategory = pool.filter((e) => e.category !== (category as string));
     const ordered = [...sameCategory, ...otherCategory];

@@ -1,13 +1,25 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, Pressable, useColorScheme, FlatList } from "react-native";
+import { View, Text, Pressable, useColorScheme, FlatList, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { SesizareCard, Sesizare } from "@/components/ui/display/sesizare-card";
-import MockData from "@/constants/mock-data.json";
+import api, { storage } from "@/services/api";
 
 type FilterType = "mele" | "active" | "respinse" | "finalizate";
+
+function mapApiStatus(apiStatus: string): "active" | "respinse" | "finalizate" {
+  switch (apiStatus) {
+    case 'respins':
+      return 'respinse';
+    case 'finalizat':
+    case 'solutionat':
+      return 'finalizate';
+    default:
+      return 'active'; // in_asteptare, in_lucru
+  }
+}
 
 export default function SesizariScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
@@ -17,15 +29,98 @@ export default function SesizariScreen() {
   const navigation = useNavigation();
   const params = useLocalSearchParams();
 
-  const [reports, setReports] = useState<Sesizare[]>(MockData.reports as Sesizare[]);
+  const [reports, setReports] = useState<Sesizare[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const activeFilter = (params.filter as FilterType) || "mele";
 
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // 1. Fetch/load locations to build a map of id -> name
+      let locationsData: any[] = [];
+      const cachedLocs = await storage.getItem('cached_facilities');
+      if (cachedLocs) {
+        locationsData = JSON.parse(cachedLocs);
+      }
+      try {
+        const locsRes = await api.get('/locations/', { params: { page: 1, size: 50 } });
+        if (locsRes.data?.items) {
+          locationsData = locsRes.data.items;
+          await storage.setItem('cached_facilities', JSON.stringify(locsRes.data.items));
+        }
+      } catch (locError) {
+        console.warn('[API] Could not fetch fresh locations for complaints:', locError);
+      }
+
+      const locationMap = new Map<number, string>();
+      locationsData.forEach((loc: any) => {
+        locationMap.set(loc.id, loc.name);
+      });
+
+      // 2. Fetch logged-in user profile if token exists
+      let myProfileId: string | null = null;
+      try {
+        const profileRes = await api.get('/profiles/me');
+        if (profileRes.data?.id) {
+          myProfileId = profileRes.data.id;
+        }
+      } catch (profileError) {
+        console.warn('[API] Could not fetch user profile (maybe unauthenticated):', profileError);
+      }
+
+      // 3. Fetch complaints based on activeFilter
+      let apiItems: any[] = [];
+      if (activeFilter === "mele") {
+        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50 } });
+        apiItems = complaintsRes.data?.items || [];
+      } else if (activeFilter === "active") {
+        const [resPending, resWorking] = await Promise.all([
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_asteptare' } }),
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_lucru' } })
+        ]);
+        apiItems = [...(resPending.data?.items || []), ...(resWorking.data?.items || [])];
+        apiItems.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      } else if (activeFilter === "respinse") {
+        const res = await api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'respins' } });
+        apiItems = res.data?.items || [];
+      } else if (activeFilter === "finalizate") {
+        const [resFinalized, resSolved] = await Promise.all([
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'finalizat' } }),
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'solutionat' } })
+        ]);
+        apiItems = [...(resFinalized.data?.items || []), ...(resSolved.data?.items || [])];
+        apiItems.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      }
+
+      const mappedReports: Sesizare[] = apiItems.map((item: any) => ({
+        id: item.id.toString(),
+        title: item.title,
+        description: item.description,
+        category: "General",
+        status: mapApiStatus(item.status),
+        date: item.created_at,
+        location: locationMap.get(item.location_id) || "Locație nespecificată",
+        isUserReport: myProfileId ? item.user_id === myProfileId : false,
+        image: item.image_url || undefined,
+      }));
+      setReports(mappedReports);
+    } catch (err: any) {
+      console.warn('[API] Error fetching complaints:', err);
+      setError(err.message || "A apărut o eroare la încărcarea sesizărilor.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
+    loadData();
     const unsubscribe = navigation.addListener("focus", () => {
-      setReports([...(MockData.reports as Sesizare[])]);
+      loadData();
     });
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, activeFilter]);
 
   const filteredData = reports.filter(item => {
     if (activeFilter === "mele") return item.isUserReport;
@@ -59,6 +154,30 @@ export default function SesizariScreen() {
       <SesizareCard item={item} />
     </Pressable>
   );
+
+  if (loading && reports.length === 0) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color={theme.primary} />
+      </View>
+    );
+  }
+
+  if (error && reports.length === 0) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: "center", alignItems: "center", padding: Spacing.xl }}>
+        <Text style={[Typography.Heading4, { color: theme.text, textAlign: "center", marginBottom: Spacing.md }]}>
+          {error}
+        </Text>
+        <Pressable 
+          onPress={loadData} 
+          style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}
+        >
+          <Text style={{ color: 'white', fontWeight: "bold" }}>Reîncearcă</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>

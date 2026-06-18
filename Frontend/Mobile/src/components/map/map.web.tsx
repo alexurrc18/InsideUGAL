@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import MockData from '@/constants/mock-data.json';
 import { Config } from '@/constants/config';
 import { Colors } from '@/constants/theme';
 import { getBuildingLetter, cleanMapStyle } from '@/utils/map-helper';
@@ -98,7 +97,7 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
-    const sourceBuildings = buildings && buildings.length > 0 ? buildings : MockData.buildings;
+    const sourceBuildings = buildings && buildings.length > 0 ? buildings : [];
     const list = selectedFacultyId
       ? sourceBuildings.filter(b => b.facultyId === selectedFacultyId)
       : sourceBuildings;

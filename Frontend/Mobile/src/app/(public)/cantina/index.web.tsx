@@ -8,7 +8,6 @@ import { CategoryHeader } from "@/components/ui/display/category-header";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { Expandable } from "@/components/ui/layout/expandable";
 import { MenuItem } from "@/components/ui/navigation/menu-item";
-import MockData from "@/constants/mock-data.json";
 import api, { storage } from "@/services/api";
 
 interface Product {
@@ -17,9 +16,6 @@ interface Product {
   price: number;
   description: string;
 }
-
-const PRODUCT_DATABASE = MockData.cafeteria.products as Record<string, Product>;
-const DAILY_SCHEDULE = MockData.cafeteria.schedule as Record<string, Record<string, string[]>>;
 
 const CATEGORY_ORDER = [
   "Meniul Zilei",
@@ -112,7 +108,7 @@ export default function CantinaScreen() {
           await storage.setItem('cached_cafeteria_menus', JSON.stringify(res.data.items));
         }
       } catch (err) {
-        console.error('[API] Error loading cafeteria menus:', err);
+        console.warn('[API] Error loading cafeteria menus:', err);
       }
     }
     loadMenu();
@@ -124,14 +120,7 @@ export default function CantinaScreen() {
     const dayItem = menuData.find((item: any) => item.day_of_week === dayNum);
 
     if (!dayItem || !dayItem.products || dayItem.products.length === 0) {
-      // Fallback to mock data if API is loading or empty
-      const mockDaily = DAILY_SCHEDULE[selectedDay] || DAILY_SCHEDULE["luni"];
-      const fallbackGrouped: Record<string, any[]> = {};
-      
-      Object.entries(mockDaily).forEach(([category, productIds]) => {
-        fallbackGrouped[category] = productIds.map(id => PRODUCT_DATABASE[id]).filter(Boolean);
-      });
-      return fallbackGrouped;
+      return {};
     }
 
     // Group and sort products by category

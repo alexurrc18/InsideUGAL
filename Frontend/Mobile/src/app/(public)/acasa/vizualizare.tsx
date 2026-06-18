@@ -13,7 +13,6 @@ import CalendarIcon from "@/assets/icons/svg/calendar.svg";
 import LocationIcon from "@/assets/icons/svg/location.svg";
 import PhoneIcon from "@/assets/icons/svg/phone.svg";
 import WebsiteIcon from "@/assets/icons/svg/globe-europe.svg";
-import MOCK_DATA from "@/constants/mock-data.json";
 import { CategoryTag } from "@/components/ui/display/news-card";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 
@@ -220,33 +219,7 @@ function VizualizareScreen() {
                         }
                     }
 
-                    if (!fetchedItem && id) {
-                        const mock = (MOCK_DATA.events.find(e => e.id === id) ||
-                                      MOCK_DATA.faculties.find(f => f.id === id) ||
-                                      MOCK_DATA.facilities.find(fac => fac.id === id)) as any;
-                        if (mock) {
-                            fetchedItem = {
-                                id: mock.id,
-                                type: mock.category === "Evenimente" ? "Eveniment" : (mock.id.startsWith("fac") ? "Facilitate" : (mock.id.startsWith("f") ? "Facultate" : "Anunț")),
-                                title: mock.title || (mock as any).name || "Titlu necunoscut",
-                                category: mock.category || (mock.id.startsWith("fac") ? "Facilitate" : mock.id.startsWith("f") ? "Facultate" : ""),
-                                content: mock.content || (mock as any).description || "Conținut necunoscut",
-                                image: mock.image || "",
-                                location: mock.location || "Locație necunoscută",
-                                date_start: mock.date_start || "",
-                                date_end: mock.date_end || "",
-                                time_start: mock.time_start || "",
-                                time_end: mock.time_end || "",
-                                posted_at: mock.posted_at || "",
-                                date: mock.date || mock.date_start || "Dată necunoscută",
-                                author: mock.author || "Autor necunoscut",
-                                address: (mock as any).address || "Adresă necunoscută",
-                                phone: (mock as any).phone || "",
-                                website: (mock as any).website || "",
-                                schedule: (mock as any).schedule || "",
-                            };
-                        }
-                    }
+                    // No mock fallback
 
                     if (isMounted) {
                         setItemData(fetchedItem);

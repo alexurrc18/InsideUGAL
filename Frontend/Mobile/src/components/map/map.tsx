@@ -14,7 +14,6 @@ try {
   console.error('MapLibre module could not be loaded:', e);
 }
 
-import MockData from '@/constants/mock-data.json';
 import { Colors } from '@/constants/theme';
 import { Spacing } from '@/constants/spacing';
 import { Config } from '@/constants/config';
@@ -56,7 +55,7 @@ const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect, buildings
   }, []);
 
   const visibleBuildings = useMemo(() => {
-    const sourceBuildings = buildings && buildings.length > 0 ? buildings : MockData.buildings;
+    const sourceBuildings = buildings && buildings.length > 0 ? buildings : [];
     const list = !selectedFacultyId
       ? sourceBuildings
       : sourceBuildings.filter(b => b.facultyId === selectedFacultyId);

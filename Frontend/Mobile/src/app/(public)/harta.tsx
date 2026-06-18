@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '@/constants/theme';
 import Map from '@/components/map/map';
 import { CategoryHeader } from '@/components/ui/display/category-header';
-import MockData from '@/constants/mock-data.json';
 import api, { storage } from '@/services/api';
 
 export default function HartaScreen() {
@@ -48,7 +47,7 @@ export default function HartaScreen() {
           }
         }
       } catch (err) {
-        console.error('[API] Error loading map screen data:', err);
+        console.warn('[API] Error loading map screen data:', err);
       }
     }
     loadData();
@@ -56,17 +55,6 @@ export default function HartaScreen() {
   }, []);
 
   const facultyFilters = useMemo(() => {
-    if (faculties.length === 0) {
-      return [
-        { id: null, title: 'Toate locațiile' },
-        { id: 'f8', title: 'Facilități' },
-        ...MockData.faculties.map(f => ({
-          id: f.id,
-          title: f.title
-        }))
-      ];
-    }
-
     return [
       { id: null, title: 'Toate locațiile' },
       { id: 'f8', title: 'Facilități' },
@@ -78,10 +66,6 @@ export default function HartaScreen() {
   }, [faculties]);
 
   const mappedBuildings = useMemo(() => {
-    if (locations.length === 0) {
-      return MockData.buildings;
-    }
-
     return locations.map((item: any) => ({
       id: item.id.toString(),
       name: item.name,

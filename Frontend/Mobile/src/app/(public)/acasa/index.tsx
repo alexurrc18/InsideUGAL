@@ -10,7 +10,6 @@ import { CAROUSEL_CARD_MARGIN } from "@/components/ui/display/carousel/carousel.
 import { NewsCard } from "@/components/ui/display/news-card";
 import { HeroSlideshow } from "@/components/ui/display/hero-slideshow";
 import { getFormattedDate, parseRomanianDate, isoToRomanianDateStr, getTodayRomanianDate } from "@/utils/date";
-import MOCK_DATA from "@/constants/mock-data.json";
 import api, { storage } from "@/services/api";
 import { ErrorState } from "@/components/ui/display/error-state";
 
