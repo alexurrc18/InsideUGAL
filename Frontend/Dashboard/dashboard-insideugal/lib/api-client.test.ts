@@ -24,7 +24,7 @@ test("getAuthHeaders sends the saved access token as a Bearer token", () => {
   expect(headers.get("Authorization")).toBe("Bearer test-token");
 });
 
-test.each(["undefined", "null", null])("getAuthHeaders ignores invalid stored token %s", (token: any) => {
+test.each(["undefined", "null", null])("getAuthHeaders ignores invalid stored token %s", (token: string | null) => {
   stubLocalStorage(token);
 
   const headers = getAuthHeaders();
@@ -61,7 +61,7 @@ test.each([
   { body: { title: "Test", content: "Body" }, method: "POST", path: "/announcements/" },
   { body: { title: "Updated" }, method: "PATCH", path: "/announcements/1" },
   { body: undefined, method: "DELETE", path: "/announcements/1" },
-])("$method request to $path is authenticated", async ({ body, method, path }: any) => {
+])("$method request to $path is authenticated", async ({ body, method, path }: { body: Record<string, unknown> | undefined; method: string | undefined; path: string }) => {
   stubLocalStorage("test-token");
   const fetchMock = vi.fn<[string, RequestInit], Promise<Response>>(async () =>
     new Response(JSON.stringify({ ok: true }), {
