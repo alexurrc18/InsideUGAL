@@ -328,7 +328,9 @@ def fetch_focused_context(question: str) -> str:
     Returnează doar datele relevante pentru întrebarea pusă (fără _ALWAYS_FETCH).
     Folosit în fallback când Gemini nu e disponibil — răspuns focusat, nu tot.
     """
-    intents = detect_intent(question) or _DEFAULT_FALLBACK
+    intents = detect_intent(question)
+    if not intents:
+        return ""
     parts = []
     for intent in intents:
         if intent not in _TABLE_MAP:
