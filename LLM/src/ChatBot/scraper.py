@@ -102,7 +102,7 @@ def _parse_pdf(content: bytes, source_url: str) -> str:
 
 def _chunk_id(prefix: str, idx: int, text: str) -> str:
     """ID stabil bazat pe conținut — permite re-ingestare când textul se schimbă."""
-    return f"{prefix}_{idx}_{hashlib.md5(text.encode()).hexdigest()[:8]}"
+    return f"{prefix}_{idx}_{hashlib.sha256(text.encode()).hexdigest()[:8]}"
 
 
 def _chunk_text(text: str, max_chars: int = 1200, overlap: int = 200) -> list[str]:
