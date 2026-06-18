@@ -17,6 +17,7 @@ function stubLocalStorage() {
 
 function announcementPayload() {
   return {
+    type: "NOUTATE",
     content: "Body",
     created_at: "2026-06-17T12:00:00+00:00",
     created_by: 1,
