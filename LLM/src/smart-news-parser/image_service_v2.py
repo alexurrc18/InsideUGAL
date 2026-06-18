@@ -40,17 +40,31 @@ logger = logging.getLogger("image-generator-v2")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Mapare facultate → folder asset (poze color originale)
+# Mapare facultate/sursa → fisier banner pre-generat (placeholder 16:9)
 # ─────────────────────────────────────────────────────────────────────────────
 FACULTY_ASSET_MAP: dict[str, str] = {
-    "inginerie":    "inginerie",
-    "aciee":        "aciee",
-    "automatica":   "aciee",
-    "calculatoare": "aciee",
-    "medicina":     "medicina",
-    "drept":        "drept",
-    "economica":    "economica",
-    "litere":       "litere",
+    "aciee":                        "banner_aciee.png",
+    "automatica":                   "banner_aciee.png",
+    "calculatoare":                 "banner_aciee.png",
+    "electric":                     "banner_aciee.png",
+    "electronic":                   "banner_aciee.png",
+    "arhitectura navala":           "banner_arhi_navala.png",
+    "nave":                         "banner_arhi_navala.png",
+    "educatie fizica":              "banner_educatie_fizica_sport.png",
+    "sport":                        "banner_educatie_fizica_sport.png",
+    "feaa":                         "banner_feaa.png",
+    "economi":                      "banner_feaa.png",
+    "afaceri":                      "banner_feaa.png",
+    "inginerie":                    "banner_inginerie.png",
+    "medicina":                     "banner_medicina.png",
+    "farmaci":                      "banner_medicina.png",
+    "sia":                          "banner_sia.png",
+    "alimente":                     "banner_sia.png",
+    "alimentar":                    "banner_sia.png",
+    "universitate":                 "banner_universitate.png",
+    "rectorat":                     "banner_universitate.png",
+    "dunarea de jos":               "banner_universitate.png",
+    "ugal":                         "banner_universitate.png",
 }
 
 CANNY_SUFFIX = "_canny"
@@ -283,34 +297,24 @@ class ImageServiceV2:
     # ─────────────────────────────────────────────────────────────────────────
     def _resolve_premade_banner(self, info: ExtractedAnnouncementInfo) -> Path | None:
         source = (info.entitate_sursa or "").lower()
-        matched_folder = None
-        for keyword, folder_name in FACULTY_ASSET_MAP.items():
+        matched_filename = None
+        for keyword, filename in FACULTY_ASSET_MAP.items():
             if keyword in source:
-                matched_folder = folder_name
+                matched_filename = filename
                 break
         
-        if not matched_folder:
+        if not matched_filename:
+            # Daca e un anunt cu tenta administrativa si nu are o sursa detectabila precis, fallback pe banner universitate
+            if getattr(info, 'tip_eveniment', None) in ["administrativ", "cazare", "bursa"]:
+                matched_filename = "banner_universitate.png"
+            else:
+                return None
+            
+        file_path = self.assets_dir / matched_filename
+        if not file_path.exists():
             return None
             
-        folder_path = self.assets_dir / matched_folder
-        if not folder_path.exists():
-            return None
-            
-        # Cautam o imagine gata facuta de Gemini (ex: contine 'banner' sau e singura de acolo)
-        all_images = sorted([
-            f for f in folder_path.iterdir()
-            if f.suffix.lower() in {".png", ".jpg", ".jpeg"}
-        ])
-        
-        for img in all_images:
-            if "banner" in img.name.lower():
-                return img
-        
-        # Daca nu are banner in nume dar exista, o returnam pe prima daca e format 16:9 (presupunem)
-        if all_images:
-            return all_images[0]
-            
-        return None
+        return file_path
 
     async def generate_announcement_banner(
         self,
