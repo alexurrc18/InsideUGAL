@@ -133,13 +133,14 @@ def chat():
     backend_context = ""
     nav_link = detect_link(user_message) or backend_client.fetch_entity_link(user_message)
 
-    # Încearcă Supabase (anunțuri, meniuri, facultăți etc.) — prioritate maximă
-    backend_context = backend_client.fetch_context(user_message)
-
-    if backend_context:
-        context = backend_context
+    # Supabase primul — doar dacă întrebarea are un intent recunoscut
+    focused = backend_client.fetch_focused_context(user_message)
+    if focused:
+        backend_context = focused
+        context = backend_client.fetch_context(user_message)  # context complet pentru Gemini
         sources = []
     else:
+        # Fără date relevante în Supabase — caută în RAG (site-uri facultăți)
         with _rag_lock:
             raw_context, sources = rag.query_with_sources(user_message, n_results=3)
         context = raw_context or "Nu am găsit informații specifice. Îndrumă utilizatorul spre https://www.ugal.ro/"
