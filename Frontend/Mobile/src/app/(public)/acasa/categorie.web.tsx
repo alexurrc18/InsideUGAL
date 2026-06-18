@@ -10,6 +10,8 @@ import { NewsCard } from "@/components/ui/display/news-card";
 import { CategoryHeader, FilterItem } from "@/components/ui/display/category-header";
 import { Breadcrumbs, type Crumb } from "@/components/ui/navigation/breadcrumbs";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
+import { useMockLoading } from "@/hooks/use-mock-loading";
+import { NewsListSkeleton } from "@/components/ui/display/skeletons";
 import { getFormattedDate } from "@/utils/date";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import MOCK_DATA from "@/constants/mock-data.json";
@@ -25,6 +27,8 @@ export default function CategoryScreen() {
   const [scrollY] = useState(() => new Animated.Value(0));
 
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
+
+  const loading = useMockLoading();
 
   const crumbs: Crumb[] = [
     { label: "Acasă", href: "/(public)/acasa" },
@@ -148,24 +152,30 @@ export default function CategoryScreen() {
               />
           </View>
 
-          <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>
-            {filteredData.map((item) => (
-                <NewsCard
-                    key={item.id}
-                    variant="list"
-                    title={item.title}
-                    author={(item as any).author || (item as any).address}
-                    date={getFormattedDate((item as any).date_start || (item as any).date)}
-                    image={item.image}
-                    onPress={() => handlePress(item)}
-                />
-            ))}
-          </View>
+          {loading ? (
+            <NewsListSkeleton />
+          ) : (
+            <>
+              <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>
+                {filteredData.map((item) => (
+                    <NewsCard
+                        key={item.id}
+                        variant="list"
+                        title={item.title}
+                        author={(item as any).author || (item as any).address}
+                        date={getFormattedDate((item as any).date_start || (item as any).date)}
+                        image={item.image}
+                        onPress={() => handlePress(item)}
+                    />
+                ))}
+              </View>
 
-          {filteredData.length === 0 && (
-              <Text style={[Typography.Paragraph1, { color: theme.text, textAlign: "center", marginTop: 40 }]}>
-                  Nu există elemente în această categorie.
-              </Text>
+              {filteredData.length === 0 && (
+                  <Text style={[Typography.Paragraph1, { color: theme.text, textAlign: "center", marginTop: 40 }]}>
+                      Nu există elemente în această categorie.
+                  </Text>
+              )}
+            </>
           )}
         </WebContainer>
       </Animated.ScrollView>
