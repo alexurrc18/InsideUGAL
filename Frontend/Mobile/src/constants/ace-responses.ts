@@ -234,7 +234,7 @@ export const resolveLink = (link: string): string => {
       if (match) {
         path = match[1];
       }
-    } catch (e) {
+    } catch {
       // Fallback
     }
   } else if (link.startsWith('insideugal://')) {

@@ -13,7 +13,7 @@
 //   HeroSlideshow     -> HeroSkeleton
 //   SesizareCard      -> SesizareCardSkeleton
 //   meniul cantinei   -> CantinaMenuSkeleton
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Animated, Easing, StyleSheet, useWindowDimensions } from 'react-native';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -38,7 +38,7 @@ export interface SkeletonProps {
 
 export function Skeleton({ width = '100%', height = 16, radius = 8, style }: SkeletonProps) {
   const theme = useSkeletonTheme();
-  const pulse = useRef(new Animated.Value(0.4)).current;
+  const [pulse] = useState(() => new Animated.Value(0.4));
 
   useEffect(() => {
     const loop = Animated.loop(

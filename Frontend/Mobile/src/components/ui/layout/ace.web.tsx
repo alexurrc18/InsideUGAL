@@ -8,7 +8,7 @@
 // conversatia persista ("sticky").
 //
 // Raspunsurile vin din acelasi mock ca pe mobil, extras in `@/constants/ace-responses`.
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -57,7 +57,7 @@ function renderFormattedText(text: string, baseStyle: any, boldStyle: any) {
 
 // Trei puncte care pulseaza, afisate cat timp "Ace scrie".
 function TypingDots({ color }: { color: string }) {
-  const dots = useRef([new Animated.Value(0.3), new Animated.Value(0.3), new Animated.Value(0.3)]).current;
+  const [dots] = useState(() => [new Animated.Value(0.3), new Animated.Value(0.3), new Animated.Value(0.3)]);
 
   useEffect(() => {
     const animations = dots.map((dot, i) =>
@@ -103,7 +103,7 @@ export function Ace() {
   const innerWidth = panelWidth - Spacing.lg * 2;
 
   // Animatia de deschidere a panoului (fade + slide + scale dinspre coltul de jos).
-  const anim = useRef(new Animated.Value(0)).current;
+  const [anim] = useState(() => new Animated.Value(0));
   useEffect(() => {
     Animated.timing(anim, {
       toValue: open ? 1 : 0,
