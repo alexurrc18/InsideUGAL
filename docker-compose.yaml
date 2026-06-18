@@ -3,9 +3,13 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    volumes:
+      - ./backend:/app
     env_file:
       - .env
     environment:
+      WATCHFILES_FORCE_POLLING: 'true'
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
       SUPABASE_URL: http://supabase-kong:8000
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
@@ -33,6 +37,7 @@ services:
     networks:
     - public
     - internal
+
   llm:
     build:
       context: ./LLM
@@ -69,12 +74,20 @@ services:
     build:
       context: ./Frontend/Dashboard/dashboard-insideugal
       dockerfile: Dockerfile
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     environment:
-    - NODE_ENV=production
-    - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
-    - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-    - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-http://localhost:54321}
+      - VITE_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-cheie_anonima_local}
+      - NODE_ENV=development
+      - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     restart: unless-stopped
+    depends_on:
+      - backend
     deploy:
       resources:
         limits:
@@ -87,7 +100,10 @@ services:
       retries: 3
       start_period: 20s
     ports:
-    - 3000:3000
+      - "5173:5173"
+      - "8080:80"
+      - "8091:3000"
+      - "3000:3000"
     networks:
     - public
     - internal
@@ -103,6 +119,7 @@ services:
     - traefik.http.routers.insideugal-frontend-http.service=insideugal-frontend
     - traefik.http.middlewares.insideugal-redirect-https.redirectscheme.scheme=https
     - traefik.http.services.insideugal-frontend.loadbalancer.server.port=3000
+
   supabase-db:
     image: supabase/postgres:15.8.1.085
     restart: unless-stopped
@@ -298,6 +315,7 @@ services:
       CRYPTO_KEY: ${PG_META_CRYPTO_KEY:-change-me}
     networks:
     - internal
+
   supabase-studio:
     image: supabase/studio:2026.03.16-sha-5528817
     restart: unless-stopped
@@ -393,6 +411,7 @@ networks:
     external: true
   internal:
     internal: true
+
 volumes:
   supabase-db-data: {}
   supabase-storage-data: {}
