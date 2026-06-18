@@ -55,6 +55,7 @@ export const courseSchema = z.object({
 
 export const announcementSchema = z.object({
   id: z.number().int(),
+  type: z.enum(["NOUTATE", "EVENIMENT"]),
   title: z.string(),
   content: z.string(),
   created_by: z.union([z.number().int(), z.string()]), // Acceptă atât ID-uri numerice cât și UUID-uri/Usernames
@@ -62,6 +63,14 @@ export const announcementSchema = z.object({
   expires_at: isoDateSchema.nullable().optional(),
   created_at: isoDateSchema,
   updated_at: isoDateSchema,
+});
+
+export const paginatedAnnouncementsSchema = z.object({
+  items: z.array(announcementSchema),
+  total: z.number().int(),
+  page: z.number().int(),
+  size: z.number().int(),
+  total_pages: z.number().int(),
 });
 
 export const enrollmentSchema = z.object({
