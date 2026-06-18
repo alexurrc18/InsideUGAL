@@ -140,4 +140,4 @@ class LLMOptimizer:
                     "answer": answer
                 }).execute()
             except Exception as e:
-                logger.warning(f"Failed to save to semantic_cache: {e}")
+                logger.warning("Nu am putut salva in semantic_cache: %s", e)

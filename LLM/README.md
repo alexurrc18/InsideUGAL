@@ -15,9 +15,8 @@ Scopul principal este asistarea studenților și a secretariatului prin intermed
 
 - **Bază de Date Vectorială:** Baza de cunoștințe folosește exclusiv **Supabase `pgvector`**.
 - **Generare Vectori (Embeddings):** API extern Google Gemini (`text-embedding-004`).
-- **Model Limbaj (Generare Chatbot):** Google Gemini (`gemini-2.5-flash`).
-- **Parsare Anunțuri (JSON Extraction):** OpenRouter (`openai/gpt-4o-mini`) + Fallback Gemini.
-- **Generare Imagini (Bannere Anunțuri):** OpenRouter (`x-ai/grok-imagine-image-quality`) + Fallback HuggingFace (`FLUX.1-schnell`).
+- **Model Limbaj (Generare):** Google Gemini (`gemini-2.5-flash`).
+- **Generare Imagini (Text-to-Image):** Hugging Face Inference API (`FLUX.1-schnell`).
 - **Reziliență:** Circuit Breaker (`pybreaker`) și mecanisme Retry Exponențial (`tenacity`).
 - **Caching:** Cache semantic pe răspunsuri recurente în Supabase.
 
