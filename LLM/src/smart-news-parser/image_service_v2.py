@@ -43,28 +43,28 @@ logger = logging.getLogger("image-generator-v2")
 # Mapare facultate/sursa → fisier banner pre-generat (placeholder 16:9)
 # ─────────────────────────────────────────────────────────────────────────────
 FACULTY_ASSET_MAP: dict[str, str] = {
-    "aciee":                        "banner_aciee.png",
-    "automatica":                   "banner_aciee.png",
-    "calculatoare":                 "banner_aciee.png",
-    "electric":                     "banner_aciee.png",
-    "electronic":                   "banner_aciee.png",
-    "arhitectura navala":           "banner_arhi_navala.png",
-    "nave":                         "banner_arhi_navala.png",
-    "educatie fizica":              "banner_educatie_fizica_sport.png",
-    "sport":                        "banner_educatie_fizica_sport.png",
-    "feaa":                         "banner_feaa.png",
-    "economi":                      "banner_feaa.png",
-    "afaceri":                      "banner_feaa.png",
-    "inginerie":                    "banner_inginerie.png",
-    "medicina":                     "banner_medicina.png",
-    "farmaci":                      "banner_medicina.png",
-    "sia":                          "banner_sia.png",
-    "alimente":                     "banner_sia.png",
-    "alimentar":                    "banner_sia.png",
-    "universitate":                 "banner_universitate.png",
-    "rectorat":                     "banner_universitate.png",
-    "dunarea de jos":               "banner_universitate.png",
-    "ugal":                         "banner_universitate.png",
+    "aciee":                        "banner_aciee.jpg",
+    "automatica":                   "banner_aciee.jpg",
+    "calculatoare":                 "banner_aciee.jpg",
+    "electric":                     "banner_aciee.jpg",
+    "electronic":                   "banner_aciee.jpg",
+    "arhitectura navala":           "banner_arhi_navala.jpg",
+    "nave":                         "banner_arhi_navala.jpg",
+    "educatie fizica":              "banner_educatie_fizica_sport.jpg",
+    "sport":                        "banner_educatie_fizica_sport.jpg",
+    "feaa":                         "banner_feaa.jpg",
+    "economi":                      "banner_feaa.jpg",
+    "afaceri":                      "banner_feaa.jpg",
+    "inginerie":                    "banner_inginerie.jpg",
+    "medicina":                     "banner_medicina.jpg",
+    "farmaci":                      "banner_medicina.jpg",
+    "sia":                          "banner_sia.jpg",
+    "alimente":                     "banner_sia.jpg",
+    "alimentar":                    "banner_sia.jpg",
+    "universitate":                 "banner_universitate.jpg",
+    "rectorat":                     "banner_universitate.jpg",
+    "dunarea de jos":               "banner_universitate.jpg",
+    "ugal":                         "banner_universitate.jpg",
 }
 
 CANNY_SUFFIX = "_canny"
@@ -306,10 +306,10 @@ class ImageServiceV2:
         if not matched_filename:
             # Daca e un anunt legat de cazare, folosim banner-ul dedicat pentru camine
             if getattr(info, 'tip_eveniment', None) == "cazare":
-                matched_filename = "banner_camin.png"
+                matched_filename = "banner_camin.jpg"
             # Daca e administrativ generic, folosim banner universitate
             elif getattr(info, 'tip_eveniment', None) == "administrativ":
-                matched_filename = "banner_universitate.png"
+                matched_filename = "banner_universitate.jpg"
             else:
                 return None
             
