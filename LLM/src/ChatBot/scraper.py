@@ -6,6 +6,7 @@ import requests
 import urllib3
 import fitz  # PyMuPDF
 from bs4 import BeautifulSoup
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -62,11 +63,10 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; FACIEEBot/1.0)"
 }
 
-# Certificatele SSL ale unor domenii UGAL sunt auto-semnate sau expirate.
-# Dezactivăm avertismentele doar pentru request-urile noastre de scraping,
-# NU global pentru tot procesul.
-_scrape_session = requests.Session()
-_scrape_session.headers.update(HEADERS)
+def _make_session() -> requests.Session:
+    s = requests.Session()
+    s.headers.update(HEADERS)
+    return s
 
 def _clean_html(soup: BeautifulSoup, source_url: str) -> str:
     # Elimină elemente irelevante
@@ -139,6 +139,7 @@ def scrape_faciee() -> list[dict]:
     Parcurge toate paginile FACIEE, descarcă PDF-urile găsite
     și returnează o listă de chunk-uri cu { id, text, source }.
     """
+    session = _make_session()
     chunks = []
     pdf_urls_seen = set()
     chunk_idx = 0
@@ -148,7 +149,7 @@ def scrape_faciee() -> list[dict]:
     for path in PAGES:
         url = BASE_URL + path
         try:
-            resp = _scrape_session.get(url, timeout=12, verify=True)
+            resp = session.get(url, timeout=12, verify=True)
             if resp.status_code != 200:
                 continue
 
@@ -165,7 +166,6 @@ def scrape_faciee() -> list[dict]:
                     })
                     chunk_idx += 1
 
-            # Găsește link-uri PDF pe pagină
             for a in soup.find_all("a", href=True):
                 href = a["href"].strip()
                 if not href.lower().endswith(".pdf"):
@@ -177,7 +177,7 @@ def scrape_faciee() -> list[dict]:
                 pdf_urls_seen.add(href)
 
                 try:
-                    pdf_resp = _scrape_session.get(href, timeout=20)
+                    pdf_resp = session.get(href, timeout=20)
                     if pdf_resp.status_code != 200:
                         continue
                     pdf_text = _parse_pdf(pdf_resp.content, href)
@@ -196,7 +196,7 @@ def scrape_faciee() -> list[dict]:
 
                 time.sleep(0.3)
 
-            time.sleep(0.4)  # politicos față de server
+            time.sleep(0.4)
             logger.debug("✓ %s", url)
 
         except Exception as e:
@@ -294,14 +294,17 @@ FACULTY_SITES = {
 
 
 def _scrape_site(base: str, pages: list[str], prefix: str, ssl_verify: bool = True) -> list[dict]:
+    session = _make_session()
     if not ssl_verify:
         logger.warning("SSL verification disabled for %s", base)
     chunks = []
     chunk_idx = 0
+    pdf_urls_seen: set[str] = set()
+
     for path in pages:
         url = base + path
         try:
-            resp = _scrape_session.get(url, timeout=12, verify=ssl_verify)
+            resp = session.get(url, timeout=12, verify=ssl_verify)
             if resp.status_code != 200:
                 continue
             soup = BeautifulSoup(resp.text, "html.parser")
@@ -315,10 +318,40 @@ def _scrape_site(base: str, pages: list[str], prefix: str, ssl_verify: bool = Tr
                         "type": "web",
                     })
                     chunk_idx += 1
+
+            for a in soup.find_all("a", href=True):
+                href = a["href"].strip()
+                if not href.lower().endswith(".pdf"):
+                    continue
+                if not href.startswith("http"):
+                    href = base + "/" + href.lstrip("/")
+                if href in pdf_urls_seen:
+                    continue
+                pdf_urls_seen.add(href)
+                try:
+                    pdf_resp = session.get(href, timeout=20, verify=ssl_verify)
+                    if pdf_resp.status_code != 200:
+                        continue
+                    pdf_text = _parse_pdf(pdf_resp.content, href)
+                    if pdf_text:
+                        for chunk in _chunk_text(pdf_text, max_chars=1000):
+                            chunks.append({
+                                "id": _chunk_id(f"{prefix}_pdf", chunk_idx, chunk),
+                                "text": chunk,
+                                "source": href,
+                                "type": "pdf",
+                            })
+                            chunk_idx += 1
+                        logger.info("PDF indexat: %s", href)
+                except Exception as e:
+                    logger.warning("Eroare PDF %s: %s", href, e)
+                time.sleep(0.3)
+
             time.sleep(0.4)
             logger.debug("✓ %s", url)
         except Exception as e:
             logger.warning("Eroare %s: %s", url, e)
+
     return chunks
 
 
@@ -333,12 +366,21 @@ def scrape_admitere() -> list[dict]:
 
 
 def scrape_faculties() -> list[dict]:
-    """Scrape-uiește toate site-urile de facultăți UGAL."""
+    """Scrape-uiește toate site-urile de facultăți UGAL în paralel."""
     chunks = []
-    for prefix, base_url in FACULTY_SITES.items():
-        logger.info("Facultate %s (%s)...", prefix, base_url)
-        # Majoritatea site-urilor de facultăți au certificate SSL problematice
-        chunks += _scrape_site(base_url, FACULTY_COMMON_PAGES, prefix, ssl_verify=False)
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {
+            executor.submit(_scrape_site, base_url, FACULTY_COMMON_PAGES, prefix, False): prefix
+            for prefix, base_url in FACULTY_SITES.items()
+        }
+        for future in as_completed(futures):
+            prefix = futures[future]
+            try:
+                result = future.result()
+                chunks.extend(result)
+                logger.info("Facultate %s: %d chunk-uri indexate", prefix, len(result))
+            except Exception as e:
+                logger.error("Eroare facultate %s: %s", prefix, e)
     return chunks
 
 
