@@ -3,6 +3,7 @@
 import { Bell, UserRound } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation"; 
+import Link from "next/link";
 import { announcementsService } from "@/lib/announcements-service";
 
 interface Announcement {
@@ -12,15 +13,14 @@ interface Announcement {
   created_at: string;
 }
 
-interface AnnouncementsResponse {
-  items?: Announcement[];
-}
+const STORAGE_KEY = "last_seen_announcement_id";
 
 export default function HeaderActions() {
   const router = useRouter(); 
   const [open, setOpen] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
+  const [, setUnreadCount] = useState(0);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchAnnouncements = async () => {
@@ -31,8 +31,8 @@ export default function HeaderActions() {
         let items: Announcement[] = [];
         if (Array.isArray(data)) {
           items = data;
-        } else if (data && typeof data === 'object' && Array.isArray((data as any).items)) {
-          items = (data as any).items;
+        } else if (data && typeof data === 'object' && Array.isArray((data as Record<string, unknown>).items)) {
+          items = (data as Record<string, unknown>).items as Announcement[];
         } else {
           console.error("Backend-ul nu a returnat un format recunoscut:", data);
         }
@@ -78,7 +78,7 @@ export default function HeaderActions() {
   }, []);
 
   return (
-    <div className="relative flex items-center gap-1">
+    <div className="relative flex items-center gap-1" ref={dropdownRef}>
       <div className="relative">
         <button
           type="button"
@@ -92,7 +92,7 @@ export default function HeaderActions() {
           )}
         </button>
 
-        {isOpen && (
+        {open && (
           <div className="absolute right-0 mt-2 w-80 bg-card border border-border rounded-xl shadow-lg p-4 z-50 max-h-96 overflow-y-auto">
             <h3 className="font-bold text-sm text-foreground mb-3">Notificari si anunturi</h3>
             {announcements.length === 0 ? (
@@ -108,7 +108,7 @@ export default function HeaderActions() {
               </div>
             )}
             <div className="mt-3 border-t border-border/60 pt-3">
-              <Link href="/noutati" className="block text-center text-xs font-semibold text-brand hover:underline" onClick={() => setIsOpen(false)}>
+              <Link href="/noutati" className="block text-center text-xs font-semibold text-brand hover:underline" onClick={() => setOpen(false)}>
                 Vezi toate anunturile
               </Link>
             </div>
