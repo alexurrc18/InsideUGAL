@@ -25,9 +25,10 @@ interface MapProps {
   themeName: 'light' | 'dark';
   selectedFacultyId: string | null;
   onFacultySelect: (id: string | null) => void;
+  buildings?: any[];
 }
 
-const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect }: MapProps) => {
+const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect, buildings }: MapProps) => {
   const cameraRef = useRef<any>(null);
   const theme = Colors[themeName];
 
@@ -55,11 +56,12 @@ const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect }: MapProp
   }, []);
 
   const visibleBuildings = useMemo(() => {
+    const sourceBuildings = buildings && buildings.length > 0 ? buildings : MockData.buildings;
     const list = !selectedFacultyId
-      ? MockData.buildings
-      : MockData.buildings.filter(b => b.facultyId === selectedFacultyId);
+      ? sourceBuildings
+      : sourceBuildings.filter(b => b.facultyId === selectedFacultyId);
     return [...list].sort((a, b) => b.lat - a.lat);
-  }, [selectedFacultyId]);
+  }, [buildings, selectedFacultyId]);
 
   useEffect(() => {
     if (!cameraRef.current || !MapLibre || !defaultCenter || cameraInitialized.current) return;

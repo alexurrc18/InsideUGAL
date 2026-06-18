@@ -321,6 +321,11 @@ export function WebNavbar() {
                   onToggle={() => setActiveMenu(activeMenu === "theme" ? null : "theme")}
                   onClose={() => activeMenu === "theme" && setActiveMenu(null)}
                 />
+                <ProfileMenu
+                  open={activeMenu === "profile"}
+                  onToggle={() => setActiveMenu(activeMenu === "profile" ? null : "profile")}
+                  onClose={() => activeMenu === "profile" && setActiveMenu(null)}
+                />
               </View>
             </View>
           )}
@@ -395,7 +400,39 @@ export function WebNavbar() {
               />
             </View>
 
-
+            {/* Profil (mobil): cine e conectat + Dashboard (daca are acces) + Deconectare. */}
+            <View style={styles.panelProfile}>
+              <Text style={[Typography.Heading3, { color: ColorScheme.white }]} numberOfLines={1}>
+                {MOCK_USER.name}
+              </Text>
+              <Text style={[Typography.Small1, { color: "rgba(255,255,255,0.7)" }]} numberOfLines={1}>
+                {MOCK_USER.email}
+              </Text>
+            </View>
+            {MOCK_USER.hasDashboardAccess && (
+              <Pressable
+                onPress={() => {
+                  setMenuOpen(false);
+                  Linking.openURL(DASHBOARD_URL).catch(() => {});
+                }}
+                style={({ pressed }) => [styles.panelLink, { opacity: pressed ? 0.6 : 1 }]}
+              >
+                <Text style={[Typography.Heading3, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
+                  Dashboard
+                </Text>
+              </Pressable>
+            )}
+            <Pressable
+              onPress={() => {
+                setMenuOpen(false);
+                router.push("/(auth)");
+              }}
+              style={({ pressed }) => [styles.panelLink, { opacity: pressed ? 0.6 : 1 }]}
+            >
+              <Text style={[Typography.Heading3, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
+                Deconectare
+              </Text>
+            </Pressable>
           </WebContainer>
         </Animated.View>
       )}
