@@ -102,28 +102,28 @@ body {
   display: grid !important;
   grid-template-rows: 0fr;
   grid-template-columns: 100%; /* pastreaza latimea */
-  transition: grid-template-rows 200ms ease; /* Inchidere rapida */
+  transition: grid-template-rows 100ms ease; /* Inchidere foarte rapida */
 }
 [data-expanded="open"] [data-expandable-body] {
   grid-template-rows: 1fr;
-  transition: grid-template-rows 250ms ease; /* Deschidere normala */
+  transition: grid-template-rows 150ms ease; /* Deschidere rapida */
 }
 [data-expandable-inner] {
   overflow: hidden;
   min-height: 0;
   opacity: 0;
   transform: translateY(-8px);
-  transition: opacity 100ms ease, transform 100ms ease; /* Inchidere rapida */
+  transition: opacity 80ms ease, transform 80ms ease; /* Inchidere foarte rapida */
 }
 [data-expanded="open"] [data-expandable-inner] {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 300ms ease, transform 300ms ease;
-  transition-delay: 100ms; /* fade-in dupa ce incepe deschiderea */
+  transition: opacity 180ms ease, transform 180ms ease;
+  transition-delay: 40ms; /* fade-in aproape imediat */
 }
 [data-expandable-chevron] {
-  transition: transform 150ms ease; /* Inchidere rapida */
+  transition: transform 80ms ease; /* Inchidere foarte rapida */
 }
 [data-expanded="open"] [data-expandable-chevron] {
-  transition: transform 400ms ease; /* Deschidere normala */
+  transition: transform 200ms ease; /* Deschidere rapida */
 }

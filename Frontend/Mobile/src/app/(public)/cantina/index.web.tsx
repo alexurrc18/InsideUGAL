@@ -93,7 +93,9 @@ export default function CantinaScreen() {
   }, []);
 
   const [selectedDay, setSelectedDay] = useState<string>(daysFilter[0].id);
-  const [openCategory, setOpenCategory] = useState<string | null>("Meniul Zilei");
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
+    "Meniul Zilei": true
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -159,16 +161,11 @@ export default function CantinaScreen() {
     return sortedGroups;
   }, [menuData, selectedDay]);
 
-  // La click pe o categorie noua: inchide-o intai pe cea deschisa, apoi deschide-o pe cea noua (secvential).
   const handleToggle = (category: string) => {
-    if (openCategory === category) {
-      setOpenCategory(null);
-    } else if (openCategory === null) {
-      setOpenCategory(category);
-    } else {
-      setOpenCategory(null);
-      setTimeout(() => setOpenCategory(category), 520);
-    }
+    setOpenCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
   };
 
   return (
@@ -186,40 +183,31 @@ export default function CantinaScreen() {
           title="Cantina"
           filters={daysFilter}
           selectedFilterId={selectedDay}
-          onSelectFilter={(id) => { if (id) { setSelectedDay(id); setOpenCategory(null); } }}
+          onSelectFilter={(id) => { if (id) { setSelectedDay(id); setOpenCategories({ "Meniul Zilei": true }); } }}
         />
 
         {loading ? (
           <CantinaMenuSkeleton />
         ) : (
         <View style={{
-          borderWidth: 1,
-          borderColor: theme.border,
-          borderRadius: Spacing.lg,
-          overflow: "hidden",
           marginHorizontal: Spacing.lg,
+          gap: Spacing.sm,
         }}>
-          {Object.entries(currentMenu).map(([category, productsList], catIndex) => (
-            <View
-              key={`${selectedDay}-${category}`}
-              style={catIndex > 0 ? {
-                borderTopWidth: 1,
-                borderTopColor: theme.border,
-              } : undefined}
-            >
-            <Expandable title={category} expanded={openCategory === category} onToggle={() => handleToggle(category)}>
-              <View style={{ gap: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: Spacing.sm }}>
-                {productsList.map((product, index) => (
-                  <MenuItem
-                    key={product.id}
-                    name={product.name}
-                    price={product.price}
-                    description={product.description}
-                    isLast={index === productsList.length - 1}
-                  />
-                ))}
-              </View>
-            </Expandable>
+          {Object.entries(currentMenu).map(([category, productsList]) => (
+            <View key={`${selectedDay}-${category}`}>
+              <Expandable title={category} expanded={!!openCategories[category]} onToggle={() => handleToggle(category)}>
+                <View style={{ gap: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: Spacing.sm }}>
+                  {productsList.map((product, index) => (
+                    <MenuItem
+                      key={product.id}
+                      name={product.name}
+                      price={product.price}
+                      description={product.description}
+                      isLast={index === productsList.length - 1}
+                    />
+                  ))}
+                </View>
+              </Expandable>
             </View>
           ))}
         </View>

@@ -41,8 +41,8 @@ export function Expandable({ title, children, initialExpanded = false, expanded,
             flexDirection: "row",
             justifyContent: "space-between",
             alignItems: "center",
-            paddingVertical: Spacing.lg,
-            paddingHorizontal: Spacing.lg,
+            paddingVertical: Spacing.md,
+            paddingHorizontal: 0,
           },
           { opacity: pressed ? 0.7 : 1 },
         ]}
@@ -57,7 +57,7 @@ export function Expandable({ title, children, initialExpanded = false, expanded,
       </Pressable>
 
       <View {...({ dataSet: { expandableBody: "true" } } as any)}>
-        <View {...({ dataSet: { expandableInner: "true" } } as any)} style={{ paddingHorizontal: Spacing.lg, paddingBottom: Spacing.lg }}>
+        <View {...({ dataSet: { expandableInner: "true" } } as any)} style={{ paddingHorizontal: 0, paddingBottom: Spacing.md }}>
           {children}
         </View>
       </View>

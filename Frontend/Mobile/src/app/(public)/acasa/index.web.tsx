@@ -315,7 +315,7 @@ export default function HomeScreen() {
   const activeFacultati = facultati;
   const activeFacilitati = facilitati;
 
-  // Sectiunea "Ultimele 4 anunțuri": un anunt mare (featured) + 3 compacte, sortate după created_at descrescător.
+  // Sectiunea "Recente": un anunt mare (featured) + 3 compacte, sortate după created_at descrescător.
   const allAnnouncements = [...activeNoutati, ...activeEvenimente].sort((a, b) => {
     const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
     const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
@@ -360,7 +360,7 @@ export default function HomeScreen() {
 
           {/* Sectiune intre hero si carusele: 3 carduri compacte + 1 card mare. */}
           <HomeHighlights 
-            title="Ultimele 4 anunțuri" 
+            title="Recente" 
             featured={featuredItem} 
             items={highlightItems} 
             onPressItem={handlePress} 
