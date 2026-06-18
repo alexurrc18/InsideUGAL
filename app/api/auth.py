@@ -59,3 +59,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         "access_token": response_data["access_token"],
         "token_type": response_data["token_type"],
     }
+
+
+@router.post("/logout")
+async def logout():
+    return {"message": "Logged out successfully"}
