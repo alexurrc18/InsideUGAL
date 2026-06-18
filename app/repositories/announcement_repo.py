@@ -1,6 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from fastapi import HTTPException, status
+
 from app.models.models import Announcement
 from app.models.schemas import AnnouncementCreate, AnnouncementUpdate
 from app.repositories.base import CRUDRepository, schema_to_data
@@ -25,8 +27,30 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         return list(result.scalars().all())
 
     async def create_for_user(self, session: AsyncSession, announcement_in: AnnouncementCreate, user_id: str) -> Announcement:
-        return await self.create(session, announcement_in, created_by=user_id)
+        # Preluăm tipul anunțului trimis de utilizator
+        announcement_type = announcement_in.type
+        
+        # Validare specifică pentru evenimente
+        if announcement_type == "EVENIMENT":
+            if announcement_in.start_date is None:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail="start_date is required for EVENIMENT announcements."
+                )
+            if announcement_in.end_date is not None and announcement_in.end_date < announcement_in.start_date:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail="end_date must be after start_date."
+                )
+        
+        # Resetare câmpuri dacă este o simplă noutate
+        elif announcement_type == "NOUTATE":
+            announcement_in.start_date = None
+            announcement_in.end_date = None
+            announcement_in.location_name = None
 
+        # Dacă totul este ok, salvăm în baza de date
+        return await self.create(session, announcement_in, created_by=user_id)
     async def update(
         self,
         session: AsyncSession,

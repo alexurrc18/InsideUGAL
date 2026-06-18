@@ -1,3 +1,6 @@
+from urllib import response
+
+from fastapi import status
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -77,7 +80,8 @@ async def test_author_can_create_read_filter_update_and_delete_announcement(
         json={"end_date": "2031-03-09T12:00:00Z"},
         headers=author.headers,
     )
-    assert invalid_update_response.status_code == 422
+   #  Cum trebuie să fie:
+    assert invalid_update_response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert invalid_update_response.json()["detail"] == "end_date must be after start_date."
 
     update_response = await client.patch(

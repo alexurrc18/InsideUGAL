@@ -1,5 +1,5 @@
 # app/models/schemas.py
-from enum import Enum
+from enum import Enum  # Importul corect
 from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
@@ -7,9 +7,9 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 
 # ==========================================
-# ENUM-URI
+# ENUM-URI (CORECTATE CU LITERE MARI)
 # ==========================================
-class UserRole(str, Enum):
+class UserRole(str, Enum):  # Schimbat din enum.Enum în Enum
     STUDENT = "STUDENT"
     STUDENT_RESPONSABIL = "STUDENT_RESPONSABIL"
     PROFESOR = "PROFESOR"
@@ -17,14 +17,14 @@ class UserRole(str, Enum):
     HEAD_FACULTATI = "HEAD_FACULTATI"
     HEAD_ADMIN = "HEAD_ADMIN"
 
-class ComplaintStatus(str, Enum):
-    in_asteptare = "in_asteptare"
-    in_lucru = "in_lucru"
-    finalizat = "finalizat"
-    respins = "respins"
-    solutionat = "solutionat" # adăugat recent în issue
+class ComplaintStatus(str, Enum):  # Uniformizat complet cu litere mari!
+    IN_ASTEPTARE = "IN_ASTEPTARE"
+    IN_LUCRU = "IN_LUCRU"
+    FINALIZAT = "FINALIZAT"
+    RESPINS = "RESPINS"
+    SOLUTIONAT = "SOLUTIONAT" 
 
-class PostType(str, Enum):
+class PostType(str, Enum):  
     NOUTATE = "NOUTATE"
     EVENIMENT = "EVENIMENT"
 

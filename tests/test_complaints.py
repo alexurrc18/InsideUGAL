@@ -38,7 +38,7 @@ async def test_student_can_create_read_update_and_delete_own_complaint(
     assert created["user_id"] == student.id
     assert created["location_id"] == location.id
     assert created["title"] == create_payload["title"]
-    assert created["status"] == schemas.ComplaintStatus.in_asteptare.value
+    assert created["status"] == schemas.ComplaintStatus.IN_ASTEPTARE.value
 
     complaint_id = created["id"]
     list_response = await client.get("/complaints/", headers=student.headers)
@@ -61,7 +61,7 @@ async def test_student_can_create_read_update_and_delete_own_complaint(
 
     forbidden_status_response = await client.patch(
         f"/complaints/{complaint_id}",
-        json={"status": schemas.ComplaintStatus.finalizat.value},
+        json={"status": schemas.ComplaintStatus.FINALIZAT.value},
         headers=student.headers,
     )
     assert forbidden_status_response.status_code == 403
@@ -134,14 +134,14 @@ async def test_staff_can_filter_and_update_complaint_status(
 
     status_response = await client.patch(
         f"/complaints/{complaint_id}",
-        json={"status": schemas.ComplaintStatus.in_lucru.value},
+        json={"status": schemas.ComplaintStatus.IN_LUCRU.value},
         headers=staff.headers,
     )
     assert status_response.status_code == 200
-    assert status_response.json()["status"] == schemas.ComplaintStatus.in_lucru.value
+    assert status_response.json()["status"] == schemas.ComplaintStatus.IN_LUCRU.value
 
     filter_response = await client.get(
-        f"/complaints/?complaint_status={schemas.ComplaintStatus.in_lucru.value}&location_id={location.id}",
+        f"/complaints/?complaint_status={schemas.ComplaintStatus.IN_LUCRU.value}&location_id={location.id}",
         headers=staff.headers,
     )
     assert filter_response.status_code == 200
@@ -239,7 +239,7 @@ async def test_staff_can_update_complaint_status_and_fields(
         json={
             "title": "Updated title",
             "description": "Updated description.",
-            "status": schemas.ComplaintStatus.finalizat.value,
+            "status": schemas.ComplaintStatus.FINALIZAT.value,
         },
         headers=staff.headers,
     )
@@ -248,7 +248,7 @@ async def test_staff_can_update_complaint_status_and_fields(
     updated = update_response.json()
     assert updated["title"] == "Updated title"
     assert updated["description"] == "Updated description."
-    assert updated["status"] == schemas.ComplaintStatus.finalizat.value
+    assert updated["status"] == schemas.ComplaintStatus.FINALIZAT.value
 
 
 @pytest.mark.asyncio

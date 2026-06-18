@@ -3,8 +3,10 @@ from uuid import UUID
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, status
+from requests import session
 from sqlalchemy.ext.asyncio import AsyncSession
-from supabase import Client, create_client
+from supabase import create_client
+
 
 from app.api.auth_deps import get_current_profile, require_admin
 from app.db.database import get_db
@@ -44,6 +46,7 @@ async def read_profile(profile_id: UUID, session: AsyncSession = Depends(get_db)
 
 
 @router.post("/", response_model=schemas.ProfileResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas.ProfileResponse, status_code=status.HTTP_201_CREATED)
 async def create_profile(
     profile_in: schemas.ProfileCreate,
     session: AsyncSession = Depends(get_db),
@@ -63,18 +66,34 @@ async def create_profile(
             }
         })
 
-        # 2. Extragem ID-ul generat
+        # 2. Extragem ID-ul generat de Supabase Auth
         new_user_id = auth_response.user.id
-        profile_in.id = UUID(new_user_id)
 
-        # 3. Returnăm direct ce am creat (baza de date face restul prin trigger)
-        return profile_in
+        # 3. Convertim schema de input într-un dicționar și adăugăm ID-ul generat
+        profile_data = profile_in.model_dump()
+        profile_data["id"] = new_user_id
+
+        # 4. Instanțiem modelul SQLAlchemy cu toate datele necesare
+        from app.models.models import Profile
+        db_profile = Profile(**profile_data)
+
+        # 5. Salvăm în baza de date locală
+        session.add(db_profile)
+        await session.commit()
+        await session.refresh(db_profile)
+
+        return db_profile
 
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Eroare la crearea contului in Supabase: {str(e)}"
-        )
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+        
+        # Ne asigurăm că returnăm obiectul din baza de date (care conține automat created_at și updated_at)
+        return db_profile
+
+    except Exception as e:
+        # Gestionează erorile aici...
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.patch("/{profile_id}", response_model=schemas.ProfileResponse)

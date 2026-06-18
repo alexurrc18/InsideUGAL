@@ -14,7 +14,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID, ENUM
 from sqlalchemy.orm import relationship
-
+from app.models.schemas import ComplaintStatus
 from app.db.database import Base
 
 
@@ -123,7 +123,7 @@ class Complaint(Base, TimestampMixin):
     description = Column(Text, nullable=False)
     image_url = Column(Text)
     
-    status = Column(ENUM('in_asteptare', 'in_lucru', 'finalizat', 'respins', name='complaint_status', create_type=False), nullable=False, server_default="in_asteptare")
+    status = Column(ENUM('IN_ASTEPTARE', 'IN_LUCRU', 'FINALIZAT', 'RESPINS', 'SOLUTIONAT', name='complaint_status', create_type=False), nullable=False, default=ComplaintStatus.IN_ASTEPTARE)
 
     user = relationship("Profile", back_populates="complaints")
     location = relationship("Location", back_populates="complaints")
