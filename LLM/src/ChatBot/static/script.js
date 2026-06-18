@@ -1,96 +1,15 @@
-// ── State ──────────────────────────────────────────────────────────────────
-let pendingImageData = null;
-
 // ── DOM refs ────────────────────────────────────────────────────────────────
-const messagesEl     = document.getElementById("chat-messages");
-const inputEl        = document.getElementById("user-input");
-const sendBtn        = document.getElementById("send-btn");
-const fileInput      = document.getElementById("file-input");
-const imgPreview     = document.getElementById("img-preview");
-const imgPreviewWrap = document.getElementById("img-preview-wrap");
-const imgClearBtn    = document.getElementById("img-clear");
-
-const cameraBtn      = document.getElementById("camera-btn");
-const cameraModal    = document.getElementById("camera-modal");
-const cameraVideo    = document.getElementById("camera-video");
-const cameraCapture  = document.getElementById("camera-capture-btn");
-const cameraClose    = document.getElementById("camera-close-btn");
-const cameraCanvas   = document.getElementById("camera-canvas");
-let localMediaStream = null;
-
-// ── Image upload ─────────────────────────────────────────────────────────────
-function handleImageSelection(inputElement) {
-  const file = inputElement.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    pendingImageData = e.target.result;
-    imgPreview.src = pendingImageData;
-    imgPreviewWrap.style.display = "flex";
-  };
-  reader.readAsDataURL(file);
-}
-
-if (fileInput) fileInput.addEventListener("change", () => handleImageSelection(fileInput));
-
-if (cameraBtn) {
-  cameraBtn.addEventListener("click", async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      cameraVideo.srcObject = stream;
-      localMediaStream = stream;
-      cameraModal.style.display = "flex";
-    } catch (err) {
-      alert("Nu am putut accesa camera web: " + err.message);
-    }
-  });
-}
-
-if (cameraClose) {
-  cameraClose.addEventListener("click", () => {
-    if (localMediaStream) {
-      localMediaStream.getTracks().forEach(track => track.stop());
-      localMediaStream = null;
-    }
-    cameraModal.style.display = "none";
-  });
-}
-
-if (cameraCapture) {
-  cameraCapture.addEventListener("click", () => {
-    if (!localMediaStream) return;
-    const context = cameraCanvas.getContext("2d");
-    cameraCanvas.width = cameraVideo.videoWidth;
-    cameraCanvas.height = cameraVideo.videoHeight;
-    context.drawImage(cameraVideo, 0, 0, cameraCanvas.width, cameraCanvas.height);
-    
-    pendingImageData = cameraCanvas.toDataURL("image/jpeg", 0.9);
-    imgPreview.src = pendingImageData;
-    imgPreviewWrap.style.display = "flex";
-    
-    localMediaStream.getTracks().forEach(track => track.stop());
-    localMediaStream = null;
-    cameraModal.style.display = "none";
-  });
-}
-
-imgClearBtn.addEventListener("click", () => {
-  pendingImageData = null;
-  if (fileInput) fileInput.value = "";
-  imgPreviewWrap.style.display = "none";
-  imgPreview.src = "";
-});
+const messagesEl = document.getElementById("chat-messages");
+const inputEl    = document.getElementById("user-input");
+const sendBtn    = document.getElementById("send-btn");
 
 // ── Trimitere mesaj cu streaming ─────────────────────────────────────────────
 async function sendMessage(text) {
-  if (!text.trim() && !pendingImageData) return;
+  if (!text.trim()) return;
 
   document.getElementById("ai-suggestions")?.remove();
 
-  addMessage(text, "user", false, true, pendingImageData);
-
-  const imageToSend = pendingImageData;
-  pendingImageData = null;
+  addMessage(text, "user");
 
   inputEl.value = "";
   autoResize();
@@ -98,12 +17,7 @@ async function sendMessage(text) {
   showTyping();
 
   try {
-    if (fileInput) fileInput.value = "";
-    if (imgPreviewWrap) imgPreviewWrap.style.display = "none";
-    if (imgPreview) imgPreview.src = "";
-
     const body = { message: text };
-    if (imageToSend) body.image_data = imageToSend;
 
     const res = await fetch("/chat", {
       method: "POST",
@@ -191,7 +105,7 @@ function createStreamBubble() {
 }
 
 // ── Helpers UI ───────────────────────────────────────────────────────────────
-function addMessage(text, role, isError = false, animate = true, imageData = null) {
+function addMessage(text, role, isError = false) {
   const wrapper = document.createElement("div");
   wrapper.className = `message ${role === "user" ? "user-message" : "bot-message"}${isError ? " error-message" : ""}`;
 
@@ -202,13 +116,6 @@ function addMessage(text, role, isError = false, animate = true, imageData = nul
   const bubble = document.createElement("div");
   bubble.className = "message-bubble";
 
-  if (imageData) {
-    const img = document.createElement("img");
-    img.src = imageData;
-    img.className = "msg-image";
-    bubble.appendChild(img);
-  }
-
   if (text) {
     const textDiv = document.createElement("div");
     textDiv.innerHTML = formatText(text);
@@ -217,7 +124,6 @@ function addMessage(text, role, isError = false, animate = true, imageData = nul
 
   wrapper.appendChild(avatar);
   wrapper.appendChild(bubble);
-  if (!animate) wrapper.style.animation = "none";
   messagesEl.appendChild(wrapper);
   scrollToBottom();
 }

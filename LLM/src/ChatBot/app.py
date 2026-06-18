@@ -2,7 +2,6 @@ import os
 import re
 import time
 import json
-import base64
 import logging
 import threading
 from flask import Flask, render_template, request, jsonify, Response, stream_with_context
@@ -114,7 +113,6 @@ def chat():
 
     data = request.get_json()
     user_message = data.get("message", "").strip()
-    image_data = data.get("image_data")
 
     if not user_message:
         return jsonify({"error": "Mesaj gol"}), 400
@@ -145,22 +143,6 @@ def chat():
             history = [
                 genai_types.Content(role="user", parts=[genai_types.Part(text=user_message)])
             ]
-
-            if image_data and history:
-                try:
-                    header, b64str = image_data.split(",", 1)
-                    mime_match = re.search(r"data:([^;]+)", header)
-                    mime_type = mime_match.group(1) if mime_match else "image/jpeg"
-                    img_bytes = base64.b64decode(b64str)
-                    history[0] = genai_types.Content(
-                        role="user",
-                        parts=[
-                            genai_types.Part(inline_data=genai_types.Blob(mime_type=mime_type, data=img_bytes)),
-                            genai_types.Part(text=user_message),
-                        ],
-                    )
-                except Exception as img_err:
-                    logger.warning("Eroare procesare imagine: %s", img_err)
 
             @_gemini_breaker
             def _call():
