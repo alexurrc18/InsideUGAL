@@ -6,6 +6,8 @@ import { Colors, Spacing } from "@/constants/theme";
 import { WebContainer } from "@/components/ui/layout/web-container";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
+import { useMockLoading } from "@/hooks/use-mock-loading";
+import { CantinaMenuSkeleton } from "@/components/ui/display/skeletons";
 import { Expandable } from "@/components/ui/layout/expandable";
 import { MenuItem } from "@/components/ui/navigation/menu-item";
 import MockData from "@/constants/mock-data.json";
@@ -56,6 +58,8 @@ export default function CantinaScreen() {
   const [selectedDay, setSelectedDay] = useState<string>(daysFilter[0].id);
   const [openCategory, setOpenCategory] = useState<string | null>("Meniul Zilei");
 
+  const loading = useMockLoading();
+
   const currentMenu = DAILY_SCHEDULE[selectedDay] || DAILY_SCHEDULE["luni"];
 
   // La click pe o categorie noua: inchide-o intai pe cea deschisa, apoi deschide-o pe cea noua (secvential).
@@ -88,6 +92,9 @@ export default function CantinaScreen() {
           onSelectFilter={(id) => { if (id) { setSelectedDay(id); setOpenCategory(null); } }}
         />
 
+        {loading ? (
+          <CantinaMenuSkeleton />
+        ) : (
         <View style={{
           borderWidth: 1,
           borderColor: theme.border,
@@ -122,6 +129,7 @@ export default function CantinaScreen() {
             </View>
           ))}
         </View>
+        )}
         </WebContainer>
       </ScrollView>
     </View>

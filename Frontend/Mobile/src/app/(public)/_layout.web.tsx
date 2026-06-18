@@ -10,6 +10,7 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { WebScrollProvider } from "@/contexts/web-scroll-context";
 import { WebNavbar } from "@/components/ui/navigation/web-navbar";
+import { Ace } from "@/components/ui/layout/ace";
 
 export default function PublicWebLayout() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
@@ -22,6 +23,9 @@ export default function PublicWebLayout() {
         <Stack screenOptions={{ headerShown: false, animation: "none" }} />
         {/* Navbar randat dupa Stack => sta deasupra (overlay fix in capul paginii). */}
         <WebNavbar />
+        {/* Widget-ul ACE: bulina flotanta jos-dreapta + panou de chat. Montat aici
+            (deasupra Stack-ului) => persista la navigarea intre paginile (public). */}
+        <Ace />
       </View>
     </WebScrollProvider>
   );
