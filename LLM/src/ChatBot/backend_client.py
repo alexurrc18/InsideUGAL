@@ -66,10 +66,12 @@ _KEYWORDS = {
         "announcements", "announcement", "notices", "notice", "updates", "latest",
     ],
     "faculties": [
+        "facultate", "facultati", "facultăți", "facultatile", "facultățile",
         "lista facultati", "lista facultăți", "toate facultatile", "toate facultățile",
         "ce facultati are ugal", "câte facultăți", "cate facultati",
         "contact facultate", "telefon facultate", "adresa facultate",
         "list of faculties", "all faculties", "faculty list",
+        "faculty", "faculties", "department", "departments",
     ],
     "locations": [
         "locație", "locatie", "locatii", "locații", "hartă", "harta", "campus",
@@ -311,12 +313,34 @@ def fetch_entity_link(question: str) -> str:
     return ""
 
 
-# ── Tabele care se aduc MEREU, indiferent de cuvintele cheie ────────────────
+# ── Tabele care se aduc MEREU ca context pentru Gemini ──────────────────────
 
 _ALWAYS_FETCH = ["announcements", "faculties", "locations", "daily_menus", "complaints"]
 
+# Tabel implicit când nu e detectat niciun keyword
+_DEFAULT_FALLBACK = ["announcements"]
+
 
 # ── Funcție principală ───────────────────────────────────────────────────────
+
+def fetch_focused_context(question: str) -> str:
+    """
+    Returnează doar datele relevante pentru întrebarea pusă (fără _ALWAYS_FETCH).
+    Folosit în fallback când Gemini nu e disponibil — răspuns focusat, nu tot.
+    """
+    intents = detect_intent(question) or _DEFAULT_FALLBACK
+    parts = []
+    for intent in intents:
+        if intent not in _TABLE_MAP:
+            continue
+        table, backend_path, order, limit, fmt_fn = _TABLE_MAP[intent]
+        data = _fetch(table, backend_path, order, limit)
+        if data:
+            text = fmt_fn(data)
+            if text:
+                parts.append(text)
+    return "\n\n---\n\n".join(parts)
+
 
 def fetch_context(question: str) -> str:
     """

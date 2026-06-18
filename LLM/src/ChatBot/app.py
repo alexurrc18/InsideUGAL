@@ -227,7 +227,7 @@ def chat():
                 yield f"data: {json.dumps({'clear': True})}\n\n"
 
         if backend_context:
-            answer = backend_context
+            answer = backend_client.fetch_focused_context(user_message) or backend_context
         else:
             sources.clear()
             lang = detect_lang(user_message)
