@@ -53,6 +53,9 @@ export default function HeaderActions() {
       }
     };
 
+    fetchAnnouncements();
+  }, []);
+
   const handleToggleNotifications = () => {
     const willOpen = !open;
     setOpen(willOpen);

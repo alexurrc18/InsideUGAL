@@ -270,7 +270,7 @@ function AnnouncementsContent() {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const backendPayload: Record<string, any> = {
+    const backendPayload: Record<string, unknown> = {
       type: 'NOUTATE',
       title: formState.title || '',
       content: formState.description || '', // Mapare description (UI) -> content (Backend)
