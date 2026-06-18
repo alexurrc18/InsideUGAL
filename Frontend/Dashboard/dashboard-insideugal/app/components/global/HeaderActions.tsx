@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { Bell, UserRound } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation"; 
 import Link from "next/link";
-import { Bell, UserCircle } from "lucide-react";
-import { apiBaseUrl } from "@/lib/api-client";
+import { announcementsService } from "@/lib/announcements-service";
 
 interface Announcement {
   id: number;
@@ -12,43 +13,78 @@ interface Announcement {
   created_at: string;
 }
 
-interface AnnouncementsResponse {
-  items?: Announcement[];
-}
+const STORAGE_KEY = "last_seen_announcement_id";
 
 export default function HeaderActions() {
+  const router = useRouter(); 
+  const [open, setOpen] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
+  const [, setUnreadCount] = useState(0);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
-        const token = localStorage.getItem("access_token");
-        const res = await fetch(`${apiBaseUrl}/announcements/`, {
-          method: "GET",
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        const data = await announcementsService.list();
+        
+        // 👉 REZOLVARE PENTRU data.items: Gestionăm formatul paginat { items: [], total: ... }
+        let items: Announcement[] = [];
+        if (Array.isArray(data)) {
+          items = data;
+        } else if (data && typeof data === 'object' && Array.isArray((data as Record<string, unknown>).items)) {
+          items = (data as Record<string, unknown>).items as Announcement[];
+        } else {
+          console.error("Backend-ul nu a returnat un format recunoscut:", data);
+        }
 
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const data = await res.json() as AnnouncementsResponse | Announcement[];
-        setAnnouncements(Array.isArray(data) ? data : data.items ?? []);
+        if (items.length > 0) {
+          const latest = items.slice(0, 5);
+          setAnnouncements(latest);
+
+          // Calculează câte sunt "necitite" față de ultima vizită
+          const lastSeen = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
+          const unseen = latest.filter((a) => a.id > lastSeen).length;
+          setUnreadCount(unseen);
+        }
+
       } catch (error) {
         console.error("Eroare la preluarea anunturilor:", error);
         setAnnouncements([]);
       }
     };
 
-    void fetchAnnouncements();
+    fetchAnnouncements();
+  }, []);
+
+  const handleToggleNotifications = () => {
+    const willOpen = !open;
+    setOpen(willOpen);
+
+    if (willOpen && announcements.length > 0) {
+      const maxId = Math.max(...announcements.map((a) => a.id));
+      localStorage.setItem(STORAGE_KEY, String(maxId));
+      setUnreadCount(0);
+    }
+  };
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
-    <div className="relative flex items-center gap-1">
+    <div className="relative flex items-center gap-1" ref={dropdownRef}>
       <div className="relative">
         <button
           type="button"
-          onClick={() => setIsOpen((open) => !open)}
-          className="p-2 rounded-lg hover:bg-accent relative"
-          aria-label="Notificari"
+          aria-label="Notificări"
+          onClick={handleToggleNotifications} 
+          className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
         >
           <Bell className="h-5 w-5 text-foreground" />
           {announcements.length > 0 && (
@@ -56,7 +92,7 @@ export default function HeaderActions() {
           )}
         </button>
 
-        {isOpen && (
+        {open && (
           <div className="absolute right-0 mt-2 w-80 bg-card border border-border rounded-xl shadow-lg p-4 z-50 max-h-96 overflow-y-auto">
             <h3 className="font-bold text-sm text-foreground mb-3">Notificari si anunturi</h3>
             {announcements.length === 0 ? (
@@ -72,7 +108,7 @@ export default function HeaderActions() {
               </div>
             )}
             <div className="mt-3 border-t border-border/60 pt-3">
-              <Link href="/noutati" className="block text-center text-xs font-semibold text-brand hover:underline" onClick={() => setIsOpen(false)}>
+              <Link href="/noutati" className="block text-center text-xs font-semibold text-brand hover:underline" onClick={() => setOpen(false)}>
                 Vezi toate anunturile
               </Link>
             </div>
@@ -80,9 +116,14 @@ export default function HeaderActions() {
         )}
       </div>
 
-      <Link href="/login" className="p-2 rounded-lg hover:bg-accent" aria-label="Autentificare">
-        <UserCircle className="h-5 w-5 text-foreground" />
-      </Link>
+      <button
+        type="button"
+        aria-label="Cont"
+        onClick={() => router.push("/login")} 
+        className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
+      >
+        <UserRound size={18} />
+      </button>
     </div>
   );
 }
