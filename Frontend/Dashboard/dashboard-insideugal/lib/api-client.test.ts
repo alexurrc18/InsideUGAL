@@ -24,7 +24,7 @@ test("getAuthHeaders sends the saved access token as a Bearer token", () => {
   expect(headers.get("Authorization")).toBe("Bearer test-token");
 });
 
-test.each(["undefined", "null", null])("getAuthHeaders ignores invalid stored token %s", (token) => {
+test.each(["undefined", "null", null])("getAuthHeaders ignores invalid stored token %s", (token: any) => {
   stubLocalStorage(token);
 
   const headers = getAuthHeaders();
@@ -34,7 +34,7 @@ test.each(["undefined", "null", null])("getAuthHeaders ignores invalid stored to
 
 test("apiRequest includes auth headers and credentials for mutations", async () => {
   stubLocalStorage("Bearer test-token");
-  const fetchMock = vi.fn(async () =>
+  const fetchMock = vi.fn<[string, RequestInit], Promise<Response>>(async () =>
     new Response(JSON.stringify({ ok: true }), {
       headers: { "Content-Type": "application/json" },
       status: 200,
@@ -48,7 +48,7 @@ test("apiRequest includes auth headers and credentials for mutations", async () 
   });
 
   expect(fetchMock).toHaveBeenCalledOnce();
-  const [, init] = fetchMock.mock.calls[0];
+  const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
   const headers = new Headers(init?.headers);
 
   expect(init?.credentials).toBe("include");
@@ -61,9 +61,9 @@ test.each([
   { body: { title: "Test", content: "Body" }, method: "POST", path: "/announcements/" },
   { body: { title: "Updated" }, method: "PATCH", path: "/announcements/1" },
   { body: undefined, method: "DELETE", path: "/announcements/1" },
-])("$method request to $path is authenticated", async ({ body, method, path }) => {
+])("$method request to $path is authenticated", async ({ body, method, path }: any) => {
   stubLocalStorage("test-token");
-  const fetchMock = vi.fn(async () =>
+  const fetchMock = vi.fn<[string, RequestInit], Promise<Response>>(async () =>
     new Response(JSON.stringify({ ok: true }), {
       headers: { "Content-Type": "application/json" },
       status: 200,
@@ -73,7 +73,7 @@ test.each([
 
   await apiRequest(path, z.object({ ok: z.boolean() }), { body, method });
 
-  const [, init] = fetchMock.mock.calls[0];
+  const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
   const headers = new Headers(init?.headers);
 
   expect(init?.credentials).toBe("include");

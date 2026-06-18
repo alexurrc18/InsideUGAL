@@ -29,7 +29,7 @@ function announcementPayload() {
 
 test("announcementsService update uses PATCH with auth", async () => {
   stubLocalStorage();
-  const fetchMock = vi.fn(async () =>
+  const fetchMock = vi.fn<[string, RequestInit], Promise<Response>>(async () =>
     new Response(JSON.stringify(announcementPayload()), {
       headers: { "Content-Type": "application/json" },
       status: 200,
@@ -39,7 +39,7 @@ test("announcementsService update uses PATCH with auth", async () => {
 
   await announcementsService.update(1, { title: "Updated" });
 
-  const [url, init] = fetchMock.mock.calls[0];
+  const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
   const headers = new Headers(init?.headers);
 
   expect(url).toContain("/announcements/1");
@@ -50,7 +50,7 @@ test("announcementsService update uses PATCH with auth", async () => {
 
 test("announcementsService create uses the authenticated collection endpoint", async () => {
   stubLocalStorage();
-  const fetchMock = vi.fn(async () =>
+  const fetchMock = vi.fn<[string, RequestInit], Promise<Response>>(async () =>
     new Response(JSON.stringify(announcementPayload()), {
       headers: { "Content-Type": "application/json" },
       status: 200,
@@ -60,7 +60,7 @@ test("announcementsService create uses the authenticated collection endpoint", a
 
   await announcementsService.create({ title: "Title", content: "Body" });
 
-  const [url, init] = fetchMock.mock.calls[0];
+  const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
   const headers = new Headers(init?.headers);
 
   expect(url).toContain("/announcements/");

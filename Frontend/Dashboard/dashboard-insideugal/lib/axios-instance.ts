@@ -23,7 +23,7 @@ function setAuthorizationHeader(config: InternalAxiosRequestConfig, token: strin
   config.headers.set("Authorization", value);
 }
 
-axiosInstance.interceptors.request.use((config) => {
+axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = getStoredAccessToken();
 
   if (token) {
