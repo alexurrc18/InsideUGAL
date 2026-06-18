@@ -143,7 +143,7 @@ def scrape_faciee() -> list[dict]:
     pdf_urls_seen = set()
     chunk_idx = 0
 
-    print(f"[Scraper] Pornesc — {len(PAGES)} pagini de parcurs...")
+    logger.info("Pornesc — %d pagini de parcurs...", len(PAGES))
 
     for path in PAGES:
         url = BASE_URL + path
@@ -190,19 +190,19 @@ def scrape_faciee() -> list[dict]:
                                 "type": "pdf",
                             })
                             chunk_idx += 1
-                        print(f"[Scraper] PDF indexat: {href}")
+                        logger.info("PDF indexat: %s", href)
                 except Exception as e:
-                    print(f"[Scraper] Eroare PDF {href}: {e}")
+                    logger.warning("Eroare PDF %s: %s", href, e)
 
                 time.sleep(0.3)
 
             time.sleep(0.4)  # politicos față de server
-            print(f"[Scraper] ✓ {url}")
+            logger.debug("✓ %s", url)
 
         except Exception as e:
-            print(f"[Scraper] Eroare {url}: {e}")
+            logger.warning("Eroare %s: %s", url, e)
 
-    print(f"[Scraper] Gata — {len(chunks)} chunk-uri din {len(PAGES)} pagini + {len(pdf_urls_seen)} PDF-uri")
+    logger.info("Gata — %d chunk-uri din %d pagini + %d PDF-uri", len(chunks), len(PAGES), len(pdf_urls_seen))
     return chunks
 
 
@@ -295,7 +295,7 @@ FACULTY_SITES = {
 
 def _scrape_site(base: str, pages: list[str], prefix: str, ssl_verify: bool = True) -> list[dict]:
     if not ssl_verify:
-        logger.warning(f"SSL verification disabled for {base}")
+        logger.warning("SSL verification disabled for %s", base)
     chunks = []
     chunk_idx = 0
     for path in pages:
@@ -316,19 +316,19 @@ def _scrape_site(base: str, pages: list[str], prefix: str, ssl_verify: bool = Tr
                     })
                     chunk_idx += 1
             time.sleep(0.4)
-            print(f"[Scraper] ✓ {url}")
+            logger.debug("✓ %s", url)
         except Exception as e:
-            print(f"[Scraper] Eroare {url}: {e}")
+            logger.warning("Eroare %s: %s", url, e)
     return chunks
 
 
 def scrape_ugal_general() -> list[dict]:
-    print(f"[Scraper] UGAL general — {len(UGAL_PAGES)} pagini...")
+    logger.info("UGAL general — %d pagini...", len(UGAL_PAGES))
     return _scrape_site(UGAL_URL, UGAL_PAGES, "ugal", ssl_verify=False)
 
 
 def scrape_admitere() -> list[dict]:
-    print(f"[Scraper] Admitere UGAL — {len(ADM_PAGES)} pagini...")
+    logger.info("Admitere UGAL — %d pagini...", len(ADM_PAGES))
     return _scrape_site(ADM_URL, ADM_PAGES, "adm", ssl_verify=False)
 
 
@@ -336,7 +336,7 @@ def scrape_faculties() -> list[dict]:
     """Scrape-uiește toate site-urile de facultăți UGAL."""
     chunks = []
     for prefix, base_url in FACULTY_SITES.items():
-        logger.info(f"Facultate {prefix} ({base_url})...")
+        logger.info("Facultate %s (%s)...", prefix, base_url)
         # Majoritatea site-urilor de facultăți au certificate SSL problematice
         chunks += _scrape_site(base_url, FACULTY_COMMON_PAGES, prefix, ssl_verify=False)
     return chunks
@@ -349,5 +349,5 @@ def scrape_all() -> list[dict]:
     chunks += scrape_faculties()
     chunks += scrape_ugal_general()
     chunks += scrape_admitere()
-    print(f"[Scraper] Total: {len(chunks)} chunk-uri din toate sursele.")
+    logger.info("Total: %d chunk-uri din toate sursele.", len(chunks))
     return chunks

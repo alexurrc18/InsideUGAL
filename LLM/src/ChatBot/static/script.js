@@ -9,8 +9,6 @@ const fileInput      = document.getElementById("file-input");
 const imgPreview     = document.getElementById("img-preview");
 const imgPreviewWrap = document.getElementById("img-preview-wrap");
 const imgClearBtn    = document.getElementById("img-clear");
-const micBtn         = document.getElementById("mic-btn");
-const recordingOverlay = document.getElementById("recording-overlay");
 
 const cameraBtn      = document.getElementById("camera-btn");
 const cameraModal    = document.getElementById("camera-modal");
@@ -374,74 +372,3 @@ document.querySelectorAll(".quick-btn").forEach(btn => {
   btn.addEventListener("click", () => sendMessage(btn.dataset.q));
 });
 
-// ── Voice Input (Push-to-Talk) ───────────────────────────────────────────────
-if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recognition = new SpeechRec();
-  recognition.lang = 'ro-RO';
-  recognition.continuous = true;
-  recognition.interimResults = true;
-
-  let finalTranscript = '';
-
-  recognition.onresult = (event) => {
-    let interimTranscript = '';
-    for (let i = event.resultIndex; i < event.results.length; ++i) {
-      if (event.results[i].isFinal) {
-        finalTranscript += event.results[i][0].transcript;
-      } else {
-        interimTranscript += event.results[i][0].transcript;
-      }
-    }
-    inputEl.value = finalTranscript + interimTranscript;
-    autoResize();
-  };
-
-  recognition.onend = () => {
-    micBtn.classList.remove("recording");
-    recordingOverlay.style.display = "none";
-    inputEl.placeholder = "Scrie o întrebare despre facultate...";
-    if (finalTranscript.trim() || inputEl.value.trim()) {
-      // Send the transcribed text automatically when releasing the button
-      const textToSent = finalTranscript.trim() || inputEl.value.trim();
-      if (textToSent) sendMessage(textToSent);
-    }
-  };
-
-  recognition.onerror = (event) => {
-    console.error("Speech recognition error", event.error);
-    micBtn.classList.remove("recording");
-    recordingOverlay.style.display = "none";
-    inputEl.placeholder = "Scrie o întrebare despre facultate...";
-  };
-
-  const startRecord = (e) => {
-    e.preventDefault();
-    if (micBtn.classList.contains("recording")) return;
-    finalTranscript = '';
-    inputEl.value = '';
-    micBtn.classList.add("recording");
-    recordingOverlay.style.display = "flex";
-    inputEl.placeholder = "Te ascult...";
-    recognition.start();
-  };
-
-  const stopRecord = (e) => {
-    e.preventDefault();
-    if (micBtn.classList.contains("recording")) {
-      recognition.stop();
-    }
-  };
-
-  micBtn.addEventListener("mousedown", startRecord);
-  micBtn.addEventListener("mouseup", stopRecord);
-  micBtn.addEventListener("mouseleave", stopRecord);
-  
-  // Suport pentru ecrane tactile (mobil)
-  micBtn.addEventListener("touchstart", startRecord, {passive: false});
-  micBtn.addEventListener("touchend", stopRecord, {passive: false});
-  micBtn.addEventListener("touchcancel", stopRecord, {passive: false});
-} else {
-  // Ascunde butonul dacă browser-ul nu suportă SpeechRecognition
-  if (micBtn) micBtn.style.display = 'none';
-}
