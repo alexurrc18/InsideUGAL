@@ -304,8 +304,11 @@ class ImageServiceV2:
                 break
         
         if not matched_filename:
-            # Daca e un anunt cu tenta administrativa si nu are o sursa detectabila precis, fallback pe banner universitate
-            if getattr(info, 'tip_eveniment', None) in ["administrativ", "cazare", "bursa"]:
+            # Daca e un anunt legat de cazare, folosim banner-ul dedicat pentru camine
+            if getattr(info, 'tip_eveniment', None) == "cazare":
+                matched_filename = "banner_camin.png"
+            # Daca e administrativ generic, folosim banner universitate
+            elif getattr(info, 'tip_eveniment', None) == "administrativ":
                 matched_filename = "banner_universitate.png"
             else:
                 return None
