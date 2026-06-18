@@ -29,12 +29,11 @@ _rag = RAGEngine()
 
 def _build_context(question: str) -> tuple[str, str, list[str]]:
     """Returnează (context_pentru_llm, fallback_direct, sources)."""
-    # 1. Supabase primul
-    backend_context = backend_client.fetch_context(question)
-    if backend_context:
-        return backend_context, backend_context, []
+    # Un singur pass Supabase — RAG doar dacă nu există intent recunoscut
+    full_ctx, focused = backend_client.fetch_context_combined(question)
+    if focused:
+        return full_ctx, focused, []
 
-    # 2. RAG
     raw_context, sources = _rag.query_with_sources(question, n_results=3)
     ctx = raw_context or "Nu am găsit informații specifice. Îndrumă utilizatorul spre https://www.ugal.ro/"
     return ctx, raw_context, sources

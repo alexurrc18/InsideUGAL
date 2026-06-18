@@ -66,10 +66,12 @@ _KEYWORDS = {
         "announcements", "announcement", "notices", "notice", "updates", "latest",
     ],
     "faculties": [
+        "facultate", "facultati", "facultăți", "facultatile", "facultățile",
         "lista facultati", "lista facultăți", "toate facultatile", "toate facultățile",
         "ce facultati are ugal", "câte facultăți", "cate facultati",
         "contact facultate", "telefon facultate", "adresa facultate",
         "list of faculties", "all faculties", "faculty list",
+        "faculty", "faculties", "department", "departments",
     ],
     "locations": [
         "locație", "locatie", "locatii", "locații", "hartă", "harta", "campus",
@@ -180,14 +182,27 @@ def _fmt_locations(items: list) -> str:
     return "\n".join(lines)
 
 
+_DAYS_RO = ["Luni", "Marți", "Miercuri", "Joi", "Vineri", "Sâmbătă", "Duminică"]
+
+
 def _fmt_menus(items: list) -> str:
     if not items:
         return ""
     lines = ["MENIURI CANTINĂ (din baza de date InsideUGAL):"]
-    for m in items[:5]:
-        day   = m.get("day_of_week") or m.get("data") or ""
+    for m in items[:7]:
+        day_raw = m.get("day_of_week") or m.get("data") or ""
+        try:
+            day_name = _DAYS_RO[int(day_raw) - 1]
+        except (ValueError, IndexError, TypeError):
+            day_name = str(day_raw) if day_raw else "Necunoscut"
         prods = m.get("products") or m.get("preparate") or []
-        line  = f"- Ziua {day}: {', '.join(str(p) for p in prods[:5])}" if prods else f"- Ziua {day}"
+        if prods and isinstance(prods[0], dict):
+            names = [p.get("name") or p.get("nume") or str(p) for p in prods[:6]]
+            line = f"- {day_name}: {', '.join(names)}"
+        elif prods:
+            line = f"- {day_name}: {len(prods)} produse disponibile"
+        else:
+            line = f"- {day_name}: meniu nedisponibil"
         lines.append(line)
     return "\n".join(lines)
 
@@ -298,17 +313,24 @@ def fetch_entity_link(question: str) -> str:
     return ""
 
 
+# ── Tabele care se aduc MEREU ca context pentru Gemini ──────────────────────
+
+_ALWAYS_FETCH = ["announcements", "faculties", "locations", "daily_menus", "complaints"]
+
+# Tabel implicit când nu e detectat niciun keyword
+_DEFAULT_FALLBACK = ["announcements"]
+
+
 # ── Funcție principală ───────────────────────────────────────────────────────
 
-def fetch_context(question: str) -> str:
+def fetch_focused_context(question: str) -> str:
     """
-    Detectează intenția și aduce date live din Supabase / backend.
-    Returnează context formatat pentru Gemini.
+    Returnează doar datele relevante pentru întrebarea pusă (fără _ALWAYS_FETCH).
+    Folosit în fallback când Gemini nu e disponibil — răspuns focusat, nu tot.
     """
     intents = detect_intent(question)
     if not intents:
         return ""
-
     parts = []
     for intent in intents:
         if intent not in _TABLE_MAP:
@@ -319,5 +341,55 @@ def fetch_context(question: str) -> str:
             text = fmt_fn(data)
             if text:
                 parts.append(text)
+    return "\n\n---\n\n".join(parts)
+
+
+def fetch_context(question: str) -> str:
+    """
+    Aduce date live din Supabase / backend.
+    Tabelele din _ALWAYS_FETCH sunt interogate mereu; restul doar când sunt detectate keyword-uri.
+    """
+    intents = detect_intent(question)
+    to_fetch = list(dict.fromkeys(_ALWAYS_FETCH + [i for i in intents if i not in _ALWAYS_FETCH]))
+
+    parts = []
+    for intent in to_fetch:
+        if intent not in _TABLE_MAP:
+            continue
+        table, backend_path, order, limit, fmt_fn = _TABLE_MAP[intent]
+        data = _fetch(table, backend_path, order, limit)
+        if data:
+            text = fmt_fn(data)
+            if text:
+                parts.append(text)
 
     return "\n\n---\n\n".join(parts)
+
+
+def fetch_context_combined(question: str) -> tuple[str, str]:
+    """
+    Returnează (full_context, focused_context) într-un singur pass Supabase.
+    full_context = _ALWAYS_FETCH + tabele intent (pentru Gemini).
+    focused_context = doar tabele intent (pentru fallback / detecție relevanță).
+    Înlocuiește apelurile duble fetch_focused_context + fetch_context din app.py.
+    """
+    intents = detect_intent(question)
+    to_fetch = list(dict.fromkeys(_ALWAYS_FETCH + [i for i in intents if i not in _ALWAYS_FETCH]))
+
+    all_parts: list[str] = []
+    focused_parts: list[str] = []
+    sep = "\n\n---\n\n"
+
+    for intent in to_fetch:
+        if intent not in _TABLE_MAP:
+            continue
+        table, backend_path, order, limit, fmt_fn = _TABLE_MAP[intent]
+        data = _fetch(table, backend_path, order, limit)
+        if data:
+            text = fmt_fn(data)
+            if text:
+                all_parts.append(text)
+                if intent in intents:
+                    focused_parts.append(text)
+
+    return sep.join(all_parts), sep.join(focused_parts)

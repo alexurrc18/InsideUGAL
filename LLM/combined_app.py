@@ -75,11 +75,17 @@ smart_news_service = load_module(
 sys.modules.pop("schemas", None)
 sys.modules.pop("llm_functions", None)
 
+# Salvează cache-ul modul-marius înainte să fie suprascris de ChatBot/cache.py
+_modul_marius_cache = sys.modules.get("cache")
+sys.modules.pop("cache", None)
 campus_chat_service = load_module(
     "campus_chat_service",
     CHATBOT_MARIUS / "campus_chat_service.py",
     extra_paths=[CHATBOT_MARIUS],
 )
+# Restaurează cache-ul modul-marius în sys.modules pentru apelurile ulterioare
+if _modul_marius_cache is not None:
+    sys.modules["cache"] = _modul_marius_cache
 
 rate_limiter_module = load_module(
     "rate_limiter",

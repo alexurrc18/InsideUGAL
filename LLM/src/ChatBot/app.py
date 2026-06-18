@@ -2,7 +2,7 @@ import os
 import re
 import time
 import json
-import base64
+import logging
 import threading
 from flask import Flask, render_template, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
@@ -14,6 +14,7 @@ from google.genai import types as genai_types
 import pybreaker
 import cache as llm_cache
 import backend_client
+from rate_limiter import chat_limiter
 
 from chatbot_shared import (
     SYSTEM_PROMPT, GEMINI_MODEL,
@@ -23,6 +24,12 @@ from chatbot_shared import (
 )
 
 load_dotenv()
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+)
+logger = logging.getLogger("chatbot.app")
 
 app = Flask(__name__)
 CORS(app)
@@ -35,74 +42,49 @@ _gemini_breaker = pybreaker.CircuitBreaker(
     reset_timeout=CIRCUIT_BREAKER_RESET_TIMEOUT,
 )
 
-print("Se încarcă indexul RAG...")
+logger.info("Se încarcă indexul RAG...")
 rag = RAGEngine()
-print(f"RAG gata — {rag.collection.count()} chunk-uri indexate.")
+logger.info("RAG gata — %d chunk-uri indexate.", rag.collection.count())
 
 # ── Lock pentru operațiuni RAG thread-safe ─────────────────────────────────────
 _rag_lock = threading.Lock()
+_scraping_in_progress = threading.Event()
 
 RESCRAPE_INTERVAL_HOURS = 24
 
 def _run_scraper(full_rebuild: bool = False):
+    if _scraping_in_progress.is_set():
+        logger.warning("Scraping deja în desfășurare — skip.")
+        return
+    _scraping_in_progress.set()
     try:
-        with _rag_lock:
-            if full_rebuild:
-                print("[Scraper] Rebuild complet — șterg indexul vechi...")
+        if full_rebuild:
+            logger.info("Rebuild complet — șterg indexul vechi...")
+            with _rag_lock:
                 rag.rebuild()
-            chunks = scrape_all()
+        chunks = scrape_all()
+        with _rag_lock:
             rag.ingest(chunks)
-            print(f"[Scraper] Index actualizat: {rag.collection.count()} chunk-uri totale.")
+        logger.info("Index actualizat: %d chunk-uri totale.", rag.collection.count())
     except Exception as e:
-        print(f"[Scraper] Eroare: {e}")
+        logger.error("Eroare scraper: %s", e, exc_info=True)
+    finally:
+        _scraping_in_progress.clear()
 
 def _schedule_scraper():
     while True:
         time.sleep(RESCRAPE_INTERVAL_HOURS * 3600)
-        print(f"[Scraper] Re-scraping automat (la fiecare {RESCRAPE_INTERVAL_HOURS}h)...")
+        logger.info("Re-scraping automat (la fiecare %dh)...", RESCRAPE_INTERVAL_HOURS)
         _run_scraper(full_rebuild=True)
 
 if rag.collection.count() < 50:
-    print("[Scraper] Index mic — pornesc scraping inițial în background...")
+    logger.info("Index mic — pornesc scraping inițial în background...")
     threading.Thread(target=_run_scraper, daemon=True).start()
 else:
-    print(f"[Scraper] Index populat ({rag.collection.count()} chunk-uri).")
+    logger.info("Index populat (%d chunk-uri).", rag.collection.count())
 
 threading.Thread(target=_schedule_scraper, daemon=True).start()
-print(f"[Scraper] Re-scraping automat activat la fiecare {RESCRAPE_INTERVAL_HOURS} ore.")
-
-# ── FAQ fallback ──────────────────────────────────────────────────────────────
-
-FACULTY_KEYWORDS = [
-    "admitere", "înscriere", "inscriere", "admission", "enroll", "apply", "dosar",
-    "specializare", "program", "licenta", "licență", "bachelor", "master", "masterat",
-    "bursa", "bursă", "burse", "scholarship", "taxa", "taxă", "taxe", "fee",
-    "contact", "telefon", "secretariat", "adresa", "erasmus", "mobilitate", "exchange",
-    "orar", "schedule", "timetable", "laborator", "facultate", "faciee", "ugal",
-    "curs", "examen", "diplomă", "diploma", "stagiu", "practica", "practică",
-    "canteen", "food", "hackathon", "concurs", "cercetare", "research", "campus",
-]
-
-def faq_fallback(question):
-    lang = detect_lang(question)
-    q = question.lower()
-
-    is_faculty_related = any(kw in q for kw in FACULTY_KEYWORDS)
-    if not is_faculty_related:
-        if lang == "en":
-            return ("I can only answer questions about UGAL and InsideUGAL.")
-        return ("Pot ajuta doar cu informații despre UGAL și InsideUGAL.")
-
-    with _rag_lock:
-        rag_result = rag.query(question, n_results=4)
-    if rag_result and len(rag_result) > 80:
-        return rag_result
-
-    if lang == "en":
-        return ("I couldn't connect to AI right now. Find all info at: "
-                "https://www.ugal.ro/ or call +40 336 130 236 (Mon–Fri 12:00–14:00)")
-    return ("Nu am putut conecta la AI. Găsești toate informațiile la: "
-            "https://www.ugal.ro/\nSau sună: +40 336 130 236 (L–V 12:00–14:00)")
+logger.info("Re-scraping automat activat la fiecare %d ore.", RESCRAPE_INTERVAL_HOURS)
 
 # ── Rute ────────────────────────────────────────────────────────────────────
 
@@ -116,14 +98,21 @@ def health():
 
 @app.route("/rebuild-rag", methods=["POST"])
 def rebuild_rag():
+    secret = request.headers.get("X-Admin-Secret", "")
+    expected = os.getenv("ADMIN_SECRET", "")
+    if expected and secret != expected:
+        return jsonify({"error": "Unauthorized"}), 401
     threading.Thread(target=lambda: _run_scraper(full_rebuild=True), daemon=True).start()
     return jsonify({"status": "ok", "message": "Rebuild pornit în background"})
 
 @app.route("/chat", methods=["POST"])
 def chat():
+    client_ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+    if not chat_limiter.is_allowed(client_ip):
+        return jsonify({"error": "Prea multe cereri. Încearcă din nou într-un minut."}), 429
+
     data = request.get_json()
     user_message = data.get("message", "").strip()
-    image_data = data.get("image_data")
 
     if not user_message:
         return jsonify({"error": "Mesaj gol"}), 400
@@ -132,13 +121,14 @@ def chat():
     backend_context = ""
     nav_link = detect_link(user_message) or backend_client.fetch_entity_link(user_message)
 
-    # Încearcă Supabase (anunțuri, meniuri, facultăți etc.) — prioritate maximă
-    backend_context = backend_client.fetch_context(user_message)
-
-    if backend_context:
-        context = backend_context
+    # Un singur pass Supabase — returnează contextul complet + contextul focusat
+    full_context, focused_context = backend_client.fetch_context_combined(user_message)
+    if focused_context:
+        backend_context = focused_context
+        context = full_context
         sources = []
     else:
+        # Fără intent recunoscut — caută în RAG (site-uri facultăți)
         with _rag_lock:
             raw_context, sources = rag.query_with_sources(user_message, n_results=3)
         context = raw_context or "Nu am găsit informații specifice. Îndrumă utilizatorul spre https://www.ugal.ro/"
@@ -154,22 +144,6 @@ def chat():
                 genai_types.Content(role="user", parts=[genai_types.Part(text=user_message)])
             ]
 
-            if image_data and history:
-                try:
-                    header, b64str = image_data.split(",", 1)
-                    mime_match = re.search(r"data:([^;]+)", header)
-                    mime_type = mime_match.group(1) if mime_match else "image/jpeg"
-                    img_bytes = base64.b64decode(b64str)
-                    history[0] = genai_types.Content(
-                        role="user",
-                        parts=[
-                            genai_types.Part(inline_data=genai_types.Blob(mime_type=mime_type, data=img_bytes)),
-                            genai_types.Part(text=user_message),
-                        ],
-                    )
-                except Exception as img_err:
-                    print(f"[Gemini] Eroare procesare imagine: {img_err}")
-
             @_gemini_breaker
             def _call():
                 return _gemini_client.models.generate_content_stream(
@@ -184,7 +158,7 @@ def chat():
         except pybreaker.CircuitBreakerError:
             return None
         except Exception as e:
-            print(f"[Gemini] Eroare: {e}")
+            logger.error("Gemini eroare: %s", e)
             return None
 
     def generate():
@@ -211,7 +185,7 @@ def chat():
                         full_content.append(token)
                         yield f"data: {json.dumps({'token': token})}\n\n"
             except Exception as e:
-                print(f"[Gemini] Stream error: {e}")
+                logger.error("Gemini stream error: %s", e)
                 stream_failed = True
 
             if not stream_failed:
@@ -295,7 +269,7 @@ def webhook_supabase():
 
     threading.Thread(target=_ingest_webhook, daemon=True).start()
 
-    print(f"[Webhook] Ingestat: {chunk_id}")
+    logger.info("Webhook ingestat: %s", chunk_id)
     return jsonify({"status": "ok", "id": chunk_id})
 
 
