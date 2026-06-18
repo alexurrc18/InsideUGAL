@@ -1,4 +1,5 @@
-import axios, { AxiosHeaders, type InternalAxiosRequestConfig } from "axios";
+import axios from "axios";
+import { AxiosHeaders, type InternalAxiosRequestConfig } from "axios";
 
 import { apiBaseUrl, getStoredAccessToken } from "./api-client";
 
