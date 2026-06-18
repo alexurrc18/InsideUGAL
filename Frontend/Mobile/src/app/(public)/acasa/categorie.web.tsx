@@ -11,6 +11,7 @@ import { CategoryHeader, FilterItem } from "@/components/ui/display/category-hea
 import { Breadcrumbs, type Crumb } from "@/components/ui/navigation/breadcrumbs";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { getFormattedDate, isoToRomanianDateStr } from "@/utils/date";
+import { NewsListSkeleton } from "@/components/ui/display/skeletons";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import api from "@/services/api";
 
@@ -255,30 +256,36 @@ export default function CategoryScreen() {
               />
           </View>
 
-          <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>
-            {data.map((item) => (
-                <NewsCard
-                    key={item.id}
-                    variant="list"
-                    title={item.title}
-                    author={item.author || item.address}
-                    date={getFormattedDate(item.date)}
-                    image={item.image}
-                    onPress={() => handlePress(item)}
-                />
-            ))}
-          </View>
+          {loading && page === 1 ? (
+            <NewsListSkeleton />
+          ) : (
+            <>
+              <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>
+                {data.map((item) => (
+                    <NewsCard
+                        key={item.id}
+                        variant="list"
+                        title={item.title}
+                        author={item.author || item.address}
+                        date={getFormattedDate(item.date)}
+                        image={item.image}
+                        onPress={() => handlePress(item)}
+                    />
+                ))}
+              </View>
 
-          {loading && (
-            <View style={{ paddingVertical: Spacing.lg, justifyContent: "center", alignItems: "center" }}>
-              <ActivityIndicator size="small" color={theme.primary} />
-            </View>
-          )}
+              {loading && page > 1 && (
+                <View style={{ paddingVertical: Spacing.lg, justifyContent: "center", alignItems: "center" }}>
+                  <ActivityIndicator size="small" color={theme.primary} />
+                </View>
+              )}
 
-          {data.length === 0 && !loading && (
-              <Text style={[Typography.Paragraph1, { color: theme.text, textAlign: "center", marginTop: 40 }]}>
-                  Nu există elemente în această categorie.
-              </Text>
+              {data.length === 0 && !loading && (
+                  <Text style={[Typography.Paragraph1, { color: theme.text, textAlign: "center", marginTop: 40 }]}>
+                      Nu există elemente în această categorie.
+                  </Text>
+              )}
+            </>
           )}
         </WebContainer>
       </Animated.ScrollView>

@@ -24,6 +24,7 @@ import app.api.llm_stream as llm_stream
 import app.api.locations as locations
 import app.api.products as products
 import app.api.profiles as profiles
+import app.api.uploads as uploads
 from app.api.errors import (
     global_exception_handler,
     http_exception_handler,
@@ -120,3 +121,4 @@ app.include_router(announcements.router)
 app.include_router(auth.router)
 app.include_router(llm.router)
 app.include_router(llm_stream.router)
+app.include_router(uploads.router)

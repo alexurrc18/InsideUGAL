@@ -17,6 +17,7 @@ import { getFormattedDate, parseRomanianDate, isoToRomanianDateStr, getTodayRoma
 import { useWebScrollAware } from "@/contexts/web-scroll-context";
 import api, { storage } from "@/services/api";
 import { ErrorState } from "@/components/ui/display/error-state";
+import { HomeSkeleton } from "@/components/ui/display/skeletons";
 
 export default function HomeScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
@@ -336,8 +337,10 @@ export default function HomeScreen() {
 
   if (loading && isPageEmpty) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: "center", alignItems: "center", minHeight: 400 }}>
-        <ActivityIndicator size="large" color={theme.primary} />
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} {...scrollProps}>
+          <HomeSkeleton />
+        </ScrollView>
       </View>
     );
   }

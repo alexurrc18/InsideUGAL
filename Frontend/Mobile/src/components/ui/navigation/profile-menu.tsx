@@ -37,6 +37,7 @@ export function ProfileMenu({
       setLocalOpen(!localOpen);
     }
   };
+
   const close = () => {
     if (onClose) {
       onClose();
@@ -134,8 +135,8 @@ export function ProfileMenu({
       <Pressable
         onPress={handleProfilePress}
         hitSlop={8}
-        accessibilityRole="button"
-        accessibilityLabel="Profil"
+        accessibilityRole="link"
+        accessibilityLabel="Autentificare"
         style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
       >
         <View

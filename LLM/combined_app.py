@@ -10,6 +10,7 @@ from importlib.util import spec_from_file_location, module_from_spec
 from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi import Request, Depends
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from llm_optimizer import LLMOptimizer
@@ -74,9 +75,21 @@ smart_news_service = load_module(
 sys.modules.pop("schemas", None)
 sys.modules.pop("llm_functions", None)
 
+# Salvează cache-ul modul-marius înainte să fie suprascris de ChatBot/cache.py
+_modul_marius_cache = sys.modules.get("cache")
+sys.modules.pop("cache", None)
 campus_chat_service = load_module(
     "campus_chat_service",
     CHATBOT_MARIUS / "campus_chat_service.py",
+    extra_paths=[CHATBOT_MARIUS],
+)
+# Restaurează cache-ul modul-marius în sys.modules pentru apelurile ulterioare
+if _modul_marius_cache is not None:
+    sys.modules["cache"] = _modul_marius_cache
+
+rate_limiter_module = load_module(
+    "rate_limiter",
+    CHATBOT_MARIUS / "rate_limiter.py",
     extra_paths=[CHATBOT_MARIUS],
 )
 
@@ -112,6 +125,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def check_rate_limit(request: Request):
+    client_ip = request.client.host if request.client else "unknown"
+    if not rate_limiter_module.chat_limiter.is_allowed(client_ip):
+        raise HTTPException(status_code=429, detail="Prea multe cereri. Te rugăm să aștepți.")
 
 
 @app.get("/")
@@ -212,16 +231,16 @@ async def upload_pdf(background_tasks: BackgroundTasks, pdf: UploadFile = File(.
     return {"pdf_id": pdf_id, "message": "Documentul a fost primit si va fi procesat in background."}
 
 
-@app.post("/api/v1/ask", response_model=mod_marius_schemas.AnswerQuestionOutput)
+@app.post("/api/v1/ask", response_model=mod_marius_schemas.AnswerQuestionOutput, dependencies=[Depends(check_rate_limit)])
 def ask_question(request: mod_marius_schemas.AnswerQuestionInput):  # type: ignore
-    # 1. Filtru de Securitate Guardrails
-    if not llm_optimizer_service.check_prompt_safety(request.question):
-        raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
-
-    # 2. Verificare Semantic Cache
+    # 1. Verificare Semantic Cache (rapid, fără cost API)
     cached_answer = llm_optimizer_service.get_cached_answer(request.question)
     if cached_answer:
         return mod_marius_schemas.AnswerQuestionOutput(answer=cached_answer)
+
+    # 2. Filtru de Securitate Guardrails (doar pentru non-cached)
+    if not llm_optimizer_service.check_prompt_safety(request.question):
+        raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
 
     try:
         answer = mod_marius_functions.answer_question(request.question, request.pdf_id)
@@ -274,16 +293,12 @@ class CampusChatResponse(BaseModel):
     link: str = ""
 
 
-@app.post("/api/v1/campus-chat", response_model=CampusChatResponse)
+@app.post("/api/v1/campus-chat", response_model=CampusChatResponse, dependencies=[Depends(check_rate_limit)])
 def campus_chat(request: CampusChatRequest):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Câmpul 'question' nu poate fi gol.")
-        
-    # 1. Filtru de Securitate Guardrails
-    if not llm_optimizer_service.check_prompt_safety(request.question):
-        raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
 
-    # 2. Verificare Semantic Cache
+    # 1. Verificare Semantic Cache (rapid, fără cost API)
     try:
         cached_answer = llm_optimizer_service.get_cached_answer(request.question)
     except Exception as cache_exc:
@@ -295,6 +310,10 @@ def campus_chat(request: CampusChatRequest):
             sources=["Memorie Cache (Răspuns stocat semantic)"],
             suggestions=[]
         )
+
+    # 2. Filtru de Securitate Guardrails (doar pentru non-cached)
+    if not llm_optimizer_service.check_prompt_safety(request.question):
+        raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
 
     try:
         result = campus_chat_service.campus_chat(question=request.question)
@@ -312,11 +331,25 @@ def campus_chat(request: CampusChatRequest):
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-@app.post("/api/v1/campus-chat/stream")
+@app.post("/api/v1/campus-chat/stream", dependencies=[Depends(check_rate_limit)])
 def campus_chat_stream(request: CampusChatRequest):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Câmpul 'question' nu poate fi gol.")
 
+    # 1. Verificare Semantic Cache (rapid, fără cost API)
+    try:
+        cached_answer = llm_optimizer_service.get_cached_answer(request.question)
+    except Exception as cache_exc:
+        logger.warning("Semantic cache error (ignorat): %s", cache_exc)
+        cached_answer = None
+    if cached_answer:
+        return CampusChatResponse(
+            answer=cached_answer,
+            sources=["Memorie Cache (Răspuns stocat semantic)"],
+            suggestions=[]
+        )
+
+    # 2. Filtru de Securitate Guardrails (doar pentru non-cached)
     if not llm_optimizer_service.check_prompt_safety(request.question):
         raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
 

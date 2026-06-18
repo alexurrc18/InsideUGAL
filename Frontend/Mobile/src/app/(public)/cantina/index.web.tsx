@@ -6,6 +6,8 @@ import { Colors, Spacing } from "@/constants/theme";
 import { WebContainer } from "@/components/ui/layout/web-container";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
+import { useMockLoading } from "@/hooks/use-mock-loading";
+import { CantinaMenuSkeleton } from "@/components/ui/display/skeletons";
 import { Expandable } from "@/components/ui/layout/expandable";
 import { MenuItem } from "@/components/ui/navigation/menu-item";
 import api, { storage } from "@/services/api";
@@ -92,14 +94,17 @@ export default function CantinaScreen() {
 
   const [selectedDay, setSelectedDay] = useState<string>(daysFilter[0].id);
   const [openCategory, setOpenCategory] = useState<string | null>("Meniul Zilei");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     async function loadMenu() {
       try {
+        setLoading(true);
         const cached = await storage.getItem('cached_cafeteria_menus');
         if (cached && active) {
           setMenuData(JSON.parse(cached));
+          setLoading(false);
         }
 
         const res = await api.get('/cafeteria_menus/', { params: { page: 1, size: 50 } });
@@ -109,6 +114,8 @@ export default function CantinaScreen() {
         }
       } catch (err) {
         console.warn('[API] Error loading cafeteria menus:', err);
+      } finally {
+        if (active) setLoading(false);
       }
     }
     loadMenu();
@@ -182,6 +189,9 @@ export default function CantinaScreen() {
           onSelectFilter={(id) => { if (id) { setSelectedDay(id); setOpenCategory(null); } }}
         />
 
+        {loading ? (
+          <CantinaMenuSkeleton />
+        ) : (
         <View style={{
           borderWidth: 1,
           borderColor: theme.border,
@@ -213,6 +223,7 @@ export default function CantinaScreen() {
             </View>
           ))}
         </View>
+        )}
         </WebContainer>
       </ScrollView>
     </View>

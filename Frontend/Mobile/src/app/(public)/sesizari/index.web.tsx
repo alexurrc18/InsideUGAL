@@ -8,6 +8,8 @@ import { Typography } from "@/constants/typography";
 import { WebContainer } from "@/components/ui/layout/web-container";
 import { CategoryHeader, FilterItem } from "@/components/ui/display/category-header";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
+import { useMockLoading } from "@/hooks/use-mock-loading";
+import { SesizariListSkeleton } from "@/components/ui/display/skeletons";
 import { SesizareCard, Sesizare } from "@/components/ui/display/sesizare-card";
 import PlusIcon from "@/assets/icons/svg/plus.svg";
 import api, { storage } from "@/services/api";
@@ -194,9 +196,7 @@ export default function SesizariScreen() {
 
           <View style={{ paddingHorizontal: Spacing.lg, gap: Spacing.md, marginTop: Spacing.xs }}>
             {loading && reports.length === 0 ? (
-              <View style={{ paddingVertical: 64, justifyContent: "center", alignItems: "center" }}>
-                <ActivityIndicator size="large" color={theme.primary} />
-              </View>
+              <SesizariListSkeleton />
             ) : error && reports.length === 0 ? (
               <View style={{ paddingVertical: 64, justifyContent: "center", alignItems: "center", gap: Spacing.md }}>
                 <Text style={[Typography.Heading4, { color: theme.text, textAlign: "center" }]}>
