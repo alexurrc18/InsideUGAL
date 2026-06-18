@@ -30,7 +30,7 @@ def _embed(texts: list[str]) -> list[list[float]]:
             return [e.values for e in result.embeddings]
         except Exception as e:
             if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                wait = 60 * (attempt + 1)
+                wait = 30 * (attempt + 1)  # 30, 60, 90, 120, 150 — max ~7.5 min total
                 print(f"[RAG] 429 quota — aștept {wait}s și reîncerc ({attempt+1}/5)...")
                 time.sleep(wait)
             else:

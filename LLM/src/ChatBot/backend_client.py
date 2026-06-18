@@ -364,3 +364,32 @@ def fetch_context(question: str) -> str:
                 parts.append(text)
 
     return "\n\n---\n\n".join(parts)
+
+
+def fetch_context_combined(question: str) -> tuple[str, str]:
+    """
+    Returnează (full_context, focused_context) într-un singur pass Supabase.
+    full_context = _ALWAYS_FETCH + tabele intent (pentru Gemini).
+    focused_context = doar tabele intent (pentru fallback / detecție relevanță).
+    Înlocuiește apelurile duble fetch_focused_context + fetch_context din app.py.
+    """
+    intents = detect_intent(question)
+    to_fetch = list(dict.fromkeys(_ALWAYS_FETCH + [i for i in intents if i not in _ALWAYS_FETCH]))
+
+    all_parts: list[str] = []
+    focused_parts: list[str] = []
+    sep = "\n\n---\n\n"
+
+    for intent in to_fetch:
+        if intent not in _TABLE_MAP:
+            continue
+        table, backend_path, order, limit, fmt_fn = _TABLE_MAP[intent]
+        data = _fetch(table, backend_path, order, limit)
+        if data:
+            text = fmt_fn(data)
+            if text:
+                all_parts.append(text)
+                if intent in intents:
+                    focused_parts.append(text)
+
+    return sep.join(all_parts), sep.join(focused_parts)

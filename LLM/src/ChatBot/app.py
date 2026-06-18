@@ -14,6 +14,7 @@ from google.genai import types as genai_types
 import pybreaker
 import cache as llm_cache
 import backend_client
+from rate_limiter import chat_limiter
 
 from chatbot_shared import (
     SYSTEM_PROMPT, GEMINI_MODEL,
@@ -117,11 +118,19 @@ def health():
 
 @app.route("/rebuild-rag", methods=["POST"])
 def rebuild_rag():
+    secret = request.headers.get("X-Admin-Secret", "")
+    expected = os.getenv("ADMIN_SECRET", "")
+    if expected and secret != expected:
+        return jsonify({"error": "Unauthorized"}), 401
     threading.Thread(target=lambda: _run_scraper(full_rebuild=True), daemon=True).start()
     return jsonify({"status": "ok", "message": "Rebuild pornit în background"})
 
 @app.route("/chat", methods=["POST"])
 def chat():
+    client_ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+    if not chat_limiter.is_allowed(client_ip):
+        return jsonify({"error": "Prea multe cereri. Încearcă din nou într-un minut."}), 429
+
     data = request.get_json()
     user_message = data.get("message", "").strip()
     image_data = data.get("image_data")
@@ -133,14 +142,14 @@ def chat():
     backend_context = ""
     nav_link = detect_link(user_message) or backend_client.fetch_entity_link(user_message)
 
-    # Supabase primul — doar dacă întrebarea are un intent recunoscut
-    focused = backend_client.fetch_focused_context(user_message)
-    if focused:
-        backend_context = focused
-        context = backend_client.fetch_context(user_message)  # context complet pentru Gemini
+    # Un singur pass Supabase — returnează contextul complet + contextul focusat
+    full_context, focused_context = backend_client.fetch_context_combined(user_message)
+    if focused_context:
+        backend_context = focused_context
+        context = full_context
         sources = []
     else:
-        # Fără date relevante în Supabase — caută în RAG (site-uri facultăți)
+        # Fără intent recunoscut — caută în RAG (site-uri facultăți)
         with _rag_lock:
             raw_context, sources = rag.query_with_sources(user_message, n_results=3)
         context = raw_context or "Nu am găsit informații specifice. Îndrumă utilizatorul spre https://www.ugal.ro/"
@@ -228,7 +237,7 @@ def chat():
                 yield f"data: {json.dumps({'clear': True})}\n\n"
 
         if backend_context:
-            answer = backend_client.fetch_focused_context(user_message) or backend_context
+            answer = backend_context
         else:
             sources.clear()
             lang = detect_lang(user_message)

@@ -1,9 +1,13 @@
 import re
 import time
+import hashlib
 import logging
 import requests
+import urllib3
 import fitz  # PyMuPDF
 from bs4 import BeautifulSoup
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +100,11 @@ def _parse_pdf(content: bytes, source_url: str) -> str:
         return ""
 
 
+def _chunk_id(prefix: str, idx: int, text: str) -> str:
+    """ID stabil bazat pe conținut — permite re-ingestare când textul se schimbă."""
+    return f"{prefix}_{idx}_{hashlib.md5(text.encode()).hexdigest()[:8]}"
+
+
 def _chunk_text(text: str, max_chars: int = 1200, overlap: int = 200) -> list[str]:
     """Împarte text în bucăți cu overlap — contextul nu se mai taie la mijloc."""
     paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
@@ -149,7 +158,7 @@ def scrape_faciee() -> list[dict]:
             if page_text:
                 for chunk in _chunk_text(page_text):
                     chunks.append({
-                        "id": f"web_{chunk_idx}",
+                        "id": _chunk_id("web", chunk_idx, chunk),
                         "text": chunk,
                         "source": url,
                         "type": "web",
@@ -175,7 +184,7 @@ def scrape_faciee() -> list[dict]:
                     if pdf_text:
                         for chunk in _chunk_text(pdf_text, max_chars=1000):
                             chunks.append({
-                                "id": f"pdf_{chunk_idx}",
+                                "id": _chunk_id("pdf", chunk_idx, chunk),
                                 "text": chunk,
                                 "source": href,
                                 "type": "pdf",
@@ -300,7 +309,7 @@ def _scrape_site(base: str, pages: list[str], prefix: str, ssl_verify: bool = Tr
             if page_text:
                 for chunk in _chunk_text(page_text):
                     chunks.append({
-                        "id": f"{prefix}_{chunk_idx}",
+                        "id": _chunk_id(prefix, chunk_idx, chunk),
                         "text": chunk,
                         "source": url,
                         "type": "web",
