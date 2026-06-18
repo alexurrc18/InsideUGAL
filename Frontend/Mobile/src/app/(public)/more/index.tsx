@@ -63,44 +63,6 @@ export default function MoreScreen() {
             marginBottom: Spacing.xl
           }}
         >
-          {/* Item: Profil */}
-          <Pressable
-            onPress={() => router.push("/(auth)")}
-            style={({ pressed }) => ({
-              width: "30.5%",
-              aspectRatio: 0.85,
-              padding: Spacing.sm,
-              justifyContent: "center",
-              alignItems: "center",
-              opacity: pressed ? 0.6 : 1,
-              gap: Spacing.xs,
-            })}
-          >
-            <View 
-              style={{ 
-                width: 56, 
-                height: 56, 
-                justifyContent: "center", 
-                alignItems: "center",
-                marginBottom: 2
-              }}
-            >
-              <UserIcon width={44} height={44} color={theme.primary} />
-            </View>
-            <Text 
-              style={{ 
-                fontSize: 14,
-                fontFamily: "InstrumentSans-Medium",
-                fontWeight: "500",
-                color: theme.text,
-                textAlign: "center"
-              }} 
-              numberOfLines={2}
-            >
-              Profil
-            </Text>
-          </Pressable>
-
           {/* Item: Setări */}
           <Pressable
             onPress={() => router.push({ pathname: "/(public)/more/setari" })}

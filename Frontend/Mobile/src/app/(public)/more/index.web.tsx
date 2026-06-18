@@ -57,55 +57,7 @@ export default function MoreScreen() {
         <WebContainer>
           <CategoryHeader title="Mai multe" />
 
-          {/* Profile & Settings Grid */}
-          <View 
-            style={{ 
-              flexDirection: "row", 
-              flexWrap: "wrap", 
-              paddingHorizontal: Spacing.lg, 
-              gap: Spacing.sm,
-              justifyContent: "flex-start",
-              marginTop: Spacing.xs,
-              marginBottom: Spacing.sm
-            }}
-          >
-            {/* Item: Profil */}
-            <Pressable
-              onPress={() => router.push("/(auth)")}
-              style={({ pressed }) => ({
-                width: "18%",
-                paddingVertical: Spacing.sm,
-                alignItems: "center",
-                opacity: pressed ? 0.6 : 1,
-                gap: Spacing.xs,
-              })}
-            >
-              <View 
-                style={{ 
-                  width: 48,
-                  height: 48,
-                  justifyContent: "center", 
-                  alignItems: "center",
-                  marginBottom: 2
-                }}
-              >
-                <UserIcon width={36} height={36} color={theme.primary} />
-              </View>
-              <Text 
-                style={{ 
-                  fontSize: 14,
-                  fontFamily: "InstrumentSans-Medium",
-                  fontWeight: "500",
-                  color: theme.text,
-                  textAlign: "center"
-                }} 
-                numberOfLines={2}
-              >
-                Profil
-              </Text>
-            </Pressable>
 
-          </View>
 
           {/* Section Title */}
           <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.sm, marginBottom: Spacing.sm }}>

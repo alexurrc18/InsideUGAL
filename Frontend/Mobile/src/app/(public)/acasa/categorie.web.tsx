@@ -82,17 +82,19 @@ export default function CategoryScreen() {
         if (response.data && response.data.items) {
           newItems = response.data.items.map((item: any) => ({
             id: item.id.toString(),
-            title: item.title,
+            title: item.title || "Titlu necunoscut",
             category: categoryTitle,
-            date: isoToRomanianDateStr(item.start_date || item.created_at) || "--",
-            date_start: isoToRomanianDateStr(item.start_date) || "--",
-            date_end: isoToRomanianDateStr(item.end_date) || "--",
+            date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
+            date_start: isoToRomanianDateStr(item.start_date) || "",
+            date_end: isoToRomanianDateStr(item.end_date) || "",
             time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
             time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-            author: item.location_name || "",
+            author: item.author || "Autor necunoscut",
             image: item.image_url || undefined,
-            content: item.content,
-            location: item.location_name || "",
+            content: item.content || "Conținut necunoscut",
+            location: item.location_name || "Locație necunoscută",
+            created_at: item.created_at,
+            updated_at: item.updated_at,
           }));
         }
       } else if (categoryTitle === "Facultăți") {
@@ -105,12 +107,12 @@ export default function CategoryScreen() {
         if (response.data && response.data.items) {
           newItems = response.data.items.map((item: any) => ({
             id: item.id.toString(),
-            title: item.name,
+            title: item.name || "Titlu necunoscut",
             image: item.image_url || undefined,
-            address: item.address || "",
+            address: item.address || "Adresă necunoscută",
             phone: item.phone || "",
             website: item.website_url || "",
-            content: item.description || "",
+            content: item.description || "Conținut necunoscut",
           }));
         }
       } else if (categoryTitle === "Facilități") {
@@ -123,12 +125,12 @@ export default function CategoryScreen() {
         if (response.data && response.data.items) {
           newItems = response.data.items.map((item: any) => ({
             id: item.id.toString(),
-            title: item.name,
+            title: item.name || "Titlu necunoscut",
             image: item.image_url || undefined,
-            address: item.address || "",
+            address: item.address || "Adresă necunoscută",
             phone: item.phone || "",
             website: item.website_url || "",
-            content: item.name,
+            content: item.name || "Conținut necunoscut",
             schedule: item.schedule || "",
           }));
         }
@@ -156,28 +158,15 @@ export default function CategoryScreen() {
   }, [selectedFacultyId, categoryTitle]);
 
   const handlePress = (item: any) => {
-    let type = categoryTitle === "Evenimente" ? "Eveniment" : "Anunț";
+    let type: string | undefined = undefined;
     if (categoryTitle === "Facultăți") type = "Facultate";
-    if (categoryTitle === "Facilități") type = "Facilitate";
+    else if (categoryTitle === "Facilități") type = "Facilitate";
     
     router.push({
         pathname: "/(public)/acasa/vizualizare",
         params: {
-            type,
-            title: item.title,
-            category: categoryTitle as string,
-            content: item.content,
-            image: item.image,
-            location: item.location,
-            date_start: item.date_start,
-            date_end: item.date_end,
-            time_start: item.time_start,
-            time_end: item.time_end,
-            address: item.address,
-            phone: item.phone,
-            website: item.website,
-            schedule: item.schedule,
-            date: item.date_start || item.date
+            id: item.id,
+            ...(type ? { type } : {})
         }
     });
   };
@@ -273,7 +262,7 @@ export default function CategoryScreen() {
                     variant="list"
                     title={item.title}
                     author={item.author || item.address}
-                    date={getFormattedDate(item.date_start || item.date)}
+                    date={getFormattedDate(item.date)}
                     image={item.image}
                     onPress={() => handlePress(item)}
                 />

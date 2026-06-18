@@ -41,15 +41,17 @@ export const getReadingTime = (text?: string) => {
  * Convertește o dată din formatul "21 septembrie 2026" și un timp opțional "10:00" într-un obiect Date
  */
 export const parseRomanianDate = (dateStr?: string, timeStr?: string) => {
-    if (!dateStr) return new Date();
+    if (!dateStr || dateStr.toLowerCase().includes("necunoscut")) return new Date(0);
     
     // Eliminăm eventualele caractere suplimentare (ex: virgule)
     const cleanDateStr = dateStr.replace(",", "");
     const parts = cleanDateStr.trim().split(/\s+/);
     
-    if (parts.length < 2) return new Date();
+    if (parts.length < 2) return new Date(0);
 
     const day = parseInt(parts[0]);
+    if (isNaN(day)) return new Date(0);
+
     const monthName = parts[1].toLowerCase();
     
     // Dacă anul lipsește, presupunem anul curent sau 2026 conform contextului proiectului

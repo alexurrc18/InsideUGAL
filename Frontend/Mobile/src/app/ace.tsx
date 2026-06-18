@@ -258,13 +258,13 @@ const resolveLink = (link: string): string => {
   // Check for event paths: /event/123, /eveniment/123, etc.
   const eventMatch = path.match(/^\/?(event|eveniment)[s|e]?\/([a-zA-Z0-9_-]+)/i);
   if (eventMatch) {
-    return `/(public)/acasa/vizualizare?type=Eveniment&id=${eventMatch[2]}`;
+    return `/(public)/acasa/vizualizare?id=${eventMatch[2]}`;
   }
 
   // Check for news paths: /news/123, /noutate/123, /anunt/123, etc.
   const newsMatch = path.match(/^\/?(news|noutate|anunt|noutati|anunturi)\/([a-zA-Z0-9_-]+)/i);
   if (newsMatch) {
-    return `/(public)/acasa/vizualizare?type=Anunț&id=${newsMatch[2]}`;
+    return `/(public)/acasa/vizualizare?id=${newsMatch[2]}`;
   }
 
   // Check for faculty paths: /facultate/123, /facultati/123
