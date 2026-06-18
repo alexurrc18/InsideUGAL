@@ -1,10 +1,11 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
+
 import { useApiMutation } from "@/hooks/useApiMutation";
 import { useApiQuery } from "@/hooks/useApiQuery";
-import { apiClient } from "@/lib/api-client";
+import { announcementsService } from "@/lib/announcements-service";
 import {
-  announcementsSchema,
   coursesSchema,
   facultiesSchema,
   userSchema,
@@ -12,30 +13,29 @@ import {
 import type { Announcement } from "@/lib/api-types";
 
 export function useAnnouncements() {
-  return useApiQuery({
-    path: "/announcements",
+  return useQuery({
     queryKey: ["announcements"],
-    schema: announcementsSchema,
+    queryFn: () => announcementsService.list(),
   });
 }
 
 export function useCreateAnnouncement() {
   return useApiMutation<Announcement, Partial<Announcement>>({
-    mutationFn: (data) => apiClient.createAnnouncement(data),
+    mutationFn: (data) => announcementsService.create(data),
     invalidateKeys: [["announcements"]],
   });
 }
 
 export function useUpdateAnnouncement() {
   return useApiMutation<Announcement, { id: number; data: Partial<Announcement> }>({
-    mutationFn: ({ id, data }) => apiClient.updateAnnouncement(id, data),
+    mutationFn: ({ id, data }) => announcementsService.update(id, data),
     invalidateKeys: [["announcements"]],
   });
 }
 
 export function useDeleteAnnouncement() {
-  return useApiMutation<any, number>({
-    mutationFn: (id) => apiClient.deleteAnnouncement(id),
+  return useApiMutation<unknown, number>({
+    mutationFn: (id) => announcementsService.delete(id),
     invalidateKeys: [["announcements"]],
   });
 }

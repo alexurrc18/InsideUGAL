@@ -109,6 +109,38 @@ function AnnouncementsContent() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleShare = async (item: Announcement) => {
+    const shareData = {
+      title: item.title,
+      text: item.description,
+      url: window.location.origin + `/noutati/${item.id}`,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      // Fallback
+      const encodedUrl = encodeURIComponent(shareData.url);
+      const encodedTitle = encodeURIComponent(shareData.title);
+      
+      const options = [
+        { name: 'Facebook', url: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}` },
+        { name: 'X', url: `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}` },
+        { name: 'WhatsApp', url: `https://wa.me/?text=${encodedTitle}%20${encodedUrl}` }
+      ];
+
+      // Simple alert or prompt to choose? 
+      // For simplicity and to fit in a table cell/row, let's just open the Facebook one as a direct fallback
+      // or simply copy to clipboard? The prompt asks for social media sharing links.
+      // Let's open a new window for the user to choose.
+      window.open(options[0].url, '_blank');
+    }
+  };
+
   const columns: Column<Announcement>[] = [
     { 
       header: 'Titlu', 
@@ -158,7 +190,7 @@ function AnnouncementsContent() {
           >
             Editare
           </button>
-          <button type="button" className="text-green-600 hover:text-green-800 font-medium hover:underline cursor-pointer" onClick={() => console.info(`Shared: ${item.title}`)}>Share</button>
+          <button type="button" className="text-green-600 hover:text-green-800 font-medium hover:underline cursor-pointer" onClick={() => handleShare(item)}>Share</button>
           <button 
             type="button" 
             className="text-red-500 hover:text-red-700 font-medium hover:underline cursor-pointer" 
@@ -239,6 +271,7 @@ function AnnouncementsContent() {
     e.preventDefault();
     
     const backendPayload: Record<string, any> = {
+      type: 'NOUTATE',
       title: formState.title || '',
       content: formState.description || '', // Mapare description (UI) -> content (Backend)
       is_pinned: false,

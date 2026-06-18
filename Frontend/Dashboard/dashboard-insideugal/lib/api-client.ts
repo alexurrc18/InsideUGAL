@@ -15,10 +15,23 @@ import type { Announcement, ApiErrorBody, ApiRequestOptions } from "./api-types"
 const rawUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") ?? "http://localhost:8002";
 export const apiBaseUrl = rawUrl.includes("localhost") ? rawUrl.replace("https://", "http://") : rawUrl;
 
+export function getStoredAccessToken(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const token = window.localStorage.getItem("access_token");
+  if (!token || token === "undefined" || token === "null") {
+    return null;
+  }
+
+  return token.replace(/^Bearer\s+/i, "").trim();
+}
+
 export function getAuthHeaders(headers?: HeadersInit): Headers {
   const requestHeaders = new Headers(headers);
-  if (!requestHeaders.has("Authorization") && typeof window !== "undefined") {
-    const token = window.localStorage.getItem("access_token");
+  if (!requestHeaders.has("Authorization")) {
+    const token = getStoredAccessToken();
     if (token) {
       requestHeaders.set("Authorization", `Bearer ${token}`);
     }
@@ -111,10 +124,13 @@ export async function apiRequest<TResponse>(
   options: ApiRequestOptions = {},
 ): Promise<TResponse> {
   const body = toBody(options.body);
+  const headers = toHeaders(options.headers, body !== undefined);
+
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...options,
     body,
-    headers: toHeaders(options.headers, body !== undefined),
+    credentials: options.credentials ?? "include",
+    headers,
   });
 
   const payload = await readJson(response);
@@ -132,20 +148,20 @@ export async function apiRequest<TResponse>(
 }
 
 export const apiClient = {
-  getAnnouncements: () => apiRequest("/announcements", announcementsSchema),
+  getAnnouncements: () => apiRequest("/announcements/", announcementsSchema),
     
   createAnnouncement: (data: Partial<Announcement>) => 
-    apiRequest("/announcements", announcementSchema, {
+    apiRequest("/announcements/", announcementSchema, {
       method: "POST",
       body: data,
     }),
   updateAnnouncement: (id: number, data: Partial<Announcement>) =>
     apiRequest(`/announcements/${id}`, announcementSchema, {
-      method: "PUT",
+      method: "PATCH",
       body: data,
     }),
   deleteAnnouncement: (id: number) =>
-    apiRequest(`/announcements/${id}`, z.any(), {
+    apiRequest(`/announcements/${id}`, z.unknown(), {
       method: "DELETE",
     }),
   getCourses: () => apiRequest("/courses", coursesSchema),

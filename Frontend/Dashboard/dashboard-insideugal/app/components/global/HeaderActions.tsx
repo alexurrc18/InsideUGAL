@@ -2,9 +2,8 @@
 
 import { Bell, UserRound } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { useTheme } from "../../providers";
 import { useRouter } from "next/navigation"; 
-import { apiBaseUrl } from "@/lib/api-client";
+import { announcementsService } from "@/lib/announcements-service";
 
 interface Announcement {
   id: number;
@@ -18,7 +17,6 @@ const STORAGE_KEY = "last_seen_announcement_id";
 
 export default function HeaderActions() {
   const router = useRouter(); 
-  const { isDark, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(false);
@@ -29,10 +27,7 @@ export default function HeaderActions() {
     async function fetchAnnouncements() {
       setLoading(true);
       try {
-        const res = await fetch(`${apiBaseUrl}/announcements/`);
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        
-        const data = await res.json();
+        const data = await announcementsService.list();
         
         // 👉 REZOLVARE PENTRU data.items: Gestionăm formatul paginat { items: [], total: ... }
         let items: Announcement[] = [];
