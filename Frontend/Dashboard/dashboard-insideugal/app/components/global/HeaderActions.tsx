@@ -33,8 +33,8 @@ export default function HeaderActions() {
         let items: Announcement[] = [];
         if (Array.isArray(data)) {
           items = data;
-        } else if (data && typeof data === 'object' && Array.isArray(data.items)) {
-          items = data.items;
+        } else if (data && typeof data === 'object' && Array.isArray((data as any).items)) {
+          items = (data as any).items;
         } else {
           console.error("Backend-ul nu a returnat un format recunoscut:", data);
         }

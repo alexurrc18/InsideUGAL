@@ -51,19 +51,19 @@ function AnnouncementsContent() {
   const data = useMemo(() => {
     // Dacă backendData este direct masiv, îl folosim. Dacă are proprietatea .items, o folosim pe aceea.
     const list = backendData && typeof backendData === 'object' && 'items' in backendData 
-      ? (backendData as any).items 
+      ? (backendData as Record<string, unknown>).items 
       : backendData;
 
     if (!list || !Array.isArray(list)) return [];
 
-    return list.map((item: BackendAnnouncement): Announcement => ({
+    return (list as BackendAnnouncement[]).map((item: BackendAnnouncement): Announcement => ({
       id: item.id.toString(),
       title: item.title,
       description: item.content || '', 
       publishDate: item.created_at ? new Date(item.created_at).toLocaleDateString('ro-RO') : 'Fără dată',
-      faculties: (item as any).faculties || [], 
-      thumbnail: (item as any).thumbnail || '', 
-      eventLink: (item as any).eventLink || '', 
+      faculties: (item as Record<string, unknown>).faculties as string[] || [], 
+      thumbnail: (item as Record<string, unknown>).thumbnail as string || '', 
+      eventLink: (item as Record<string, unknown>).eventLink as string || '', 
       pdfFiles: []  
     }));
   }, [backendData]);
