@@ -16,6 +16,7 @@ import { useWebScrollAware } from "@/contexts/web-scroll-context";
 import { useMockLoading } from "@/hooks/use-mock-loading";
 import { HomeSkeleton } from "@/components/ui/display/skeletons";
 import { Seo } from "@/components/seo";
+import { eventHref } from "@/utils/article-url";
 import MOCK_DATA from "@/constants/mock-data.json";
 
 export default function HomeScreen() {
@@ -62,6 +63,11 @@ export default function HomeScreen() {
   };
 
   const handlePress = (item: any) => {
+    // Evenimentele au URL curat (/eveniment/<id>-<slug>); restul raman pe vizualizare.
+    if (item.category === "Evenimente") {
+        router.push(eventHref(item) as any);
+        return;
+    }
     router.push({
         pathname: "/(public)/acasa/vizualizare",
         params: {
