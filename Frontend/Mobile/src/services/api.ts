@@ -157,20 +157,68 @@ api.interceptors.request.use(
   }
 );
 
+function cleanErrorMessage(detail: string | undefined, defaultMsg: string, status?: number): string {
+  if (!detail) {
+    return status ? `${defaultMsg} (${status})` : defaultMsg;
+  }
+  
+  if (typeof detail === 'string' && detail.includes("Supabase authentication failed:")) {
+    try {
+      const jsonStart = detail.indexOf("{");
+      if (jsonStart !== -1) {
+        const jsonStr = detail.substring(jsonStart);
+        const parsed = JSON.parse(jsonStr);
+        if (parsed.msg) {
+          let msg = parsed.msg;
+          if (msg === "Invalid login credentials") {
+            msg = "Date de conectare invalide";
+          } else if (msg === "Email not confirmed") {
+            msg = "Adresa de email nu este confirmată";
+          }
+          return status ? `${msg} (${status})` : msg;
+        }
+      }
+    } catch (e) {
+      const match = detail.match(/"msg"\s*:\s*"([^"]+)"/);
+      if (match && match[1]) {
+        let msg = match[1];
+        if (msg === "Invalid login credentials") {
+          msg = "Date de conectare invalide";
+        } else if (msg === "Email not confirmed") {
+          msg = "Adresa de email nu este confirmată";
+        }
+        return status ? `${msg} (${status})` : msg;
+      }
+    }
+  }
+
+  if (detail === "Active profile not found.") {
+    return status ? `Profil inactiv sau inexistent (${status})` : "Profil inactiv sau inexistent";
+  }
+
+  return status ? `${detail} (${status})` : detail;
+}
+
 // Response Interceptor: Global error handler
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    // Check for 401 Unauthorized errors (expired token, invalid token)
-    if (error.response?.status === 401) {
-      console.warn('[API] Unauthorized access - clearing token.');
+    const errorDetail = (error.response?.data as any)?.detail;
+    const status = error.response?.status;
+    
+    // Check for 401 Unauthorized or 403 Active profile not found (expired/invalid/inactive)
+    if (
+      status === 401 ||
+      (status === 403 && errorDetail === "Active profile not found.")
+    ) {
+      console.warn('[API] Stale or invalid credentials - clearing token.');
       await setAuthToken(null);
     }
     
     // Format error message to be more readable
     const apiError = {
-      message: (error.response?.data as any)?.detail || error.message || 'A apărut o eroare neașteptată',
-      status: error.response?.status,
+      message: cleanErrorMessage(errorDetail, error.message, status),
+      status: status,
       originalError: error,
     };
 
