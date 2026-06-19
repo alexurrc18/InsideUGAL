@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, Pressable, useColorScheme, FlatList, ActivityIndicator } from "react-native";
+import { View, Text, Pressable, useColorScheme, FlatList, RefreshControl, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { SesizareCard, Sesizare } from "@/components/ui/display/sesizare-card";
-import api, { storage } from "@/services/api";
+import api, { storage, getAuthToken } from "@/services/api";
+import { SesizariListSkeleton } from "@/components/ui/display/skeletons";
 
 type FilterType = "mele" | "active" | "respinse" | "finalizate";
 
@@ -30,14 +31,30 @@ export default function SesizariScreen() {
   const params = useLocalSearchParams();
 
   const [reports, setReports] = useState<Sesizare[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const activeFilter = (params.filter as FilterType) || "mele";
+  const [refreshing, setRefreshing] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  };
 
   const loadData = async () => {
     setLoading(true);
     setError(null);
     try {
+      const token = await getAuthToken();
+      setIsAuthenticated(!!token);
+      if (!token && activeFilter === "mele") {
+        setReports([]);
+        setLoading(false);
+        return;
+      }
+
       // 1. Fetch/load locations to build a map of id -> name
       let locationsData: any[] = [];
       const cachedLocs = await storage.getItem('cached_facilities');
@@ -59,22 +76,24 @@ export default function SesizariScreen() {
         locationMap.set(loc.id, loc.name);
       });
 
-      // 2. Fetch logged-in user profile if token exists
       let myProfileId: string | null = null;
-      try {
-        const profileRes = await api.get('/profiles/me');
-        if (profileRes.data?.id) {
-          myProfileId = profileRes.data.id;
+      if (token) {
+        try {
+          const profileRes = await api.get('/profiles/me');
+          if (profileRes.data?.id) {
+            myProfileId = profileRes.data.id;
+          }
+        } catch (profileError) {
+          console.warn('[API] Could not fetch user profile (maybe unauthenticated):', profileError);
         }
-      } catch (profileError) {
-        console.warn('[API] Could not fetch user profile (maybe unauthenticated):', profileError);
       }
 
       // 3. Fetch complaints based on activeFilter
       let apiItems: any[] = [];
       if (activeFilter === "mele") {
         const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50 } });
-        apiItems = complaintsRes.data?.items || [];
+        const allItems = complaintsRes.data?.items || [];
+        apiItems = myProfileId ? allItems.filter((item: any) => item.user_id === myProfileId) : [];
       } else if (activeFilter === "active") {
         const [resPending, resWorking] = await Promise.all([
           api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_asteptare' } }),
@@ -155,10 +174,19 @@ export default function SesizariScreen() {
     </Pressable>
   );
 
-  if (loading && reports.length === 0) {
+  if ((loading && reports.length === 0) || refreshing) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color={theme.primary} />
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} tintColor={theme.primary} />
+          }
+        >
+          <View style={{ paddingTop: Spacing.md }}>
+            <SesizariListSkeleton />
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -191,14 +219,36 @@ export default function SesizariScreen() {
           paddingBottom: insets.bottom + Spacing.xl,
           gap: Spacing.md
         }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} tintColor={theme.primary} />
+        }
         ListEmptyComponent={
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 64 }}>
-            <Text style={[Typography.Heading5, { color: theme.text, marginBottom: Spacing.xs }]}>
-              Nicio sesizare în această secțiune
-            </Text>
-            <Text style={[Typography.Paragraph3, { color: theme.textSecondary, textAlign: "center" }]}>
-              Momentan nu există înregistrări.
-            </Text>
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 64, paddingHorizontal: Spacing.xl }}>
+            {activeFilter === "mele" && !isAuthenticated ? (
+              <>
+                <Text style={[Typography.Heading5, { color: theme.text, marginBottom: Spacing.xs, textAlign: "center" }]}>
+                  Trebuie să fii conectat
+                </Text>
+                <Text style={[Typography.Paragraph3, { color: theme.textSecondary, textAlign: "center", marginBottom: Spacing.md }]}>
+                  Conectează-te pentru a trimite sau vizualiza sesizările tale.
+                </Text>
+                <Pressable
+                  onPress={() => router.push("/(auth)")}
+                  style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}
+                >
+                  <Text style={{ color: "white", fontWeight: "bold" }}>Conectare</Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Text style={[Typography.Heading5, { color: theme.text, marginBottom: Spacing.xs }]}>
+                  Nicio sesizare în această secțiune
+                </Text>
+                <Text style={[Typography.Paragraph3, { color: theme.textSecondary, textAlign: "center" }]}>
+                  Momentan nu există înregistrări.
+                </Text>
+              </>
+            )}
           </View>
         }
       />

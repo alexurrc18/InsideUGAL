@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, useColorScheme, Pressable, Animated, ActivityIndicator } from "react-native";
+import { View, Text, useColorScheme, Pressable, Animated, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
@@ -9,6 +9,7 @@ import { CategoryHeader, FilterItem } from "@/components/ui/display/category-hea
 import { getFormattedDate, isoToRomanianDateStr } from "@/utils/date";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import api from "@/services/api";
+import { NewsListSkeleton } from "@/components/ui/display/skeletons";
 
 export default function CategoryScreen() {
   const { title: categoryTitle } = useLocalSearchParams();
@@ -25,6 +26,15 @@ export default function CategoryScreen() {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [faculties, setFaculties] = useState<any[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setHasMore(true);
+    await fetchData(1, true);
+    setPage(1);
+    setRefreshing(false);
+  };
 
   // Fetch faculties list for filter options
   useEffect(() => {
@@ -217,7 +227,7 @@ export default function CategoryScreen() {
         }}
       />
 
-      <Animated.ScrollView 
+       <Animated.ScrollView 
         style={{ flex: 1 }} 
         contentContainerStyle={{ 
           paddingTop: Spacing.md,
@@ -231,6 +241,9 @@ export default function CategoryScreen() {
           }
         )}
         scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} tintColor={theme.primary} />
+        }
       >
         <View style={{ marginBottom: Spacing.lg }}>
             <CategoryHeader 
@@ -241,30 +254,36 @@ export default function CategoryScreen() {
             />
         </View>
 
-        <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>
-          {data.map((item) => (
-              <NewsCard 
-                  key={item.id}
-                  variant="list"
-                  title={item.title}
-                  author={item.author || item.address}
-                  date={getFormattedDate(item.date)}
-                  image={item.image}
-                  onPress={() => handlePress(item)}
-              />
-          ))}
-        </View>
+        {(loading && page === 1) || refreshing ? (
+          <NewsListSkeleton />
+        ) : (
+          <>
+            <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>
+              {data.map((item) => (
+                  <NewsCard 
+                      key={item.id}
+                      variant="list"
+                      title={item.title}
+                      author={item.author || item.address}
+                      date={getFormattedDate(item.date)}
+                      image={item.image}
+                      onPress={() => handlePress(item)}
+                  />
+              ))}
+            </View>
 
-        {loading && (
-          <View style={{ paddingVertical: Spacing.lg, justifyContent: "center", alignItems: "center" }}>
-            <ActivityIndicator size="small" color={theme.primary} />
-          </View>
-        )}
+            {loading && page > 1 && (
+              <View style={{ marginTop: Spacing.lg }}>
+                <NewsListSkeleton count={3} />
+              </View>
+            )}
 
-        {data.length === 0 && !loading && (
-            <Text style={[Typography.Paragraph1, { color: theme.text, textAlign: "center", marginTop: 40 }]}>
-                Nu există elemente în această categorie.
-            </Text>
+            {data.length === 0 && !loading && (
+                <Text style={[Typography.Paragraph1, { color: theme.text, textAlign: "center", marginTop: 40 }]}>
+                    Nu există elemente în această categorie.
+                </Text>
+            )}
+          </>
         )}
 
       </Animated.ScrollView>

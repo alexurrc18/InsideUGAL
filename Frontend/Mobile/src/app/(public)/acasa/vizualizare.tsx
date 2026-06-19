@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, useColorScheme, Linking, TouchableOpacity, Alert, StyleSheet, Platform, useWindowDimensions, ActivityIndicator, InteractionManager } from "react-native";
+import { View, Text, ScrollView, useColorScheme, Linking, TouchableOpacity, Alert, StyleSheet, Platform, useWindowDimensions, InteractionManager } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { Image } from "expo-image";
@@ -8,6 +8,7 @@ import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { getFormattedDate, getReadingTime, isoToRomanianDateStr } from "@/utils/date";
 import api, { storage } from "@/services/api";
+import { VizualizareSkeleton } from "@/components/ui/display/skeletons";
 
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
 import LocationIcon from "@/assets/icons/svg/location.svg";
@@ -292,8 +293,8 @@ function VizualizareScreen() {
 
     if (loading && !itemData) {
         return (
-            <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: "center", alignItems: "center" }}>
-                <ActivityIndicator size="large" color={theme.primary} />
+            <View style={{ flex: 1, backgroundColor: theme.background }}>
+                <VizualizareSkeleton />
             </View>
         );
     }

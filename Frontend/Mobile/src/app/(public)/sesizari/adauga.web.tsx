@@ -164,8 +164,12 @@ export default function AdaugaSesizareScreen() {
               'Content-Type': 'multipart/form-data',
             },
           });
-          if (uploadRes.data?.image_url) {
+          if (typeof uploadRes.data === 'string') {
+            uploadedImageUrl = uploadRes.data;
+          } else if (uploadRes.data?.image_url) {
             uploadedImageUrl = uploadRes.data.image_url;
+          } else if (uploadRes.data?.url) {
+            uploadedImageUrl = uploadRes.data.url;
           }
         }
 

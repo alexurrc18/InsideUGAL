@@ -6,9 +6,9 @@ import { Typography } from "@/constants/typography";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import UserIcon from "@/assets/icons/svg/user.svg";
 import api, { getAuthToken, setAuthToken } from "@/services/api";
+import { Config } from "@/constants/config";
 
-// TODO: URL-ul real al Dashboard-ului.
-export const DASHBOARD_URL = "https://dashboard.insideugal.ro";
+export const DASHBOARD_URL = Config.DASHBOARD_URL;
 
 export function ProfileMenu({
   open: controlledOpen,
@@ -28,7 +28,7 @@ export function ProfileMenu({
   const [anim] = useState(() => new Animated.Value(0));
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; email: string; role?: string } | null>(null);
 
   const toggle = () => {
     if (onToggle) {
@@ -57,7 +57,8 @@ export function ProfileMenu({
           if (res.data && isMounted) {
             setUser({
               name: `${res.data.first_name || ""} ${res.data.last_name || ""}`.trim() || "Utilizator",
-              email: res.data.email || ""
+              email: res.data.email || "",
+              role: res.data.role || "STUDENT"
             });
           }
         } else {
@@ -192,7 +193,7 @@ export function ProfileMenu({
 
           <View style={{ height: 1, backgroundColor: "#E5E7EB" }} />
 
-          {isAuthenticated && (
+          {isAuthenticated && user?.role !== "STUDENT" && (
             <Pressable onPress={handleDashboard} accessibilityRole="link" style={rowStyle}>
               {({ pressed, hovered }: any) => (
                 <Text style={[Typography.Heading5, { color: (pressed || hovered) ? theme.primary : ColorScheme.black }]}>

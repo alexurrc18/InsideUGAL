@@ -100,7 +100,7 @@ export function WebNavbar() {
   const lastYRef = useRef(0);
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; email: string; role?: string } | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -113,7 +113,8 @@ export function WebNavbar() {
           if (res.data && isMounted) {
             setUser({
               name: `${res.data.first_name || ""} ${res.data.last_name || ""}`.trim() || "Utilizator",
-              email: res.data.email || ""
+              email: res.data.email || "",
+              role: res.data.role || "STUDENT"
             });
           }
         } else {
@@ -462,7 +463,7 @@ export function WebNavbar() {
                 </Text>
               ) : null}
             </View>
-            {isAuthenticated && (
+            {isAuthenticated && user?.role !== "STUDENT" && (
               <Pressable
                 onPress={() => {
                   setMenuOpen(false);

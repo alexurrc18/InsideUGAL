@@ -3,7 +3,7 @@ import React from 'react';
 import { useColorScheme, View } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { useNavigation, useRouter } from 'expo-router';
-import { Ace } from '@/components/ui/layout/ace';
+// import { Ace } from '@/components/ui/layout/ace';
 import { getAuthToken } from '@/services/api';
 
 export default function TabLayout() {
@@ -26,18 +26,7 @@ export default function TabLayout() {
                         if (state) {
                             const route = state.routes.find((r: any) => r.key === e.target);
                             if (route) {
-                                if (route.name === 'sesizari') {
-                                    (e as any).preventDefault();
-                                    getAuthToken().then((token) => {
-                                        if (token) {
-                                            navigation.navigate('sesizari', { screen: 'index' });
-                                        } else {
-                                            router.push('/(auth)');
-                                        }
-                                    });
-                                } else if (route.name === 'more' || route.name === 'acasa') {
-                                    navigation.navigate(route.name, { screen: 'index' });
-                                }
+                                navigation.navigate(route.name, { screen: 'index' });
                             }
                         }
                     }
@@ -98,7 +87,7 @@ export default function TabLayout() {
                     <NativeTabs.Trigger.Label>Mai multe</NativeTabs.Trigger.Label>
                 </NativeTabs.Trigger>
             </NativeTabs>
-            <Ace />
+            {/* <Ace /> */}
         </View>
     );
 }

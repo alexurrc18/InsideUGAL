@@ -237,9 +237,6 @@ export function CantinaMenuSkeleton({ rows = 5 }: { rows?: number }) {
   return (
     <View
       style={{
-        borderWidth: 1,
-        borderColor: theme.border,
-        borderRadius: Spacing.lg,
         overflow: 'hidden',
         marginHorizontal: Spacing.lg,
       }}
@@ -269,3 +266,31 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.lg,
   },
 });
+
+// ── Vizualizare (pagina de detalii) ─────────────────────────────────────────────
+export function VizualizareSkeleton() {
+  return (
+    <View style={{ flex: 1 }}>
+      {/* Imaginea de sus */}
+      <Skeleton width="100%" height={320} radius={0} />
+      {/* Continut */}
+      <View style={{ padding: Spacing.lg, gap: Spacing.lg }}>
+        {/* Categorie / Data */}
+        <Skeleton width="30%" height={16} />
+        {/* Titlu */}
+        <Skeleton width="90%" height={28} />
+        <Skeleton width="60%" height={28} style={{ marginBottom: Spacing.md }} />
+        {/* Corp text */}
+        <Skeleton width="100%" height={16} style={{ marginBottom: Spacing.xs }} />
+        <Skeleton width="95%" height={16} style={{ marginBottom: Spacing.xs }} />
+        <Skeleton width="98%" height={16} style={{ marginBottom: Spacing.xs }} />
+        <Skeleton width="90%" height={16} style={{ marginBottom: Spacing.lg }} />
+        
+        <Skeleton width="100%" height={16} style={{ marginBottom: Spacing.xs }} />
+        <Skeleton width="92%" height={16} style={{ marginBottom: Spacing.xs }} />
+        <Skeleton width="96%" height={16} style={{ marginBottom: Spacing.xs }} />
+        <Skeleton width="50%" height={16} />
+      </View>
+    </View>
+  );
+}

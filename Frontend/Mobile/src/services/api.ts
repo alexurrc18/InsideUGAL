@@ -5,14 +5,45 @@ import { Config } from '@/constants/config';
 
 const memoryFallback = new Map<string, string>();
 
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+}
+
+function setCookie(name: string, value: string, days?: number) {
+  if (typeof document === 'undefined') return;
+  let expires = "";
+  if (days) {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    expires = "; expires=" + date.toUTCString();
+  }
+  document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Strict; Secure";
+}
+
+function eraseCookie(name: string) {
+  if (typeof document === 'undefined') return;
+  document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Strict; Secure';
+}
+
 // Web-safe storage wrapper to bypass native module issues on Web browsers
 export const storage = {
   getItem: async (key: string): Promise<string | null> => {
     if (Platform.OS === 'web') {
       try {
+        if (key === 'access_token') {
+          return getCookie(key);
+        }
         return typeof window !== 'undefined' ? window.localStorage.getItem(key) : null;
       } catch (e) {
-        console.error('[API] Error reading from localStorage:', e);
+        console.error('[API] Error reading from storage:', e);
         return null;
       }
     }
@@ -26,11 +57,13 @@ export const storage = {
   setItem: async (key: string, value: string): Promise<void> => {
     if (Platform.OS === 'web') {
       try {
-        if (typeof window !== 'undefined') {
+        if (key === 'access_token') {
+          setCookie(key, value, 7); // 7 days expiration
+        } else if (typeof window !== 'undefined') {
           window.localStorage.setItem(key, value);
         }
       } catch (e) {
-        console.error('[API] Error writing to localStorage:', e);
+        console.error('[API] Error writing to storage:', e);
       }
       return;
     }
@@ -44,11 +77,13 @@ export const storage = {
   removeItem: async (key: string): Promise<void> => {
     if (Platform.OS === 'web') {
       try {
-        if (typeof window !== 'undefined') {
+        if (key === 'access_token') {
+          eraseCookie(key);
+        } else if (typeof window !== 'undefined') {
           window.localStorage.removeItem(key);
         }
       } catch (e) {
-        console.error('[API] Error removing from localStorage:', e);
+        console.error('[API] Error removing from storage:', e);
       }
       return;
     }

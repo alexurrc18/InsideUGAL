@@ -12,7 +12,7 @@ import { useMockLoading } from "@/hooks/use-mock-loading";
 import { SesizariListSkeleton } from "@/components/ui/display/skeletons";
 import { SesizareCard, Sesizare } from "@/components/ui/display/sesizare-card";
 import PlusIcon from "@/assets/icons/svg/plus.svg";
-import api, { storage } from "@/services/api";
+import api, { storage, getAuthToken } from "@/services/api";
 
 type FilterType = "mele" | "active" | "respinse" | "finalizate";
 
@@ -46,11 +46,20 @@ export default function SesizariScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterType>("mele");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
     setError(null);
     try {
+      const token = await getAuthToken();
+      setIsAuthenticated(!!token);
+      if (!token && activeFilter === "mele") {
+        setReports([]);
+        setLoading(false);
+        return;
+      }
+
       // 1. Fetch/load locations to build a map of id -> name
       let locationsData: any[] = [];
       const cachedLocs = await storage.getItem('cached_facilities');
@@ -74,20 +83,23 @@ export default function SesizariScreen() {
 
       // 2. Fetch logged-in user profile if token exists
       let myProfileId: string | null = null;
-      try {
-        const profileRes = await api.get('/profiles/me');
-        if (profileRes.data?.id) {
-          myProfileId = profileRes.data.id;
+      if (token) {
+        try {
+          const profileRes = await api.get('/profiles/me');
+          if (profileRes.data?.id) {
+            myProfileId = profileRes.data.id;
+          }
+        } catch (profileError) {
+          console.warn('[API] Could not fetch user profile (maybe unauthenticated):', profileError);
         }
-      } catch (profileError) {
-        console.warn('[API] Could not fetch user profile (maybe unauthenticated):', profileError);
       }
 
       // 3. Fetch complaints based on activeFilter
       let apiItems: any[] = [];
       if (activeFilter === "mele") {
         const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50 } });
-        apiItems = complaintsRes.data?.items || [];
+        const allItems = complaintsRes.data?.items || [];
+        apiItems = myProfileId ? allItems.filter((item: any) => item.user_id === myProfileId) : [];
       } else if (activeFilter === "active") {
         const [resPending, resWorking] = await Promise.all([
           api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_asteptare' } }),
@@ -221,14 +233,33 @@ export default function SesizariScreen() {
                   </Pressable>
                 ))}
 
-                {filteredData.length === 0 && (
+                 {filteredData.length === 0 && (
                   <View style={{ alignItems: "center", justifyContent: "center", paddingVertical: 64 }}>
-                    <Text style={[Typography.Heading5, { color: theme.text, marginBottom: Spacing.xs }]}>
-                      Nicio sesizare în această secțiune
-                    </Text>
-                    <Text style={[Typography.Paragraph3, { color: theme.textSecondary, textAlign: "center" }]}>
-                      Momentan nu există înregistrări.
-                    </Text>
+                    {activeFilter === "mele" && !isAuthenticated ? (
+                      <>
+                        <Text style={[Typography.Heading5, { color: theme.text, marginBottom: Spacing.xs, textAlign: "center" }]}>
+                          Trebuie să fii conectat
+                        </Text>
+                        <Text style={[Typography.Paragraph3, { color: theme.textSecondary, textAlign: "center", marginBottom: Spacing.md }]}>
+                          Conectează-te pentru a trimite sau vizualiza sesizările tale.
+                        </Text>
+                        <Pressable
+                          onPress={() => router.push("/(auth)")}
+                          style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}
+                        >
+                          <Text style={{ color: "white", fontWeight: "bold" }}>Conectare</Text>
+                        </Pressable>
+                      </>
+                    ) : (
+                      <>
+                        <Text style={[Typography.Heading5, { color: theme.text, marginBottom: Spacing.xs }]}>
+                          Nicio sesizare în această secțiune
+                        </Text>
+                        <Text style={[Typography.Paragraph3, { color: theme.textSecondary, textAlign: "center" }]}>
+                          Momentan nu există înregistrări.
+                        </Text>
+                      </>
+                    )}
                   </View>
                 )}
               </>

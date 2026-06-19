@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { View, ScrollView, useColorScheme } from "react-native";
+import { View, ScrollView, useColorScheme, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Spacing } from "@/constants/theme";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import { Expandable } from "@/components/ui/layout/expandable";
 import { MenuItem } from "@/components/ui/navigation/menu-item";
 import api, { storage } from "@/services/api";
+import { CantinaMenuSkeleton } from "@/components/ui/display/skeletons";
 
 interface Product {
   id: string;
@@ -87,14 +88,33 @@ export default function CantinaScreen() {
   }, []);
 
   const [selectedDay, setSelectedDay] = useState<string>(daysFilter[0].id);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const res = await api.get('/cafeteria_menus/', { params: { page: 1, size: 50 } });
+      if (res.data?.items) {
+        setMenuData(res.data.items);
+        await storage.setItem('cached_cafeteria_menus', JSON.stringify(res.data.items));
+      }
+    } catch (err) {
+      console.warn('[API] Error loading cafeteria menus:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     let active = true;
     async function loadMenu() {
       try {
+        setLoading(true);
         const cached = await storage.getItem('cached_cafeteria_menus');
         if (cached && active) {
           setMenuData(JSON.parse(cached));
+          setLoading(false);
         }
 
         const res = await api.get('/cafeteria_menus/', { params: { page: 1, size: 50 } });
@@ -104,6 +124,8 @@ export default function CantinaScreen() {
         }
       } catch (err) {
         console.warn('[API] Error loading cafeteria menus:', err);
+      } finally {
+        if (active) setLoading(false);
       }
     }
     loadMenu();
@@ -162,24 +184,31 @@ export default function CantinaScreen() {
           paddingBottom: insets.bottom + Spacing.xxl,
           paddingTop: Spacing.xs 
         }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} tintColor={theme.primary} />
+        }
       >
-        <View style={{ gap: Spacing.sm }}>
-          {Object.entries(currentMenu).map(([category, productsList]) => (
-            <Expandable key={category} title={category} initialExpanded={false}>
-              <View style={{ gap: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: Spacing.sm }}>
-                {productsList.map((product, index) => (
-                  <MenuItem 
-                    key={product.id}
-                    name={product.name}
-                    price={product.price}
-                    description={product.description}
-                    isLast={index === productsList.length - 1}
-                  />
-                ))}
-              </View>
-            </Expandable>
-          ))}
-        </View>
+        {loading || refreshing ? (
+          <CantinaMenuSkeleton />
+        ) : (
+          <View style={{ gap: Spacing.sm, marginHorizontal: Spacing.lg }}>
+            {Object.entries(currentMenu).map(([category, productsList]) => (
+              <Expandable key={category} title={category} initialExpanded={false}>
+                <View style={{ gap: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: Spacing.sm }}>
+                  {productsList.map((product, index) => (
+                    <MenuItem 
+                      key={product.id}
+                      name={product.name}
+                      price={product.price}
+                      description={product.description}
+                      isLast={index === productsList.length - 1}
+                    />
+                  ))}
+                </View>
+              </Expandable>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
