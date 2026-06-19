@@ -9,19 +9,17 @@ import {
   Platform, 
   ScrollView,
   Animated,
-  LayoutAnimation
+  LayoutAnimation,
+  ActivityIndicator
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
-import MockData from "@/constants/mock-data.json";
-import { getTodayRomanianDate } from "@/utils/date";
 import { Image } from "expo-image";
 import XIcon from "@/assets/icons/svg/x.svg";
 import ImagesIcon from "@/assets/icons/svg/images.svg";
 import * as ImagePicker from "expo-image-picker";
-
-const BUILDINGS = [...Array.from(new Set(MockData.buildings.map((b) => b.name))), "Exterior"];
+import api, { storage } from "@/services/api";
 
 interface LocationPillProps {
   label: string;
@@ -96,11 +94,44 @@ export default function AdaugaSesizareScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
 
+  const [locations, setLocations] = useState<any[]>([]);
+  const [location, setLocation] = useState("Exterior");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [location, setLocation] = useState(BUILDINGS[0]);
   const [photos, setPhotos] = useState<string[]>([]);
-  const [errors, setErrors] = useState<{ title?: string; description?: string; photos?: string }>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState<{ title?: string; description?: string; photos?: string; general?: string }>({});
+
+  useEffect(() => {
+    async function loadLocations() {
+      try {
+        const cached = await storage.getItem('cached_facilities');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          setLocations(parsed);
+          if (parsed.length > 0) {
+            setLocation(parsed[0].name);
+          }
+        }
+        const res = await api.get('/locations/', { params: { page: 1, size: 50 } });
+        if (res.data?.items) {
+          setLocations(res.data.items);
+          await storage.setItem('cached_facilities', JSON.stringify(res.data.items));
+          if (res.data.items.length > 0 && !cached) {
+            setLocation(res.data.items[0].name);
+          }
+        }
+      } catch (err) {
+        console.warn('[API] Error loading locations for adauga screen:', err);
+      }
+    }
+    loadLocations();
+  }, []);
+
+  const buildingsList = useMemo(() => {
+    const list = locations.map(loc => loc.name);
+    return list.length > 0 ? [...Array.from(new Set(list)), "Exterior"] : ["Exterior"];
+  }, [locations]);
 
   const validate = () => {
     const newErrors: { title?: string; description?: string; photos?: string } = {};
@@ -152,23 +183,65 @@ export default function AdaugaSesizareScreen() {
     }
   };
 
-  const handleSubmit = () => {
-    if (validate()) {
-      const newReport = {
-        id: String(Date.now()),
-        title: title.trim(),
-        description: description.trim(),
-        category: "General",
-        location,
-        status: "active" as const,
-        date: getTodayRomanianDate(),
-        isUserReport: true,
-        image: photos[0] || "https://campus.ugal.ro/ccps/wp-content/uploads/photo-gallery/DJI_0238.jpg?bwg=1639133115",
-        images: photos.length > 0 ? photos : ["https://campus.ugal.ro/ccps/wp-content/uploads/photo-gallery/DJI_0238.jpg?bwg=1639133115"]
-      };
+  const handleSubmit = async () => {
+    if (validate() && !submitting) {
+      setSubmitting(true);
+      setErrors(prev => ({ ...prev, general: undefined }));
+      try {
+        let uploadedImageUrl: string | null = null;
+        
+        // 1. Upload first photo if exists
+        if (photos.length > 0) {
+          const photoUri = photos[0];
+          const formData = new FormData();
+          if (Platform.OS === 'web') {
+            const resBlob = await fetch(photoUri);
+            const blob = await resBlob.blob();
+            formData.append('file', blob, 'photo.jpg');
+          } else {
+            formData.append('file', {
+              uri: photoUri,
+              name: photoUri.split('/').pop() || 'photo.jpg',
+              type: 'image/jpeg',
+            } as any);
+          }
 
-      MockData.reports.unshift(newReport as any);
-      router.back();
+          const uploadRes = await api.post('/complaints/upload-image/', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+          if (typeof uploadRes.data === 'string') {
+            uploadedImageUrl = uploadRes.data;
+          } else if (uploadRes.data?.image_url) {
+            uploadedImageUrl = uploadRes.data.image_url;
+          } else if (uploadRes.data?.url) {
+            uploadedImageUrl = uploadRes.data.url;
+          }
+        }
+
+        // 2. Find location id
+        const selectedLocObj = locations.find(loc => loc.name === location);
+        const locationId = selectedLocObj ? selectedLocObj.id : null;
+
+        // 3. Create complaint
+        await api.post('/complaints/', {
+          title: title.trim(),
+          description: description.trim(),
+          location_id: locationId,
+          image_url: uploadedImageUrl,
+        });
+
+        router.back();
+      } catch (err: any) {
+        console.warn('[API] Error creating complaint:', err);
+        setErrors(prev => ({ 
+          ...prev, 
+          general: err.message || "A apărut o eroare la trimiterea sesizării. Te rugăm să încerci din nou." 
+        }));
+      } finally {
+        setSubmitting(false);
+      }
     }
   };
 
@@ -183,10 +256,16 @@ export default function AdaugaSesizareScreen() {
       >
         <View style={{ gap: Spacing.lg }}>
           
+          {errors.general && (
+            <View style={{ backgroundColor: theme.secondary + '10', padding: Spacing.md, borderRadius: Spacing.sm, borderWidth: 1, borderColor: theme.secondary }}>
+              <Text style={[Typography.Paragraph3, { color: theme.secondary }]}>{errors.general}</Text>
+            </View>
+          )}
+
           <View style={{ gap: Spacing.xs }}>
             <Text style={[Typography.Heading5, { color: theme.text }]}>Locație</Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: Spacing.sm, marginTop: Spacing.xs }}>
-              {BUILDINGS.map((bldg) => (
+              {buildingsList.map((bldg) => (
                 <LocationPill
                   key={bldg}
                   label={bldg}
@@ -219,6 +298,7 @@ export default function AdaugaSesizareScreen() {
                 backgroundColor: theme.surface
               }}
               returnKeyType="next"
+              editable={!submitting}
             />
             {errors.title && (
               <Text style={[Typography.Paragraph3, { color: theme.secondary, marginLeft: Spacing.xs }]}>
@@ -252,6 +332,7 @@ export default function AdaugaSesizareScreen() {
                 color: theme.text,
                 backgroundColor: theme.surface
               }}
+              editable={!submitting}
             />
             {errors.description && (
               <Text style={[Typography.Paragraph3, { color: theme.secondary, marginLeft: Spacing.xs }]}>
@@ -265,6 +346,7 @@ export default function AdaugaSesizareScreen() {
             {photos.length < 3 && (
               <Pressable
                 onPress={handleAddPhoto}
+                disabled={submitting}
                 style={({ pressed }) => [
                   {
                     height: 150,
@@ -275,7 +357,7 @@ export default function AdaugaSesizareScreen() {
                     justifyContent: "center",
                     alignItems: "center",
                     marginTop: Spacing.xs,
-                    opacity: pressed ? 0.9 : 1,
+                    opacity: (pressed || submitting) ? 0.9 : 1,
                     gap: Spacing.md
                   }
                 ]}
@@ -314,6 +396,7 @@ export default function AdaugaSesizareScreen() {
                     />
                     <Pressable
                       onPress={() => handleRemovePhoto(index)}
+                      disabled={submitting}
                       style={{
                         position: "absolute",
                         top: 4,
@@ -344,12 +427,17 @@ export default function AdaugaSesizareScreen() {
                 alignItems: "center",
                 marginTop: Spacing.lg,
                 backgroundColor: theme.primary,
-                opacity: pressed ? 0.9 : 1
+                opacity: (pressed || submitting) ? 0.7 : 1
               }
             ]}
             onPress={handleSubmit}
+            disabled={submitting}
           >
-            <Text style={[Typography.Heading5, { color: 'white' }]}>Trimite sesizarea</Text>
+            {submitting ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={[Typography.Heading5, { color: 'white' }]}>Trimite sesizarea</Text>
+            )}
           </Pressable>
 
         </View>

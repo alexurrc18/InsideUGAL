@@ -1,7 +1,9 @@
-import React from "react";
-import { View, Text, useColorScheme, Pressable, ScrollView } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, useColorScheme, Pressable, ScrollView, Alert } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useNavigation } from "expo-router";
+import { getAuthToken, setAuthToken } from "@/services/api";
 import { Colors, Spacing } from "@/constants/theme";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import { Typography } from "@/constants/typography";
@@ -22,6 +24,27 @@ export default function MoreScreen() {
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const navigation = useNavigation();
+
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const checkAuth = async () => {
+    const token = await getAuthToken();
+    setIsAuthenticated(!!token);
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      checkAuth();
+    }, 0);
+    const unsubscribe = navigation.addListener("focus", () => {
+      checkAuth();
+    });
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [navigation]);
 
   const renderIcon = (iconName: string, color: string) => {
     switch (iconName) {
@@ -63,9 +86,29 @@ export default function MoreScreen() {
             marginBottom: Spacing.xl
           }}
         >
-          {/* Item: Profil */}
+          {/* Item: Profil / Conectare */}
           <Pressable
-            onPress={() => router.push("/(auth)")}
+            onPress={async () => {
+              if (isAuthenticated) {
+                Alert.alert(
+                  "Profilul tău",
+                  "Ești deja conectat în cont. Vrei să te deconectezi?",
+                  [
+                    { text: "Anulează", style: "cancel" },
+                    { 
+                      text: "Deconectare", 
+                      style: "destructive",
+                      onPress: async () => {
+                        await setAuthToken(null);
+                        setIsAuthenticated(false);
+                      }
+                    }
+                  ]
+                );
+              } else {
+                router.push("/(auth)");
+              }
+            }}
             style={({ pressed }) => ({
               width: "30.5%",
               aspectRatio: 0.85,
@@ -97,7 +140,7 @@ export default function MoreScreen() {
               }} 
               numberOfLines={2}
             >
-              Profil
+              {isAuthenticated ? "Profil" : "Conectare"}
             </Text>
           </Pressable>
 
@@ -164,7 +207,7 @@ export default function MoreScreen() {
                   params: { categoryId: cat.id, title: cat.title }
                 })}
                 style={({ pressed }) => ({
-                  width: "30.5%", // Calculates to approximately 3 columns with gap
+                  width: "30.5%",
                   aspectRatio: 0.85,
                   padding: Spacing.sm,
                   justifyContent: "center",

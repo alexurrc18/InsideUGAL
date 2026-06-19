@@ -32,7 +32,6 @@ import MessagePlusIcon from '@/assets/icons/svg/message-plus.svg';
 import SendIcon from '@/assets/icons/svg/send.svg';
 import SparkleIcon from '@/assets/icons/svg/message-circle-star.svg';
 
-
 const renderFormattedText = (text: string, baseStyle: any, boldStyle: any) => {
   const parts = text.split('**');
   return parts.map((part, index) => {
