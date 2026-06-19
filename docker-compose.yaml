@@ -12,6 +12,7 @@ services:
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
+      SUPABASE_JWT_AUDIENCE: ${SUPABASE_JWT_AUDIENCE:-}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
       ALLOWED_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
     restart: unless-stopped
@@ -138,8 +139,8 @@ services:
     - ./supabase/migrations/20260604084954_adaugare_bucket_documente.sql:/docker-entrypoint-initdb.d/03_documents_bucket.sql:ro
     - ./supabase/migrations/20260608000001_chatbot_chunks.sql:/docker-entrypoint-initdb.d/04_chatbot_chunks.sql:ro
     - ./supabase/migrations/20260610185900_create_cache_table.sql:/docker-entrypoint-initdb.d/05_llm_cache.sql:ro
-    - ./supabase/seed.sql:/docker-entrypoint-initdb.d/99_seed.sql:ro
     networks:
+    - public
     - internal
   supabase-auth:
     image: supabase/gotrue:v2.188.1
@@ -149,7 +150,7 @@ services:
         condition: service_healthy
     environment:
       GOTRUE_DB_DRIVER: postgres
-      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:postgres@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}?sslmode=disable
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}?sslmode=disable
       GOTRUE_DB_NAMESPACE: auth
       GOTRUE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       GOTRUE_JWT_EXP: ${JWT_EXPIRY:-3600}
@@ -181,17 +182,20 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - ./supabase/post-init/ensure_auth_profile_trigger.sql:/tmp/ensure_auth_profile_trigger.sql:ro
+      - ./supabase/seed.sql:/tmp/seed.sql:ro
     command: >
       sh -c "for i in $$(seq 1 90); do
-      if psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -tAc \"select to_regclass('auth.users') is not null\" | grep -q t; then
-      echo \"auth.users is ready; applying post-init SQL\";
+      if psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -tAc \"select to_regtype('public.user_role') is not null and to_regclass('auth.users') is not null and to_regclass('auth.identities') is not null and exists (select 1 from information_schema.columns where table_schema = 'auth' and table_name = 'users' and column_name = 'is_sso_user') and exists (select 1 from information_schema.columns where table_schema = 'auth' and table_name = 'users' and column_name = 'is_anonymous')\" | grep -q t; then
+      echo \"auth schema and public.user_role are ready; applying post-init SQL\";
       psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -v ON_ERROR_STOP=1 -f /tmp/ensure_auth_profile_trigger.sql;
+      echo \"auth/profile sync applied; applying application seed SQL\";
+      psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -v ON_ERROR_STOP=1 -f /tmp/seed.sql;
       exit $$?;
       fi;
-      echo \"waiting for auth.users ($$i/90)\";
+      echo \"waiting for auth schema and public.user_role ($$i/90)\";
       sleep 2;
       done;
-      echo \"auth.users was not ready after 180s; skipping post-init so compose can continue\";
+      echo \"auth schema/public.user_role were not ready after 180s; skipping post-init so compose can continue\";
       exit 0"
     networks:
       - internal
