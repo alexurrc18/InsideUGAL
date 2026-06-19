@@ -45,10 +45,18 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONRe
         content={"detail": "Too many requests. Please try again later."},
     )
 
+# Determine backend URL from environment for Swagger UI / OpenAPI documentation
+backend_url = os.getenv("NEXT_PUBLIC_BACKEND_URL")
+servers_list = []
+if backend_url:
+    servers_list.append({"url": backend_url, "description": "Backend Server"})
+servers_list.append({"url": "/", "description": "Local/Relative"})
+
 app = FastAPI(
     title="InsideUGAL API",
     description="API-ul platformei InsideUGAL...",
     version="1.0.0",
+    servers=servers_list,
     exception_handlers={
         Exception: global_exception_handler,
         StarletteHTTPException: http_exception_handler,
