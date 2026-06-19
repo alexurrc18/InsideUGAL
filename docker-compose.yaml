@@ -136,7 +136,6 @@ services:
     - ./supabase/migrations/00_init_roles.sql:/docker-entrypoint-initdb.d/00_init_roles.sql:ro
     - ./supabase/migrations/202605280001_init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
     - ./supabase/migrations/20260604081436_adaugare_pgvector_si_chunkuri.sql:/docker-entrypoint-initdb.d/02_pgvector_document_chunks.sql:ro
-    - ./supabase/migrations/20260604084954_adaugare_bucket_documente.sql:/docker-entrypoint-initdb.d/03_documents_bucket.sql:ro
     - ./supabase/migrations/20260608000001_chatbot_chunks.sql:/docker-entrypoint-initdb.d/04_chatbot_chunks.sql:ro
     - ./supabase/migrations/20260610185900_create_cache_table.sql:/docker-entrypoint-initdb.d/05_llm_cache.sql:ro
     networks:
@@ -197,6 +196,20 @@ services:
       done;
       echo \"auth schema/public.user_role were not ready after 180s; skipping post-init so compose can continue\";
       exit 0"
+    networks:
+      - internal
+  supabase-storage-buckets:
+    image: supabase/postgres:15.8.1.085
+    restart: "no"
+    depends_on:
+      supabase-storage:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./supabase/post-init/ensure_storage_buckets.sql:/tmp/ensure_storage_buckets.sql:ro
+    command: >
+      sh -c "psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -v ON_ERROR_STOP=1 -f /tmp/ensure_storage_buckets.sql"
     networks:
       - internal
   supabase-rest:
