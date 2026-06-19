@@ -13,7 +13,7 @@ import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { useMockLoading } from "@/hooks/use-mock-loading";
 import { NewsListSkeleton } from "@/components/ui/display/skeletons";
 import { Seo } from "@/components/seo";
-import { eventHref } from "@/utils/article-url";
+import { eventHref, anuntHref } from "@/utils/article-url";
 import { getFormattedDate } from "@/utils/date";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import MOCK_DATA from "@/constants/mock-data.json";
@@ -55,9 +55,13 @@ export default function CategoryScreen() {
       );
 
   const handlePress = (item: any) => {
-    // Evenimentele au URL curat (/eveniment/<id>-<slug>); restul raman pe vizualizare.
+    // Evenimentele si anunturile au URL curat; restul raman pe vizualizare.
     if ((item as any).category === "Evenimente") {
         router.push(eventHref(item) as any);
+        return;
+    }
+    if ((item as any).category === "Noutăți") {
+        router.push(anuntHref(item) as any);
         return;
     }
     let type = categoryTitle === "Evenimente" ? "Eveniment" : "Anunț";

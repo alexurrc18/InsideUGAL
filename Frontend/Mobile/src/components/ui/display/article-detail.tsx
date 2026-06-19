@@ -20,7 +20,7 @@ import { WebContainer } from "@/components/ui/layout/web-container";
 import { Breadcrumbs, type Crumb } from "@/components/ui/navigation/breadcrumbs";
 import { CompactCard } from "@/components/ui/display/home-highlights";
 import { NewsCard, CategoryTag } from "@/components/ui/display/news-card";
-import { eventHref } from "@/utils/article-url";
+import { eventHref, anuntHref } from "@/utils/article-url";
 import MOCK_DATA from "@/constants/mock-data.json";
 
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
@@ -95,10 +95,14 @@ export function ArticleDetail({
     const bottomCardWidth =
         rowWidth > 0 && bottomCount > 0 ? (rowWidth - (bottomCount - 1) * Spacing.lg) / bottomCount : 0;
 
-    // Navigare catre alt articol. Evenimentele au URL curat; restul raman pe vizualizare.
+    // Navigare catre alt articol. Evenimentele si anunturile au URL curat.
     const openItem = (item: any) => {
         if (item.category === "Evenimente") {
             router.push(eventHref(item) as any);
+            return;
+        }
+        if (item.category === "Noutăți") {
+            router.push(anuntHref(item) as any);
             return;
         }
         router.push({

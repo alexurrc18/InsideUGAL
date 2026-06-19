@@ -41,3 +41,16 @@ export function allEventParams(): { id: string }[] {
     .filter((e) => e.category === 'Evenimente')
     .map((e) => ({ id: `${e.id}-${slugify(e.title)}` }));
 }
+
+// ── Anunturi (Noutati) — aceeasi logica, alta categorie ──────────────────────────
+// Lookup-ul e acelasi `findEventById` (anunturile sunt tot in array-ul `events`).
+export function anuntHref(item: { id: string; title: string }): string {
+  const slug = slugify(item.title);
+  return `/(public)/anunt/${item.id}${slug ? `-${slug}` : ''}`;
+}
+
+export function allAnuntParams(): { id: string }[] {
+  return MOCK_DATA.events
+    .filter((e) => e.category === 'Noutăți')
+    .map((e) => ({ id: `${e.id}-${slugify(e.title)}` }));
+}
