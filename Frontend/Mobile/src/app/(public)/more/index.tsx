@@ -34,11 +34,16 @@ export default function MoreScreen() {
   };
 
   useEffect(() => {
-    checkAuth();
+    const timer = setTimeout(() => {
+      checkAuth();
+    }, 0);
     const unsubscribe = navigation.addListener("focus", () => {
       checkAuth();
     });
-    return unsubscribe;
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
   }, [navigation]);
 
   const renderIcon = (iconName: string, color: string) => {

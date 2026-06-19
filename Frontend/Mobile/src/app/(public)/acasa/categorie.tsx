@@ -151,10 +151,13 @@ export default function CategoryScreen() {
   };
 
   useEffect(() => {
-    setData([]);
-    setPage(1);
-    setHasMore(true);
-    fetchData(1, true);
+    const timer = setTimeout(() => {
+      setData([]);
+      setPage(1);
+      setHasMore(true);
+      fetchData(1, true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [selectedFacultyId, categoryTitle]);
 
   const handlePress = (item: any) => {

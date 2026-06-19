@@ -47,7 +47,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const headerAnim = React.useRef(new Animated.Value(0)).current;
+  const [headerAnim] = useState(() => new Animated.Value(0));
   const isPastThreshold = React.useRef(false);
 
   const bellColor = headerAnim.interpolate({
