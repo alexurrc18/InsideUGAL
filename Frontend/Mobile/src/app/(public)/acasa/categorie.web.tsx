@@ -12,6 +12,7 @@ import { Breadcrumbs, type Crumb } from "@/components/ui/navigation/breadcrumbs"
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { useMockLoading } from "@/hooks/use-mock-loading";
 import { NewsListSkeleton } from "@/components/ui/display/skeletons";
+import { Seo } from "@/components/seo";
 import { getFormattedDate } from "@/utils/date";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import MOCK_DATA from "@/constants/mock-data.json";
@@ -85,6 +86,10 @@ export default function CategoryScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <Seo
+        title={(categoryTitle as string) || "Categorie"}
+        description={`${(categoryTitle as string) || "Anunțuri"} — InsideUGAL, platforma studenților Universității „Dunărea de Jos” din Galați.`}
+      />
       <Stack.Screen
         options={{
           // Pe web ascundem header-ul de Stack: WebNavbar-ul (overlay) il acopera

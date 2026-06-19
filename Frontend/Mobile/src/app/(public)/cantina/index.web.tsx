@@ -8,6 +8,7 @@ import { CategoryHeader } from "@/components/ui/display/category-header";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { useMockLoading } from "@/hooks/use-mock-loading";
 import { CantinaMenuSkeleton } from "@/components/ui/display/skeletons";
+import { Seo } from "@/components/seo";
 import { Expandable } from "@/components/ui/layout/expandable";
 import { MenuItem } from "@/components/ui/navigation/menu-item";
 import MockData from "@/constants/mock-data.json";
@@ -76,6 +77,10 @@ export default function CantinaScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <Seo
+        title="Cantină"
+        description="Meniul zilei la cantina studențească UGAL — preparate, prețuri și program, actualizate zilnic."
+      />
       <ScrollView
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}

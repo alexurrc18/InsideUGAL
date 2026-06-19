@@ -64,6 +64,7 @@ function FeaturedCard({ item, onPress }: { item: HighlightItem; onPress: () => v
     >
       <Image
         source={item.image ? { uri: item.image } : FALLBACK_IMAGE}
+        accessibilityLabel={item.title}
         style={[StyleSheet.absoluteFill, { zIndex: 1, overflow: "hidden" }]}
         contentFit="cover"
       />
@@ -100,7 +101,7 @@ export function HomeHighlights({ featured, items, onPressItem, title = "Recomand
     <WebContainer style={{ marginVertical: Spacing.xl3 }}>
       <View style={{ paddingHorizontal: Spacing.lg }}>
         {title ? (
-          <Text style={[Typography.Heading1, { color: theme.text, marginBottom: Spacing.sm }]}>{title}</Text>
+          <Text accessibilityRole="header" {...({ "aria-level": 2 } as any)} style={[Typography.Heading1, { color: theme.text, marginBottom: Spacing.sm }]}>{title}</Text>
         ) : null}
 
         {stacked ? (

@@ -15,6 +15,7 @@ import { getFormattedDate, parseRomanianDate } from "@/utils/date";
 import { useWebScrollAware } from "@/contexts/web-scroll-context";
 import { useMockLoading } from "@/hooks/use-mock-loading";
 import { HomeSkeleton } from "@/components/ui/display/skeletons";
+import { Seo } from "@/components/seo";
 import MOCK_DATA from "@/constants/mock-data.json";
 
 export default function HomeScreen() {
@@ -96,6 +97,10 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <Seo
+        title="Anunțuri și evenimente UGAL"
+        description="Cele mai noi anunțuri, evenimente, facultăți și facilități pentru studenții Universității „Dunărea de Jos” din Galați."
+      />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} {...scrollProps}>
         {loading ? (
           <HomeSkeleton />

@@ -12,6 +12,7 @@ import { WebContainer } from "@/components/ui/layout/web-container";
 import { Breadcrumbs, type Crumb } from "@/components/ui/navigation/breadcrumbs";
 import { CompactCard } from "@/components/ui/display/home-highlights";
 import { NewsCard, CategoryTag } from "@/components/ui/display/news-card";
+import { Seo } from "@/components/seo";
 import MOCK_DATA from "@/constants/mock-data.json";
 
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
@@ -125,13 +126,49 @@ function VizualizareScreen() {
         { label: (title as string) || "Articol" },
     ];
 
+    // Descriere SEO din continut (primele ~160 caractere).
+    const seoDescription = (content as string)?.slice(0, 160) || `${title} — InsideUGAL`;
+
+    // Date structurate schema.org pentru rezultate imbogatite in Google:
+    //   - Eveniment -> Event (cu data/loc), Anunt -> NewsArticle.
+    const jsonLd =
+        tipPagina === "Eveniment"
+            ? {
+                  "@context": "https://schema.org",
+                  "@type": "Event",
+                  name: title,
+                  ...(date_start ? { startDate: date_start } : {}),
+                  ...(date_end ? { endDate: date_end } : {}),
+                  ...(location ? { location: { "@type": "Place", name: location } } : {}),
+                  ...(image ? { image: [image] } : {}),
+                  ...(content ? { description: content } : {}),
+              }
+            : tipPagina === "Anunț"
+            ? {
+                  "@context": "https://schema.org",
+                  "@type": "NewsArticle",
+                  headline: title,
+                  ...(image ? { image: [image] } : {}),
+                  ...(content ? { articleBody: content } : {}),
+              }
+            : null;
+
     return (
         <View style={{ flex: 1, backgroundColor: theme.background }}>
+            <Seo title={(title as string) || "Articol"} description={seoDescription}>
+                {jsonLd ? (
+                    <script
+                        type="application/ld+json"
+                        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                    />
+                ) : null}
+            </Seo>
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + Spacing.xl }}>
                 {/* Banner full-bleed: ramane pe toata latimea, in afara canvas-ului scalat */}
                 <View style={{ width: "100%", height: 320 }}>
                     <Image
                         source={image ? { uri: image as string } : require("@/assets/images/campus-stiintei.png")}
+                        accessibilityLabel={(title as string) || "Imagine articol"}
                         style={{ width: "100%", height: "100%", position: "absolute" }}
                         contentFit="cover"
                     />
@@ -155,7 +192,11 @@ function VizualizareScreen() {
                                     {category || (tipPagina === "Facultate" ? "Facultate" : "Categorie")}
                                 </Text>
                             )}
-                            <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
+                            <Text
+                                accessibilityRole="header"
+                                {...({ "aria-level": 1 } as any)}
+                                style={[Typography.Heading2, { color: ColorScheme.white }]}
+                            >
                                 {title || "Titlu"}
                             </Text>
                         </WebContainer>

@@ -87,6 +87,7 @@ export function HeroSlideshow({ slides, onPressItem }: HeroSlideshowProps) {
         >
           <Image
             source={slide.image ? { uri: slide.image } : require("@/assets/images/campus-stiintei.png")}
+            accessibilityLabel={slide.title}
             style={StyleSheet.absoluteFill}
             contentFit="cover"
           />

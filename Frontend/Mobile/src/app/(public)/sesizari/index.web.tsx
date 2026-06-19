@@ -10,6 +10,7 @@ import { CategoryHeader, FilterItem } from "@/components/ui/display/category-hea
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { useMockLoading } from "@/hooks/use-mock-loading";
 import { SesizariListSkeleton } from "@/components/ui/display/skeletons";
+import { Seo } from "@/components/seo";
 import { SesizareCard, Sesizare } from "@/components/ui/display/sesizare-card";
 import MockData from "@/constants/mock-data.json";
 import PlusIcon from "@/assets/icons/svg/plus.svg";
@@ -69,6 +70,10 @@ export default function SesizariScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <Seo
+        title="Sesizări"
+        description="Raportează probleme din campus și cămine și urmărește statusul sesizărilor — InsideUGAL."
+      />
       <ScrollView
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
