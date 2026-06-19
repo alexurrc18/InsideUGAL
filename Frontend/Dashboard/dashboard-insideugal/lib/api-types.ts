@@ -16,6 +16,15 @@ export type Student = z.infer<typeof studentSchema>;
 export type Professor = z.infer<typeof professorSchema>;
 export type Course = z.infer<typeof courseSchema>;
 export type Announcement = z.infer<typeof announcementSchema>;
+export type Dish = {
+  id: number;
+  name: string;
+  description: string | null;
+  quantity: string;
+  price: string;
+  available_days?: string[];
+  [key: string]: unknown; // Permisivitate pentru câmpuri extra venite din backend
+};
 export type Enrollment = z.infer<typeof enrollmentSchema>;
 
 export type ApiErrorBody = {

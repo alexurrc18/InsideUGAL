@@ -104,4 +104,22 @@ export const studentsSchema = z.array(studentSchema);
 export const professorsSchema = z.array(professorSchema);
 export const coursesSchema = z.array(courseSchema);
 export const announcementsSchema = createPaginatedResponseSchema(announcementSchema);
+export const dishSchema = z.object({
+  id: z.any(),
+  name: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+  quantity: z.string().optional().nullable(),
+  price: z.any().optional().nullable(),
+  created_at: z.any().optional().nullable(),
+  updated_at: z.any().optional().nullable(),
+}).catchall(z.any());
+
+export const dishesSchema = z.object({
+  items: z.array(dishSchema),
+  total: z.number().int().optional().nullable(),
+  page: z.number().int().optional().nullable(),
+  size: z.number().int().optional().nullable(),
+  total_pages: z.number().int().optional().nullable(),
+}).passthrough();
+
 export const enrollmentsSchema = z.array(enrollmentSchema);

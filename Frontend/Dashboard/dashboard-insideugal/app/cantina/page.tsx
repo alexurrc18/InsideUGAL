@@ -1,79 +1,315 @@
 "use client";
 
-import React, { useState } from 'react';
-import Table, { Column } from '../components/ui/Table';
-import Modal from '../components/ui/Modal';
+import React, { useEffect, useMemo, useState } from "react";
+import Table, { Column } from "../components/ui/Table";
+import Modal from "../components/ui/Modal";
+import { apiBaseUrl, getAuthHeaders } from "@/lib/api-client";
 
-interface Dish {
-  id: string;
+const API = apiBaseUrl;
+
+function apiFetch(path: string, init?: RequestInit) {
+  return fetch(`${API}${path}`, {
+    ...init,
+    credentials: init?.credentials ?? "include",
+    headers: getAuthHeaders(init?.headers),
+  });
+}
+
+// Structura unui produs din baza de date
+interface Product {
+  id: number;
   name: string;
-  category: string; 
+  category: string;
   description: string;
-  price: string;
+  quantity: string; // Mapat ca Gramaj/Weight în UI
+  price: number;
+  nutritional_values?: string;
+}
+
+// Structura unui meniu zilnic din baza de date
+interface DailyMenu {
+  id: number;
+  day_of_week: number;
+  products: Product[];
+}
+
+interface ProductResponse {
+  items: Product[];
+  total: number;
+}
+
+interface DailyMenuResponse {
+  items: DailyMenu[];
+  total: number;
+}
+
+// Interfața completă folosită în interiorul tabelului și formularelor
+interface Dish {
+  id: number;
+  name: string;
+  category: string;
+  description: string;
+  price: number;
   nutritionalValues: string;
   weight: string;
   availableDays: string[];
 }
 
-const DAYS = ['Toate preparatele', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri'];
+const DAYS = ["Toate preparatele", "Luni", "Marți", "Miercuri", "Joi", "Vineri"];
 
-const initialDishes: Dish[] = [
-  { id: 'c1', name: 'Meniu zilei', category: 'Meniul Zilei', description: 'Conține: Borș de zarzavat (420 ml), Cartofi prăjiți (150g), Mici(40g), Pâine(75g)', price: '14 RON', nutritionalValues: '1450 kcal | P: 51.5g | C: 105g | G: 87.5g', weight: 'Set', availableDays: [] },
-  { id: 'c2', name: 'Borș de zarzavat', category: 'Ciorbe și Supe', description: 'Mix de legume (morcov, ceapă, țelină, ardei gras, rădăcină de pătrunjel și păstârnac), borș proaspăt , ulei, roșii sau bulion, verdeață (leuștean, pătrunjel) și sare.', price: '4,40 RON', nutritionalValues: '140 kcal | P: 3g | C: 15g | G: 6g', weight: '420ml', availableDays: [] },
-  { id: 'c3', name: 'Ciorbă de burtă', category: 'Ciorbe și Supe', description: 'Apă, burtă de vită, SMÂNTÂNĂ, OUĂ, morcov, ceapă, rădăcină de ȚELINĂ, rădăcină de pătrunjel, oțet, usturoi, sare.', price: '12 RON', nutritionalValues: '450 kcal | P: 25g | C: 8g | G: 28g', weight: '420ml', availableDays: [] },
-  { id: 'c4', name: 'Piure', category: 'Garnituri', description: 'Cartofi, LAPTE, MARGARINĂ, sare.', price: '1,90 RON', nutritionalValues: '220 kcal | P: 4g | C: 32g | G: 8g', weight: '200g', availableDays: [] },
-  { id: 'c5', name: 'Amestec mexican', category: 'Garnituri', description: 'Amestec mexican (produs congelat) (morcov, porumb dulce, mazăre, fasole verde/galbenă, ardei gras verde/ galben), MARGARINĂ, ulei, sare, verdeață.', price: '3,70 RON', nutritionalValues: '120 kcal | P: 4g | C: 18g | G: 4g', weight: '150g', availableDays: [] },
-  { id: 'c6', name: 'Pilaf', category: 'Garnituri', description: 'Orez, morcov, ulei, MARGARINĂ, delikat de legume.', price: '1,00 RON', nutritionalValues: '260 kcal | P: 4,5g | C: 46g | G: 6g', weight: '200g', availableDays: [] },
-  { id: 'c7', name: 'Varză la cuptor', category: 'Garnituri', description: 'Varză albă, borș, ceapă, morcov, pastă de tomate, rădăcină de ȚELINĂ, roșii în bulion, ulei, suc de roșii delikat de legume.', price: '4,50 RON', nutritionalValues: '160 kcal | P: 3g | C: 14g | G: 10g', weight: '200g', availableDays: [] },
-  { id: 'c8', name: 'Cartofi prăjiți', category: 'Garnituri', description: 'Cartofi(congelați), ulei, sare.', price: '4,50 RON', nutritionalValues: '480 kcal | P: 5g | C: 58g | G: 25g', weight: '150g', availableDays: [] },
-  { id: 'c9', name: 'Ceafă de porc la tavă cu sos tomate', category: 'Preparate Carne', description: 'Ceafă de porc, suc de roșii, pastă de tomate, condiment de porc, boia de ardei dulce, boia de ardei iute, cimbru, usturoi, ulei.', price: '8,80 RON', nutritionalValues: '240 kcal | P: 19g | C: 3g | G: 17g', weight: '100 g', availableDays: [] },
-  { id: 'c10', name: 'Crispy de pui', category: 'Preparate Carne', description: 'Piept de pui, ulei, FĂINĂ DE GRÂU, FULGI DE PORUMB, OUĂ, sare.', price: '7,50 RON', nutritionalValues: '210 kcal | P: 14g | C: 12g | G: 11g', weight: '70g', availableDays: [] },
-  { id: 'c11', name: 'Tochitură de porc', category: 'Preparate Carne', description: 'Gulaș de porc, mămăligă (apă, FĂINĂ DE PORUMB, sare, ulei), TELEMEA, OUĂ, usturoi, delikat de legume, ulei, piper.', price: '9,90 RON', nutritionalValues: '680 kcal | P: 42g | C: 16g | G: 50g', weight: '150/100/50 g', availableDays: [] },
-  { id: 'c12', name: 'Mici', category: 'Preparate Carne', description: 'Mici (carne de porc,sare iodată, bicarbonat de sodiu, antioxidant:acid I-ascorbic, condimente: piper, usturoi,cimbru, boia de ardei iute).', price: '3,20 RON', nutritionalValues: '120 kcal | P: 6.5g | C: 0.5g | G: 10g', weight: '40g', availableDays: [] },
-  { id: 'c13', name: 'Piept de pui la grătar', category: 'Preparate Carne', description: 'Piept de pui, ulei, sare.', price: '7,40 RON', nutritionalValues: '135 kcal | P: 26g | C: 0g | G: 3.2g', weight: '90 g', availableDays: [] },
-  { id: 'c14', name: 'Șnițel de porc', category: 'Preparate Carne', description: 'Pulpă de porc, FĂINĂ DE GRÂU, OU, ulei, sare,piper.', price: '4,60 RON', nutritionalValues: '250 kcal | P: 21g | C: 9g | G: 14g', weight: '90 g', availableDays: [] },
-  { id: 'c15', name: 'Salată de castraveți', category: 'Salate/Sosuri', description: 'Castraveți, apă, oțet din alcool, sare, MUȘTAR BOABE, mărar.', price: '2,20 RON', nutritionalValues: '45 kcal | P: 0.6g | C: 2.5g | G: 3.5g', weight: '100 g', availableDays: [] },
-  { id: 'c16', name: 'Salată de gogoșari', category: 'Salate/Sosuri', description: 'Gogoșari, apă, oțet din alcool, sare, zahăr', price: '3,50 RON', nutritionalValues: '30 kcal | P: 0.7g | C: 6g | G: 0.3g', weight: '100 g', availableDays: [] },
-  { id: 'c17', name: 'Salată de varză', category: 'Salate/Sosuri', description: 'Varză albă, oțet, ulei, piper, sare', price: '1,30 RON', nutritionalValues: '60 kcal | P: 1.2g | C: 5g | G: 4g', weight: '100 g', availableDays: [] },
-  { id: 'c18', name: 'Salată de morcovi cu țelină', category: 'Salate/Sosuri', description: 'Morcov, ȚELINĂ, ulei, oțet, sare, piper.', price: '1,70 RON', nutritionalValues: '75 kcal | P: 1g | C: 8g | G: 4.5g', weight: '100 g', availableDays: [] },
-  { id: 'c19', name: 'Salată de murături asortate', category: 'Salate/Sosuri', description: 'Apă, varză, castraveți, morcovi, ardei roșu, roșii, ardei iute,migdale, sare (5%), agenți de îngroșare a acidității: acid acetic, acid citric, conservant: sorbat de potasiu.', price: '3,40 RON', nutritionalValues: '18 kcal | P: 0.6g | C: 3.5g | G: 0.1g', weight: '100 g', availableDays: [] },
-  { id: 'c20', name: 'Salată asortată de roșii', category: 'Salate/Sosuri', description: 'Roșii proaspete, castraveți verzi,ardei kapia,ceapă, sare, piper, ulei.', price: '4,90 RON', nutritionalValues: '70 kcal | P: 1.3g | C: 6g | G: 4.5g', weight: '150 g', availableDays: [] },
-  { id: 'c21', name: 'Mămăligă', category: 'Pâine', description: 'Apă, FĂINĂ DE PORUMB, sare.', price: '0.50 RON', nutritionalValues: '240 kcal', weight: '150 g', availableDays: [] },
-  { id: 'c23', name: 'Chiflă', category: 'Pâine', description: 'FĂINĂ DE GRÂU, sare, zahăr, margarină vegetală, drojdie, apă, ameliorator.', price: '1.50 RON', nutritionalValues: '215 kcal | P: 7g | C: 43g | G: 1.2g', weight: '75 g', availableDays: [] },
-  { id: 'c24', name: 'Budincă cu brânză', category: 'Desert', description: 'LAPTE, TELEMEA, SPAGHETE, zahăr, OUĂ, SMÂNTÂNĂ, GRIȘ, MARGARINĂ, zahăr vanilat .', price: '7,20 RON', nutritionalValues: '390 kcal | P: 18.5g | C: 42g | G: 16g', weight: '250g', availableDays: [] }
-];
+// Mapare între textul din UI și ID-urile zilelor din API
+const DAY_MAP: { [key: string]: number } = {
+  "Luni": 1,
+  "Marți": 2,
+  "Miercuri": 3,
+  "Joi": 4,
+  "Vineri": 5,
+};
+
+const REV_DAY_MAP: { [key: number]: string } = {
+  1: "Luni",
+  2: "Marți",
+  3: "Miercuri",
+  4: "Joi",
+  5: "Vineri",
+};
 
 export default function Page() {
-  const [data, setData] = useState<Dish[]>(initialDishes);
-  const [activeDay, setActiveDay] = useState('Toate preparatele');
-  const [activeModal, setActiveModal] = useState<'add' | 'edit' | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [menus, setMenus] = useState<DailyMenu[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [activeDay, setActiveDay] = useState("Toate preparatele");
+  const [activeModal, setActiveModal] = useState<"add" | "edit" | null>(null);
   const [selectedItem, setSelectedItem] = useState<Dish | null>(null);
   const [formState, setFormState] = useState<Partial<Dish>>({});
-  const [customCategory, setCustomCategory] = useState('');
+  const [customCategory, setCustomCategory] = useState("");
 
-  const filteredData = data; 
+  /////////////////////////////////////////////////////////////////
+  // API Core Functions
+  /////////////////////////////////////////////////////////////////
+
+  async function fetchProducts() {
+    let allProducts: Product[] = [];
+    let page = 1;
+    let hasMore = true;
+    const pageSize = 50;
+
+    while (hasMore) {
+      const res = await apiFetch(`/products?page=${page}&size=${pageSize}`);
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Products error:", res.status, res.statusText, errorText);
+        throw new Error(`Products error: ${res.status} ${res.statusText}`);
+      }
+      const data: ProductResponse = await res.json();
+      allProducts = [...allProducts, ...data.items];
+      
+      if (allProducts.length >= data.total || data.items.length < pageSize) {
+        hasMore = false;
+      } else {
+        page++;
+      }
+    }
+    setProducts(allProducts);
+  }
+
+  async function fetchMenus() {
+    const res = await apiFetch("/cafeteria_menus?page=1&size=20");
+    if (!res.ok) throw new Error("Menus error");
+    const data: DailyMenuResponse = await res.json();
+    setMenus(data.items);
+  }
+
+  async function loadData() {
+    setLoading(true);
+    try {
+      await Promise.all([fetchProducts(), fetchMenus()]);
+    } catch (err) {
+      console.error("Eroare la încărcarea datelor din API:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  /////////////////////////////////////////////////////////////////
+  // Mapare și Filtrare Date
+  /////////////////////////////////////////////////////////////////
+
+  const tableData = useMemo<Dish[]>(() => {
+    return products.map((p) => {
+      // Identificăm în ce zile este inclus produsul curent
+      const availableDays: string[] = [];
+      menus.forEach((menu) => {
+        const exists = menu.products.some((prod) => prod.id === p.id);
+        if (exists && REV_DAY_MAP[menu.day_of_week]) {
+          availableDays.push(REV_DAY_MAP[menu.day_of_week]);
+        }
+      });
+
+      return {
+        id: p.id,
+        name: p.name,
+        category: p.category || "Generale",
+        description: p.description || "",
+        price: p.price,
+        nutritionalValues: p.nutritional_values || "",
+        weight: p.quantity || "",
+        availableDays: availableDays,
+      };
+    });
+  }, [products, menus]);
+
+  const filteredData = useMemo(() => {
+    if (activeDay === "Toate preparatele") return tableData;
+    return tableData.filter((item) => item.availableDays.includes(activeDay));
+  }, [activeDay, tableData]);
+
+  /////////////////////////////////////////////////////////////////
+  // Operațiuni CRUD (Products)
+  /////////////////////////////////////////////////////////////////
+
+  async function handleFormSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const finalCategory = formState.category === "Alta" ? customCategory : formState.category;
+
+    const payload = {
+      name: formState.name,
+      category: finalCategory || "Meniul Zilei",
+      description: formState.description,
+      quantity: formState.weight,
+      price: Number(formState.price),
+      nutritional_values: formState.nutritionalValues,
+    };
+
+    try {
+      if (activeModal === "add") {
+        const res = await apiFetch("/products", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        
+        // Dacă s-au selectat zile din modalul de adăugare, le asociem noului produs creat
+        if (res.ok && formState.availableDays && formState.availableDays.length > 0) {
+          const createdProduct: Product = await res.json();
+          for (const dayName of formState.availableDays) {
+            const dayNum = DAY_MAP[dayName];
+            await toggleMenuAction(dayNum, createdProduct.id, true);
+          }
+        }
+      } else if (activeModal === "edit" && selectedItem) {
+        await apiFetch(`/products/${selectedItem.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      setCustomCategory("");
+      setActiveModal(null);
+      await loadData();
+    } catch (error) {
+      console.error("Eroare la salvarea produsului:", error);
+    }
+  }
+
+  async function deleteProduct(id: number) {
+    if (!confirm("Sigur dorești ștergerea produsului?")) return;
+    try {
+      await apiFetch(`/products/${id}`, { method: "DELETE" });
+      await loadData();
+    } catch (error) {
+      console.error("Eroare la ștergerea produsului:", error);
+    }
+  }
+
+  /////////////////////////////////////////////////////////////////
+  // Meniuri Zilnice (Toggle Checkbox)
+  /////////////////////////////////////////////////////////////////
+
+  async function toggleMenuAction(dayNumber: number, productId: number, forceState?: boolean) {
+    const menu = menus.find((m) => m.day_of_week === dayNumber);
+    if (!menu) return;
+
+    const currentlyExists = menu.products.some((p) => p.id === productId);
+    const dynamicNextState = forceState !== undefined ? forceState : !currentlyExists;
+
+    let nextProductIds: number[] = [];
+    if (dynamicNextState) {
+      nextProductIds = [...menu.products.map((p) => p.id), productId];
+    } else {
+      nextProductIds = menu.products.filter((p) => p.id !== productId).map((p) => p.id);
+    }
+
+    await apiFetch(`/cafeteria_menus/${menu.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product_ids: nextProductIds }),
+    });
+  }
+
+  async function handleCheckboxToggle(item: Dish, targetDay: string) {
+    const dayNumber = DAY_MAP[targetDay];
+    if (!dayNumber) return;
+
+    // Actualizare optimistă în interfață pentru un plus de fluiditate vizuală
+    const isChecked = item.availableDays.includes(targetDay);
+    const updatedDays = isChecked
+      ? item.availableDays.filter((d) => d !== targetDay)
+      : [...item.availableDays, targetDay];
+
+    setProducts(
+      products.map((p) =>
+        p.id === item.id ? { ...p } : p
+      )
+    );
+
+    // Trimitere cerere către API și reîmprospătare meniuri
+    await toggleMenuAction(dayNumber, item.id);
+    await fetchMenus();
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-sm font-medium text-muted">Se încarcă datele din sistem...</p>
+      </div>
+    );
+  }
+
+  /////////////////////////////////////////////////////////////////
+  // Structură Coloane Tabel UI
+  /////////////////////////////////////////////////////////////////
 
   const columns: Column<Dish>[] = [
-    { 
-      header: 'Preparat', 
-      key: 'name', 
+    {
+      header: "Preparat",
+      key: "name",
       render: (item) => (
         <div className="flex flex-col">
           <span className="font-semibold text-foreground">{item.name}</span>
           <span className="text-[10px] text-blue-600 font-bold uppercase">{item.category}</span>
         </div>
-      )
+      ),
     },
-    { 
-      header: activeDay === 'Toate preparatele' ? 'Zile afișare' : `Disponibil ${activeDay}`, 
-      key: 'availableDays', 
+    {
+      header: activeDay === "Toate preparatele" ? "Zile afișare" : `Disponibil ${activeDay}`,
+      key: "availableDays",
       render: (item) => {
-        if (activeDay === 'Toate preparatele') {
+        if (activeDay === "Toate preparatele") {
           return (
             <div className="flex flex-wrap gap-1">
               {item.availableDays.length > 0 ? (
-                item.availableDays.map(d => (
-                  <span key={d} className="text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100 font-medium">
+                item.availableDays.map((d) => (
+                  <span
+                    key={d}
+                    className="text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100 font-medium"
+                  >
                     {d}
                   </span>
                 ))
@@ -85,102 +321,155 @@ export default function Page() {
         }
 
         const isChecked = item.availableDays.includes(activeDay);
-        
+
         return (
           <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
             <input
               type="checkbox"
               id={`check-${item.id}`}
               checked={isChecked}
-              onChange={() => {
-                const updatedDays = isChecked
-                  ? item.availableDays.filter(d => d !== activeDay)
-                  : [...item.availableDays, activeDay];
-                
-                setData(data.map(d => d.id === item.id ? { ...d, availableDays: updatedDays } : d));
-              }}
+              onChange={() => handleCheckboxToggle(item, activeDay)}
               className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
             />
-            <label htmlFor={`check-${item.id}`} className={`text-xs font-medium cursor-pointer ${isChecked ? 'text-blue-600 font-semibold' : 'text-slate-400'}`}>
-              {isChecked ? 'Inclus' : 'Nu este inclus'}
+            <label
+              htmlFor={`check-${item.id}`}
+              className={`text-xs font-medium cursor-pointer ${
+                isChecked ? "text-blue-600 font-semibold" : "text-slate-400"
+              }`}
+            >
+              {isChecked ? "Inclus" : "Nu este inclus"}
             </label>
           </div>
         );
-      }
+      },
     },
-    { 
-      header: 'Preț', 
-      key: 'price', 
-      render: (item) => <span className="font-bold text-foreground text-xs">{item.price}</span> 
+    {
+      header: "Preț",
+      key: "price",
+      render: (item) => <span className="font-bold text-foreground text-xs">{item.price} lei</span>,
     },
-    { 
-      header: 'Acțiuni', 
-      key: 'actions', 
+    {
+      header: "Acțiuni",
+      key: "actions",
       render: (item) => (
-        <div className="flex space-x-3 text-xs" onClick={e => e.stopPropagation()}>
-          <button type="button" className="text-blue-600 hover:underline cursor-pointer font-medium" onClick={() => { 
-            setSelectedItem(item); 
-            setFormState({...item}); 
-            setCustomCategory(''); 
-            setActiveModal('edit'); 
-          }}>Editare</button>
-          <button type="button" className="text-red-500 hover:underline cursor-pointer font-medium" onClick={() => setData(data.filter(d => d.id !== item.id))}>Ștergere</button>
+        <div className="flex space-x-3 text-xs" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            className="text-blue-600 hover:underline cursor-pointer font-medium"
+            onClick={() => {
+              setSelectedItem(item);
+              setFormState({ ...item });
+              setCustomCategory("");
+              setActiveModal("edit");
+            }}
+          >
+            Editare
+          </button>
+          <button
+            type="button"
+            className="text-red-500 hover:underline cursor-pointer font-medium"
+            onClick={() => deleteProduct(item.id)}
+          >
+            Ștergere
+          </button>
         </div>
-      )
-    }
+      ),
+    },
   ];
+
+  /////////////////////////////////////////////////////////////////
+  // Componenta UI Render
+  /////////////////////////////////////////////////////////////////
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex justify-between items-start">
         <div className="space-y-4">
-          {/* Titlul și descrierea au fost scoase direct de aici */}
           <div className="flex flex-wrap gap-2 p-1 bg-background/50 border border-border rounded-2xl w-fit">
-            {DAYS.map(day => (
-              <button key={day} type="button" onClick={() => setActiveDay(day)} className={`px-4 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${activeDay === day ? 'bg-card text-blue-600 shadow-sm border border-border' : 'text-muted hover:text-foregrounddd'}`}>{day}</button>
+            {DAYS.map((day) => (
+              <button
+                key={day}
+                type="button"
+                onClick={() => setActiveDay(day)}
+                className={`px-4 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                  activeDay === day
+                    ? "bg-card text-blue-600 shadow-sm border border-border"
+                    : "text-muted hover:text-foreground"
+                }`}
+              >
+                {day}
+              </button>
             ))}
           </div>
         </div>
-        <button type="button" onClick={() => { setFormState({ category: 'Meniul Zilei', availableDays: [] }); setCustomCategory(''); setActiveModal('add'); }} className="bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-bold cursor-pointer hover:opacity-90 transition-all shadow-md">+ Adaugă</button>
+        <button
+          type="button"
+          onClick={() => {
+            setFormState({ category: "Meniul Zilei", availableDays: [], price: 0 });
+            setCustomCategory("");
+            setActiveModal("add");
+          }}
+          className="bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-bold cursor-pointer hover:opacity-90 transition-all shadow-md"
+        >
+          + Adaugă
+        </button>
       </div>
 
       <div className="bg-card border border-border rounded-2xl shadow-xs overflow-hidden">
         <Table data={filteredData} columns={columns} />
       </div>
 
-      <Modal isOpen={activeModal !== null} onClose={() => setActiveModal(null)} title="Configurare Preparat">
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          const finalCategory = formState.category === 'Alta' ? customCategory : formState.category;
-          const itemToSave = { ...formState, category: finalCategory || 'Meniul Zilei' };
-
-          if (activeModal === 'edit') setData(data.map(d => d.id === selectedItem?.id ? {...d, ...itemToSave} as Dish : d));
-          else setData([...data, {...itemToSave, id: `c-${Date.now()}`, availableDays: formState.availableDays || []} as Dish]);
-          
-          setCustomCategory('');
-          setActiveModal(null);
-        }} className="space-y-4 text-sm max-h-[80vh] flex flex-col justify-between">
-          
-          <div 
+      <Modal
+        isOpen={activeModal !== null}
+        onClose={() => setActiveModal(null)}
+        title="Configurare Preparat"
+      >
+        <form
+          onSubmit={handleFormSubmit}
+          className="space-y-4 text-sm max-h-[80vh] flex flex-col justify-between"
+        >
+          <div
             className="space-y-4 overflow-y-auto pr-1 pb-4"
-            style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+            style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
           >
-            <style dangerouslySetInnerHTML={{__html: `
+            <style
+              dangerouslySetInnerHTML={{
+                __html: `
               div::-webkit-scrollbar {
                 display: none;
               }
-            `}} />
+            `,
+              }}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold mb-1">Nume Preparat</label>
-                <input type="text" value={formState.name || ''} onChange={e => setFormState({...formState, name: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background outline-none" required />
+                <input
+                  type="text"
+                  value={formState.name || ""}
+                  onChange={(e) => setFormState({ ...formState, name: e.target.value })}
+                  className="w-full border border-border p-2 rounded-lg bg-background outline-none"
+                  required
+                />
               </div>
               <div>
                 <label className="block text-xs font-semibold mb-1">Categorie</label>
-                <select 
-                  value={['Meniul Zilei', 'Ciorbe și Supe', 'Garnituri', 'Preparate Carne', 'Salate/Sosuri', 'Pâine', 'Desert'].includes(formState.category || '') ? formState.category : 'Alta'} 
-                  onChange={e => setFormState({...formState, category: e.target.value})} 
+                <select
+                  value={
+                    [
+                      "Meniul Zilei",
+                      "Ciorbe și Supe",
+                      "Garnituri",
+                      "Preparate Carne",
+                      "Salate/Sosuri",
+                      "Pâine",
+                      "Desert",
+                    ].includes(formState.category || "")
+                      ? formState.category
+                      : "Alta"
+                  }
+                  onChange={(e) => setFormState({ ...formState, category: e.target.value })}
                   className="w-full border border-border p-2 rounded-lg bg-background outline-none cursor-pointer"
                 >
                   <option value="Meniul Zilei">Meniul Zilei</option>
@@ -192,45 +481,105 @@ export default function Page() {
                   <option value="Desert">Desert</option>
                   <option value="Alta">-- Altă categorie --</option>
                 </select>
-                {formState.category === 'Alta' && (
-                  <input type="text" placeholder="Categorie nouă..." value={customCategory} onChange={e => setCustomCategory(e.target.value)} className="w-full border border-blue-400 p-2 mt-2 rounded-lg bg-background outline-none" required />
+                {formState.category === "Alta" && (
+                  <input
+                    type="text"
+                    placeholder="Categorie nouă..."
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    className="w-full border border-blue-400 p-2 mt-2 rounded-lg bg-background outline-none"
+                    required
+                  />
                 )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold mb-1">Preț</label>
-                <input type="text" value={formState.price || ''} onChange={e => setFormState({...formState, price: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background outline-none" required />
+                <label className="block text-xs font-semibold mb-1">Preț (RON)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formState.price || ""}
+                  onChange={(e) => setFormState({ ...formState, price: parseFloat(e.target.value) || 0 })}
+                  className="w-full border border-border p-2 rounded-lg bg-background outline-none"
+                  required
+                />
               </div>
               <div>
                 <label className="block text-xs font-semibold mb-1">Gramaj</label>
-                <input type="text" value={formState.weight || ''} onChange={e => setFormState({...formState, weight: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background outline-none" />
+                <input
+                  type="text"
+                  value={formState.weight || ""}
+                  onChange={(e) => setFormState({ ...formState, weight: e.target.value })}
+                  className="w-full border border-border p-2 rounded-lg bg-background outline-none"
+                />
               </div>
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1">Valori Nutriționale</label>
-              <input type="text" placeholder="kcal | P | C | G" value={formState.nutritionalValues || ''} onChange={e => setFormState({...formState, nutritionalValues: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background outline-none" />
+              <input
+                type="text"
+                placeholder="kcal | P | C | G"
+                value={formState.nutritionalValues || ""}
+                onChange={(e) => setFormState({ ...formState, nutritionalValues: e.target.value })}
+                className="w-full border border-border p-2 rounded-lg bg-background outline-none"
+              />
             </div>
-            <div>
-              <label className="block text-xs font-bold mb-2">Zile afișare</label>
-              <div className="flex flex-wrap gap-2">
-                {DAYS.filter(d => d !== 'Toate preparatele').map(day => (
-                  <button key={day} type="button" onClick={() => {
-                    const current = formState.availableDays || [];
-                    setFormState({...formState, availableDays: current.includes(day) ? current.filter(d => d !== day) : [...current, day]});
-                  }} className={`px-3 py-1.5 rounded-lg text-xs font-bold border cursor-pointer transition-all ${formState.availableDays?.includes(day) ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-card text-slate-400 border-border hover:border-slate-300'}`}>{day}</button>
-                ))}
+            
+            {activeModal === "add" && (
+              <div>
+                <label className="block text-xs font-bold mb-2">Zile afișare inițiale</label>
+                <div className="flex flex-wrap gap-2">
+                  {DAYS.filter((d) => d !== "Toate preparatele").map((day) => (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => {
+                        const current = formState.availableDays || [];
+                        setFormState({
+                          ...formState,
+                          availableDays: current.includes(day)
+                            ? current.filter((d) => d !== day)
+                            : [...current, day],
+                        });
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border cursor-pointer transition-all ${
+                        formState.availableDays?.includes(day)
+                          ? "bg-blue-50 border-blue-200 text-blue-600"
+                          : "bg-card text-slate-400 border-border hover:border-slate-300"
+                      }`}
+                    >
+                      {day}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+            
             <div>
               <label className="block text-xs font-semibold mb-1">Descriere / Ingrediente</label>
-              <textarea value={formState.description || ''} onChange={e => setFormState({...formState, description: e.target.value})} className="w-full border border-border p-2 rounded-lg h-20 bg-background resize-none outline-none" />
+              <textarea
+                value={formState.description || ""}
+                onChange={(e) => setFormState({ ...formState, description: e.target.value })}
+                className="w-full border border-border p-2 rounded-lg h-20 bg-background resize-none outline-none"
+              />
             </div>
           </div>
 
           <div className="sticky bottom-0 bg-card pt-4 border-t border-border z-10 flex justify-end space-x-2">
-            <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-border rounded-lg text-muted text-xs cursor-pointer hover:bg-slate-50">Anulează</button>
-            <button type="submit" className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold cursor-pointer hover:opacity-90">Salvează</button>
+            <button
+              type="button"
+              onClick={() => setActiveModal(null)}
+              className="px-4 py-2 border border-border rounded-lg text-muted text-xs cursor-pointer hover:bg-slate-50"
+            >
+              Anulează
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold cursor-pointer hover:opacity-90"
+            >
+              Salvează
+            </button>
           </div>
         </form>
       </Modal>
