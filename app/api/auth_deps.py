@@ -41,6 +41,7 @@ def verify_supabase_token(token: str) -> dict[str, Any]:
     jwt_secret = os.environ.get("SUPABASE_JWT_SECRET")
     if not jwt_secret:
         raise RuntimeError("SUPABASE_JWT_SECRET is not configured.")
+    audience = os.environ.get("SUPABASE_JWT_AUDIENCE", "authenticated")
 
     header = jwt.get_unverified_header(token)
     algorithm = header.get("alg")
@@ -62,9 +63,7 @@ def verify_supabase_token(token: str) -> dict[str, Any]:
             token,
             signing_key,
             algorithms=["ES256"],
-            options={
-                "verify_aud": False  # 🔥 FIX IMPORTANT
-            },
+            audience=audience,
         )
 
         return payload
@@ -81,14 +80,8 @@ def verify_supabase_token(token: str) -> dict[str, Any]:
         token,
         jwt_secret,
         algorithms=["HS256"],
-        options={
-            "verify_aud": False  # 🔥 FIX IMPORTANT (aceasta rezolvă 80% din 401)
-        },
+        audience=audience,
     )
-
-    # 🔥 SAFETY FIX: normalizează aud dacă lipsește
-    if not payload.get("aud"):
-        payload["aud"] = "authenticated"
 
     return payload
 
