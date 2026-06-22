@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import Table, { Column } from "../components/ui/Table";
 import Modal from "../components/ui/Modal";
 import { apiBaseUrl, getAuthHeaders } from "@/lib/api-client";
@@ -79,6 +79,8 @@ export default function Page() {
   const [menus, setMenus] = useState<DailyMenu[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const initializationRef = useRef(false);
+
   const [activeDay, setActiveDay] = useState("Toate preparatele");
   const [activeModal, setActiveModal] = useState<"add" | "edit" | null>(null);
   const [selectedItem, setSelectedItem] = useState<Dish | null>(null);
@@ -130,14 +132,13 @@ export default function Page() {
     }
   }, [fetchMenus]);
 
-const [initialized, setInitialized] = useState(false);
 
 useEffect(() => {
-  if (!initialized) {
-    loadData();
-    setInitialized(true);
-  }
-}, [initialized, loadData]);
+    if (!initializationRef.current) {
+      loadData();
+      initializationRef.current = true;
+    }
+  }, [loadData]);
 
   /////////////////////////////////////////////////////////////////
   // Mapare și Filtrare Date
