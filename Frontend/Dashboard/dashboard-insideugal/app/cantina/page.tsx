@@ -130,10 +130,14 @@ export default function Page() {
     }
   }, [fetchMenus]);
 
-  // Linia 135: Rezolvată prin izolarea referinței funcției loadData
-  useEffect(() => {
+const [initialized, setInitialized] = useState(false);
+
+useEffect(() => {
+  if (!initialized) {
     loadData();
-  }, [loadData]);
+    setInitialized(true);
+  }
+}, [initialized, loadData]);
 
   /////////////////////////////////////////////////////////////////
   // Mapare și Filtrare Date
