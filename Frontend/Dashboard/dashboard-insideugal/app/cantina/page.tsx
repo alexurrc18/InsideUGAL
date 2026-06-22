@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import Table, { Column } from "../components/ui/Table";
 import Modal from "../components/ui/Modal";
 import { apiBaseUrl, getAuthHeaders } from "@/lib/api-client";
@@ -86,55 +86,54 @@ export default function Page() {
   const [customCategory, setCustomCategory] = useState("");
 
   /////////////////////////////////////////////////////////////////
-  // API Core Functions
+  // API Core Functions (wrapped in useCallback to fix ESLint & cascading renders)
   /////////////////////////////////////////////////////////////////
 
-  async function fetchProducts() {
-    let allProducts: Product[] = [];
-    let page = 1;
-    let hasMore = true;
-    const pageSize = 50;
-
-    while (hasMore) {
-      const res = await apiFetch(`/products?page=${page}&size=${pageSize}`);
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error("Products error:", res.status, res.statusText, errorText);
-        throw new Error(`Products error: ${res.status} ${res.statusText}`);
-      }
-      const data: ProductResponse = await res.json();
-      allProducts = [...allProducts, ...data.items];
-      
-      if (allProducts.length >= data.total || data.items.length < pageSize) {
-        hasMore = false;
-      } else {
-        page++;
-      }
-    }
-    setProducts(allProducts);
-  }
-
-  async function fetchMenus() {
+  const fetchMenus = useCallback(async () => {
     const res = await apiFetch("/cafeteria_menus?page=1&size=20");
     if (!res.ok) throw new Error("Menus error");
     const data: DailyMenuResponse = await res.json();
     setMenus(data.items);
-  }
+  }, []);
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      await Promise.all([fetchProducts(), fetchMenus()]);
+      // Fetch Products logic inside the callback to prevent reference changing
+      let allProducts: Product[] = [];
+      let page = 1;
+      let hasMore = true;
+      const pageSize = 50;
+
+      while (hasMore) {
+        const res = await apiFetch(`/products?page=${page}&size=${pageSize}`);
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error("Products error:", res.status, res.statusText, errorText);
+          throw new Error(`Products error: ${res.status} ${res.statusText}`);
+        }
+        const data: ProductResponse = await res.json();
+        allProducts = [...allProducts, ...data.items];
+        
+        if (allProducts.length >= data.total || data.items.length < pageSize) {
+          hasMore = false;
+        } else {
+          page++;
+        }
+      }
+      
+      setProducts(allProducts);
+      await fetchMenus();
     } catch (err) {
       console.error("Eroare la încărcarea datelor din API:", err);
     } finally {
       setLoading(false);
     }
-  }
+  }, [fetchMenus]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   /////////////////////////////////////////////////////////////////
   // Mapare și Filtrare Date
@@ -168,6 +167,31 @@ export default function Page() {
     if (activeDay === "Toate preparatele") return tableData;
     return tableData.filter((item) => item.availableDays.includes(activeDay));
   }, [activeDay, tableData]);
+
+  /////////////////////////////////////////////////////////////////
+  // Meniuri Zilnice (Asociere API Action)
+  /////////////////////////////////////////////////////////////////
+
+  const toggleMenuAction = useCallback(async (dayNumber: number, productId: number, forceState?: boolean) => {
+    const menu = menus.find((m) => m.day_of_week === dayNumber);
+    if (!menu) return;
+
+    const currentlyExists = menu.products.some((p) => p.id === productId);
+    const dynamicNextState = forceState !== undefined ? forceState : !currentlyExists;
+
+    let nextProductIds: number[] = [];
+    if (dynamicNextState) {
+      nextProductIds = [...menu.products.map((p) => p.id), productId];
+    } else {
+      nextProductIds = menu.products.filter((p) => p.id !== productId).map((p) => p.id);
+    }
+
+    await apiFetch(`/cafeteria_menus/${menu.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product_ids: nextProductIds }),
+    });
+  }, [menus]);
 
   /////////////////////////////////////////////////////////////////
   // Operațiuni CRUD (Products)
@@ -228,46 +252,9 @@ export default function Page() {
     }
   }
 
-  /////////////////////////////////////////////////////////////////
-  // Meniuri Zilnice (Toggle Checkbox)
-  /////////////////////////////////////////////////////////////////
-
-  async function toggleMenuAction(dayNumber: number, productId: number, forceState?: boolean) {
-    const menu = menus.find((m) => m.day_of_week === dayNumber);
-    if (!menu) return;
-
-    const currentlyExists = menu.products.some((p) => p.id === productId);
-    const dynamicNextState = forceState !== undefined ? forceState : !currentlyExists;
-
-    let nextProductIds: number[] = [];
-    if (dynamicNextState) {
-      nextProductIds = [...menu.products.map((p) => p.id), productId];
-    } else {
-      nextProductIds = menu.products.filter((p) => p.id !== productId).map((p) => p.id);
-    }
-
-    await apiFetch(`/cafeteria_menus/${menu.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ product_ids: nextProductIds }),
-    });
-  }
-
   async function handleCheckboxToggle(item: Dish, targetDay: string) {
     const dayNumber = DAY_MAP[targetDay];
     if (!dayNumber) return;
-
-    // Actualizare optimistă în interfață pentru un plus de fluiditate vizuală
-    const isChecked = item.availableDays.includes(targetDay);
-    const updatedDays = isChecked
-      ? item.availableDays.filter((d) => d !== targetDay)
-      : [...item.availableDays, targetDay];
-
-    setProducts(
-      products.map((p) =>
-        p.id === item.id ? { ...p } : p
-      )
-    );
 
     // Trimitere cerere către API și reîmprospătare meniuri
     await toggleMenuAction(dayNumber, item.id);
@@ -376,10 +363,6 @@ export default function Page() {
       ),
     },
   ];
-
-  /////////////////////////////////////////////////////////////////
-  // Componenta UI Render
-  /////////////////////////////////////////////////////////////////
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
