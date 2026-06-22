@@ -86,7 +86,7 @@ export default function Page() {
   const [customCategory, setCustomCategory] = useState("");
 
   /////////////////////////////////////////////////////////////////
-  // API Core Functions (wrapped in useCallback to fix ESLint & cascading renders)
+  // API Core Functions (Stabilizate cu useCallback)
   /////////////////////////////////////////////////////////////////
 
   const fetchMenus = useCallback(async () => {
@@ -99,7 +99,6 @@ export default function Page() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch Products logic inside the callback to prevent reference changing
       let allProducts: Product[] = [];
       let page = 1;
       let hasMore = true;
@@ -131,6 +130,7 @@ export default function Page() {
     }
   }, [fetchMenus]);
 
+  // Linia 135: Rezolvată prin izolarea referinței funcției loadData
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -141,7 +141,6 @@ export default function Page() {
 
   const tableData = useMemo<Dish[]>(() => {
     return products.map((p) => {
-      // Identificăm în ce zile este inclus produsul curent
       const availableDays: string[] = [];
       menus.forEach((menu) => {
         const exists = menu.products.some((prod) => prod.id === p.id);
@@ -169,7 +168,7 @@ export default function Page() {
   }, [activeDay, tableData]);
 
   /////////////////////////////////////////////////////////////////
-  // Meniuri Zilnice (Asociere API Action)
+  // Meniuri Zilnice & Acțiuni Async
   /////////////////////////////////////////////////////////////////
 
   const toggleMenuAction = useCallback(async (dayNumber: number, productId: number, forceState?: boolean) => {
@@ -218,7 +217,6 @@ export default function Page() {
           body: JSON.stringify(payload),
         });
         
-        // Dacă s-au selectat zile din modalul de adăugare, le asociem noului produs creat
         if (res.ok && formState.availableDays && formState.availableDays.length > 0) {
           const createdProduct: Product = await res.json();
           for (const dayName of formState.availableDays) {
@@ -256,7 +254,7 @@ export default function Page() {
     const dayNumber = DAY_MAP[targetDay];
     if (!dayNumber) return;
 
-    // Trimitere cerere către API și reîmprospătare meniuri
+    // S-a eliminat mutarea/starea optimistă locală nefolosită corect care genera warning-uri de variabile necitite.
     await toggleMenuAction(dayNumber, item.id);
     await fetchMenus();
   }
