@@ -7,7 +7,7 @@
 // (aceeasi geometrie ca WebContainer) si il aplicam ca padding simplu, fara zoom.
 // Rezultat: harta si antetul se aliniaza cu navbar-ul la orice latime, harta
 // ramane clara, si umple inaltimea ramasa.
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { View, useWindowDimensions } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -23,10 +23,12 @@ import { CategoryHeader } from "@/components/ui/display/category-header";
 import { WebContainer, WEB_COMPACT_BREAKPOINT } from "@/components/ui/layout/web-container";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { Seo } from "@/components/seo";
-import MockData from "@/constants/mock-data.json";
+import api, { storage } from "@/services/api";
 
 export default function HartaScreen() {
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
+  const [faculties, setFaculties] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
@@ -44,14 +46,66 @@ export default function HartaScreen() {
   //   margine de centrare + (padding lateral + Spacing.lg) scalate cu zoom.
   const contentInset = (width - columnWidth) / 2 + (sidePadding + Spacing.lg) * zoom;
 
-  const facultyFilters = useMemo(
-    () => [
+  useEffect(() => {
+    let active = true;
+    async function loadData() {
+      try {
+        // Load cached data first for immediate render
+        const [cachedFacs, cachedLocs] = await Promise.all([
+          storage.getItem('cached_faculties'),
+          storage.getItem('cached_facilities'),
+        ]);
+
+        if (active) {
+          if (cachedFacs) setFaculties(JSON.parse(cachedFacs));
+          if (cachedLocs) setLocations(JSON.parse(cachedLocs));
+        }
+
+        // Fetch fresh data from API
+        const [facsRes, locsRes] = await Promise.all([
+          api.get('/faculties/', { params: { page: 1, size: 50 } }),
+          api.get('/locations/', { params: { page: 1, size: 50 } })
+        ]);
+
+        if (active) {
+          if (facsRes.data?.items) {
+            setFaculties(facsRes.data.items);
+            await storage.setItem('cached_faculties', JSON.stringify(facsRes.data.items));
+          }
+          if (locsRes.data?.items) {
+            setLocations(locsRes.data.items);
+            await storage.setItem('cached_facilities', JSON.stringify(locsRes.data.items));
+          }
+        }
+      } catch (err) {
+        console.warn('[API] Error loading web map screen data:', err);
+      }
+    }
+    loadData();
+    return () => { active = false; };
+  }, []);
+
+  const facultyFilters = useMemo(() => {
+    return [
       { id: null, title: "Toate locațiile" },
       { id: "f8", title: "Facilități" },
-      ...MockData.faculties.map((f) => ({ id: f.id, title: f.title })),
-    ],
-    []
-  );
+      ...faculties.map((f) => ({
+        id: f.id.toString(),
+        title: f.abbreviation || f.name
+      }))
+    ];
+  }, [faculties]);
+
+  const mappedBuildings = useMemo(() => {
+    return locations.map((item: any) => ({
+      id: item.id.toString(),
+      name: item.name,
+      facultyId: item.faculty_id !== null ? item.faculty_id.toString() : 'f8',
+      lat: item.coordinates.latitude,
+      lng: item.coordinates.longitude,
+      description: item.name,
+    }));
+  }, [locations]);
 
   const handleSelectFilter = useCallback((id: string | null) => {
     setSelectedFacultyId((prev) => (prev === id ? null : id));
@@ -90,7 +144,12 @@ export default function HartaScreen() {
           marginTop: Spacing.md,
         }}
       >
-        <Map themeName={themeName} selectedFacultyId={selectedFacultyId} onFacultySelect={setSelectedFacultyId} />
+        <Map
+          themeName={themeName}
+          selectedFacultyId={selectedFacultyId}
+          onFacultySelect={setSelectedFacultyId}
+          buildings={mappedBuildings}
+        />
       </View>
     </View>
   );

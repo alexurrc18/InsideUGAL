@@ -24,8 +24,9 @@ import { useNavbarScrolled } from "@/contexts/web-scroll-context";
 import { WebContainer, WEB_COMPACT_BREAKPOINT } from "@/components/ui/layout/web-container";
 import { ThemeMenu } from "@/components/ui/navigation/theme-menu";
 import { ThemeToggle } from "@/components/ui/navigation/theme-toggle";
-import { ProfileMenu, MOCK_USER, DASHBOARD_URL } from "@/components/ui/navigation/profile-menu";
+import { ProfileMenu, DASHBOARD_URL } from "@/components/ui/navigation/profile-menu";
 import ChevronIcon from "@/assets/icons/svg/chevron-left.svg";
+import api, { getAuthToken, setAuthToken } from "@/services/api";
 
 export const NAVBAR_HEIGHT = 72;
 
@@ -97,6 +98,57 @@ export function WebNavbar() {
   const [hidden, setHidden] = useState(false);
   // Pozitia de scroll de la ultimul event (ref, ca sa o putem reseta la navigare).
   const lastYRef = useRef(0);
+
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<{ name: string; email: string; role?: string } | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const checkUser = async () => {
+      try {
+        const token = await getAuthToken();
+        if (token) {
+          if (isMounted) setIsAuthenticated(true);
+          const res = await api.get("/profiles/me");
+          if (res.data && isMounted) {
+            setUser({
+              name: `${res.data.first_name || ""} ${res.data.last_name || ""}`.trim() || "Utilizator",
+              email: res.data.email || "",
+              role: res.data.role || "STUDENT"
+            });
+          }
+        } else {
+          if (isMounted) {
+            setIsAuthenticated(false);
+            setUser(null);
+          }
+        }
+      } catch (err) {
+        console.warn("[API] Error loading profile for web-navbar:", err);
+        if (isMounted) {
+          setIsAuthenticated(false);
+          setUser(null);
+        }
+      }
+    };
+
+    checkUser();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [pathname, menuOpen]);
+
+  const handleLinkPress = async (href: string) => {
+    if (href === "/(public)/sesizari") {
+      const token = await getAuthToken();
+      if (!token) {
+        router.push("/(auth)");
+        return;
+      }
+    }
+    router.push(href as any);
+  };
 
   // Inchidem panoul cand navigam catre alta pagina sau cand ecranul devine lat.
   // Ajustam in timpul randarii (pattern recomandat de React pentru "state derivat
@@ -304,7 +356,7 @@ export function WebNavbar() {
                 return (
                   <Pressable
                     key={link.href}
-                    onPress={() => router.push(link.href as any)}
+                    onPress={() => handleLinkPress(link.href!)}
                     accessibilityRole="link"
                     {...({ dataSet: { navlink: "true", active: isActive ? "true" : "false" } } as any)}
                     style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, alignItems: "center", justifyContent: "center" })}
@@ -371,7 +423,7 @@ export function WebNavbar() {
                 <Pressable
                   key={link.href}
                   onPress={() => {
-                    router.push(link.href as any);
+                    handleLinkPress(link.href!);
                     setMenuOpen(false);
                   }}
                   accessibilityRole="link"
@@ -403,13 +455,15 @@ export function WebNavbar() {
             {/* Profil (mobil): cine e conectat + Dashboard (daca are acces) + Deconectare. */}
             <View style={styles.panelProfile}>
               <Text style={[Typography.Heading3, { color: ColorScheme.white }]} numberOfLines={1}>
-                {MOCK_USER.name}
+                {isAuthenticated ? (user?.name || "Utilizator") : "Neautentificat"}
               </Text>
-              <Text style={[Typography.Small1, { color: "rgba(255,255,255,0.7)" }]} numberOfLines={1}>
-                {MOCK_USER.email}
-              </Text>
+              {isAuthenticated && user?.email ? (
+                <Text style={[Typography.Small1, { color: "rgba(255,255,255,0.7)" }]} numberOfLines={1}>
+                  {user.email}
+                </Text>
+              ) : null}
             </View>
-            {MOCK_USER.hasDashboardAccess && (
+            {isAuthenticated && user?.role !== "STUDENT" && (
               <Pressable
                 onPress={() => {
                   setMenuOpen(false);
@@ -422,17 +476,34 @@ export function WebNavbar() {
                 </Text>
               </Pressable>
             )}
-            <Pressable
-              onPress={() => {
-                setMenuOpen(false);
-                router.push("/(auth)");
-              }}
-              style={({ pressed }) => [styles.panelLink, { opacity: pressed ? 0.6 : 1 }]}
-            >
-              <Text style={[Typography.Heading3, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
-                Deconectare
-              </Text>
-            </Pressable>
+            {isAuthenticated ? (
+              <Pressable
+                onPress={async () => {
+                  setMenuOpen(false);
+                  await setAuthToken(null);
+                  setIsAuthenticated(false);
+                  setUser(null);
+                  router.push("/(public)/acasa");
+                }}
+                style={({ pressed }) => [styles.panelLink, { opacity: pressed ? 0.6 : 1 }]}
+              >
+                <Text style={[Typography.Heading3, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
+                  Deconectare
+                </Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push("/(auth)");
+                }}
+                style={({ pressed }) => [styles.panelLink, { opacity: pressed ? 0.6 : 1 }]}
+              >
+                <Text style={[Typography.Heading3, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
+                  Autentificare
+                </Text>
+              </Pressable>
+            )}
           </WebContainer>
         </Animated.View>
       )}
