@@ -2,7 +2,7 @@
 import logging
 import uuid
 import os
-
+import datetime
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -63,6 +63,15 @@ app = FastAPI(
         RequestValidationError: validation_exception_handler,
     },
 )
+
+@app.get("/health")
+async def health_check():
+        return {
+            "status": "online",
+            "db_status": "connected",
+            "timestamp": datetime.datetime.now().isoformat()
+        }
+
 
 # --- 1. Rate Limiting Configuration ---
 app.state.limiter = limiter
