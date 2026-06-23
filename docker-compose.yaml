@@ -151,7 +151,11 @@ services:
     - ./supabase/migrations/20260604081436_adaugare_pgvector_si_chunkuri.sql:/docker-entrypoint-initdb.d/02_pgvector_document_chunks.sql:ro
     - ./supabase/migrations/20260604084954_adaugare_bucket_documente.sql:/docker-entrypoint-initdb.d/03_documents_bucket.sql:ro
     - ./supabase/migrations/20260608000001_chatbot_chunks.sql:/docker-entrypoint-initdb.d/04_chatbot_chunks.sql:ro
-    - ./supabase/migrations/20260610185900_create_cache_table.sql:/docker-entrypoint-initdb.d/05_llm_cache.sql:ro
+    - ./supabase/migrations/20260610094500_update_smart_news_chunks.sql:/docker-entrypoint-initdb.d/05_update_smart_news_chunks.sql:ro
+    - ./supabase/migrations/20260610185900_create_cache_table.sql:/docker-entrypoint-initdb.d/06_llm_cache.sql:ro
+    - ./supabase/migrations/20260611121053_create_semantic_cache.sql:/docker-entrypoint-initdb.d/07_create_semantic_cache.sql:ro
+    - ./supabase/migrations/20260611182000_drop_smart_news_chunks.sql:/docker-entrypoint-initdb.d/08_drop_smart_news_chunks.sql:ro
+    - ./supabase/migrations/20260623000000_adaugare_bucket_imagini.sql:/docker-entrypoint-initdb.d/09_adaugare_bucket_imagini.sql:ro
     - ./supabase/seed.sql:/docker-entrypoint-initdb.d/99_seed.sql:ro
     networks:
     - internal
