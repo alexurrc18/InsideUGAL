@@ -339,10 +339,15 @@ class ImageServiceV2:
                     image = PILImage.open(premade_banner).convert("RGB")
                     image_bytes = self._pil_to_bytes(image)
                     public_url  = self._upload_to_storage(image_bytes)
+                    
+                    base64_fallback = None
+                    if not public_url:
+                        base64_fallback = "data:image/jpeg;base64," + base64.b64encode(image_bytes).decode("utf-8")
+                        
                     return ImageGenerationResult(
                         success=True,
                         image_url=public_url,
-                        image_base64=None,
+                        image_base64=base64_fallback,
                         error_message=None,
                         used_image_to_image=False,
                         used_flux_fallback=False
@@ -367,13 +372,17 @@ class ImageServiceV2:
             image_bytes = self._pil_to_bytes(image)
             public_url  = self._upload_to_storage(image_bytes)
             
+            base64_fallback = None
+            if not public_url:
+                base64_fallback = "data:image/jpeg;base64," + base64.b64encode(image_bytes).decode("utf-8")
+            
             local_save_path = self.assets_dir / f"generated_banner_{uuid.uuid4().hex[:8]}.jpg"
             image.convert("RGB").save(local_save_path, "JPEG")
 
             return ImageGenerationResult(
                 success=True,
                 image_url=public_url,
-                image_base64=None,
+                image_base64=base64_fallback,
                 error_message=None,
                 used_image_to_image=used_image_to_image,
                 used_flux_fallback=used_flux_fallback
