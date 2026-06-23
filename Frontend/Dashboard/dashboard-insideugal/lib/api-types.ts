@@ -16,15 +16,36 @@ export type Student = z.infer<typeof studentSchema>;
 export type Professor = z.infer<typeof professorSchema>;
 export type Course = z.infer<typeof courseSchema>;
 export type Announcement = z.infer<typeof announcementSchema>;
-export type Dish = {
+export type Product = {
   id: number;
   name: string;
+
+  // backend field (string sau category name)
+  category: string;
+
   description: string | null;
+
+  // KEEP compatibil backend (NU îl folosești în UI)
   quantity: string;
-  price: string;
-  available_days?: string[];
-  [key: string]: unknown; // Permisivitate pentru câmpuri extra venite din backend
+
+  // UI field (mapat din quantity sau alt field)
+  weight?: string;
+
+  price: number;
+
+  nutritional_values?: string | null;
+
+  created_at?: string;
+  updated_at?: string;
 };
+
+export type DailyMenu = {
+  id: number;
+  day_of_week: number;
+  products: Product[];
+};
+
+export type Dish = Product; // Alias for backward compatibility if needed
 export type Enrollment = z.infer<typeof enrollmentSchema>;
 
 export type ApiErrorBody = {

@@ -1,27 +1,47 @@
 import { z } from "zod";
 import { apiRequest } from "./api-client";
-import type { Dish } from "./api-types";
+import type { Product, DailyMenu } from "./api-types";
+import {
+  productSchema,
+  dailyMenuSchema,
+  productsSchema,
+  dailyMenusSchema,
+} from "./api-schemas";
 
 export const cantinaService = {
-  list: (dayOfWeek?: number) => {
-    const url = dayOfWeek ? `/cafeteria_menus/?day_of_week=${dayOfWeek}` : "/cafeteria_menus/";
-    return apiRequest(url, z.any());
+  // PRODUCTS
+  listProducts: (page = 1, size = 50) => {
+    return apiRequest(
+      `/products?offset=${(page - 1) * size}&limit=${size}`,
+      productsSchema
+    );
   },
 
-  create: (data: Partial<Dish>) =>
-    apiRequest("/cafeteria_menus/", z.any(), {
+  createProduct: (data: Partial<Product>) =>
+    apiRequest("/products", productSchema, {
       method: "POST",
       body: data,
     }),
 
-  update: (id: string | number, data: Partial<Dish>) =>
-    apiRequest(`/cafeteria_menus/${id}`, z.any(), {
+  updateProduct: (id: number, data: Partial<Product>) =>
+    apiRequest(`/products/${id}`, productSchema, {
       method: "PATCH",
       body: data,
     }),
 
-  delete: (id: string | number) =>
-    apiRequest(`/cafeteria_menus/${id}`, z.any(), {
+  deleteProduct: (id: number) =>
+    apiRequest(`/products/${id}`, z.any(), {
       method: "DELETE",
+    }),
+
+  // DAILY MENUS (FIXED ENDPOINT)
+  listMenus: () => {
+    return apiRequest(`/daily-menus`, dailyMenusSchema);
+  },
+
+  updateMenu: (id: number, productIds: number[]) =>
+    apiRequest(`/daily-menus/${id}`, dailyMenuSchema, {
+      method: "PATCH",
+      body: { product_ids: productIds },
     }),
 };
