@@ -110,4 +110,35 @@ export const studentsSchema = z.array(studentSchema);
 export const professorsSchema = z.array(professorSchema);
 export const coursesSchema = z.array(courseSchema);
 export const announcementsSchema = createPaginatedResponseSchema(announcementSchema);
+export const productSchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  category: z.string(),
+  description: z.string().nullable(),
+  quantity: z.string(),
+  price: z.number(),
+  nutritional_values: z.string().nullable().optional(),
+  created_at: isoDateSchema.optional(),
+  updated_at: isoDateSchema.optional(),
+});
+
+export const dailyMenuSchema = z.object({
+  id: z.number().int(),
+  day_of_week: z.number().int(),
+  products: z.array(productSchema),
+});
+
+export const productsSchema = z.object({
+  items: z.array(productSchema),
+  total: z.number().int(),
+});
+
+export const dailyMenusSchema = z.object({
+  items: z.array(dailyMenuSchema),
+  total: z.number().int(),
+});
+
+export const dishSchema = productSchema;
+export const dishesSchema = productsSchema;
+
 export const enrollmentsSchema = z.array(enrollmentSchema);
