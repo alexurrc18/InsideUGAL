@@ -79,6 +79,7 @@ export function NewsCard({
             >
                 <Image
                     source={cardImage}
+                    accessibilityLabel={title}
                     style={{ width: (height || defaultHeight) as any, height: (height || defaultHeight) as any, borderRadius: Spacing.lg, overflow: "hidden" }}
                     contentFit="cover"
                 />
@@ -114,6 +115,7 @@ export function NewsCard({
             >
                 <Image
                     source={cardImage}
+                    accessibilityLabel={title}
                     style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, zIndex: 1 }}
                     contentFit="cover"
                 />

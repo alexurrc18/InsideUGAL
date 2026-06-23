@@ -1,0 +1,6 @@
+# Permite indexarea intregului site de catre toate motoarele de cautare.
+User-agent: *
+Allow: /
+
+# Locatia sitemap-ului (actualizeaza domeniul daca difera).
+Sitemap: https://insideugal.ro/sitemap.xml

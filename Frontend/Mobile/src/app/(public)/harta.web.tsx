@@ -22,6 +22,7 @@ import Map from "@/components/map/map";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import { WebContainer, WEB_COMPACT_BREAKPOINT } from "@/components/ui/layout/web-container";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
+import { Seo } from "@/components/seo";
 import api, { storage } from "@/services/api";
 
 export default function HartaScreen() {
@@ -119,6 +120,10 @@ export default function HartaScreen() {
         paddingTop: contentTop,
       }}
     >
+      <Seo
+        title="Hartă campus"
+        description="Harta interactivă a campusului UGAL — facultăți, cămine, cantină și facilități din Galați."
+      />
       {/* Header in WebContainer => acelasi zoom ca pe cantina/sesizari, deci titlul
           "Hartă" are aceeasi marime ca "Cantina"/"Sesizări". Harta ramane in afara. */}
       <WebContainer>
