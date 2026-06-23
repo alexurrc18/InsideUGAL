@@ -169,6 +169,16 @@ export function Ace() {
       onDone: () => {
         setIsTyping(false);
         streamStopRef.current = null;
+        // Daca stream-ul s-a terminat fara niciun token, raspunsul a venit gol de la
+        // server (LLM jos / fara output) — aratam un mesaj in loc de o bula goala.
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === aiMsgId && !m.text
+              ? { ...m, text: '⚠️ Asistentul nu a returnat niciun răspuns. Încearcă din nou mai târziu.' }
+              : m
+          )
+        );
+        scrollToBottom();
       },
       onError: (msg) => {
         setIsTyping(false);

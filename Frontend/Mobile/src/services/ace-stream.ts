@@ -1,7 +1,10 @@
 // Streaming-ul raspunsului asistentului ACE (web).
 //
-// Backend-ul expune un endpoint SSE pe POST cu body JSON:
+// Chat-ul merge prin GATEWAY-ul de pe backend-ul principal (NU direct la serviciul
+// LLM, care ruleaza intern in Docker — `llm:8000` — si nu e expus public). Gateway-ul
+// primeste cererea si o forwardeaza catre serviciul LLM:
 //   POST {API_BASE_URL}/api/v1/llm/ask/stream   body: { question, history }
+// (necesita autentificare; salveaza si istoricul intrebarilor in backend).
 // Raspunsul e text/event-stream cu linii:
 //   data: {"content":"...","cached":false}   -> token
 //   data: {"error":"..."}                     -> eroare
