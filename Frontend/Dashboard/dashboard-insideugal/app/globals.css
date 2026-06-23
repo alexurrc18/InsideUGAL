@@ -56,3 +56,17 @@ body {
   background: rgba(255, 255, 255, 0.24);
   border-radius: 9999px;
 }
+.rdp-today.rdp-selected button.rdp-day_button,
+.rdp-today button.rdp-day_button {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.rdp-selected button.rdp-day_button {
+  background: var(--brand) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 0.25rem !important;
+}
