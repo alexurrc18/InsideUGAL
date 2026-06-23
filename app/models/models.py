@@ -123,7 +123,7 @@ class Complaint(Base, TimestampMixin):
     description = Column(Text, nullable=False)
     image_url = Column(Text)
     
-    status = Column(ENUM('in_asteptare', 'in_lucru', 'finalizat', 'respins', name='complaint_status', create_type=False), nullable=False, server_default="in_asteptare")
+    status = Column(ENUM('in_asteptare', 'in_lucru', 'finalizat', 'respins', 'solutionat', name='complaint_status', create_type=False), nullable=False, server_default="in_asteptare")
 
     user = relationship("Profile", back_populates="complaints")
     location = relationship("Location", back_populates="complaints")

@@ -3,29 +3,12 @@
 -- ==========================================================
 
 CREATE EXTENSION IF NOT EXISTS postgis;
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
-CREATE SCHEMA IF NOT EXISTS auth;
-CREATE SCHEMA IF NOT EXISTS storage;
-
-CREATE OR REPLACE FUNCTION auth.uid()
-RETURNS uuid
-LANGUAGE sql
-STABLE
-AS $$
-  SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid
-$$;
-
-CREATE TABLE IF NOT EXISTS storage.buckets (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    owner UUID,
-    public BOOLEAN DEFAULT FALSE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS bname ON storage.buckets USING BTREE (name);
+-- Supabase manages the auth and storage schemas in hosted/recent local projects.
+-- Do not create auth/storage schemas, auth.uid(), or storage.buckets here:
+-- those objects are owned by Supabase and recreating them can fail with
+-- "permission denied for schema auth/storage".
+-- pgcrypto is also available by default in Supabase; public.llm_calls can use
+-- gen_random_uuid() without this migration owning the extension.
 
 DO $$ 
 BEGIN
@@ -173,13 +156,22 @@ BEGIN
 END; 
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION public.current_auth_uid()
+RETURNS uuid AS $$
+BEGIN
+    RETURN NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid;
+EXCEPTION WHEN invalid_text_representation THEN
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
 CREATE OR REPLACE FUNCTION public.current_user_role()
 RETURNS text AS $$
 BEGIN
     RETURN (
         SELECT role::text 
         FROM public.profiles 
-        WHERE id = auth.uid()
+        WHERE id = public.current_auth_uid()
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -242,16 +234,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Conectăm funcția de mai sus la momentul în care un user e creat în Supabase Auth
-DO $$
-BEGIN
-    IF to_regclass('auth.users') IS NOT NULL THEN
-        DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-        CREATE TRIGGER on_auth_user_created
-            AFTER INSERT ON auth.users
-            FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-    END IF;
-END $$;
+-- The auth.users trigger is installed by a dedicated auth/profile sync migration.
+-- Keep this init migration focused on public schema objects only, so it can run
+-- in Supabase environments where auth is managed by the platform.
 
 -- Declanșatoare Update (Setează timestampul automat când editezi un rând)
 CREATE TRIGGER handle_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
@@ -278,17 +263,18 @@ ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_calls ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.questions_history ENABLE ROW LEVEL SECURITY;
 
-INSERT INTO storage.buckets (id, name, public) VALUES ('images', 'images', true) ON CONFLICT (id) DO NOTHING;
+-- Storage buckets are managed by Supabase Storage migrations/setup, not by this
+-- public schema init migration.
 
 -- ==========================================================
 -- 6. POLITICI POLICIES (RLS)
 -- ==========================================================
 
 DROP POLICY IF EXISTS "profiles_self_read" ON public.profiles;
-CREATE POLICY "profiles_self_read" ON public.profiles FOR SELECT USING (id = auth.uid() OR public.current_user_role() = 'HEAD_ADMIN');
+CREATE POLICY "profiles_self_read" ON public.profiles FOR SELECT USING (id = public.current_auth_uid() OR public.current_user_role() = 'HEAD_ADMIN');
 
 DROP POLICY IF EXISTS "profiles_self_insert" ON public.profiles;
-CREATE POLICY "profiles_self_insert" ON public.profiles FOR INSERT WITH CHECK (id = auth.uid());
+CREATE POLICY "profiles_self_insert" ON public.profiles FOR INSERT WITH CHECK (id = public.current_auth_uid());
 
 DROP POLICY IF EXISTS "profiles_admin_manage" ON public.profiles;
 CREATE POLICY "profiles_admin_manage" ON public.profiles FOR ALL USING (public.current_user_role() = 'HEAD_ADMIN') WITH CHECK (public.current_user_role() = 'HEAD_ADMIN');
@@ -312,10 +298,10 @@ DROP POLICY IF EXISTS "cafeteria_authorized_manage" ON public.daily_menus;
 CREATE POLICY "cafeteria_authorized_manage" ON public.daily_menus FOR ALL USING (public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_CANTINA')) WITH CHECK (public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_CANTINA'));
 
 DROP POLICY IF EXISTS "complaints_owner_or_staff_read" ON public.complaints;
-CREATE POLICY "complaints_owner_or_staff_read" ON public.complaints FOR SELECT USING (user_id = auth.uid() OR public.current_user_role() IN ('HEAD_ADMIN', 'PROFESOR', 'HEAD_FACULTATI'));
+CREATE POLICY "complaints_owner_or_staff_read" ON public.complaints FOR SELECT USING (user_id = public.current_auth_uid() OR public.current_user_role() IN ('HEAD_ADMIN', 'PROFESOR', 'HEAD_FACULTATI'));
 
 DROP POLICY IF EXISTS "complaints_student_create" ON public.complaints;
-CREATE POLICY "complaints_student_create" ON public.complaints FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "complaints_student_create" ON public.complaints FOR INSERT WITH CHECK (user_id = public.current_auth_uid());
 
 DROP POLICY IF EXISTS "complaints_staff_update" ON public.complaints;
 CREATE POLICY "complaints_staff_update" ON public.complaints FOR UPDATE USING (public.current_user_role() IN ('HEAD_ADMIN', 'PROFESOR', 'HEAD_FACULTATI')) WITH CHECK (public.current_user_role() IN ('HEAD_ADMIN', 'PROFESOR', 'HEAD_FACULTATI'));
@@ -324,7 +310,7 @@ DROP POLICY IF EXISTS "announcements_public_read" ON public.announcements;
 CREATE POLICY "announcements_public_read" ON public.announcements FOR SELECT USING (TRUE);
 
 DROP POLICY IF EXISTS "announcements_authorized_manage" ON public.announcements;
-CREATE POLICY "announcements_authorized_manage" ON public.announcements FOR ALL USING (public.current_user_role() IN ('HEAD_ADMIN', 'PROFESOR', 'STUDENT_RESPONSABIL') AND (public.current_user_role() <> 'STUDENT_RESPONSABIL' OR created_by = auth.uid())) WITH CHECK (public.current_user_role() IN ('HEAD_ADMIN', 'PROFESOR', 'STUDENT_RESPONSABIL') AND (public.current_user_role() <> 'STUDENT_RESPONSABIL' OR created_by = auth.uid()));
+CREATE POLICY "announcements_authorized_manage" ON public.announcements FOR ALL USING (public.current_user_role() IN ('HEAD_ADMIN', 'PROFESOR', 'STUDENT_RESPONSABIL') AND (public.current_user_role() <> 'STUDENT_RESPONSABIL' OR created_by = public.current_auth_uid())) WITH CHECK (public.current_user_role() IN ('HEAD_ADMIN', 'PROFESOR', 'STUDENT_RESPONSABIL') AND (public.current_user_role() <> 'STUDENT_RESPONSABIL' OR created_by = public.current_auth_uid()));
 
 -- ==========================================================
 -- 7. INDECȘI PENTRU PERFORMANȚĂ

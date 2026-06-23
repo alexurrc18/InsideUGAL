@@ -1,64 +1,117 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
-import httpx
 import os
+from functools import lru_cache
+
 from dotenv import load_dotenv
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.concurrency import run_in_threadpool
+from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel, Field
+from supabase import Client, create_client
+from supabase_auth.errors import AuthApiError, AuthError
 
 load_dotenv()
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
 
-if not SUPABASE_URL or not SUPABASE_ANON_KEY:
-    raise RuntimeError("SUPABASE_URL and SUPABASE_ANON_KEY must be configured in .env")
+class AuthTokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int | None = None
+    expires_at: int | None = None
 
-@router.post("/login")
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str = Field(..., min_length=1)
+
+
+def _get_required_env(name: str) -> str:
+    value = os.environ.get(name)
+    if not value:
+        raise RuntimeError(f"{name} must be configured in .env")
+    return value
+
+
+@lru_cache(maxsize=1)
+def get_supabase_client() -> Client:
+    return create_client(
+        _get_required_env("SUPABASE_URL"),
+        _get_required_env("SUPABASE_ANON_KEY"),
+    )
+
+
+def _auth_error(exc: AuthError) -> HTTPException:
+    status_code = getattr(exc, "status", None) or status.HTTP_401_UNAUTHORIZED
+    message = getattr(exc, "message", None) or str(exc)
+
+    return HTTPException(
+        status_code=status_code,
+        detail=f"Supabase authentication failed: {message}",
+    )
+
+
+def _session_to_response(auth_response) -> AuthTokenResponse:
+    session = getattr(auth_response, "session", None)
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Supabase did not return an auth session.",
+        )
+
+    return AuthTokenResponse(
+        access_token=session.access_token,
+        refresh_token=session.refresh_token,
+        token_type=session.token_type or "bearer",
+        expires_in=session.expires_in,
+        expires_at=session.expires_at,
+    )
+
+
+@router.post("/login", response_model=AuthTokenResponse)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """
-    OAuth2 compatible token login, get an access token for future requests.
-    Uses Supabase Auth's email/password flow.
+    OAuth2-compatible email/password login through Supabase Auth.
+    Returns both the short-lived access token and the refresh token.
     """
-    # Supabase token endpoint for email/password grant type
-    token_url = f"{SUPABASE_URL}/auth/v1/token?grant_type=password"
-    
-    # Prepare the payload
-    payload = {
-        "email": form_data.username,  # In OAuth2, 'username' field is used for email
-        "password": form_data.password,
-    }
-    
-    # Headers including the anon key
-    headers = {
-        "apikey": SUPABASE_ANON_KEY,
-        "Content-Type": "application/json",
-    }
-    
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.post(token_url, json=payload, headers=headers)
-            response.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            # Handle non-2xx responses from Supabase
-            raise HTTPException(
-                status_code=exc.response.status_code,
-                detail=f"Supabase authentication failed: {exc.response.text}",
-            ) from exc
-        except httpx.RequestError as exc:
-            # Handle network errors
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"Could not connect to Supabase: {exc}",
-            ) from exc
-    
-    # Supabase returns: { access_token, token_type, expires_in, refresh_token, user }
-    # We only need to return access_token and token_type for Swagger OAuth2
-    response_data = response.json()
-    return {
-        "access_token": response_data["access_token"],
-        "token_type": response_data["token_type"],
-    }
+    supabase = get_supabase_client()
+
+    try:
+        auth_response = await run_in_threadpool(
+            supabase.auth.sign_in_with_password,
+            {
+                "email": form_data.username,
+                "password": form_data.password,
+            },
+        )
+    except AuthApiError as exc:
+        raise _auth_error(exc) from exc
+    except AuthError as exc:
+        raise _auth_error(exc) from exc
+
+    return _session_to_response(auth_response)
+
+
+@router.post("/refresh", response_model=AuthTokenResponse)
+async def refresh_token(payload: RefreshTokenRequest):
+    """
+    Exchanges a valid Supabase refresh token for a new auth session.
+    Protected endpoints must continue to receive the returned access_token
+    in the Authorization: Bearer header.
+    """
+    supabase = get_supabase_client()
+
+    try:
+        auth_response = await run_in_threadpool(
+            supabase.auth.refresh_session,
+            payload.refresh_token,
+        )
+    except AuthApiError as exc:
+        raise _auth_error(exc) from exc
+    except AuthError as exc:
+        raise _auth_error(exc) from exc
+
+    return _session_to_response(auth_response)
 
 
 @router.post("/logout")
