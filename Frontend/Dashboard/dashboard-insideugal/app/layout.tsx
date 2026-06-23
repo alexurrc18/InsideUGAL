@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import "./globals.css"; 
 import Sidebar from "./components/global/Sidebar";
@@ -11,14 +11,20 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [checking, setChecking] = useState(true);
+  const isInitialized = useRef(false);
 
   useEffect(() => {
+    if (isInitialized.current) return;
+    isInitialized.current = true;
+
     const token = localStorage.getItem("access_token");
+
     if (!token && pathname !== "/login") {
       router.replace("/login");
-    } else {
-      setChecking(false);
+      return;
     }
+
+    setChecking(false);
   }, [pathname, router]);
 
   if (checking && pathname !== "/login") return null;
