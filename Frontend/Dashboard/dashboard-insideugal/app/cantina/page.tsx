@@ -10,6 +10,7 @@ import {
   useUpdateProduct,
   useDeleteProduct,
 } from "@/hooks/useCantinaApi";
+import { Product } from "@/lib/api-types";
 
 interface Dish {
   id: string;
@@ -31,7 +32,7 @@ const DAYS = [
   "Vineri",
 ];
 
-const mapProductToDish = (p: any): Dish => ({
+const mapProductToDish = (p: Product): Dish => ({
   id: String(p.id),
   name: p.name,
   category: p.category,
