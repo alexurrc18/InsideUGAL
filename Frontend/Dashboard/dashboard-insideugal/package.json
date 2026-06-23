@@ -52,5 +52,8 @@
     "typescript": "^5",
     "vitest": "^4.1.8",
     "supabase": "^2.101.0"
+  },
+  "overrides": {
+    "undici": "^6.27.0"
   }
 }
