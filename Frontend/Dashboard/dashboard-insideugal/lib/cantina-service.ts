@@ -10,12 +10,14 @@ import {
 
 export const cantinaService = {
   // PRODUCTS
-  listProducts: (page = 1, size = 50) => {
-    return apiRequest(
-      `/products?offset=${(page - 1) * size}&limit=${size}`,
-      productsSchema
-    );
-  },
+listProducts: (page = 1, size = 50) => {
+  const offset = (page - 1) * size;
+
+  return apiRequest(
+    `/products?offset=${offset}&limit=${size}`,
+    productsSchema
+  );
+},
 
   createProduct: (data: Partial<Product>) =>
     apiRequest("/products", productSchema, {
