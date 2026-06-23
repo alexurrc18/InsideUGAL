@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import Table, { Column } from '../components/ui/Table';
 import Modal from '../components/ui/Modal';
 
@@ -59,7 +59,7 @@ export default function Page() {
       key: 'name', 
       render: (item) => (
         <div className="flex flex-col">
-          <span className="font-semibold text-slate-900">{item.name}</span>
+          <span className="font-semibold text-foreground">{item.name}</span>
           <span className="text-[10px] text-blue-600 font-bold uppercase">{item.category}</span>
         </div>
       )
@@ -111,7 +111,7 @@ export default function Page() {
     { 
       header: 'Preț', 
       key: 'price', 
-      render: (item) => <span className="font-bold text-slate-700 text-xs">{item.price}</span> 
+      render: (item) => <span className="font-bold text-foreground text-xs">{item.price}</span> 
     },
     { 
       header: 'Acțiuni', 
@@ -135,9 +135,9 @@ export default function Page() {
       <div className="flex justify-between items-start">
         <div className="space-y-4">
           {/* Titlul și descrierea au fost scoase direct de aici */}
-          <div className="flex flex-wrap gap-2 p-1 bg-slate-100/50 border border-slate-200 rounded-2xl w-fit">
+          <div className="flex flex-wrap gap-2 p-1 bg-background/50 border border-border rounded-2xl w-fit">
             {DAYS.map(day => (
-              <button key={day} type="button" onClick={() => setActiveDay(day)} className={`px-4 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${activeDay === day ? 'bg-white text-blue-600 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>{day}</button>
+              <button key={day} type="button" onClick={() => setActiveDay(day)} className={`px-4 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${activeDay === day ? 'bg-card text-blue-600 shadow-sm border border-border' : 'text-muted hover:text-foregrounddd'}`}>{day}</button>
             ))}
           </div>
         </div>
@@ -218,7 +218,7 @@ export default function Page() {
                   <button key={day} type="button" onClick={() => {
                     const current = formState.availableDays || [];
                     setFormState({...formState, availableDays: current.includes(day) ? current.filter(d => d !== day) : [...current, day]});
-                  }} className={`px-3 py-1.5 rounded-lg text-xs font-bold border cursor-pointer transition-all ${formState.availableDays?.includes(day) ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white text-slate-400 border-border hover:border-slate-300'}`}>{day}</button>
+                  }} className={`px-3 py-1.5 rounded-lg text-xs font-bold border cursor-pointer transition-all ${formState.availableDays?.includes(day) ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-card text-slate-400 border-border hover:border-slate-300'}`}>{day}</button>
                 ))}
               </div>
             </div>
@@ -228,7 +228,7 @@ export default function Page() {
             </div>
           </div>
 
-          <div className="sticky bottom-0 bg-white pt-4 border-t border-border z-10 flex justify-end space-x-2">
+          <div className="sticky bottom-0 bg-card pt-4 border-t border-border z-10 flex justify-end space-x-2">
             <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-border rounded-lg text-muted text-xs cursor-pointer hover:bg-slate-50">Anulează</button>
             <button type="submit" className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold cursor-pointer hover:opacity-90">Salvează</button>
           </div>

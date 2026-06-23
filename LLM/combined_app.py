@@ -9,6 +9,8 @@ from pathlib import Path
 from importlib.util import spec_from_file_location, module_from_spec
 from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from fastapi import Request, Depends
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from llm_optimizer import LLMOptimizer
@@ -73,9 +75,21 @@ smart_news_service = load_module(
 sys.modules.pop("schemas", None)
 sys.modules.pop("llm_functions", None)
 
+# Salvează cache-ul modul-marius înainte să fie suprascris de ChatBot/cache.py
+_modul_marius_cache = sys.modules.get("cache")
+sys.modules.pop("cache", None)
 campus_chat_service = load_module(
     "campus_chat_service",
     CHATBOT_MARIUS / "campus_chat_service.py",
+    extra_paths=[CHATBOT_MARIUS],
+)
+# Restaurează cache-ul modul-marius în sys.modules pentru apelurile ulterioare
+if _modul_marius_cache is not None:
+    sys.modules["cache"] = _modul_marius_cache
+
+rate_limiter_module = load_module(
+    "rate_limiter",
+    CHATBOT_MARIUS / "rate_limiter.py",
     extra_paths=[CHATBOT_MARIUS],
 )
 
@@ -89,7 +103,14 @@ logger = logging.getLogger("llm-integration")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 llm_service = smart_news_service.LLMService()
-image_service = smart_news_image_service.ImageServiceV2(hf_api_key=HF_API_KEY)
+if HF_API_KEY:
+    image_service = smart_news_image_service.ImageServiceV2(hf_api_key=HF_API_KEY)
+else:
+    image_service = None
+    logger.warning(
+        "HUGGINGFACE_API_KEY lipseste — generarea de bannere este dezactivata. "
+        "Adauga cheia in .env pentru a activa ImageServiceV2."
+    )
 llm_optimizer_service = LLMOptimizer(api_key=API_KEY, supabase_client=mod_marius_functions.supabase_client)
 
 app = FastAPI(
@@ -106,6 +127,12 @@ app.add_middleware(
 )
 
 
+def check_rate_limit(request: Request):
+    client_ip = request.client.host if request.client else "unknown"
+    if not rate_limiter_module.chat_limiter.is_allowed(client_ip):
+        raise HTTPException(status_code=429, detail="Prea multe cereri. Te rugăm să aștepți.")
+
+
 @app.get("/")
 def health_check():
     return {
@@ -119,6 +146,7 @@ def health_check():
             "/api/v1/summary",
             "/api/v1/delete-pdf/{pdf_id}",
             "/api/v1/campus-chat",
+            "/api/v1/campus-chat/stream",
         ],
     }
 
@@ -135,6 +163,11 @@ async def extract_announcement_info(request: smart_news_schemas.AnnouncementRequ
 
 @app.post("/api/v1/generate-banner", response_model=smart_news_image_service.ImageGenerationResult)
 async def generate_banner(info: smart_news_schemas.ExtractedAnnouncementInfo):
+    if image_service is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Generarea de bannere este dezactivata — HUGGINGFACE_API_KEY lipseste din configuratie."
+        )
     try:
         logger.info("Primire cerere generare banner pentru eveniment.")
         result = await image_service.generate_announcement_banner(info)
@@ -198,16 +231,16 @@ async def upload_pdf(background_tasks: BackgroundTasks, pdf: UploadFile = File(.
     return {"pdf_id": pdf_id, "message": "Documentul a fost primit si va fi procesat in background."}
 
 
-@app.post("/api/v1/ask", response_model=mod_marius_schemas.AnswerQuestionOutput)
+@app.post("/api/v1/ask", response_model=mod_marius_schemas.AnswerQuestionOutput, dependencies=[Depends(check_rate_limit)])
 def ask_question(request: mod_marius_schemas.AnswerQuestionInput):  # type: ignore
-    # 1. Filtru de Securitate Guardrails
-    if not llm_optimizer_service.check_prompt_safety(request.question):
-        raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
-
-    # 2. Verificare Semantic Cache
+    # 1. Verificare Semantic Cache (rapid, fără cost API)
     cached_answer = llm_optimizer_service.get_cached_answer(request.question)
     if cached_answer:
         return mod_marius_schemas.AnswerQuestionOutput(answer=cached_answer)
+
+    # 2. Filtru de Securitate Guardrails (doar pentru non-cached)
+    if not llm_optimizer_service.check_prompt_safety(request.question):
+        raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
 
     try:
         answer = mod_marius_functions.answer_question(request.question, request.pdf_id)
@@ -257,19 +290,20 @@ class CampusChatResponse(BaseModel):
     answer: str
     sources: list[str]
     suggestions: list[str]
+    link: str = ""
 
 
-@app.post("/api/v1/campus-chat", response_model=CampusChatResponse)
+@app.post("/api/v1/campus-chat", response_model=CampusChatResponse, dependencies=[Depends(check_rate_limit)])
 def campus_chat(request: CampusChatRequest):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Câmpul 'question' nu poate fi gol.")
-        
-    # 1. Filtru de Securitate Guardrails
-    if not llm_optimizer_service.check_prompt_safety(request.question):
-        raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
 
-    # 2. Verificare Semantic Cache
-    cached_answer = llm_optimizer_service.get_cached_answer(request.question)
+    # 1. Verificare Semantic Cache (rapid, fără cost API)
+    try:
+        cached_answer = llm_optimizer_service.get_cached_answer(request.question)
+    except Exception as cache_exc:
+        logger.warning("Semantic cache error (ignorat): %s", cache_exc)
+        cached_answer = None
     if cached_answer:
         return CampusChatResponse(
             answer=cached_answer,
@@ -277,20 +311,56 @@ def campus_chat(request: CampusChatRequest):
             suggestions=[]
         )
 
+    # 2. Filtru de Securitate Guardrails (doar pentru non-cached)
+    if not llm_optimizer_service.check_prompt_safety(request.question):
+        raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
+
     try:
         result = campus_chat_service.campus_chat(question=request.question)
         if "error" in result:
             raise HTTPException(status_code=500, detail=result["error"])
-            
+
         # 3. Salvare în cache după răspuns cu succes
         llm_optimizer_service.save_to_cache(request.question, result["answer"])
-        
+
         return CampusChatResponse(**result)
     except HTTPException:
         raise
     except Exception as exc:
         logger.error("Eroare campus-chat: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/v1/campus-chat/stream", dependencies=[Depends(check_rate_limit)])
+def campus_chat_stream(request: CampusChatRequest):
+    if not request.question.strip():
+        raise HTTPException(status_code=400, detail="Câmpul 'question' nu poate fi gol.")
+
+    # 1. Verificare Semantic Cache (rapid, fără cost API)
+    try:
+        cached_answer = llm_optimizer_service.get_cached_answer(request.question)
+    except Exception as cache_exc:
+        logger.warning("Semantic cache error (ignorat): %s", cache_exc)
+        cached_answer = None
+    if cached_answer:
+        return CampusChatResponse(
+            answer=cached_answer,
+            sources=["Memorie Cache (Răspuns stocat semantic)"],
+            suggestions=[]
+        )
+
+    # 2. Filtru de Securitate Guardrails (doar pentru non-cached)
+    if not llm_optimizer_service.check_prompt_safety(request.question):
+        raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
+
+    return StreamingResponse(
+        campus_chat_service.campus_chat_stream(question=request.question),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 if __name__ == "__main__":

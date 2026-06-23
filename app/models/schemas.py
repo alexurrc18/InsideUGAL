@@ -1,14 +1,28 @@
-# app/models/schemas.py
 from enum import Enum
-from typing import Optional, List
+from typing import Generic, Optional, List, TypeVar
 from uuid import UUID
 from datetime import datetime
 from decimal import Decimal
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
+
+# Importuri adăugate pentru conversia coordonatelor PostGIS
+from geoalchemy2.elements import WKBElement
+from geoalchemy2.shape import to_shape
 
 # ==========================================
 # ENUM-URI
 # ==========================================
+T = TypeVar("T")
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: List[T]
+    total: int
+    page: int
+    size: int
+    total_pages: int
+
+
 class UserRole(str, Enum):
     STUDENT = "STUDENT"
     STUDENT_RESPONSABIL = "STUDENT_RESPONSABIL"
@@ -120,6 +134,22 @@ class LocationResponse(LocationBase):
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+    # Validator adăugat pentru a transforma datele din baza de date în format Pydantic
+    @field_validator('coordinates', mode='before')
+    @classmethod
+    def convert_wkb_to_coordinates(cls, value):
+        if isinstance(value, WKBElement):
+            try:
+                # Convertim WKB în formă Shapely (Punct)
+                point = to_shape(value)
+                # La PostGIS/Shapely standard: x = longitudine, y = latitudine
+                return {"latitude": point.y, "longitude": point.x}
+            except Exception as e:
+                # În caz de eroare la conversie, returnăm None ca să nu crape aplicația
+                print(f"Eroare la conversia WKBElement: {e}")
+                return None
+        return value
 
 
 # ==========================================

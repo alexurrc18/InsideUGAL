@@ -1,10 +1,10 @@
-import json
 import os
+import re
 import sys
 import time
 import logging
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 import pdfplumber
 import pybreaker
@@ -145,7 +145,7 @@ def extract_text_from_file(file_path: str) -> str:
     if ext == ".txt":
         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
             return f.read()
-    raise ValueError(f"Format nesupорtat: {ext}")
+    raise ValueError(f"Format nesuportat: {ext}")
 
 
 def detect_language(text: str) -> str:
@@ -160,8 +160,6 @@ def chunk_text(text: str, max_words: int = 200, overlap_words: int = 30) -> list
     """Chunking inteligent: paragraf → propoziție → cuvinte ca fallback.
     Păstrează contextul semantic nealterat față de tăierea brutală la N cuvinte.
     """
-    import re
-
     paragraphs = [p.strip() for p in re.split(r"\n{2,}", text) if p.strip()]
 
     raw_chunks: list[str] = []
@@ -208,67 +206,76 @@ def chunk_text(text: str, max_words: int = 200, overlap_words: int = 30) -> list
     return overlapped
 
 
-def store_in_vector_db(chunks: list, pdf_id: str):
-    embeddings = []
-    for chunk in chunks:
-        resp = _client.models.embed_content(
-            model=EMBEDDING_MODEL,
-            contents=chunk,
-            config=genai_types.EmbedContentConfig(output_dimensionality=EMBEDDING_DIMS),
-        )
-        embeddings.append(resp.embeddings[0].values)
+def _embed_batch(texts: List[str]) -> List[List[float]]:
+    resp = _client.models.embed_content(
+        model=EMBEDDING_MODEL,
+        contents=texts,
+        config=genai_types.EmbedContentConfig(output_dimensionality=EMBEDDING_DIMS),
+    )
+    return [e.values for e in resp.embeddings]
 
-    data = []
-    for i, chunk in enumerate(chunks):
-        data.append({
-            "pdf_id": pdf_id,
-            "content": chunk,
-            "embedding": embeddings[i]
-        })
-        
+
+def store_in_vector_db(chunks: List[str], pdf_id: str) -> bool:
+    if not supabase_client:
+        raise RuntimeError("Supabase nu e configurat — lipsesc URL sau KEY.")
+    if not chunks:
+        return False
+
+    BATCH = 10
+    embeddings: List[List[float]] = []
+    for i in range(0, len(chunks), BATCH):
+        embeddings.extend(_embed_batch(chunks[i:i + BATCH]))
+
+    data = [
+        {"pdf_id": pdf_id, "content": chunk, "embedding": embeddings[i]}
+        for i, chunk in enumerate(chunks)
+    ]
     supabase_client.table("document_chunks").insert(data).execute()
     return True
 
 
-def query_relevant_chunks(query: str, pdf_id: str, n_results: int = 5) -> list:
-    resp = _client.models.embed_content(
-        model=EMBEDDING_MODEL,
-        contents=query,
-        config=genai_types.EmbedContentConfig(output_dimensionality=EMBEDDING_DIMS),
-    )
-    query_embedding = resp.embeddings[0].values
+def query_relevant_chunks(query: str, pdf_id: str, n_results: int = 5) -> List[str]:
+    if not supabase_client:
+        raise RuntimeError("Supabase nu e configurat — lipsesc URL sau KEY.")
 
+    query_embedding = _embed_batch([query])[0]
     response = supabase_client.rpc(
         "match_document_chunks",
-        {
-            "query_embedding": query_embedding,
-            "match_count": n_results,
-            "filter_pdf_id": pdf_id
-        }
+        {"query_embedding": query_embedding, "match_count": n_results, "filter_pdf_id": pdf_id},
     ).execute()
-    
     return [item["content"] for item in response.data]
 
 
 def delete_pdf_from_rag(pdf_id: str) -> None:
     """Sterge fragmentele din pgvector asociate unui PDF (garbage collection vectorial)."""
+    if not supabase_client:
+        logger.warning("delete_pdf_from_rag: Supabase nu e configurat, skip.")
+        return
     try:
         supabase_client.table("document_chunks").delete().eq("pdf_id", pdf_id).execute()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error("delete_pdf_from_rag: eroare la ștergere pdf_id=%s: %s", pdf_id, e)
 
 
 def load_pdf_into_rag(pdf_path: str, pdf_id: str) -> tuple:
-    text = extract_text_from_file(pdf_path)
+    try:
+        text = extract_text_from_file(pdf_path)
+    except Exception as e:
+        logger.error("load_pdf_into_rag: extragere text eșuată pentru %s: %s", pdf_path, e)
+        raise
     language = detect_language(text)
     chunks = chunk_text(text)
-    store_in_vector_db(chunks, pdf_id)
+    try:
+        store_in_vector_db(chunks, pdf_id)
+    except Exception as e:
+        logger.error("load_pdf_into_rag: indexare vectorială eșuată pentru pdf_id=%s: %s", pdf_id, e)
+        raise
     return chunks, language
 
 
 # ── Funcții publice cu contract Pydantic ──────────────────
 
-def answer_question(question: str, pdf_id: str, language: str = "ro") -> str:
+def answer_question(question: str, pdf_id: str) -> str:
     inp = AnswerQuestionInput(question=question, pdf_id=pdf_id)
 
     chunks = query_relevant_chunks(inp.question, inp.pdf_id, n_results=8)
@@ -292,10 +299,8 @@ def answer_question(question: str, pdf_id: str, language: str = "ro") -> str:
             if attempt == 1:
                 raise ValueError(f"Output LLM invalid după retry: {exc}") from exc
 
-    raise RuntimeError("unreachable")
 
-
-def generate_summary(pdf_id: str, language: str = "ro") -> str:
+def generate_summary(pdf_id: str) -> str:
     inp = GenerateSummaryInput(pdf_id=pdf_id)
 
     chunks = query_relevant_chunks(
@@ -327,5 +332,3 @@ def generate_summary(pdf_id: str, language: str = "ro") -> str:
         except ValidationError as exc:
             if attempt == 1:
                 raise ValueError(f"Rezumat invalid după retry: {exc}") from exc
-
-    raise RuntimeError("unreachable")

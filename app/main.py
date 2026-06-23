@@ -9,9 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 import app.api.announcements as announcements
 import app.api.auth as auth
@@ -20,14 +19,19 @@ import app.api.categories as categories
 import app.api.complaints as complaints
 import app.api.daily_menus as daily_menus
 import app.api.faculties as faculties
+import app.api.llm as llm
+import app.api.llm_stream as llm_stream
 import app.api.locations as locations
 import app.api.products as products
 import app.api.profiles as profiles
+import app.api.uploads as uploads
 from app.api.errors import (
     global_exception_handler,
     http_exception_handler,
     validation_exception_handler,
 )
+from app.middleware.timing import TimingMiddleware
+from app.rate_limit import limiter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,16 +39,24 @@ logger = logging.getLogger(__name__)
 # Variabila de mediu pentru a proteja mediul local
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
-async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
     return JSONResponse(
         status_code=429,
         content={"detail": "Too many requests. Please try again later."},
     )
 
+# Determine backend URL from environment for Swagger UI / OpenAPI documentation
+backend_url = os.getenv("NEXT_PUBLIC_BACKEND_URL")
+servers_list = []
+if backend_url:
+    servers_list.append({"url": backend_url, "description": "Backend Server"})
+servers_list.append({"url": "/", "description": "Local/Relative"})
+
 app = FastAPI(
     title="InsideUGAL API",
     description="API-ul platformei InsideUGAL...",
     version="1.0.0",
+    servers=servers_list,
     exception_handlers={
         Exception: global_exception_handler,
         StarletteHTTPException: http_exception_handler,
@@ -52,11 +64,14 @@ app = FastAPI(
     },
 )
 
-limiter = Limiter(key_func=get_remote_address, default_limits=["60 per minute"])
+# Rate Limiting Configuration
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
-allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+allowed_origins_raw = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001",
+)
 allowed_origins = [origin.strip() for origin in allowed_origins_raw.split(",") if origin.strip()]
 
 app.add_middleware(
@@ -98,6 +113,10 @@ async def add_request_id_middleware(request: Request, call_next):
     response.headers["X-Request-ID"] = request_id
     return response
 
+
+app.add_middleware(TimingMiddleware)
+app.add_middleware(SlowAPIMiddleware)
+
 app.include_router(profiles.router)
 app.include_router(faculties.router)
 app.include_router(categories.router)
@@ -108,3 +127,6 @@ app.include_router(cafeteria_menus.router)
 app.include_router(complaints.router)
 app.include_router(announcements.router)
 app.include_router(auth.router)
+app.include_router(llm.router)
+app.include_router(llm_stream.router)
+app.include_router(uploads.router)

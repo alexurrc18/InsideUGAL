@@ -1,140 +1,118 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Table, { Column } from "../components/ui/Table";
 import Modal from "../components/ui/Modal";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
+import { Card, CardContent } from "../components/ui/Card";
 import MapView from "../components/MapView";
 import MapComponent from "../components/MapComponent";
 
-interface Cladire {
+type PaginatedResponse<T> = {
+  items?: T[];
+};
+
+interface LocationApiItem {
   id: number;
-  denumire: string;
-  adresa: string;
-  lat: string;
-  lng: string;
-  facultate: string;
-  telefon: string;
-  website: string;
-  program: string;
-  descriere: string;
+  name: string;
+  faculty_id: number | null;
+  coordinates: { latitude: number; longitude: number } | null;
 }
 
-const initialCladiri: Cladire[] = [
-  { id: 1, denumire: "Corp D", adresa: "Str. Domnească nr. 111", lat: "45.44663581608561", lng: "28.053739626065855", facultate: "f1", telefon: "", website: "", program: "", descriere: "" },
-  { id: 2, denumire: "Corp Y", adresa: "Str. Domnească nr. 111, Corp Y", lat: "45.44568720923874", lng: "28.052315584193785", facultate: "f1", telefon: "", website: "", program: "", descriere: "" },
-  { id: 3, denumire: "Corp G (Domnească)", adresa: "Str. Domnească nr. 111", lat: "45.44607531932204", lng: "28.05217216305528", facultate: "f1", telefon: "", website: "", program: "", descriere: "" },
-];
+interface Cladire {
+  id: number;
+  name: string;
+  faculty_id: number | null;
+  coordinates: { latitude: number; longitude: number } | null;
+}
+
+interface FormState {
+  name: string;
+  faculty_id: string;
+  lat: string;
+  lng: string;
+}
+
+const emptyForm: FormState = {
+  name: "",
+  faculty_id: "",
+  lat: "",
+  lng: "",
+};
+
+const apiBaseUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8002").replace(/\/$/, "");
+
+function itemsFromResponse<T>(payload: PaginatedResponse<T> | T[]): T[] {
+  return Array.isArray(payload) ? payload : payload.items ?? [];
+}
+
+function getAuthHeaders(): HeadersInit {
+  const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+function formToPayload(form: FormState) {
+  return {
+    name: form.name,
+    faculty_id: form.faculty_id ? parseInt(form.faculty_id, 10) : null,
+    coordinates: form.lat && form.lng ? {
+      latitude: parseFloat(form.lat),
+      longitude: parseFloat(form.lng),
+    } : null,
+  };
+}
+
+function formFromCladire(cladire: Cladire): FormState {
+  return {
+    name: cladire.name,
+    faculty_id: cladire.faculty_id?.toString() ?? "",
+    lat: cladire.coordinates?.latitude.toString() ?? "",
+    lng: cladire.coordinates?.longitude.toString() ?? "",
+  };
+}
 
 function CladireForm({
   formState,
   setFormState,
   onSave,
   onCancel,
-  isExpanded,
-  setIsExpanded,
 }: {
-  formState: Omit<Cladire, "id">;
-  setFormState: React.Dispatch<React.SetStateAction<Omit<Cladire, "id">>>;
+  formState: FormState;
+  setFormState: React.Dispatch<React.SetStateAction<FormState>>;
   onSave: () => void;
   onCancel: () => void;
-  isExpanded: boolean;
-  setIsExpanded: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   return (
-    /* h-[calc(90vh-120px)] ne asigură că formularul folosește la maxim spațiul disponibil în modal */
-    <div className="flex flex-col w-full h-[calc(90vh-120px)] overflow-hidden">
-      
-      {/* 1. Zona cu Checkbox-ul de Facilități */}
-      <div className="flex justify-end mb-4 flex-shrink-0">
-        <label className="flex items-center gap-2 text-xs font-bold text-muted uppercase cursor-pointer select-none hover:text-foreground transition-colors">
-          <input
-            type="checkbox"
-            checked={isExpanded}
-            onChange={(e) => setIsExpanded(e.target.checked)}
-            className="w-4 h-4 rounded border-border text-sidebar focus:ring-sidebar cursor-pointer accent-sky-600"
-          />
-          Facilități clădire
-        </label>
-      </div>
-
-      {/* 2. CORPUL FORMULARULUI - Singurul care va primi scroll independent */}
-      <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
-        <div className={`grid grid-cols-1 ${isExpanded ? "md:grid-cols-2 gap-6" : "grid-cols-1"} items-start pb-4`}>
-          
-          {/* Coloana Stânga */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-muted uppercase mb-1">Denumire</label>
-              <input type="text" className="w-full p-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-sidebar"
-                value={formState.denumire} onChange={e => setFormState({...formState, denumire: e.target.value})} />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-muted uppercase mb-1">Adresă</label>
-              <input type="text" className="w-full p-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-sidebar"
-                value={formState.adresa} onChange={e => setFormState({...formState, adresa: e.target.value})} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-muted uppercase mb-1">Latitudine</label>
-                <input type="text" placeholder="ex: 45.44" className="w-full p-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-sidebar"
-                  value={formState.lat} onChange={e => setFormState({...formState, lat: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-muted uppercase mb-1">Longitudine</label>
-                <input type="text" placeholder="ex: 28.05" className="w-full p-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-sidebar"
-                  value={formState.lng} onChange={e => setFormState({...formState, lng: e.target.value})} />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-muted uppercase mb-1">Facultate</label>
-              <input type="text" className="w-full p-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-sidebar"
-                value={formState.facultate} onChange={e => setFormState({...formState, facultate: e.target.value})} />
-            </div>
-            <div style={{ height: "300px" }} className="rounded-lg overflow-hidden border border-border">
-              <MapComponent onLocationSelect={(lat, lng) => setFormState({ ...formState, lat: lat.toFixed(6), lng: lng.toFixed(6) })} />
-            </div>
+    <div className="flex flex-col w-full max-h-[calc(90vh-120px)] overflow-hidden">
+      <div className="flex-1 overflow-y-auto pr-1 space-y-4">
+        <div>
+          <label className="block text-xs font-bold text-muted uppercase mb-1">Denumire</label>
+          <input value={formState.name} onChange={(event) => setFormState({ ...formState, name: event.target.value })} className="w-full p-2 rounded-lg border border-border bg-background text-sm" />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-muted uppercase mb-1">Faculty ID</label>
+          <input type="number" value={formState.faculty_id} onChange={(event) => setFormState({ ...formState, faculty_id: event.target.value })} className="w-full p-2 rounded-lg border border-border bg-background text-sm" />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-muted uppercase mb-1">Latitudine</label>
+            <input value={formState.lat} onChange={(event) => setFormState({ ...formState, lat: event.target.value })} className="w-full p-2 rounded-lg border border-border bg-background text-sm" />
           </div>
-
-          {/* Coloana Dreaptă */}
-          {isExpanded && (
-            <div className="space-y-4 p-4 border border-border rounded-xl bg-muted/5 animate-in fade-in slide-in-from-right-4 duration-200">
-              <div>
-                <label className="block text-xs font-bold text-muted uppercase mb-1">Telefon</label>
-                <input type="text" placeholder="Introduceți numărul de telefon" className="w-full p-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-sidebar"
-                  value={formState.telefon} onChange={e => setFormState({...formState, telefon: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-muted uppercase mb-1">Website</label>
-                <input type="text" placeholder="Introduceți link-ul website-ului" className="w-full p-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-sidebar"
-                  value={formState.website} onChange={e => setFormState({...formState, website: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-muted uppercase mb-1">Program</label>
-                <input type="text" placeholder="ex: Luni - Vineri: 08:00 - 16:00" className="w-full p-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-sidebar"
-                  value={formState.program} onChange={e => setFormState({...formState, program: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-muted uppercase mb-1">Descriere</label>
-                <textarea rows={6} placeholder="Adăugați o descriere detaliată..." className="w-full p-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-sidebar resize-none"
-                  value={formState.descriere} onChange={e => setFormState({...formState, descriere: e.target.value})} />
-              </div>
-            </div>
-          )}
-
+          <div>
+            <label className="block text-xs font-bold text-muted uppercase mb-1">Longitudine</label>
+            <input value={formState.lng} onChange={(event) => setFormState({ ...formState, lng: event.target.value })} className="w-full p-2 rounded-lg border border-border bg-background text-sm" />
+          </div>
+        </div>
+        <div className="h-[260px] rounded-lg overflow-hidden border border-border">
+          <MapComponent onLocationSelect={(lat, lng) => setFormState({ ...formState, lat: lat.toFixed(6), lng: lng.toFixed(6) })} />
         </div>
       </div>
 
-      {/* 3. FOOTER FIX - Rămâne complet blocat în partea de jos, ferit de scroll */}
       <div className="flex justify-end gap-2 pt-4 bg-card border-t border-border flex-shrink-0">
-        <button type="button" onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium text-muted hover:text-foreground transition-colors">
-          Anulează
-        </button>
-        <button type="button" onClick={onSave}
-          className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
-          Salvează
-        </button>
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-muted hover:text-foreground">Anuleaza</button>
+        <button type="button" onClick={onSave} className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-medium hover:opacity-90">Salveaza</button>
       </div>
     </div>
   );
@@ -144,125 +122,185 @@ export default function HartiPage() {
   const [tab, setTab] = useState<"locatii" | "harta">("locatii");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editingCladire, setEditingCladire] = useState<Cladire | null>(null);
-  const [cladiri, setCladiri] = useState<Cladire[]>(initialCladiri);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [cladiri, setCladiri] = useState<Cladire[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [addForm, setAddForm] = useState<FormState>(emptyForm);
+  const [editForm, setEditForm] = useState<FormState>(emptyForm);
 
-  const [isAddExpanded, setIsAddExpanded] = useState(false);
-  const [isEditExpanded, setIsEditExpanded] = useState(false);
+  const fetchLocations = useCallback(async () => {
+    setLoading(true);
+    setErrorMessage(null);
 
-  const emptyForm = { denumire: "", adresa: "", lat: "", lng: "", facultate: "", telefon: "", website: "", program: "", descriere: "" };
-  const [addForm, setAddForm] = useState<Omit<Cladire, "id">>(emptyForm);
-  const [editForm, setEditForm] = useState<Omit<Cladire, "id">>(emptyForm);
+    try {
+      const response = await fetch(`${apiBaseUrl}/locations/`);
+      if (!response.ok) throw new Error(`Status ${response.status}`);
+      const payload = await response.json() as PaginatedResponse<LocationApiItem> | LocationApiItem[];
+      setCladiri(itemsFromResponse(payload).map((item) => ({
+        id: item.id,
+        name: item.name,
+        faculty_id: item.faculty_id ?? null,
+        coordinates: item.coordinates ?? null,
+      })));
+    } catch (error) {
+      console.error("Eroare la incarcarea locatiilor:", error);
+      setCladiri([]);
+      setErrorMessage("Nu am putut incarca locatiile reale. Verifica backend-ul si conexiunea la Supabase.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const handleAdd = () => {
-    if (!addForm.denumire) return;
-    setCladiri([...cladiri, { id: Date.now(), ...addForm }]);
-    setAddForm(emptyForm);
-    setShowAddModal(false);
-    setIsAddExpanded(false);
+  useEffect(() => {
+    void Promise.resolve().then(fetchLocations);
+  }, [fetchLocations]);
+
+  const handleAdd = async () => {
+    if (!addForm.name) return;
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/locations/`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(formToPayload(addForm)),
+      });
+      if (!response.ok) throw new Error(`Status ${response.status}`);
+      setAddForm(emptyForm);
+      setShowAddModal(false);
+      await fetchLocations();
+    } catch (error) {
+      console.error("Eroare la adaugarea locatiei:", error);
+      setErrorMessage("Adaugarea locatiei nu a reusit. Verifica autentificarea si permisiunile.");
+    }
   };
 
   const handleEditOpen = (cladire: Cladire) => {
-    setEditingCladire(cladire);
-    setEditForm({ 
-      denumire: cladire.denumire, 
-      adresa: cladire.adresa, 
-      lat: cladire.lat, 
-      lng: cladire.lng, 
-      facultate: cladire.facultate,
-      telefon: cladire.telefon || "",
-      website: cladire.website || "",
-      program: cladire.program || "",
-      descriere: cladire.descriere || ""
-    });
+    setEditingId(cladire.id);
+    setEditForm(formFromCladire(cladire));
     setShowEditModal(true);
   };
 
-  const handleEditSave = () => {
-    if (!editingCladire) return;
-    setCladiri(cladiri.map(c => c.id === editingCladire.id ? { ...c, ...editForm } : c));
-    setShowEditModal(false);
-    setEditingCladire(null);
-    setIsEditExpanded(false);
+  const handleEditSave = async () => {
+    if (!editingId) return;
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/locations/${editingId}`, {
+        method: "PATCH",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(formToPayload(editForm)),
+      });
+      if (!response.ok) throw new Error(`Status ${response.status}`);
+      setShowEditModal(false);
+      setEditingId(null);
+      await fetchLocations();
+    } catch (error) {
+      console.error("Eroare la editarea locatiei:", error);
+      setErrorMessage("Editarea locatiei nu a reusit. Verifica autentificarea si permisiunile.");
+    }
   };
+
+  const handleDelete = async (id: number) => {
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/locations/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok && response.status !== 204) throw new Error(`Status ${response.status}`);
+      await fetchLocations();
+    } catch (error) {
+      console.error("Eroare la stergerea locatiei:", error);
+      setErrorMessage("Stergerea locatiei nu a reusit. Verifica autentificarea si permisiunile.");
+    }
+  };
+
+  const cladiriForMap = cladiri
+    .filter((cladire) => cladire.coordinates)
+    .map((cladire) => ({
+      id: cladire.id,
+      denumire: cladire.name,
+      adresa: cladire.coordinates ? `${cladire.coordinates.latitude}, ${cladire.coordinates.longitude}` : "",
+      lat: cladire.coordinates!.latitude.toString(),
+      lng: cladire.coordinates!.longitude.toString(),
+      facultate: cladire.faculty_id === null ? "f8" : `f${cladire.faculty_id}`,
+    }));
 
   const columns: Column<Cladire>[] = [
     {
-      header: "Clădire",
-      key: "denumire",
+      header: "Cladire",
+      key: "name",
       render: (item) => (
         <div className="flex flex-col">
-          <span className="font-semibold text-foreground">{item.denumire}</span>
-          <span className="text-xs text-muted">{item.facultate}</span>
+          <span className="font-semibold text-foreground">{item.name}</span>
+          <span className="text-xs text-muted">{item.faculty_id ? `Facultate ${item.faculty_id}` : "UGAL"}</span>
         </div>
-      )
+      ),
     },
-    { header: "Adresă", key: "adresa" },
     {
       header: "Coordonate",
-      key: "lat",
-      render: (item) => <span className="text-xs text-muted font-mono">{item.lat}, {item.lng}</span>
+      key: "coordinates",
+      render: (item) => (
+        <span className="text-xs text-muted font-mono">
+          {item.coordinates ? `${item.coordinates.latitude}, ${item.coordinates.longitude}` : "-"}
+        </span>
+      ),
     },
     {
-      header: "Acțiuni",
+      header: "Actiuni",
       key: "id",
       render: (item) => (
         <div className="flex items-center gap-3">
           <button type="button" onClick={() => handleEditOpen(item)} className="text-blue-600 hover:text-blue-700 text-xs font-medium">Editare</button>
-          <button type="button" onClick={() => setCladiri(cladiri.filter(x => x.id !== item.id))} className="text-rose-600 hover:text-rose-700 text-xs font-medium">Ștergere</button>
+          <button type="button" onClick={() => void handleDelete(item.id)} className="text-rose-600 hover:text-rose-700 text-xs font-medium">Stergere</button>
         </div>
-      )
-    }
+      ),
+    },
   ];
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div className="flex gap-2 p-1 bg-background border border-border rounded-xl">
-          <button type="button" onClick={() => setTab("locatii")} className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${tab === "locatii" ? "bg-sidebar text-white" : "text-muted hover:text-foreground"}`}>Locații</button>
-          <button type="button" onClick={() => setTab("harta")} className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${tab === "harta" ? "bg-sidebar text-white" : "text-muted hover:text-foreground"}`}>Hartă</button>
+          <button type="button" onClick={() => setTab("locatii")} className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${tab === "locatii" ? "bg-sidebar text-white" : "text-muted hover:text-foreground"}`}>Locatii</button>
+          <button type="button" onClick={() => setTab("harta")} className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${tab === "harta" ? "bg-sidebar text-white" : "text-muted hover:text-foreground"}`}>Harta</button>
         </div>
-        <button type="button" onClick={() => { setAddForm(emptyForm); setIsAddExpanded(false); setShowAddModal(true); }} className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">+ Adaugă Clădire</button>
+        <button type="button" onClick={() => { setAddForm(emptyForm); setShowAddModal(true); }} className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-medium hover:opacity-90">+ Adauga cladire</button>
       </div>
+
+      {errorMessage && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {errorMessage}
+        </div>
+      )}
 
       {tab === "locatii" ? (
         <Card>
-          <CardContent className="p-0"><Table data={cladiri} columns={columns} /></CardContent>
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="p-8 text-center text-muted text-sm">Se incarca locatiile reale...</div>
+            ) : cladiri.length === 0 ? (
+              <div className="p-8 text-center text-muted text-sm">Nicio locatie inregistrata.</div>
+            ) : (
+              <Table data={cladiri} columns={columns} />
+            )}
+          </CardContent>
         </Card>
       ) : (
-        <div className="h-[600px] rounded-2xl overflow-hidden border border-border"><MapView cladiri={cladiri} /></div>
+        <div className="h-[600px] rounded-2xl overflow-hidden border border-border">
+          <MapView cladiri={cladiriForMap} />
+        </div>
       )}
 
-      <Modal 
-        isOpen={showAddModal} 
-        onClose={() => setShowAddModal(false)} 
-        title="Adaugă Clădire Nouă"
-        className={`transition-all duration-300 ease-in-out ${isAddExpanded ? "max-w-4xl" : "max-w-lg"}`}
-      >
-        <CladireForm 
-          formState={addForm} 
-          setFormState={setAddForm} 
-          onSave={handleAdd} 
-          onCancel={() => setShowAddModal(false)} 
-          isExpanded={isAddExpanded}
-          setIsExpanded={setIsAddExpanded}
-        />
+      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Adauga cladire" className="max-w-lg">
+        <CladireForm formState={addForm} setFormState={setAddForm} onSave={() => void handleAdd()} onCancel={() => setShowAddModal(false)} />
       </Modal>
 
-      <Modal 
-        isOpen={showEditModal} 
-        onClose={() => setShowEditModal(false)} 
-        title="Editare Clădire"
-        className={`transition-all duration-300 ease-in-out ${isEditExpanded ? "max-w-4xl" : "max-w-lg"}`}
-      >
-        <CladireForm 
-          formState={editForm} 
-          setFormState={setEditForm} 
-          onSave={handleEditSave} 
-          onCancel={() => setShowEditModal(false)} 
-          isExpanded={isEditExpanded}
-          setIsExpanded={setIsEditExpanded}
-        />
+      <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Editare cladire" className="max-w-lg">
+        <CladireForm formState={editForm} setFormState={setEditForm} onSave={() => void handleEditSave()} onCancel={() => setShowEditModal(false)} />
       </Modal>
     </div>
   );

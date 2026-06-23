@@ -15,7 +15,7 @@ async def run_tests():
         print("❌ EROARE: GEMINI_API_KEY nu a fost gasit!")
         return
 
-    service = LLMService(api_key=api_key)
+    service = LLMService()
 
     announcements = [
         {

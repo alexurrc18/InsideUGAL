@@ -1,13 +1,15 @@
-import React, { useState } from "react";
-import { View, Text, ScrollView, useColorScheme } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, useColorScheme, Pressable, Animated, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
-import { NewsCard } from "@/components/ui/news-card";
-import { CategoryHeader, FilterItem } from "@/components/ui/category-header";
-import { getFormattedDate } from "@/utils/date";
-import MOCK_DATA from "@/constants/mock-data.json";
+import { NewsCard } from "@/components/ui/display/news-card";
+import { CategoryHeader, FilterItem } from "@/components/ui/display/category-header";
+import { getFormattedDate, isoToRomanianDateStr } from "@/utils/date";
+import BackIcon from "@/assets/icons/svg/chevron-left.svg";
+import api from "@/services/api";
+import { NewsListSkeleton } from "@/components/ui/display/skeletons";
 
 export default function CategoryScreen() {
   const { title: categoryTitle } = useLocalSearchParams();
@@ -16,61 +18,237 @@ export default function CategoryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
+  const [scrollY] = useState(() => new Animated.Value(0));
+
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
+  const [data, setData] = useState<any[]>([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [faculties, setFaculties] = useState<any[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setHasMore(true);
+    await fetchData(1, true);
+    setPage(1);
+    setRefreshing(false);
+  };
+
+  // Fetch faculties list for filter options
+  useEffect(() => {
+    const fetchFaculties = async () => {
+      try {
+        const response = await api.get("/faculties/", {
+          params: { page: 1, size: 50 }
+        });
+        if (response.data && response.data.items) {
+          setFaculties(response.data.items);
+        }
+      } catch (err) {
+        console.error("[API] Error fetching faculties for filter:", err);
+      }
+    };
+    fetchFaculties();
+  }, []);
 
   const facultyFilters: FilterItem[] = [
-    { id: null, title: "Toate Facultățile", abbreviation: "Toate Facultățile" },
-    ...MOCK_DATA.faculties.map(f => ({
-        id: f.id,
-        title: f.title
+    { id: null, title: "Toate Facultățile", abbreviation: "Toate" },
+    ...faculties.map(f => ({
+      id: f.id.toString(),
+      title: f.name
     }))
   ];
 
-  const filteredData = categoryTitle === "Facultăți" 
-    ? MOCK_DATA.faculties 
-    : categoryTitle === "Facilități"
-    ? MOCK_DATA.facilities
-    : MOCK_DATA.events.filter(e => 
-        (e as any).category === categoryTitle && 
-        (!selectedFacultyId || (e as any).facultyId === selectedFacultyId || !(e as any).facultyId)
-      );
+  const fetchData = async (pageToFetch: number, isReset: boolean = false) => {
+    if (loading || (!hasMore && !isReset)) return;
+    setLoading(true);
+    try {
+      let response;
+      let newItems: any[] = [];
+      
+      if (categoryTitle === "Noutăți" || categoryTitle === "Evenimente") {
+        const type = categoryTitle === "Noutăți" ? "NOUTATE" : "EVENIMENT";
+        response = await api.get("/announcements/", {
+          params: {
+            page: pageToFetch,
+            size: 20,
+            announcement_type: type,
+            faculty_id: selectedFacultyId || undefined
+          }
+        });
+        
+        if (response.data && response.data.items) {
+          newItems = response.data.items.map((item: any) => ({
+            id: item.id.toString(),
+            title: item.title || "Titlu necunoscut",
+            category: categoryTitle,
+            date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
+            date_start: isoToRomanianDateStr(item.start_date) || "",
+            date_end: isoToRomanianDateStr(item.end_date) || "",
+            time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
+            time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
+            author: item.author || "Autor necunoscut",
+            image: item.image_url || undefined,
+            content: item.content || "Conținut necunoscut",
+            location: item.location_name || "Locație necunoscută",
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+          }));
+        }
+      } else if (categoryTitle === "Facultăți") {
+        response = await api.get("/faculties/", {
+          params: {
+            page: pageToFetch,
+            size: 20
+          }
+        });
+        if (response.data && response.data.items) {
+          newItems = response.data.items.map((item: any) => ({
+            id: item.id.toString(),
+            title: item.name || "Titlu necunoscut",
+            image: item.image_url || undefined,
+            address: item.address || "Adresă necunoscută",
+            phone: item.phone || "",
+            website: item.website_url || "",
+            content: item.description || "Conținut necunoscut",
+          }));
+        }
+      } else if (categoryTitle === "Facilități") {
+        response = await api.get("/locations/", {
+          params: {
+            page: pageToFetch,
+            size: 20
+          }
+        });
+        if (response.data && response.data.items) {
+          newItems = response.data.items.map((item: any) => ({
+            id: item.id.toString(),
+            title: item.name || "Titlu necunoscut",
+            image: item.image_url || undefined,
+            address: item.address || "Adresă necunoscută",
+            phone: item.phone || "",
+            website: item.website_url || "",
+            content: item.name || "Conținut necunoscut",
+            schedule: item.schedule || "",
+          }));
+        }
+      }
+      
+      if (newItems.length < 20) {
+        setHasMore(false);
+      }
+      
+      setData(prev => isReset ? newItems : [...prev, ...newItems]);
+      setPage(pageToFetch);
+    } catch (err) {
+      console.error("[API] Error fetching data:", err);
+      setHasMore(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setData([]);
+      setPage(1);
+      setHasMore(true);
+      fetchData(1, true);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [selectedFacultyId, categoryTitle]);
 
   const handlePress = (item: any) => {
-    let type = categoryTitle === "Evenimente" ? "Eveniment" : "Anunț";
+    let type: string | undefined = undefined;
     if (categoryTitle === "Facultăți") type = "Facultate";
-    if (categoryTitle === "Facilități") type = "Facilitate";
+    else if (categoryTitle === "Facilități") type = "Facilitate";
     
     router.push({
         pathname: "/(public)/acasa/vizualizare",
         params: {
-            type,
-            title: item.title,
-            category: categoryTitle as string,
-            content: item.content,
-            image: item.image,
-            location: item.location,
-            date_start: item.date_start,
-            date_end: item.date_end,
-            time_start: item.time_start,
-            time_end: item.time_end,
-            address: item.address,
-            phone: item.phone,
-            website: item.website,
-            schedule: item.schedule,
-            date: item.date_start || item.date
+            id: item.id,
+            ...(type ? { type } : {})
         }
     });
   };
 
+  const handleScroll = (event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 150;
+    if (isCloseToBottom && hasMore && !loading) {
+      fetchData(page + 1);
+    }
+  };
+
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [50, 90],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView 
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerShadowVisible: false,
+          headerTransparent: false,
+          headerStyle: {
+            backgroundColor: theme.background,
+          },
+          headerTintColor: theme.text,
+          headerLeft: () => (
+            <Pressable 
+              onPress={() => router.back()} 
+              style={({ pressed }) => ({
+                padding: Spacing.xs,
+                marginLeft: -Spacing.xs,
+                opacity: pressed ? 0.6 : 1
+              })}
+            >
+              <BackIcon width={28} height={28} color={theme.text} />
+            </Pressable>
+          ),
+          headerTitle: () => (
+            <Animated.View style={{ opacity: headerTitleOpacity }}>
+              <Text 
+                style={[
+                  Typography.Heading4, 
+                  { 
+                    color: theme.text,
+                    textAlign: "center"
+                  }
+                ]}
+                numberOfLines={1}
+              >
+                {(categoryTitle as string) || "Categorie"}
+              </Text>
+            </Animated.View>
+          ),
+        }}
+      />
+
+       <Animated.ScrollView 
         style={{ flex: 1 }} 
         contentContainerStyle={{ 
+          paddingTop: Spacing.md,
           paddingBottom: insets.bottom + Spacing.xxl
         }}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { 
+            useNativeDriver: true,
+            listener: handleScroll
+          }
+        )}
+        scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} tintColor={theme.primary} />
+        }
       >
-        <View style={{ paddingTop: insets.top + 50, marginBottom: Spacing.lg }}>
+        <View style={{ marginBottom: Spacing.lg }}>
             <CategoryHeader 
                 title={(categoryTitle as string) || "Categorie"}
                 filters={categoryTitle === "Facultăți" || categoryTitle === "Facilități" ? undefined : facultyFilters}
@@ -79,27 +257,39 @@ export default function CategoryScreen() {
             />
         </View>
 
-        <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>
-          {filteredData.map((item) => (
-              <NewsCard 
-                  key={item.id}
-                  variant="list"
-                  title={item.title}
-                  author={(item as any).author}
-                  date={getFormattedDate((item as any).date_start || (item as any).date)}
-                  image={item.image}
-                  onPress={() => handlePress(item)}
-              />
-          ))}
-        </View>
+        {(loading && page === 1) || refreshing ? (
+          <NewsListSkeleton />
+        ) : (
+          <>
+            <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>
+              {data.map((item) => (
+                  <NewsCard 
+                      key={item.id}
+                      variant="list"
+                      title={item.title}
+                      author={item.author || item.address}
+                      date={getFormattedDate(item.date)}
+                      image={item.image}
+                      onPress={() => handlePress(item)}
+                  />
+              ))}
+            </View>
 
-        {filteredData.length === 0 && (
-            <Text style={[Typography.Paragraph1, { color: theme.text, textAlign: "center", marginTop: 40 }]}>
-                Nu există elemente în această categorie.
-            </Text>
+            {loading && page > 1 && (
+              <View style={{ marginTop: Spacing.lg }}>
+                <NewsListSkeleton count={3} />
+              </View>
+            )}
+
+            {data.length === 0 && !loading && (
+                <Text style={[Typography.Paragraph1, { color: theme.text, textAlign: "center", marginTop: 40 }]}>
+                    Nu există elemente în această categorie.
+                </Text>
+            )}
+          </>
         )}
 
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }

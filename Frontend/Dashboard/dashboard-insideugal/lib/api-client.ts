@@ -1,17 +1,43 @@
-import type { z } from "zod";
+import { z } from "zod";
 
 import {
+  announcementSchema,
   announcementsSchema,
   coursesSchema,
   facultiesSchema,
   facultySchema,
   userSchema,
 } from "./api-schemas";
-import type { ApiErrorBody, ApiRequestOptions } from "./api-types";
+import type { Announcement, ApiErrorBody, ApiRequestOptions } from "./api-types";
 
-const apiBaseUrl =
-  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") ??
-  "http://localhost:8000";
+// 👉 REPARAT: Forțăm http în mod explicit pe local pentru a preveni ERR_SSL_PROTOCOL_ERROR
+// Chiar dacă în .env ai din greșeală "https", codul de mai jos se va asigura că rămâne "http" pe localhost.
+const rawUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") ?? "http://localhost:8002";
+export const apiBaseUrl = rawUrl.includes("localhost") ? rawUrl.replace("https://", "http://") : rawUrl;
+
+export function getStoredAccessToken(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const token = window.localStorage.getItem("access_token");
+  if (!token || token === "undefined" || token === "null") {
+    return null;
+  }
+
+  return token.replace(/^Bearer\s+/i, "").trim();
+}
+
+export function getAuthHeaders(headers?: HeadersInit): Headers {
+  const requestHeaders = new Headers(headers);
+  if (!requestHeaders.has("Authorization")) {
+    const token = getStoredAccessToken();
+    if (token) {
+      requestHeaders.set("Authorization", `Bearer ${token}`);
+    }
+  }
+  return requestHeaders;
+}
 
 export class ApiClientError extends Error {
   readonly body: ApiErrorBody | null;
@@ -35,6 +61,8 @@ function toHeaders(headers: HeadersInit | undefined, hasJsonBody: boolean) {
   if (!requestHeaders.has("Accept")) {
     requestHeaders.set("Accept", "application/json");
   }
+
+  getAuthHeaders(requestHeaders).forEach((value, key) => requestHeaders.set(key, value));
 
   return requestHeaders;
 }
@@ -96,10 +124,13 @@ export async function apiRequest<TResponse>(
   options: ApiRequestOptions = {},
 ): Promise<TResponse> {
   const body = toBody(options.body);
+  const headers = toHeaders(options.headers, body !== undefined);
+
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...options,
     body,
-    headers: toHeaders(options.headers, body !== undefined),
+    credentials: options.credentials ?? "include",
+    headers,
   });
 
   const payload = await readJson(response);
@@ -117,7 +148,22 @@ export async function apiRequest<TResponse>(
 }
 
 export const apiClient = {
-  getAnnouncements: () => apiRequest("/announcements", announcementsSchema),
+  getAnnouncements: () => apiRequest("/announcements/", announcementsSchema),
+    
+  createAnnouncement: (data: Partial<Announcement>) => 
+    apiRequest("/announcements/", announcementSchema, {
+      method: "POST",
+      body: data,
+    }),
+  updateAnnouncement: (id: number, data: Partial<Announcement>) =>
+    apiRequest(`/announcements/${id}`, announcementSchema, {
+      method: "PATCH",
+      body: data,
+    }),
+  deleteAnnouncement: (id: number) =>
+    apiRequest(`/announcements/${id}`, z.unknown(), {
+      method: "DELETE",
+    }),
   getCourses: () => apiRequest("/courses", coursesSchema),
   getFaculties: () => apiRequest("/faculties", facultiesSchema),
   getFaculty: (id: number) => apiRequest(`/faculties/${id}`, facultySchema),

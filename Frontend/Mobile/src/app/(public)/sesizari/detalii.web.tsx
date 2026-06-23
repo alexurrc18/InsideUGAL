@@ -7,17 +7,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { getFormattedDate } from "@/utils/date";
-import { Carousel } from "@/components/ui/carousel";
-import { CAROUSEL_CARD_MARGIN } from "@/components/ui/carousel.shared";
-import MockData from "@/constants/mock-data.json";
-import { CategoryHeader } from "@/components/ui/category-header";
-import { WebContainer } from "@/components/ui/web-container";
+import { Carousel } from "@/components/ui/display/carousel/carousel";
+import { CAROUSEL_CARD_MARGIN } from "@/components/ui/display/carousel/carousel.shared";
+import { CategoryHeader } from "@/components/ui/display/category-header";
+import { WebContainer } from "@/components/ui/layout/web-container";
+import { Breadcrumbs } from "@/components/ui/navigation/breadcrumbs";
 
 import LocationIcon from "@/assets/icons/svg/location.svg";
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
 import AlertOctagonIcon from "@/assets/icons/svg/alert-octagon.svg";
 import XIcon from "@/assets/icons/svg/x.svg";
-import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 
 interface TimelineStep {
   title: string;
@@ -39,7 +38,7 @@ export default function SesizareDetaliiScreen() {
   const id = params.id as string;
 
   const report = useMemo(() => {
-    return MockData.reports.find((r) => r.id === id) || {
+    return {
       id: id || "",
       title: (params.title as string) || "Titlu lipsă",
       description: (params.description as string) || "Nicio descriere adăugată.",
@@ -103,14 +102,15 @@ export default function SesizareDetaliiScreen() {
         }}
       >
         <WebContainer>
-          {/* Header propriu (back) — pe web nu folosim header-ul nativ */}
+          {/* Pe web nu mai folosim butonul nativ de back, ramane doar Breadcrumbs ca navigare principala */}
           <View style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm }}>
-            <Pressable
-              onPress={() => router.back()}
-              style={({ pressed }) => [{ padding: Spacing.xs, alignSelf: "flex-start", opacity: pressed ? 0.7 : 1 }]}
-            >
-              <BackIcon width={28} height={28} color={theme.text} />
-            </Pressable>
+            <Breadcrumbs 
+              items={[
+                { label: "Acasă", href: "/(public)/acasa" },
+                { label: "Sesizări", href: "/(public)/sesizari" },
+                { label: title || "Detalii sesizare" }
+              ]} 
+            />
           </View>
 
           <CategoryHeader title={title} />

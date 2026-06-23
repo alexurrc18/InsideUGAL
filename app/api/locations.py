@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_roles
 from app.api.crud import ensure_exists
+from app.api.pagination import PaginationParams, paginated_response
 from app.db.database import get_db
 from app.models import models, schemas
 from app.repositories.location_repo import LocationRepository
@@ -19,14 +20,18 @@ async def validate_faculty(payload: BaseModel, db: AsyncSession) -> None:
         await ensure_exists(db, models.Faculty, faculty_id, "Faculty not found.")
 
 
-@router.get("/", response_model=list[schemas.LocationResponse])
-async def read_locations(session: AsyncSession = Depends(get_db)):
-    return await repo.get_all(session)
+@router.get("/", response_model=schemas.PaginatedResponse[schemas.LocationResponse])
+async def read_locations(
+    pagination: PaginationParams = Depends(),
+    session: AsyncSession = Depends(get_db),
+):
+    items, total = await repo.get_page_for_response(session, limit=pagination.size, offset=pagination.offset)
+    return paginated_response(items, total, pagination)
 
 
 @router.get("/{location_id}", response_model=schemas.LocationResponse)
 async def read_location(location_id: int, session: AsyncSession = Depends(get_db)):
-    location = await repo.get_by_id(session, location_id)
+    location = await repo.get_response_by_id(session, location_id)
     if not location:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Location not found.")
     return location
@@ -39,7 +44,8 @@ async def create_location(
     current_profile=Depends(manage_locations),
 ):
     await validate_faculty(location_in, session)
-    return await repo.create(session, location_in)
+    location = await repo.create(session, location_in)
+    return await repo.get_response_by_id(session, location.id)
 
 
 @router.patch("/{location_id}", response_model=schemas.LocationResponse)
@@ -53,7 +59,8 @@ async def update_location(
     if not location:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Location not found.")
     await validate_faculty(location_in, session)
-    return await repo.update(session, location, location_in)
+    updated_location = await repo.update(session, location, location_in)
+    return await repo.get_response_by_id(session, updated_location.id)
 
 
 @router.delete("/{location_id}", status_code=status.HTTP_204_NO_CONTENT)

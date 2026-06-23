@@ -3,6 +3,29 @@ import * as dotenv from 'dotenv';
 import path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
+function originFromUrl(value: string | undefined): string | null {
+  if (!value) return null;
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+const backendOrigin = originFromUrl(process.env.NEXT_PUBLIC_BACKEND_URL);
+const connectSrc = [
+  "'self'",
+  "https://*.supabase.co",
+  "https://maps.googleapis.com",
+  "https://maps.gstatic.com",
+  "https://*.maptiler.com",
+  "https://api.maptiler.com",
+  "https://api.insideugal.ro",
+  "http://127.0.0.1:8002",
+  "http://localhost:8002",
+  backendOrigin,
+].filter(Boolean).join(" ");
+
 const cspHeader = `
     default-src 'self';
     script-src 'self' 'unsafe-eval' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com https://*.maptiler.com;
@@ -13,9 +36,8 @@ const cspHeader = `
     base-uri 'self';
     form-action 'self';
     frame-ancestors 'none';
-    connect-src 'self' https://*.supabase.co https://maps.googleapis.com https://maps.gstatic.com https://*.maptiler.com https://api.maptiler.com https://api.insideugal.ro http://127.0.0.1:8000 http://localhost:8000;
+    connect-src ${connectSrc};
     worker-src blob:;
-    upgrade-insecure-requests;
 `.replace(/\s{2,}/g, ' ').trim();
 const nextConfig: NextConfig = {
   output: "standalone",

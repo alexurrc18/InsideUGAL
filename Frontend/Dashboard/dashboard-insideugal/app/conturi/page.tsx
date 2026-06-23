@@ -91,15 +91,15 @@ export default function ConturiPage() {
       key: 'name',
       render: (item) => (
         <div className="space-y-0.5">
-          <p className="font-semibold text-slate-900 text-sm">{item.name}</p>
-          <p className="text-xs text-slate-500 font-mono">{item.email}</p>
+          <p className="font-semibold text-foregroundd text-sm">{item.name}</p>
+          <p className="text-xs text-muted font-mono">{item.email}</p>
         </div>
       )
     },
     {
       header: 'Facultate / Departament',
       key: 'faculty',
-      render: (item) => <span className="text-slate-600 text-xs max-w-xs block truncate">{item.faculty}</span>
+      render: (item) => <span className="text-muted text-xs max-w-xs block truncate">{item.faculty}</span>
     },
     {
       header: 'Tip Cont',
@@ -115,7 +115,7 @@ export default function ConturiPage() {
       key: 'status',
       render: (item) => (
         <span className={`px-2 py-0.5 rounded-md text-xs font-medium border ${
-          item.status === 'Activ' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-100 text-slate-500 border-slate-200'
+          item.status === 'Activ' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-background text-muted border-border'
         }`}>
           {item.status}
         </span>
@@ -178,7 +178,7 @@ export default function ConturiPage() {
           />
         </div>
 
-        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/60 w-fit overflow-x-auto max-w-full">
+        <div className="flex bg-background p-1 rounded-xl border border-border/60 w-fit overflow-x-auto max-w-full">
           {(['all', 'Student', 'Profesor', 'Secretariat', 'Admin'] as const).map((tab) => (
             <button
               key={tab}
@@ -186,8 +186,8 @@ export default function ConturiPage() {
               onClick={() => setRoleFilter(tab)}
               className={`px-4 py-1.5 text-xs font-bold rounded-lg cursor-pointer transition-all whitespace-nowrap ${
                 roleFilter === tab 
-                  ? 'bg-white text-slate-800 shadow-xs' 
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? 'bg-card text-foreground shadow-xs' 
+                  : 'text-muted hover:text-foreground'
               }`}
             >
               {tab === 'all' ? 'Toate' : tab}
@@ -209,12 +209,12 @@ export default function ConturiPage() {
           <form onSubmit={handleSaveChanges} className="space-y-4 text-sm">
             <div>
               <label className="block text-xs font-semibold text-foreground mb-1">Nume Complet</label>
-              <input type="text" value={selectedUser.name} disabled className="w-full border border-border p-2 rounded-lg bg-slate-50 text-slate-500 cursor-not-allowed focus:outline-none font-medium" />
+              <input type="text" value={selectedUser.name} disabled className="w-full border border-border p-2 rounded-lg bg-slate-50 text-muted cursor-not-allowed focus:outline-none font-medium" />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-foreground mb-1">Email Instituțional</label>
-              <input type="text" value={selectedUser.email} disabled className="w-full border border-border p-2 rounded-lg bg-slate-50 text-slate-500 cursor-not-allowed focus:outline-none font-mono" />
+              <input type="text" value={selectedUser.email} disabled className="w-full border border-border p-2 rounded-lg bg-slate-50 text-muted cursor-not-allowed focus:outline-none font-mono" />
             </div>
 
             <div>
@@ -222,7 +222,7 @@ export default function ConturiPage() {
               <select
                 value={selectedUser.role}
                 onChange={(e) => setSelectedUser({ ...selectedUser, role: e.target.value as UserRole })}
-                className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm font-medium text-slate-800 cursor-pointer"
+                className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm font-medium text-foreground cursor-pointer"
               >
                 {roleOptions.map((role) => (
                   <option key={role} value={role}>{role}</option>
@@ -235,7 +235,7 @@ export default function ConturiPage() {
               <select
                 value={selectedUser.status}
                 onChange={(e) => setSelectedUser({ ...selectedUser, status: e.target.value as UserStatus })}
-                className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm font-medium text-slate-800 cursor-pointer"
+                className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm font-medium text-foreground cursor-pointer"
               >
                 {statusOptions.map((status) => (
                   <option key={status} value={status}>{status}</option>

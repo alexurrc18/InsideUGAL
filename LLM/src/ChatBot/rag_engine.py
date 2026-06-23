@@ -1,13 +1,17 @@
 import os
 import re
 import time
+import logging
 import requests
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types as genai_types
 
+logger = logging.getLogger("chatbot.rag")
+
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 EMBEDDING_MODEL = "gemini-embedding-001"
 EMBEDDING_DIMS = 384
@@ -29,8 +33,8 @@ def _embed(texts: list[str]) -> list[list[float]]:
             return [e.values for e in result.embeddings]
         except Exception as e:
             if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                wait = 60 * (attempt + 1)
-                print(f"[RAG] 429 quota — aștept {wait}s și reîncerc ({attempt+1}/5)...")
+                wait = 30 * (attempt + 1)  # 30, 60, 90, 120, 150 — max ~7.5 min total
+                logger.warning("429 quota — aștept %ds și reîncerc (%d/5)...", wait, attempt + 1)
                 time.sleep(wait)
             else:
                 raise
@@ -93,7 +97,7 @@ class RAGEngine:
             batch_docs = docs[i:i + 10]
             batch_ids = ids[i:i + 10]
             batch_metas = metas[i:i + 10]
-            print(f"[RAG] Embed batch {batch_no}/{total_batches} ({len(batch_docs)} chunk-uri)...")
+            logger.info("Embed batch %d/%d (%d chunk-uri)...", batch_no, total_batches, len(batch_docs))
             embeddings = _embed(batch_docs)
             rows = [
                 {
@@ -128,7 +132,7 @@ class RAGEngine:
                 metas.append({"source": c["source"], "type": c["type"]})
         if docs:
             self._upsert(docs, ids, metas)
-            print(f"[RAG] +{len(docs)} chunk-uri ingerate.")
+            logger.info("+%d chunk-uri ingerate.", len(docs))
 
     def rebuild(self):
         requests.delete(
@@ -149,7 +153,7 @@ class RAGEngine:
             )
             rows = r.json() if r.ok else []
         except Exception as e:
-            print(f"[RAG] Query error: {e}")
+            logger.error("Query error: %s", e)
             return "", []
 
         if not rows or not isinstance(rows, list):

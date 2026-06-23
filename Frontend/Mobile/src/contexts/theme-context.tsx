@@ -2,9 +2,12 @@ import { createContext, useContext, useState, type ReactNode } from "react";
 import { useColorScheme as useSystemColorScheme } from "react-native";
 
 type Scheme = "light" | "dark";
+export type ThemeMode = "light" | "dark" | "system";
 
 interface ThemeContextValue {
   scheme: Scheme;
+  themeMode: ThemeMode;
+  setThemeMode: (mode: ThemeMode) => void;
   toggleTheme: () => void;
 }
 
@@ -19,13 +22,22 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
  */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const system = useSystemColorScheme();
-  const [override, setOverride] = useState<Scheme | null>(null);
+  const [themeMode, setThemeModeState] = useState<ThemeMode>("system");
 
-  const scheme: Scheme = override ?? (system === "dark" ? "dark" : "light");
-  const toggleTheme = () => setOverride(scheme === "dark" ? "light" : "dark");
+  const scheme: Scheme = themeMode === "system"
+    ? (system === "dark" ? "dark" : "light")
+    : themeMode;
+
+  const setThemeMode = (mode: ThemeMode) => {
+    setThemeModeState(mode);
+  };
+
+  const toggleTheme = () => {
+    setThemeModeState(scheme === "dark" ? "light" : "dark");
+  };
 
   return (
-    <ThemeContext.Provider value={{ scheme, toggleTheme }}>
+    <ThemeContext.Provider value={{ scheme, themeMode, setThemeMode, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

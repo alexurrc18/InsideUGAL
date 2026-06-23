@@ -3,7 +3,8 @@ from typing import Any, Generic, TypeVar
 from uuid import UUID
 
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.sql import Select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 ModelT = TypeVar("ModelT")
@@ -25,6 +26,24 @@ class CRUDRepository(Generic[ModelT]):
     async def get_all(self, session: AsyncSession) -> list[ModelT]:
         result = await session.execute(select(self.model))
         return list(result.scalars().all())
+
+    async def get_page(self, session: AsyncSession, *, limit: int, offset: int) -> tuple[list[ModelT], int]:
+        query = select(self.model)
+        return await self.paginate(session, query, limit=limit, offset=offset)
+
+    async def paginate(
+        self,
+        session: AsyncSession,
+        query: Select[tuple[ModelT]],
+        *,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[ModelT], int]:
+        total_result = await session.execute(select(func.count()).select_from(query.order_by(None).subquery()))
+        total = total_result.scalar_one()
+
+        result = await session.execute(query.limit(limit).offset(offset))
+        return list(result.scalars().all()), total
 
     async def get_by_id(self, session: AsyncSession, entity_id: Any) -> ModelT | None:
         result = await session.execute(select(self.model).where(self.model.id == entity_id))  # type: ignore[attr-defined]

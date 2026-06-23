@@ -1,14 +1,85 @@
-from fastapi import APIRouter, Depends
+from datetime import date as Date
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.auth_deps import require_roles
+from app.api.pagination import PaginationParams, paginated_response
 from app.db.database import get_db
 from app.models import schemas
-from app.repositories.daily_menu_repo import DailyMenuRepository
+from app.repositories.cafeteria_menu_repo import CafeteriaMenuRepository
 
 router = APIRouter(prefix="/cafeteria_menus", tags=["Cafeteria Menus"])
-repo = DailyMenuRepository()
+repo = CafeteriaMenuRepository()
+manage_cafeteria_menus = require_roles(schemas.UserRole.HEAD_ADMIN, schemas.UserRole.HEAD_CANTINA)
 
 
-@router.get("/", response_model=list[schemas.DailyMenuResponse])
-async def read_cafeteria_menus(day_of_week: int | None = None, session: AsyncSession = Depends(get_db)):
-    return await repo.get_all(session, day_of_week=day_of_week)
+@router.get("/", response_model=schemas.PaginatedResponse[schemas.DailyMenuResponse])
+async def read_cafeteria_menus(
+    date: Date | None = Query(default=None),
+    day_of_week: int | None = Query(default=None),
+    pagination: PaginationParams = Depends(),
+    session: AsyncSession = Depends(get_db),
+):
+    effective_day_of_week = day_of_week
+    if date is not None:
+        effective_day_of_week = date.isoweekday()
+
+    items, total = await repo.get_page(
+        session,
+        limit=pagination.size,
+        offset=pagination.offset,
+        day_of_week=effective_day_of_week,
+    )
+    return paginated_response(items, total, pagination)
+
+
+@router.get("/{menu_id}", response_model=schemas.DailyMenuResponse)
+async def read_cafeteria_menu(menu_id: int, session: AsyncSession = Depends(get_db)):
+    menu = await repo.get_by_id(session, menu_id)
+    if not menu:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cafeteria menu not found.")
+    return menu
+
+
+@router.post("/", response_model=schemas.DailyMenuResponse, status_code=status.HTTP_201_CREATED)
+async def create_cafeteria_menu(
+    menu_in: schemas.DailyMenuCreate,
+    session: AsyncSession = Depends(get_db),
+    current_profile=Depends(manage_cafeteria_menus),
+):
+    try:
+        return await repo.create(session, menu_in)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except IntegrityError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Cafeteria menu already exists.") from exc
+
+
+@router.patch("/{menu_id}", response_model=schemas.DailyMenuResponse)
+async def update_cafeteria_menu(
+    menu_id: int,
+    menu_in: schemas.DailyMenuUpdate,
+    session: AsyncSession = Depends(get_db),
+    current_profile=Depends(manage_cafeteria_menus),
+):
+    menu = await repo.get_by_id(session, menu_id)
+    if not menu:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cafeteria menu not found.")
+    try:
+        return await repo.update(session, menu, menu_in)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.delete("/{menu_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_cafeteria_menu(
+    menu_id: int,
+    session: AsyncSession = Depends(get_db),
+    current_profile=Depends(manage_cafeteria_menus),
+):
+    menu = await repo.get_by_id(session, menu_id)
+    if not menu:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cafeteria menu not found.")
+    await repo.delete(session, menu)

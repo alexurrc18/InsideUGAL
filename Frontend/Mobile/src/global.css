@@ -8,6 +8,58 @@
   --font-serif: Georgia, 'Times New Roman', serif;
 }
 
+/* Plasa de siguranta pe ecrane inguste: nimic nu trebuie sa depaseasca latimea
+   ferestrei pe orizontala (altfel apare scroll orizontal + zona alba in
+   dreapta-jos). Caruselele isi gestioneaza singure scroll-ul lor orizontal in
+   propriile containere, deci nu sunt afectate de regula asta. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Linkurile din navbar (desktop): subliniere care creste de la stanga la dreapta
+   la hover si se retrage spre dreapta cand iei mouse-ul. Linkul activ ramane
+   subliniat permanent. */
+[data-navlink] {
+  position: relative;
+}
+[data-navlink]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 2px;
+  border-radius: 1px;
+  background-color: #f8f9fa;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 200ms ease;
+}
+[data-navlink]:hover::after,
+[data-navlink][data-active="true"]::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* Meniul "Anunțuri" din navbar: ascuns implicit, apare la hover pe containerul
+   parinte (cu fade + slide). `visibility` + `pointer-events` il scot complet din
+   interactiune cand e ascuns. */
+[data-dropdown-menu] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition: opacity 180ms ease, transform 180ms ease, visibility 180ms;
+}
+[data-navdropdown]:hover [data-dropdown-menu] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
 /* Bara de scroll a caruselelor pe desktop web: subțire, colorată, doar orizontală */
 [data-carousel] {
   overflow-x: auto !important;
@@ -37,12 +89,12 @@
   height: 0;
 }
 
-/* Hover „focus" pe carduri (doar desktop web): zoom + umbră + întunecarea colțurilor */
-[data-card] {
-  transition: transform 180ms ease;
+/* Hover „focus" pe carduri (doar desktop web): zoom doar pe imagine, nu pe întreg cardul */
+[data-card] img {
+  transition: transform 250ms ease !important;
 }
-[data-card]:hover {
-  transform: scale(1.03);
+[data-card]:hover img {
+  transform: scale(1.06) !important;
 }
 
 /* Cantina (web): deschidere/inchidere meniu cu animatie rapida */
@@ -50,28 +102,28 @@
   display: grid !important;
   grid-template-rows: 0fr;
   grid-template-columns: 100%; /* pastreaza latimea */
-  transition: grid-template-rows 200ms ease; /* Inchidere rapida */
+  transition: grid-template-rows 100ms ease; /* Inchidere foarte rapida */
 }
 [data-expanded="open"] [data-expandable-body] {
   grid-template-rows: 1fr;
-  transition: grid-template-rows 250ms ease; /* Deschidere normala */
+  transition: grid-template-rows 150ms ease; /* Deschidere rapida */
 }
 [data-expandable-inner] {
   overflow: hidden;
   min-height: 0;
   opacity: 0;
   transform: translateY(-8px);
-  transition: opacity 100ms ease, transform 100ms ease; /* Inchidere rapida */
+  transition: opacity 80ms ease, transform 80ms ease; /* Inchidere foarte rapida */
 }
 [data-expanded="open"] [data-expandable-inner] {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 300ms ease, transform 300ms ease;
-  transition-delay: 100ms; /* fade-in dupa ce incepe deschiderea */
+  transition: opacity 180ms ease, transform 180ms ease;
+  transition-delay: 40ms; /* fade-in aproape imediat */
 }
 [data-expandable-chevron] {
-  transition: transform 150ms ease; /* Inchidere rapida */
+  transition: transform 80ms ease; /* Inchidere foarte rapida */
 }
 [data-expanded="open"] [data-expandable-chevron] {
-  transition: transform 400ms ease; /* Deschidere normala */
+  transition: transform 200ms ease; /* Deschidere rapida */
 }

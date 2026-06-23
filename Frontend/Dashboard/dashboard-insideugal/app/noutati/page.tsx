@@ -5,7 +5,16 @@ import React, { useState, useMemo, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Table, { Column } from '../components/ui/Table';
 import Modal from '../components/ui/Modal';
-import { Announcement, mockAnnouncements, PdfFile } from '../data/announcements';
+import { Announcement, PdfFile } from '../data/announcements';
+
+import { 
+  useAnnouncements, 
+  useCreateAnnouncement, 
+  useUpdateAnnouncement, 
+  useDeleteAnnouncement,
+  useFaculties
+} from '@/hooks/useDashboardApi';
+import { Announcement as BackendAnnouncement } from '@/lib/api-types';
 
 const availableFacultiesFromSystem = [
   "AC",
@@ -19,9 +28,13 @@ const availableFacultiesFromSystem = [
   "Economie"
 ];
 
-// Recomandare react-doctor: Componentă extrasă în scope-ul modulului pentru performanță stabilă la randare
 function AnnouncementsContent() {
-  const [data, setData] = useState<Announcement[]>(mockAnnouncements);
+  const { data: backendData, isLoading: isLoadingAnnouncements, isError: isErrorAnnouncements, error: announcementsError } = useAnnouncements();
+  const { data: backendFaculties } = useFaculties();
+  const createMutation = useCreateAnnouncement();
+  const updateMutation = useUpdateAnnouncement();
+  const deleteMutation = useDeleteAnnouncement();
+
   const [activeModal, setActiveModal] = useState<'add' | 'edit' | 'details' | null>(null);
   const [selectedItem, setSelectedItem] = useState<Announcement | null>(null);
   const [formState, setFormState] = useState<Partial<Announcement>>({});
@@ -34,7 +47,27 @@ function AnnouncementsContent() {
   
   const searchParams = useSearchParams();
 
-  // Corecție critică react-doctor: Adăugat return cleanup() pentru a preveni pierderile de memorie (memory leaks)
+  // 👉 REPARAT: Extrage masivul din obiectul de paginare ("items")
+  const data = useMemo(() => {
+    // Dacă backendData este direct masiv, îl folosim. Dacă are proprietatea .items, o folosim pe aceea.
+    const list = backendData && typeof backendData === 'object' && 'items' in backendData 
+      ? (backendData as Record<string, unknown>).items 
+      : backendData;
+
+    if (!list || !Array.isArray(list)) return [];
+
+    return (list as BackendAnnouncement[]).map((item: BackendAnnouncement): Announcement => ({
+      id: item.id.toString(),
+      title: item.title,
+      description: item.content || '', 
+      publishDate: item.created_at ? new Date(item.created_at).toLocaleDateString('ro-RO') : 'Fără dată',
+      faculties: (item as Record<string, unknown>).faculties as string[] || [], 
+      thumbnail: (item as Record<string, unknown>).thumbnail as string || '', 
+      eventLink: (item as Record<string, unknown>).eventLink as string || '', 
+      pdfFiles: []  
+    }));
+  }, [backendData]);
+
   useEffect(() => {
     let timerId: NodeJS.Timeout;
 
@@ -51,17 +84,11 @@ function AnnouncementsContent() {
     };
   }, [searchParams]);
 
-  const initialFaculties = useMemo(() => {
-    const facultiesSet = new Set<string>();
-    data.forEach(item => {
-      item.faculties?.forEach(f => {
-        if (f !== 'Toate') facultiesSet.add(f);
-      });
-    });
-    return Array.from(facultiesSet);
-  }, [data]);
-
-  const [dynamicFaculties, setDynamicFaculties] = useState<string[]>(initialFaculties);
+  const dynamicFaculties = useMemo(() => {
+    const fromBackend = backendFaculties?.map(f => f.abbreviation) || [];
+    const merged = Array.from(new Set([...availableFacultiesFromSystem, ...fromBackend]));
+    return merged.filter(f => f !== 'Toate');
+  }, [backendFaculties]);
 
   const allFilterOptions = useMemo(() => {
     return ['Toate', ...dynamicFaculties];
@@ -82,11 +109,43 @@ function AnnouncementsContent() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleShare = async (item: Announcement) => {
+    const shareData = {
+      title: item.title,
+      text: item.description,
+      url: window.location.origin + `/noutati/${item.id}`,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      // Fallback
+      const encodedUrl = encodeURIComponent(shareData.url);
+      const encodedTitle = encodeURIComponent(shareData.title);
+      
+      const options = [
+        { name: 'Facebook', url: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}` },
+        { name: 'X', url: `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}` },
+        { name: 'WhatsApp', url: `https://wa.me/?text=${encodedTitle}%20${encodedUrl}` }
+      ];
+
+      // Simple alert or prompt to choose? 
+      // For simplicity and to fit in a table cell/row, let's just open the Facebook one as a direct fallback
+      // or simply copy to clipboard? The prompt asks for social media sharing links.
+      // Let's open a new window for the user to choose.
+      window.open(options[0].url, '_blank');
+    }
+  };
+
   const columns: Column<Announcement>[] = [
     { 
       header: 'Titlu', 
       key: 'title',
-      render: (item) => <span className="font-semibold text-slate-900">{item.title}</span>
+      render: (item) => <span className="font-semibold text-foreground">{item.title}</span>
     },
     { 
       header: 'Descriere', 
@@ -98,11 +157,15 @@ function AnnouncementsContent() {
       key: 'faculties',
       render: (item) => (
         <div className="flex flex-wrap gap-1">
-          {item.faculties?.map((f) => (
-            <span key={f} className="bg-blue-50 text-brand text-xs px-2.5 py-0.5 rounded-md font-medium border border-blue-100/50">
-              {f}
-            </span>
-          ))}
+          {item.faculties && item.faculties.length > 0 ? (
+            item.faculties.map((f) => (
+              <span key={f} className="bg-blue-50 text-brand text-xs px-2.5 py-0.5 rounded-md font-medium border border-blue-100/50">
+                {f}
+              </span>
+            ))
+          ) : (
+            <span className="text-slate-300 text-[10px] italic">Fără facultăți</span>
+          )}
         </div>
       )
     },
@@ -127,8 +190,18 @@ function AnnouncementsContent() {
           >
             Editare
           </button>
-          <button type="button" className="text-green-600 hover:text-green-800 font-medium hover:underline cursor-pointer" onClick={() => console.info(`Shared: ${item.title}`)}>Share</button>
-          <button type="button" className="text-red-500 hover:text-red-700 font-medium hover:underline cursor-pointer" onClick={() => setData(data.filter(a => a.id !== item.id))}>Ștergere</button>
+          <button type="button" className="text-green-600 hover:text-green-800 font-medium hover:underline cursor-pointer" onClick={() => handleShare(item)}>Share</button>
+          <button 
+            type="button" 
+            className="text-red-500 hover:text-red-700 font-medium hover:underline cursor-pointer" 
+            onClick={() => {
+              if (confirm('Ești sigur că vrei să ștergi acest anunț?')) {
+                deleteMutation.mutate(parseInt(item.id));
+              }
+            }}
+          >
+            Ștergere
+          </button>
         </div>
       )
     }
@@ -168,27 +241,15 @@ function AnnouncementsContent() {
 
   const handleAddNewFaculty = () => {
     const trimmed = newFacultyInput.trim();
-    if (trimmed && trimmed !== 'Toate' && !dynamicFaculties.includes(trimmed)) {
-      setDynamicFaculties([...dynamicFaculties, trimmed]);
+    if (trimmed && trimmed !== 'Toate') {
       const currentFaculties = formState.faculties || [];
-      setFormState(prev => ({
-        ...prev,
-        faculties: [...currentFaculties, trimmed]
-      }));
+      if (!currentFaculties.includes(trimmed)) {
+        setFormState(prev => ({
+          ...prev,
+          faculties: [...currentFaculties, trimmed]
+        }));
+      }
       setNewFacultyInput('');
-    }
-  };
-
-  const handleRemoveFacultyFromSystem = (facultyToRemove: string) => {
-    setDynamicFaculties(dynamicFaculties.filter(f => f !== facultyToRemove));
-    if (formState.faculties?.includes(facultyToRemove)) {
-      setFormState(prev => ({
-        ...prev,
-        faculties: prev.faculties?.filter(f => f !== facultyToRemove)
-      }));
-    }
-    if (selectedFaculty === facultyToRemove) {
-      setSelectedFaculty('Toate');
     }
   };
 
@@ -205,27 +266,30 @@ function AnnouncementsContent() {
     console.info("Generare imagine AI... (Legătură LLM viitoare)");
   };
 
+  // 👉 REPARAT: Payload-ul acum trimite corect câmpurile structurate pentru Backend
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (activeModal === 'edit') {
-      setData(data.map(item => item.id === selectedItem?.id ? { ...item, ...formState } as Announcement : item));
-    } else {
-      const today = new Date();
-      const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    const backendPayload: Record<string, unknown> = {
+      type: 'NOUTATE',
+      title: formState.title || '',
+      content: formState.description || '', // Mapare description (UI) -> content (Backend)
+      is_pinned: false,
+      faculties: formState.faculties || [], // Trimite masivul de facultăți selectat
+    };
 
-      const newAnnouncement: Announcement = {
-        id: `ann-${Date.now()}`,
-        title: formState.title || 'Anunț Nou',
-        description: formState.description || '',
-        publishDate: formattedDate,
-        faculties: formState.faculties || [],
-        thumbnail: formState.thumbnail || '',
-        eventLink: formState.eventLink || '',
-        pdfFiles: formState.pdfFiles || []
-      };
-      setData([newAnnouncement, ...data]);
+    if (activeModal === 'edit' && selectedItem) {
+      updateMutation.mutate({ 
+        id: parseInt(selectedItem.id), 
+        data: backendPayload as Partial<BackendAnnouncement>
+      }, {
+        onSuccess: () => setActiveModal(null)
+      });
+    } else {
+      createMutation.mutate(backendPayload as BackendAnnouncement, {
+        onSuccess: () => setActiveModal(null)
+      });
     }
-    setActiveModal(null);
   };
 
   return (
@@ -236,7 +300,7 @@ function AnnouncementsContent() {
           <button
             type="button"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center justify-between min-w-[140px] border border-border px-4 py-2.5 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-slate-700"
+            className="flex items-center justify-between min-w-[140px] border border-border px-4 py-2.5 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-foreground"
           >
             <span>{selectedFaculty}</span>
             <svg className={`w-4 h-4 ml-2 text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -245,12 +309,12 @@ function AnnouncementsContent() {
           </button>
 
           {isDropdownOpen && (
-            <div className="absolute left-14 top-full mt-1.5 w-48 bg-white border border-border rounded-xl shadow-lg py-1 z-50">
+            <div className="absolute left-14 top-full mt-1.5 w-48 bg-card border border-border rounded-xl shadow-lg py-1 z-50">
               {allFilterOptions.map(faculty => (
                 <div
                   key={faculty}
                   onClick={() => { setSelectedFaculty(faculty); setIsDropdownOpen(false); }}
-                  className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedFaculty === faculty ? 'bg-blue-50 text-blue-600 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
+                  className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedFaculty === faculty ? 'bg-blue-50 text-blue-600 font-bold' : 'text-muted hover:bg-slate-50'}`}
                 >
                   <span>{faculty}</span>
                 </div>
@@ -269,16 +333,27 @@ function AnnouncementsContent() {
       </div>
         
       <div className="bg-card border border-border rounded-2xl shadow-xs overflow-hidden">
-        <Table 
-          data={filteredData} 
-          columns={columns} 
-          onRowClick={(item) => { 
-            setSelectedItem(item); 
-            setActiveModal('details'); 
-          }} 
-        />
+        {isLoadingAnnouncements ? (
+          <div className="p-12 text-center text-sm text-muted animate-pulse">
+            Se încarcă noutățile...
+          </div>
+        ) : isErrorAnnouncements ? (
+          <div className="p-12 text-center text-sm text-red-500">
+            Eroare la încărcarea noutăților: {announcementsError?.message || 'Eroare de rețea sau protocol SSL local.'}
+          </div>
+        ) : (
+          <Table 
+            data={filteredData} 
+            columns={columns} 
+            onRowClick={(item) => { 
+              setSelectedItem(item); 
+              setActiveModal('details'); 
+            }} 
+          />
+        )}
       </div>
 
+      {/* Modal Vizualizare */}
       <Modal isOpen={activeModal === 'details'} onClose={() => setActiveModal(null)} title="Vizualizare Anunț">
         {selectedItem && (
           <div className="space-y-4 text-sm text-foreground">
@@ -290,7 +365,7 @@ function AnnouncementsContent() {
                   fill
                   sizes="(max-width: 768px) 100vw, 512px"
                   className="object-cover"
-                  unoptimized={selectedItem.thumbnail.startsWith('data:')}
+                  unoptimized={selectedItem.thumbnail.startsWith('data:').valueOf()}
                 />
               </div>
             )}
@@ -313,7 +388,6 @@ function AnnouncementsContent() {
               <div className="space-y-2 pt-2">
                 <span className="block text-xs font-bold text-foreground">Documente atașate:</span>
                 <div className="flex flex-col gap-1.5">
-                  {/* Corecție react-doctor: Folosit file.name ca o cheie stabilă în loc de indexul array-ului */}
                   {selectedItem.pdfFiles.map((file) => (
                     <div key={file.name}>
                       <a href={file.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-100 transition-all">
@@ -339,6 +413,7 @@ function AnnouncementsContent() {
         )}
       </Modal>
 
+      {/* Modal Adăugare / Editare */}
       <Modal isOpen={activeModal === 'add' || activeModal === 'edit'} onClose={() => setActiveModal(null)} title={activeModal === 'edit' ? "Editare Anunț" : "Adăugare Anunț Nou"}>
         <form onSubmit={handleSave} className="flex flex-col max-h-[calc(100vh-200px)] text-sm">
           
@@ -350,13 +425,12 @@ function AnnouncementsContent() {
             `}} />
 
             <div>
-              {/* Corecție react-doctor: Asociat explicit label de input prin htmlFor și id */}
-              <label htmlFor="ann-title" className="block text-xs font-semibold text-slate-700 mb-1">Titlu Anunț</label>
+              <label htmlFor="ann-title" className="block text-xs font-semibold text-foreground mb-1">Titlu Anunț</label>
               <input id="ann-title" type="text" value={formState.title || ''} onChange={e => setFormState({...formState, title: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand" required />
             </div>
 
             <div>
-              <label htmlFor="ann-sys-faculty" className="block text-xs font-semibold text-slate-700 mb-1">Adaugă o facultate nouă în sistem</label>
+              <label htmlFor="ann-sys-faculty" className="block text-xs font-semibold text-foreground mb-1">Adaugă o facultate nouă în sistem</label>
               <div className="flex gap-2">
                 <select
                   id="ann-sys-faculty"
@@ -365,7 +439,7 @@ function AnnouncementsContent() {
                   className="flex-1 border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm cursor-pointer"
                 >
                   <option value="">Alege o facultate...</option>
-                  {availableFacultiesFromSystem.map(fac => (
+                  {dynamicFaculties.map(fac => (
                     <option key={fac} value={fac}>{fac}</option>
                   ))}
                 </select>
@@ -379,32 +453,29 @@ function AnnouncementsContent() {
               </div>
 
               <div className="flex flex-wrap gap-1.5 p-2.5 border border-border rounded-lg bg-slate-50/50 mt-2">
-                {dynamicFaculties.map(faculty => {
-                  const isSelected = formState.faculties?.includes(faculty);
-                  return (
-                    <div key={faculty} className="relative group">
-                      <button
-                        type="button"
-                        onClick={() => toggleFacultySelection(faculty)}
-                        className={`pr-7 pl-2.5 py-1 rounded-md text-xs font-medium border transition-all cursor-pointer relative ${isSelected ? 'bg-blue-50 border-blue-200 text-blue-600 font-semibold' : 'bg-white border-border text-slate-500 hover:border-slate-300'}`}
-                      >
-                        {faculty}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); handleRemoveFacultyFromSystem(faculty); }}
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 text-[10px] px-0.5 font-bold transition-colors cursor-pointer"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  );
-                })}
+                {formState.faculties?.map(faculty => (
+                  <div key={faculty} className="relative group">
+                    <button
+                      type="button"
+                      onClick={() => toggleFacultySelection(faculty)}
+                      className="pr-7 pl-2.5 py-1 rounded-md text-xs font-medium border bg-blue-50 border-blue-200 text-blue-600 transition-all cursor-pointer relative font-semibold"
+                    >
+                      {faculty}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); toggleFacultySelection(faculty); }}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 text-[10px] px-0.5 font-bold transition-colors cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
 
             <div>
-              <span className="block text-xs font-semibold text-slate-700 mb-1">Thumbnail imagine</span>
+              <span className="block text-xs font-semibold text-foreground mb-1">Thumbnail imagine</span>
               <div className="flex flex-col gap-3 p-3 border border-dashed border-border rounded-lg bg-background/50">
                 <div className="flex flex-col sm:flex-row gap-2 items-center">
                   <input 
@@ -418,7 +489,7 @@ function AnnouncementsContent() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 flex items-center justify-center gap-2 border border-border px-4 py-2 rounded-md text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 transition-all cursor-pointer w-full"
+                    className="flex-1 flex items-center justify-center gap-2 border border-border px-4 py-2 rounded-md text-xs font-semibold text-foreground bg-card hover:bg-slate-50 transition-all cursor-pointer w-full"
                   >
                     <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -461,7 +532,7 @@ function AnnouncementsContent() {
             </div>
 
             <div>
-              <span className="block text-xs font-semibold text-slate-700 mb-1">Documente atașate (PDF)</span>
+              <span className="block text-xs font-semibold text-foreground mb-1">Documente atașate (PDF)</span>
               <div className="p-3 border border-dashed border-border rounded-lg bg-background/50 flex flex-col gap-2">
                 <input 
                   type="file" 
@@ -474,7 +545,7 @@ function AnnouncementsContent() {
                 <button
                   type="button"
                   onClick={() => pdfInputRef.current?.click()}
-                  className="flex items-center justify-center gap-2 border border-border px-4 py-2 rounded-md text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 transition-all cursor-pointer w-full"
+                  className="flex items-center justify-center gap-2 border border-border px-4 py-2 rounded-md text-xs font-semibold text-foreground bg-card hover:bg-slate-50 transition-all cursor-pointer w-full"
                 >
                   <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -484,9 +555,8 @@ function AnnouncementsContent() {
 
                 {formState.pdfFiles && formState.pdfFiles.length > 0 && (
                   <div className="flex flex-col gap-1.5 mt-1">
-                    {/* Corecție react-doctor: Folosit file.name ca o cheie stabilă unică */}
                     {formState.pdfFiles.map((file) => (
-                      <div key={file.name} className="flex items-center justify-between bg-slate-50 border border-border rounded-lg p-2 text-xs text-slate-600">
+                      <div key={file.name} className="flex items-center justify-between bg-slate-50 border border-border rounded-lg p-2 text-xs text-muted">
                         <span className="truncate max-w-[250px] font-medium">{file.name}</span>
                         <button
                           type="button"
@@ -503,19 +573,25 @@ function AnnouncementsContent() {
             </div>
 
             <div>
-              <label htmlFor="ann-desc" className="block text-xs font-semibold text-slate-700 mb-1">Descriere detaliată</label>
+              <label htmlFor="ann-desc" className="block text-xs font-semibold text-foreground mb-1">Descriere detaliată</label>
               <textarea id="ann-desc" value={formState.description || ''} onChange={e => setFormState({...formState, description: e.target.value})} className="w-full border border-border p-2 rounded-lg h-24 bg-background resize-none focus:outline-none focus:ring-1 focus:ring-brand" required />
             </div>
 
             <div>
-              <label htmlFor="ann-link" className="block text-xs font-semibold text-slate-700 mb-1">Link către noutate (opțional)</label>
+              <label htmlFor="ann-link" className="block text-xs font-semibold text-foreground mb-1">Link către noutate (opțional)</label>
               <input id="ann-link" type="url" value={formState.eventLink || ''} onChange={e => setFormState({...formState, eventLink: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand" placeholder="https://..." />
             </div>
           </div>
 
-          <div className="sticky bottom-0 bg-white pt-4 border-t border-border z-10 flex justify-end space-x-2">
-            <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-border rounded-lg text-slate-500 text-xs cursor-pointer hover:bg-slate-50 transition-colors">Anulează</button>
-            <button type="submit" className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold cursor-pointer hover:opacity-90 transition-opacity">Salvează</button>
+          <div className="sticky bottom-0 bg-card pt-4 border-t border-border z-10 flex justify-end space-x-2">
+            <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-border rounded-lg text-muted text-xs cursor-pointer hover:bg-slate-50 transition-colors">Anulează</button>
+            <button 
+              type="submit" 
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {createMutation.isPending || updateMutation.isPending ? "Se salvează..." : "Salvează"}
+            </button>
           </div>
         </form>
       </Modal>
@@ -525,7 +601,7 @@ function AnnouncementsContent() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="p-6 text-sm text-slate-500">Se încarcă noutățile...</div>}>
+    <Suspense fallback={<div className="p-6 text-sm text-muted">Se încarcă noutățile...</div>}>
       <AnnouncementsContent />
     </Suspense>
   );
