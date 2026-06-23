@@ -26,15 +26,17 @@ export default function HeaderActions() {
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+  let isMounted = true;
   const token = localStorage.getItem("access_token");
   if (token) {
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
-      setUserEmail(payload.email ?? null);
+      if (isMounted) setUserEmail(payload.email ?? null);
     } catch {
-      setUserEmail(null);
+      if (isMounted) setUserEmail(null);
     }
   }
+  return () => { isMounted = false; };
 }, []); // Already has empty dependency array - this is actually fine
 
   useEffect(() => {
