@@ -12,6 +12,8 @@ import { Breadcrumbs, type Crumb } from "@/components/ui/navigation/breadcrumbs"
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { getFormattedDate, isoToRomanianDateStr } from "@/utils/date";
 import { NewsListSkeleton } from "@/components/ui/display/skeletons";
+import { Seo } from "@/components/seo";
+import { eventHref, anuntHref } from "@/utils/article-url";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import api from "@/services/api";
 
@@ -162,6 +164,15 @@ export default function CategoryScreen() {
   }, [selectedFacultyId, categoryTitle]);
 
   const handlePress = (item: any) => {
+    // Evenimentele si anunturile au URL curat; restul raman pe vizualizare.
+    if ((item as any).category === "Evenimente") {
+        router.push(eventHref(item) as any);
+        return;
+    }
+    if ((item as any).category === "Noutăți") {
+        router.push(anuntHref(item) as any);
+        return;
+    }
     let type: string | undefined = undefined;
     if (categoryTitle === "Facultăți") type = "Facultate";
     else if (categoryTitle === "Facilități") type = "Facilitate";
@@ -191,6 +202,10 @@ export default function CategoryScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <Seo
+        title={(categoryTitle as string) || "Categorie"}
+        description={`${(categoryTitle as string) || "Anunțuri"} — InsideUGAL, platforma studenților Universității „Dunărea de Jos” din Galați.`}
+      />
       <Stack.Screen
         options={{
           headerShown: false,

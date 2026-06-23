@@ -40,7 +40,11 @@ export function CategoryHeader({
 
     return (
         <View style={{ gap: Spacing.xs, marginBottom: Spacing.sm }}>
-            <Text style={[Typography.Heading1, { color: theme.text, paddingHorizontal: Spacing.lg }]}>
+            <Text
+                accessibilityRole="header"
+                {...({ "aria-level": 1 } as any)}
+                style={[Typography.Heading1, { color: theme.text, paddingHorizontal: Spacing.lg }]}
+            >
                 {title}
             </Text>
 

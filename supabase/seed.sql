@@ -1,13 +1,7 @@
--- 1. PROFILES
-INSERT INTO public.profiles (id, username, first_name, last_name, email, role, is_active) VALUES
-('00000000-0000-0000-0000-000000000001', 'admin_seed', 'Admin', 'Seed', 'admin.seed@ugal.ro', 'HEAD_ADMIN', true),
-('00000000-0000-0000-0000-000000000002', 'student_demo', 'Student', 'Demo', 'student@ugal.ro', 'STUDENT', true),
-('00000000-0000-0000-0000-000000000003', 'prof_popescu', 'Ion', 'Popescu', 'ion.popescu@ugal.ro', 'PROFESOR', true),
-('00000000-0000-0000-0000-000000000004', 'resp_camin', 'Andrei', 'Vasile', 'andrei.vasile@ugal.ro', 'STUDENT_RESPONSABIL', true),
-('00000000-0000-0000-0000-000000000005', 'maria_ionescu', 'Maria', 'Ionescu', 'maria.ionescu@ugal.ro', 'STUDENT', true)
-ON CONFLICT (id) DO NOTHING;
+-- Profiles are synchronized from Supabase Auth in post-init.
+-- This seed file contains only application data.
 
--- 2. FACULTIES (Actualizate cu toate facultatile din lista ta)
+-- 1. FACULTIES (Actualizate cu toate facultatile din lista ta)
 INSERT INTO public.faculties (id, name, abbreviation, address, phone, website_url) VALUES
 (1, 'Facultatea de Automatica, Calculatoare, Inginerie Electrica si Electronica', 'ACIEE', 'Str. Stiintei nr. 2', '0236412345', 'https://aciee.ugal.ro'),
 (2, 'Facultatea de Arhitectura Navala', 'FAN', 'Str. Domneasca nr. 47', '0236412346', 'https://naoe.ugal.ro'),
@@ -24,7 +18,7 @@ INSERT INTO public.faculties (id, name, abbreviation, address, phone, website_ur
 (13, 'Facultatea de Economie si Administrarea Afacerilor', 'FEAA', 'Str. Nicolae Balcescu nr. 59-61', '0236412357', 'https://feaa.ugal.ro')
 ON CONFLICT (id) DO NOTHING;
 
--- 3. CATEGORIES
+-- 2. CATEGORIES
 INSERT INTO public.categories (id, name) VALUES
 (1, 'Burse si Ajutoare'),
 (2, 'Oportunitati de Cariera'),
@@ -34,7 +28,7 @@ INSERT INTO public.categories (id, name) VALUES
 (6, 'Practica si Laboratoare')
 ON CONFLICT (id) DO NOTHING;
 
--- 4. LOCATIONS (Coordonate actualizate si legate de facultati)
+-- 3. LOCATIONS (Coordonate actualizate si legate de facultati)
 -- ATENTIE: ST_MakePoint foloseste formatul (Longitudine, Latitudine)
 INSERT INTO public.locations (id, name, coordinates, faculty_id) VALUES
 (1, 'Facultatea de Inginerie', ST_SetSRID(ST_MakePoint(28.05365730305638, 45.446611946971665), 4326), 4),
@@ -74,7 +68,7 @@ INSERT INTO public.locations (id, name, coordinates, faculty_id) VALUES
 (35, 'Casa de Cultura a Studentilor', ST_SetSRID(ST_MakePoint(28.04718963325447, 45.45460878195807), 4326), NULL)
 ON CONFLICT (id) DO NOTHING;
 
--- 5. PRODUCTS
+-- 4. PRODUCTS
 INSERT INTO public.products (id, name, description, quantity, price) VALUES
 (1, 'Ciorba de perisoare', 'Ciorba traditionala cu smantana si ardei iute', '400g', 14.50),
 (2, 'Ceafa de porc la gratar', 'Ceafa suculenta rumenita pe plita', '150g', 16.00),
@@ -88,12 +82,12 @@ INSERT INTO public.products (id, name, description, quantity, price) VALUES
 (10, 'Clatite cu Finetti', 'Portie de 2 clatite proaspete', '150g', 8.00)
 ON CONFLICT (id) DO NOTHING;
 
--- 6. DAILY MENUS
+-- 5. DAILY MENUS
 INSERT INTO public.daily_menus (id, day_of_week) VALUES
 (1, 1), (2, 2), (3, 3), (4, 4), (5, 5)
 ON CONFLICT (id) DO NOTHING;
 
--- 7. MENU PRODUCTS
+-- 6. MENU PRODUCTS
 INSERT INTO public.menu_products (menu_id, product_id) VALUES
 (1, 1), (1, 2), (1, 3), (1, 4), (1, 5),
 (2, 6), (2, 7), (2, 8), (2, 9), (2, 10),
@@ -102,7 +96,7 @@ INSERT INTO public.menu_products (menu_id, product_id) VALUES
 (5, 1), (5, 6), (5, 7), (5, 3), (5, 5)
 ON CONFLICT (menu_id, product_id) DO NOTHING;
 
--- 8. ANNOUNCEMENTS
+-- 7. ANNOUNCEMENTS
 INSERT INTO public.announcements (id, type, title, content, image_url, faculty_id, location_name, start_date, end_date, created_by) VALUES
 (1, 'EVENIMENT', 'Festivitatea de deschidere a anului universitar', 'Va invitam sa participati la festivitatea de deschidere a noului an universitar. Evenimentul va avea loc in holul central al universitatii.', 'https://ing.ugal.ro/Resurse/2024/WhatsApp_Image_2024-09-17_at_11.48.08.jpeg', NULL, 'Hol Central, Corp A', '2026-09-21T09:00:00Z', '2026-09-21T12:00:00Z', '00000000-0000-0000-0000-000000000001'),
 (2, 'EVENIMENT', 'Hackathon de 24 ore: Inovatie in Galati', 'Esti gata sa schimbi lumea in 24 de ore? Vino la cel mai mare hackathon din regiune.', 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=1000', 1, 'Laborator Multimedia, Corp B', '2026-11-15T10:00:00Z', '2026-11-16T10:00:00Z', '00000000-0000-0000-0000-000000000001'),
@@ -114,7 +108,7 @@ INSERT INTO public.announcements (id, type, title, content, image_url, faculty_i
 (8, 'NOUTATE', 'Stagii de practica la companii IT', 'Peste 50 de locuri de practica deschise in domeniul dezvoltarii software pentru studentii anilor 2 si 3.', 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97', 1, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000003')
 ON CONFLICT (id) DO NOTHING;
 
--- 9. COMPLAINTS
+-- 8. COMPLAINTS
 INSERT INTO public.complaints (id, title, description, location_id, status, user_id) VALUES
 (1, 'Problema retea Wi-Fi in Biblioteca', 'Semnalul eduroam se intrerupe frecvent la etajul 2 al bibliotecii. Ne ingreuneaza accesul la materiale de studiu.', 7, 'in_lucru', '00000000-0000-0000-0000-000000000002'),
 (2, 'Fereastra defecta', 'Geamul termopan nu se mai inchide etans, iar in sala de clasa este foarte frig.', 1, 'in_asteptare', '00000000-0000-0000-0000-000000000005'),

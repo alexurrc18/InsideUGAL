@@ -18,6 +18,8 @@ import { useWebScrollAware } from "@/contexts/web-scroll-context";
 import api, { storage } from "@/services/api";
 import { ErrorState } from "@/components/ui/display/error-state";
 import { HomeSkeleton } from "@/components/ui/display/skeletons";
+import { Seo } from "@/components/seo";
+import { eventHref, anuntHref } from "@/utils/article-url";
 
 export default function HomeScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
@@ -290,6 +292,15 @@ export default function HomeScreen() {
 
   const handlePress = (item: any) => {
     if (item.id === "default_hero") return;
+    // Evenimentele si anunturile au URL curat; restul raman pe vizualizare.
+    if (item.category === "Evenimente") {
+        router.push(eventHref(item) as any);
+        return;
+    }
+    if (item.category === "Noutăți") {
+        router.push(anuntHref(item) as any);
+        return;
+    }
     router.push({
         pathname: "/(public)/acasa/vizualizare",
         params: {
@@ -347,9 +358,13 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <ScrollView 
-          style={{ flex: 1 }} 
-          contentContainerStyle={{ flexGrow: 1 }} 
+      <Seo
+        title="Anunțuri și evenimente UGAL"
+        description="Cele mai noi anunțuri, evenimente, facultăți și facilități pentru studenții Universității „Dunărea de Jos” din Galați."
+      />
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ flexGrow: 1 }}
           {...scrollProps}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} tintColor={theme.primary} />
