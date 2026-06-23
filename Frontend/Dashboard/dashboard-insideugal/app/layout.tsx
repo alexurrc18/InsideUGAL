@@ -13,14 +13,17 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (!token && pathname !== "/login") {
-      router.replace("/login");
-      return;
-    }
+  const token = localStorage.getItem("access_token");
+
+  if (!token && pathname !== "/login") {
+    router.replace("/login");
+    return;
+  }
+
+  queueMicrotask(() => {
     setChecking(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  });
+}, [pathname, router]);
 
   if (checking && pathname !== "/login") return null;
 

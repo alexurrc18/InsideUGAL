@@ -27,16 +27,40 @@ export default function HeaderActions() {
 
   useEffect(() => {
   let isMounted = true;
-  const token = localStorage.getItem("access_token");
-  if (token) {
+
+  const loadUser = () => {
+    const token = localStorage.getItem("access_token");
+
+    if (!token) {
+      if (isMounted) {
+        setUserEmail(null);
+      }
+      return;
+    }
+
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
-      if (isMounted) setUserEmail(payload.email ?? null);
+
+      queueMicrotask(() => {
+        if (isMounted) {
+          setUserEmail(payload.email ?? null);
+        }
+      });
+
     } catch {
-      if (isMounted) setUserEmail(null);
+      queueMicrotask(() => {
+        if (isMounted) {
+          setUserEmail(null);
+        }
+      });
     }
-  }
-  return () => { isMounted = false; };
+  };
+
+  loadUser();
+
+  return () => {
+    isMounted = false;
+  };
 }, []); // Already has empty dependency array - this is actually fine
 
   useEffect(() => {
