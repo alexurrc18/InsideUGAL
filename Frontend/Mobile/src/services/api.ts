@@ -161,42 +161,81 @@ function cleanErrorMessage(detail: string | undefined, defaultMsg: string, statu
   if (!detail) {
     return status ? `${defaultMsg} (${status})` : defaultMsg;
   }
-  
+
+  let cleanMsg = detail;
+
+  // Extract message from "Supabase authentication failed:"
   if (typeof detail === 'string' && detail.includes("Supabase authentication failed:")) {
-    try {
-      const jsonStart = detail.indexOf("{");
-      if (jsonStart !== -1) {
-        const jsonStr = detail.substring(jsonStart);
+    const rawError = detail.replace("Supabase authentication failed:", "").trim();
+    const jsonStart = rawError.indexOf("{");
+    
+    if (jsonStart !== -1) {
+      try {
+        const jsonStr = rawError.substring(jsonStart);
         const parsed = JSON.parse(jsonStr);
         if (parsed.msg) {
-          let msg = parsed.msg;
-          if (msg === "Invalid login credentials") {
-            msg = "Date de conectare invalide";
-          } else if (msg === "Email not confirmed") {
-            msg = "Adresa de email nu este confirmată";
-          }
-          return status ? `${msg} (${status})` : msg;
+          cleanMsg = parsed.msg;
+        } else if (parsed.message) {
+          cleanMsg = parsed.message;
+        } else if (parsed.error_description) {
+          cleanMsg = parsed.error_description;
+        } else {
+          cleanMsg = rawError;
+        }
+      } catch {
+        // Fallback to regex pattern matching
+        const match = rawError.match(/"(?:msg|message|error_description)"\s*:\s*"([^"]+)"/);
+        if (match && match[1]) {
+          cleanMsg = match[1];
+        } else {
+          cleanMsg = rawError;
         }
       }
-    } catch (e) {
-      const match = detail.match(/"msg"\s*:\s*"([^"]+)"/);
-      if (match && match[1]) {
-        let msg = match[1];
-        if (msg === "Invalid login credentials") {
-          msg = "Date de conectare invalide";
-        } else if (msg === "Email not confirmed") {
-          msg = "Adresa de email nu este confirmată";
-        }
-        return status ? `${msg} (${status})` : msg;
-      }
+    } else {
+      cleanMsg = rawError;
     }
   }
 
-  if (detail === "Active profile not found.") {
-    return status ? `Profil inactiv sau inexistent (${status})` : "Profil inactiv sau inexistent";
+  // Map known raw error messages to user-friendly Romanian strings
+  const translations: Record<string, string> = {
+    "invalid login credentials": "Email-ul sau parola sunt incorecte.",
+    "email not confirmed": "Adresa de email nu este confirmată. Vă rugăm să vă verificați emailul.",
+    "user already registered": "Acest cont/utilizator există deja.",
+    "user already exists": "Acest cont/utilizator există deja.",
+    "password should be at least 6 characters": "Parola trebuie să aibă cel puțin 6 caractere.",
+    "signup requires a valid email": "Vă rugăm să introduceți o adresă de email validă.",
+    "invalid email structure": "Formatul adresei de email este invalid.",
+    "too many requests": "Prea multe încercări. Vă rugăm să încercați mai târziu.",
+    "rate_limit_exceeded": "Prea multe încercări. Vă rugăm să încercați mai târziu.",
+    "rate limit exceeded": "Prea multe încercări. Vă rugăm să încercați mai târziu.",
+    "active profile not found.": "Profil inactiv sau inexistent.",
+    "database error saving user profile": "Eroare la salvarea profilului de utilizator.",
+    "email rate limit exceeded": "S-a depășit limita de mesaje trimise. Încercați mai târziu.",
+    "network request failed": "Conexiunea la internet a eșuat. Verificați rețeaua.",
+    "user not found": "Utilizatorul nu a fost găsit."
+  };
+
+  const trimmedMsg = cleanMsg.trim();
+  const lowerMsg = trimmedMsg.toLowerCase();
+
+  // Try exact dictionary match
+  if (translations[lowerMsg]) {
+    return translations[lowerMsg];
   }
 
-  return status ? `${detail} (${status})` : detail;
+  // Try partial dictionary match
+  for (const [key, value] of Object.entries(translations)) {
+    if (lowerMsg.includes(key)) {
+      return value;
+    }
+  }
+
+  // Fallback for technical strings containing raw supabase or json information
+  if (lowerMsg.includes("supabase") || lowerMsg.includes("{") || lowerMsg.includes("status_code")) {
+    return "A apărut o eroare de autentificare. Vă rugăm să reîncercați.";
+  }
+
+  return status ? `${trimmedMsg} (${status})` : trimmedMsg;
 }
 
 // Response Interceptor: Global error handler
