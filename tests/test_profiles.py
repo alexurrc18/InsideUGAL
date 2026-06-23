@@ -60,7 +60,11 @@ async def test_admin_can_create_read_update_and_delete_profile(
     created = create_response.json()
     assert created["id"] == new_user_id
     assert created["email"] == new_email
+    assert created["username"] == create_payload["username"]
+    assert created["first_name"] == "Integration"
+    assert created["last_name"] == "Student"
     assert created["role"] == schemas.UserRole.STUDENT.value
+    assert created["is_active"] is True
 
     list_response = await client.get("/profiles/", headers=admin.headers)
     assert list_response.status_code == 200

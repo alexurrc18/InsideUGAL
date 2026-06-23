@@ -1,0 +1,3 @@
+-- Deprecated.
+-- Bucket-urile `images` și `documents` sunt create acum în
+-- `supabase/post-init/ensure_storage_buckets.sql` după ce storage este online.
