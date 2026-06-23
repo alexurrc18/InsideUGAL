@@ -10,7 +10,7 @@ import {
   useCreateProduct,
   useUpdateProduct,
   useDeleteProduct,
-  useUpdateMenu, // Hook-ul nou adăugat
+  useUpdateMenu,
 } from "@/hooks/useCantinaApi";
 
 interface Dish {
@@ -24,21 +24,28 @@ interface Dish {
   availableDays: string[];
 }
 
-// Mapare text -> ID Meniu din Baza de Date
+interface ApiProduct {
+  id: number;
+  name?: string;
+  category?: string;
+  description?: string;
+  price?: number;
+  nutritional_values?: string;
+  quantity?: string;
+}
+
+interface ApiMenu {
+  id: number;
+  day_of_week: number;
+  products?: { id: number }[];
+}
+
 const DAYS_MAPPING: { [key: number]: string } = {
   1: "Luni",
   2: "Marți",
   3: "Miercuri",
   4: "Joi",
   5: "Vineri",
-};
-
-const REVERSE_DAYS_MAPPING: { [key: string]: number } = {
-  "Luni": 1,
-  "Marți": 2,
-  "Miercuri": 3,
-  "Joi": 4,
-  "Vineri": 5,
 };
 
 const FILTER_DAYS = [
@@ -76,28 +83,31 @@ export default function Page() {
     availableDays: [],
   });
 
-  // ✅ API HOOKS
   const { data: apiData } = useProducts();
   const { data: menusData } = useMenus();
   
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
-  const updateMenu = useUpdateMenu(); // Instanțiere hook meniuri
+  const updateMenu = useUpdateMenu();
 
-  // 🔥 SYNC backend -> local state
   useEffect(() => {
     if (!apiData || !menusData) return;
 
-    const items = Array.isArray(apiData) ? apiData : (apiData as any).items ?? [];
-    const menus = Array.isArray(menusData) ? menusData : (menusData as any)?.items ?? [];
+    const items = (Array.isArray(apiData) 
+      ? apiData 
+      : ((apiData as { items?: ApiProduct[] }).items ?? [])) as ApiProduct[];
+    
+    const menus = (Array.isArray(menusData) 
+      ? menusData 
+      : ((menusData as { items?: ApiMenu[] })?.items ?? [])) as ApiMenu[];
 
     const productDaysMap: { [key: number]: string[] } = {};
     
-    menus.forEach((menu: any) => {
+    menus.forEach((menu) => {
       const dayName = DAYS_MAPPING[menu.day_of_week];
       if (dayName && Array.isArray(menu.products)) {
-        menu.products.forEach((prod: any) => {
+        menu.products.forEach((prod) => {
           if (!productDaysMap[prod.id]) {
             productDaysMap[prod.id] = [];
           }
@@ -109,10 +119,10 @@ export default function Page() {
     });
 
     setData(
-      items.map((p: any) => ({
+      items.map((p) => ({
         id: String(p.id),
         name: p.name ?? "",
-        category: p.category || "Meniul Zilei", // Reparare afișare categorie nativă
+        category: p.category || "Meniul Zilei",
         description: p.description ?? "",
         price: `${p.price ?? 0} RON`,
         nutritionalValues: p.nutritional_values ?? "",
@@ -154,7 +164,7 @@ export default function Page() {
         </div>
       ),
     },
-{
+    {
       header: "Zile afișare",
       key: "availableDays",
       render: (item) => (
@@ -174,7 +184,6 @@ export default function Page() {
         </div>
       ),
     },
-    
     {
       header: "Preț",
       key: "price",
@@ -186,13 +195,14 @@ export default function Page() {
       render: (item) => (
         <div className="flex space-x-4 text-xs">
           <button
+            type="button"
             className="text-blue-600 font-medium hover:underline cursor-pointer transition-all"
             onClick={() => {
               setSelectedItem(item);
               setFormState({
                 ...item,
-                price: item.price.replace(" RON", ""), // Scoatem textul RON ca să poată fi editat ca număr
-                availableDays: [...item.availableDays] // Trimitem zilele actuale în modal
+                price: item.price.replace(" RON", ""),
+                availableDays: [...item.availableDays]
               });
               setActiveModal("edit");
             }}
@@ -201,6 +211,7 @@ export default function Page() {
           </button>
 
           <button
+            type="button"
             className="text-red-500 font-medium hover:underline cursor-pointer transition-all"
             onClick={() => {
               if(confirm("Sigur dorești ștergerea acestui produs?")) {
@@ -217,7 +228,6 @@ export default function Page() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* HEADER UI */}
       <div className="flex justify-between items-center">
         <div className="flex flex-wrap gap-2 p-1 bg-background/50 border border-border rounded-2xl w-fit">
           {FILTER_DAYS.map((day) => (
@@ -252,12 +262,10 @@ export default function Page() {
         </button>
       </div>
 
-      {/* TABLE */}
       <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
         <Table data={filteredData} columns={columns} />
       </div>
 
-      {/* MODAL */}
       <Modal
         isOpen={activeModal !== null}
         onClose={() => setActiveModal(null)}
@@ -291,33 +299,30 @@ export default function Page() {
                 });
               } else {
                 const newProd = await createProduct.mutateAsync(productPayload);
-                targetProductId = Number((newProd as any).id);
+                targetProductId = Number((newProd as { id: number }).id);
               }
 
-              // 🔥 LOGICA AUTOMATĂ DE SALVARE A ZILELOR ÎN MENU_PRODUCTS
-              const menus = Array.isArray(menusData) ? menusData : (menusData as any)?.items ?? [];
+              const menus = (Array.isArray(menusData) 
+                ? menusData 
+                : ((menusData as { items?: ApiMenu[] })?.items ?? [])) as ApiMenu[];
+                
               const selectedDays = formState.availableDays ?? [];
 
-              // Parcurgem toate cele 5 zile lucrătoare
               for (let dayNum = 1; dayNum <= 5; dayNum++) {
                 const dayName = DAYS_MAPPING[dayNum];
-                const currentMenuForDay = menus.find((m: any) => m.day_of_week === dayNum);
+                const currentMenuForDay = menus.find((m) => m.day_of_week === dayNum);
 
                 if (currentMenuForDay) {
-                  // Extregem ID-urile produselor deja existente în acea zi
-                  let existingProductIds: number[] = currentMenuForDay.products?.map((p: any) => p.id) ?? [];
+                  let existingProductIds: number[] = currentMenuForDay.products?.map((p) => p.id) ?? [];
 
                   if (selectedDays.includes(dayName)) {
-                    // Dacă utilizatorul vrea produsul în această zi și nu era deja, îl adăugăm
                     if (!existingProductIds.includes(targetProductId)) {
                       existingProductIds.push(targetProductId);
                     }
                   } else {
-                    // Dacă utilizatorul a deselectat ziua, scoatem ID-ul produsului
                     existingProductIds = existingProductIds.filter(id => id !== targetProductId);
                   }
 
-                  // Trimitem vectorul actualizat înapoi în baza de date prin ID-ul meniului corespunzător
                   await updateMenu.mutateAsync({
                     id: currentMenuForDay.id,
                     productIds: existingProductIds,
@@ -332,7 +337,6 @@ export default function Page() {
           }}
         >
           <div className="p-4 space-y-3 overflow-y-auto flex-1">
-            {/* Nume Preparat */}
             <div className="w-full">
               <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Nume preparat</label>
               <input
@@ -345,7 +349,6 @@ export default function Page() {
               />
             </div>
 
-            {/* Categorie (Combobox fixat nativ) */}
             <div className="w-full">
               <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Categorie</label>
               <select 
@@ -359,7 +362,6 @@ export default function Page() {
               </select>
             </div>
 
-            {/* Rând comun: Preț și Gramaj */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Preț (RON)</label>
@@ -386,7 +388,6 @@ export default function Page() {
               </div>
             </div>
 
-            {/* Zilele Săptămânii ca Pills active */}
             <div className="w-full">
               <label className="block text-[11px] font-semibold text-slate-400 mb-1.5">Zile afișare meniu</label>
               <div className="flex flex-wrap gap-2">
@@ -410,7 +411,6 @@ export default function Page() {
               </div>
             </div>
 
-            {/* Descriere */}
             <div className="w-full">
               <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Descriere preparat</label>
               <textarea
@@ -423,7 +423,6 @@ export default function Page() {
             </div>
           </div>
 
-          {/* SUB-SOL FIX */}
           <div className="sticky bottom-0 bg-white border-t border-slate-100 px-4 py-3 flex justify-end items-center space-x-3 z-10">
             <button
               type="button"
