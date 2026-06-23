@@ -26,16 +26,16 @@ export default function HeaderActions() {
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        setUserEmail(payload.email ?? null);
-      } catch {
-        setUserEmail(null);
-      }
+  const token = localStorage.getItem("access_token");
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      setUserEmail(payload.email ?? null);
+    } catch {
+      setUserEmail(null);
     }
-  }, []);
+  }
+}, []); // Already has empty dependency array - this is actually fine
 
   useEffect(() => {
     const fetchAnnouncements = async () => {
