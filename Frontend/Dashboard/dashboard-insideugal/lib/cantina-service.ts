@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { apiRequest } from "./api-client";
-import type { Product, DailyMenu } from "./api-types";
+import type { Product } from "./api-types";
 import {
   productSchema,
   dailyMenuSchema,

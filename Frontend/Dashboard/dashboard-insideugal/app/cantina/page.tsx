@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState, useMemo } from "react";
 import Table, { Column } from "../components/ui/Table";
 import Modal from "../components/ui/Modal";
 
@@ -68,7 +68,6 @@ const CATEGORIES = [
 ];
 
 export default function Page() {
-  const [data, setData] = useState<Dish[]>([]);
   const [activeDay, setActiveDay] = useState("Toate preparatele");
   const [activeModal, setActiveModal] = useState<"add" | "edit" | null>(null);
   const [selectedItem, setSelectedItem] = useState<Dish | null>(null);
@@ -91,8 +90,9 @@ export default function Page() {
   const deleteProduct = useDeleteProduct();
   const updateMenu = useUpdateMenu();
 
-  useEffect(() => {
-    if (!apiData || !menusData) return;
+  // ✅ SOLUȚIA FINALĂ: Calculăm datele derivate direct cu useMemo (adio erori de useEffect și setState)
+  const data = useMemo<Dish[]>(() => {
+    if (!apiData || !menusData) return [];
 
     const items = (Array.isArray(apiData) 
       ? apiData 
@@ -118,23 +118,23 @@ export default function Page() {
       }
     });
 
-    setData(
-      items.map((p) => ({
-        id: String(p.id),
-        name: p.name ?? "",
-        category: p.category || "Meniul Zilei",
-        description: p.description ?? "",
-        price: `${p.price ?? 0} RON`,
-        nutritionalValues: p.nutritional_values ?? "",
-        weight: p.quantity ?? "",
-        availableDays: productDaysMap[p.id] ?? [],
-      }))
-    );
+    return items.map((p) => ({
+      id: String(p.id),
+      name: p.name ?? "",
+      category: p.category || "Meniul Zilei",
+      description: p.description ?? "",
+      price: `${p.price ?? 0} RON`,
+      nutritionalValues: p.nutritional_values ?? "",
+      weight: p.quantity ?? "",
+      availableDays: productDaysMap[p.id] ?? [],
+    }));
   }, [apiData, menusData]);
 
-  const filteredData = activeDay === "Toate preparatele" 
-    ? data 
-    : data.filter(item => item.availableDays.includes(activeDay));
+  const filteredData = useMemo(() => {
+    return activeDay === "Toate preparatele" 
+      ? data 
+      : data.filter(item => item.availableDays.includes(activeDay));
+  }, [data, activeDay]);
 
   const handleDayTagToggle = (day: string) => {
     const currentDays = formState.availableDays ?? [];
