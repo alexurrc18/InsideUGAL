@@ -64,24 +64,11 @@ app = FastAPI(
     },
 )
 
-# Rate Limiting Configuration
+# --- 1. Rate Limiting Configuration ---
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
-allowed_origins_raw = os.getenv(
-    "ALLOWED_ORIGINS",
-    "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001",
-)
-allowed_origins = [origin.strip() for origin in allowed_origins_raw.split(",") if origin.strip()]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+# --- 2. TrustedHost Middleware ---
 allowed_hosts_raw = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,*.local,test")
 allowed_hosts = [host.strip() for host in allowed_hosts_raw.split(",") if host.strip()]
 
@@ -90,6 +77,7 @@ app.add_middleware(
     allowed_hosts=allowed_hosts,
 )
 
+# --- 3. Custom HTTP Middlewares ---
 @app.middleware("http")
 async def add_security_headers_middleware(request: Request, call_next):
     response = await call_next(request)
@@ -113,10 +101,28 @@ async def add_request_id_middleware(request: Request, call_next):
     response.headers["X-Request-ID"] = request_id
     return response
 
-
+# --- 4. Timing & SlowAPI ---
 app.add_middleware(TimingMiddleware)
 app.add_middleware(SlowAPIMiddleware)
 
+# --- 5. CORS Middleware (MUTAT LA FINAL) ---
+# OBLIGATORIU: Trebuie să fie ultimul adăugat pentru a fi primul care lovește request-ul browser-ului!
+allowed_origins_raw = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001",
+)
+# Aici eliminăm orice slash pus accidental la finalul IP-ului în .env
+allowed_origins = [origin.strip().rstrip("/") for origin in allowed_origins_raw.split(",") if origin.strip()]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# --- 6. Rutele aplicației ---
 app.include_router(profiles.router)
 app.include_router(faculties.router)
 app.include_router(categories.router)
