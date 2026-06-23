@@ -7,7 +7,7 @@
 // `_layout.web.tsx`, deci ramane montat la navigarea intre paginile (public) =>
 // conversatia persista ("sticky").
 //
-// Raspunsurile vin din acelasi mock ca pe mobil, extras in `@/constants/ace-responses`.
+// Raspunsurile vin in streaming (token cu token) de la backend prin `@/services/ace-stream`.
 import { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -27,11 +27,11 @@ import { Spacing, ColorScheme } from '@/constants/theme';
 import { Typography } from '@/constants/typography';
 import { NewsCard } from '@/components/ui/display/news-card';
 import {
-  getMockResponse,
   resolveLink,
   generateMsgId,
   type ChatMessage,
 } from '@/constants/ace-responses';
+import { streamAce } from '@/services/ace-stream';
 
 import CloseIcon from '@/assets/icons/svg/x.svg';
 import MessagePlusIcon from '@/assets/icons/svg/message-plus.svg';
@@ -96,6 +96,13 @@ export function Ace() {
   const [inputText, setInputText] = useState('');
 
   const scrollRef = useRef<ScrollView>(null);
+  // Functia de oprire a stream-ului curent (pentru cleanup / anulare).
+  const streamStopRef = useRef<null | (() => void)>(null);
+
+  // La demontarea componentei, inchidem orice stream activ (evitam scurgeri).
+  useEffect(() => {
+    return () => streamStopRef.current?.();
+  }, []);
 
   // Dimensiuni responsive: pe ecrane inguste panoul aproape umple latimea.
   const panelWidth = Math.min(PANEL_MAX_WIDTH, width - Spacing.xl3);
@@ -121,34 +128,70 @@ export function Ace() {
     const textToSend = inputText.trim();
     if (!textToSend) return;
 
+    // Daca un raspuns inca curge, il oprim inainte de a porni altul.
+    streamStopRef.current?.();
+
     const userMsg: ChatMessage = {
       id: generateMsgId(),
       text: textToSend,
       sender: 'user',
       timestamp: new Date(),
     };
-    setMessages((prev) => [...prev, userMsg]);
+
+    // Istoricul trimis backend-ului = mesajele de pana acum (rol + text).
+    const history = messages.map((m) => ({
+      role: (m.sender === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+      content: m.text,
+    }));
+
+    // Adaugam mesajul userului + un mesaj AI GOL, care se umple progresiv din tokeni.
+    const aiMsgId = generateMsgId();
+    setMessages((prev) => [
+      ...prev,
+      userMsg,
+      { id: aiMsgId, text: '', sender: 'ai', timestamp: new Date() },
+    ]);
     setInputText('');
     setIsTyping(true);
     scrollToBottom();
 
-    setTimeout(() => {
-      const response = getMockResponse(textToSend);
-      const aiMsg: ChatMessage = {
-        id: generateMsgId(),
-        text: response.text,
-        imageUrl: response.imageUrl,
-        event: response.event,
-        sender: 'ai',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiMsg]);
-      setIsTyping(false);
-      scrollToBottom();
-    }, 1200);
+    const appendToAi = (chunk: string) =>
+      setMessages((prev) =>
+        prev.map((m) => (m.id === aiMsgId ? { ...m, text: m.text + chunk } : m))
+      );
+
+    streamStopRef.current = streamAce(textToSend, history, {
+      onToken: (chunk) => {
+        setIsTyping(false);
+        appendToAi(chunk);
+        scrollToBottom();
+      },
+      onDone: () => {
+        setIsTyping(false);
+        streamStopRef.current = null;
+      },
+      onError: (msg) => {
+        setIsTyping(false);
+        streamStopRef.current = null;
+        // Daca a venit deja text partial, atasam eroarea la final; altfel doar eroarea.
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === aiMsgId
+              ? { ...m, text: m.text ? `${m.text}\n\n⚠️ ${msg}` : `⚠️ ${msg}` }
+              : m
+          )
+        );
+        scrollToBottom();
+      },
+    });
   };
 
-  const handleClearChat = () => setMessages([]);
+  const handleClearChat = () => {
+    streamStopRef.current?.();
+    streamStopRef.current = null;
+    setIsTyping(false);
+    setMessages([]);
+  };
 
   // Navigheaza la destinatia unui card de eveniment/anunt din raspuns, apoi inchide
   // widget-ul ca utilizatorul sa vada pagina.
