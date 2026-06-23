@@ -152,8 +152,10 @@ services:
       GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}?sslmode=disable
       GOTRUE_DB_NAMESPACE: auth
       GOTRUE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
-      GOTRUE_JWT_EXP: 86400
-      GOTRUE_SESSIONS_TIMEBOX: "15m"
+      # 15 minute exprimate în secunde
+      GOTRUE_JWT_EXP: 900
+      # Sesiunea totală setată la 16 minute
+      GOTRUE_SESSIONS_TIMEBOX: "16m"
       GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
       GOTRUE_JWT_ADMIN_ROLES: service_role
       GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:3000}
