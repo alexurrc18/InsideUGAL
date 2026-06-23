@@ -50,47 +50,50 @@ async def _stream_response(
 class StreamRequest(BaseModel):
     """Model pentru corpul cererii de streaming."""
     question: str
+    history: list[dict] | None = None
 
 
 async def _real_stream_response(
-    question: str, current_profile: Profile, session: AsyncSession
+    question: str, history: list[dict] | None, current_profile: Profile, session: AsyncSession
 ) -> AsyncGenerator[str, None]:
     """
     Streaming real: conectare la endpoint-ul SSE al serviciului LLM
-    și retransmitere a evenimentelor către client.
+    și retransmitere a evenimentelor către client cu gestionare de erori.
     """
     full_answer = ""
 
     try:
         async with httpx.AsyncClient() as client:
+            # Trimitem și istoricul dacă există
+            payload = {"question": question, "history": history or []}
             async with client.stream(
                 "POST",
                 f"{LLM_SERVICE_URL}/api/v1/campus-chat/stream",
-                json={"question": question},
+                json=payload,
                 timeout=60.0,
             ) as resp:
-                resp.raise_for_status()
+                if resp.status_code != 200:
+                    yield f"data: {json.dumps({'error': 'Serviciul LLM a returnat o eroare.'})}\n\n"
+                    return
 
                 async for line in resp.aiter_lines():
                     if not line.startswith("data: "):
                         continue
 
-                    payload = line[len("data: "):]
+                    payload_line = line[len("data: "):]
 
                     # Semnalul de final de stream
-                    if payload.strip() == "[DONE]":
+                    if payload_line.strip() == "[DONE]":
                         break
 
                     try:
-                        chunk_data = json.loads(payload)
+                        chunk_data = json.loads(payload_line)
                         content = chunk_data.get("content", "")
                         full_answer += content
+                        # Retransmitem evenimentul SSE către client
+                        yield f"data: {json.dumps({'content': content, 'cached': False})}\n\n"
                     except json.JSONDecodeError:
-                        # Ignorăm linii malformate
                         continue
-
-                    # Retransmitem evenimentul SSE către client
-                    yield f"data: {json.dumps({'content': content, 'cached': False})}\n\n"
 
         # Salvăm răspunsul complet în istoricul de întrebări
         if full_answer:
@@ -104,9 +107,11 @@ async def _real_stream_response(
             )
             await session.commit()
 
-    except Exception:
+    except Exception as e:
         await session.rollback()
-        raise
+        # Trimitem eroarea către client înainte de a închide
+        yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        return
 
     yield "data: [DONE]\n\n"
 
@@ -121,7 +126,7 @@ async def ask_chatbot_stream(
 ):
     try:
         return StreamingResponse(
-            _real_stream_response(body.question, current_profile, session),
+            _real_stream_response(body.question, body.history, current_profile, session),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
