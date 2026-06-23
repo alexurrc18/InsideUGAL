@@ -58,11 +58,16 @@ export const announcementSchema = z.object({
   type: z.enum(["NOUTATE", "EVENIMENT"]),
   title: z.string(),
   content: z.string(),
-  created_by: z.union([z.number().int(), z.string()]), // Acceptă atât ID-uri numerice cât și UUID-uri/Usernames
+  created_by: z.union([z.number().int(), z.string()]),
   is_pinned: z.boolean().default(false),
-  expires_at: isoDateSchema.nullable().optional(),
-  created_at: isoDateSchema,
-  updated_at: isoDateSchema,
+  expires_at: z.string().nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  start_date: z.string().nullable().optional(),
+  end_date: z.string().nullable().optional(),
+  image_url: z.string().nullable().optional(),
+  faculty_id: z.number().int().nullable().optional(),
+  location_name: z.string().nullable().optional(),
 });
 
 export const paginatedAnnouncementsSchema = z.object({
@@ -97,6 +102,7 @@ export const createPaginatedResponseSchema = <T extends z.ZodTypeAny>(itemSchema
     size: z.number().int(),
     total_pages: z.number().int(),
   });
+  
 
 export const usersSchema = z.array(userSchema);
 export const facultiesSchema = z.array(facultySchema);
