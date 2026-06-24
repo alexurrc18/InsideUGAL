@@ -4,8 +4,8 @@ from uuid import UUID
 from datetime import datetime, time
 from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, field_validator
-from pydantic import BaseModel
-from typing import Dict, List, Any
+from typing import Dict, Any
+
 # Importuri adăugate pentru conversia coordonatelor PostGIS
 from geoalchemy2.elements import WKBElement
 from geoalchemy2.shape import to_shape
