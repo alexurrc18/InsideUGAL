@@ -113,10 +113,10 @@ export const announcementsSchema = createPaginatedResponseSchema(announcementSch
 export const productSchema = z.object({
   id: z.number().int(),
   name: z.string(),
-  category: z.string(),
+  category: z.string().nullable().default("General"),
   description: z.string().nullable(),
   quantity: z.string(),
-  price: z.number(),
+  price: z.union([z.number(), z.string()]).transform((val) => Number(val)),
   nutritional_values: z.string().nullable().optional(),
   created_at: isoDateSchema.optional(),
   updated_at: isoDateSchema.optional(),
@@ -128,10 +128,16 @@ export const dailyMenuSchema = z.object({
   products: z.array(productSchema),
 });
 
-export const productsSchema = z.object({
-  items: z.array(productSchema),
-  total: z.number().int(),
-});
+export const productsSchema = z.union([
+  z.object({
+    items: z.array(productSchema),
+    total: z.number().int().optional(),
+  }),
+  z.array(productSchema).transform((arr) => ({
+    items: arr,
+    total: arr.length,
+  })),
+]);
 
 export const dailyMenusSchema = z.object({
   items: z.array(dailyMenuSchema),
