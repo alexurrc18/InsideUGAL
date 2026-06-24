@@ -1,8 +1,10 @@
 "use client";
 
+import React from "react";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-// @ts-ignore: Permite importul de CSS global fără fișier de tipuri
+// Ignore TS warning for side-effect CSS import when no type declarations are present
+// @ts-ignore: CSS module without type declarations
 import "./globals.css";
 import Sidebar from "./components/global/Sidebar";
 import Header from "./components/global/PageHeader";
