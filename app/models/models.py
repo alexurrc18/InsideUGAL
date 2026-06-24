@@ -2,6 +2,7 @@
 from geoalchemy2 import Geometry
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Column,
     DateTime,
     ForeignKey,
@@ -10,6 +11,7 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    Time,
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID, ENUM
@@ -63,6 +65,7 @@ class Faculty(Base, TimestampMixin):
     phone = Column(String(50))
     website_url = Column(Text)
     dormitory_url = Column(Text)
+    logo_url = Column(Text)
 
     locations = relationship("Location", back_populates="faculty")
     announcements = relationship("Announcement", back_populates="faculty")
@@ -94,9 +97,45 @@ class Location(Base, TimestampMixin):
     name = Column(String(255), nullable=False)
     coordinates = Column(Geometry(geometry_type="POINT", srid=4326))
     faculty_id = Column(Integer, ForeignKey("public.faculties.id", ondelete="SET NULL"))
+    facility_id = Column(Integer, ForeignKey("public.facilities.id", ondelete="SET NULL"))
+    marker = Column(String(10))
 
     faculty = relationship("Faculty", back_populates="locations")
+    facility = relationship("Facility", back_populates="locations")
     complaints = relationship("Complaint", back_populates="location")
+
+
+class Facility(Base, TimestampMixin):
+    __tablename__ = "facilities"
+    __table_args__ = {"schema": "public"}
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+
+    locations = relationship("Location", back_populates="facility")
+    schedules = relationship(
+        "FacilitySchedule",
+        back_populates="facility",
+        cascade="all, delete-orphan",
+        order_by="FacilitySchedule.day_of_week",
+    )
+
+
+class FacilitySchedule(Base):
+    __tablename__ = "facility_schedules"
+    __table_args__ = (
+        CheckConstraint("day_of_week BETWEEN 1 AND 7", name="ck_facility_schedules_day_of_week"),
+        {"schema": "public"},
+    )
+
+    id = Column(Integer, primary_key=True)
+    facility_id = Column(Integer, ForeignKey("public.facilities.id", ondelete="CASCADE"), nullable=False)
+    day_of_week = Column(Integer, nullable=False)
+    open_time = Column(Time, nullable=False)
+    close_time = Column(Time, nullable=False)
+
+    facility = relationship("Facility", back_populates="schedules")
 
 
 class Product(Base, TimestampMixin):

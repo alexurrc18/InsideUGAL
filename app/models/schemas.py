@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Generic, Optional, List, TypeVar
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, time
 from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, field_validator
 
@@ -87,6 +87,7 @@ class FacultyBase(BaseModel):
     phone: Optional[str] = None
     website_url: Optional[str] = None
     dormitory_url: Optional[str] = None
+    logo_url: Optional[str] = None
 
 class FacultyCreate(FacultyBase):
     model_config = ConfigDict(json_schema_extra={
@@ -109,6 +110,7 @@ class FacultyUpdate(BaseModel):
     phone: Optional[str] = None
     website_url: Optional[str] = None
     dormitory_url: Optional[str] = None
+    logo_url: Optional[str] = None
 
 class FacultyResponse(FacultyBase):
     id: int
@@ -119,6 +121,8 @@ class FacultyResponse(FacultyBase):
 class LocationBase(BaseModel):
     name: str
     faculty_id: Optional[int] = None
+    facility_id: Optional[int] = None
+    marker: Optional[str] = None
     coordinates: Optional[Coordinates] = None
 
 class LocationCreate(LocationBase):
@@ -127,6 +131,8 @@ class LocationCreate(LocationBase):
 class LocationUpdate(BaseModel):
     name: Optional[str] = None
     faculty_id: Optional[int] = None
+    facility_id: Optional[int] = None
+    marker: Optional[str] = None
     coordinates: Optional[Coordinates] = None
 
 class LocationResponse(LocationBase):
@@ -150,6 +156,51 @@ class LocationResponse(LocationBase):
                 print(f"Eroare la conversia WKBElement: {e}")
                 return None
         return value
+
+
+class FacilityScheduleBase(BaseModel):
+    day_of_week: int
+    open_time: time
+    close_time: time
+
+
+class FacilityScheduleCreate(FacilityScheduleBase):
+    facility_id: Optional[int] = None
+
+
+class FacilityScheduleUpdate(BaseModel):
+    day_of_week: Optional[int] = None
+    open_time: Optional[time] = None
+    close_time: Optional[time] = None
+
+
+class FacilityScheduleResponse(FacilityScheduleBase):
+    id: int
+    facility_id: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FacilityBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+
+class FacilityCreate(FacilityBase):
+    pass
+
+
+class FacilityUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
+class FacilityResponse(FacilityBase):
+    id: int
+    schedules: List[FacilityScheduleResponse] = []
+    locations: List[LocationResponse] = []
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ==========================================
