@@ -3,8 +3,15 @@
  */
 export const getFormattedDate = (dateStr?: string) => {
     if (!dateStr) return "";
-    const parts = dateStr.split(" ");
-    if (parts.length < 2) return dateStr;
+    
+    let targetDateStr = dateStr;
+    // Check if it is an ISO date string (contains T or format YYYY-MM-DD)
+    if (dateStr.includes("T") || /^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+        targetDateStr = isoToRomanianDateStr(dateStr);
+    }
+    
+    const parts = targetDateStr.split(" ");
+    if (parts.length < 2) return targetDateStr;
 
     const day = parts[0];
     const monthName = parts[1].toLowerCase();
@@ -18,7 +25,7 @@ export const getFormattedDate = (dateStr?: string) => {
     const dayNames = ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'];
 
     const monthIndex = monthRO[monthName];
-    if (monthIndex === undefined) return dateStr;
+    if (monthIndex === undefined) return targetDateStr;
 
     const d = new Date(parseInt(year), monthIndex, parseInt(day));
     const dayOfWeek = dayNames[d.getDay()];

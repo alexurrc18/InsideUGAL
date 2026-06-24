@@ -39,7 +39,8 @@ export const storage = {
     if (Platform.OS === 'web') {
       try {
         if (key === 'access_token') {
-          return getCookie(key);
+          const cookieVal = getCookie(key);
+          if (cookieVal) return cookieVal;
         }
         return typeof window !== 'undefined' ? window.localStorage.getItem(key) : null;
       } catch (e) {
@@ -59,7 +60,8 @@ export const storage = {
       try {
         if (key === 'access_token') {
           setCookie(key, value, 7); // 7 days expiration
-        } else if (typeof window !== 'undefined') {
+        }
+        if (typeof window !== 'undefined') {
           window.localStorage.setItem(key, value);
         }
       } catch (e) {
@@ -79,7 +81,8 @@ export const storage = {
       try {
         if (key === 'access_token') {
           eraseCookie(key);
-        } else if (typeof window !== 'undefined') {
+        }
+        if (typeof window !== 'undefined') {
           window.localStorage.removeItem(key);
         }
       } catch (e) {
@@ -126,17 +129,37 @@ export async function setAuthToken(token: string | null): Promise<void> {
   }
 }
 
-/**
- * Retrieves the current auth token, checking memory first then AsyncStorage / localStorage.
- */
+export function resolveImageUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  if (url.includes('supabase-kong:8000')) {
+    const apiHost = Config.API_BASE_URL ? Config.API_BASE_URL.replace('http://', '').replace('https://', '').split(':')[0] : 'localhost';
+    return url.replace('supabase-kong:8000', `${apiHost}/supabase`);
+  }
+  if (url.includes('127.0.0.1:54325')) {
+    const apiHost = Config.API_BASE_URL ? Config.API_BASE_URL.replace('http://', '').replace('https://', '').split(':')[0] : 'localhost';
+    return url.replace('127.0.0.1:54325', `${apiHost}/supabase`);
+  }
+  return url;
+}
+
 export async function getAuthToken(): Promise<string | null> {
-  if (authToken) return authToken;
+  if (authToken) {
+    const trimmed = authToken.trim();
+    if (trimmed && trimmed.toLowerCase() !== 'null' && trimmed.toLowerCase() !== 'undefined' && trimmed.toLowerCase() !== 'none') {
+      return authToken;
+    }
+    authToken = null;
+  }
   try {
     const token = await storage.getItem('access_token');
     if (token) {
-      authToken = token;
+      const trimmed = token.trim();
+      if (trimmed && trimmed.toLowerCase() !== 'null' && trimmed.toLowerCase() !== 'undefined' && trimmed.toLowerCase() !== 'none') {
+        authToken = token;
+        return token;
+      }
     }
-    return token;
+    return null;
   } catch (error) {
     console.error('[API] Error loading token from storage:', error);
     return null;
