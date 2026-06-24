@@ -18,6 +18,10 @@ INSERT INTO public.faculties (id, name, abbreviation, address, phone, website_ur
 (13, 'Facultatea de Economie si Administrarea Afacerilor', 'FEAA', 'Str. Nicolae Balcescu nr. 59-61', '0236412357', 'https://feaa.ugal.ro')
 ON CONFLICT (id) DO NOTHING;
 
+UPDATE public.faculties
+SET logo_url = '/storage/v1/object/public/faculty-logos/ugal-logo.png'
+WHERE logo_url IS NULL;
+
 -- 2. CATEGORIES
 INSERT INTO public.categories (id, name) VALUES
 (1, 'Burse si Ajutoare'),
@@ -33,7 +37,7 @@ INSERT INTO public.product_categories (id, name) VALUES
 (1, 'Ciorbe si supe'),
 (2, 'Garnituri'),
 (3, 'Preparate carne'),
-(4, 'Salate/sosuri'),
+(4, 'Salate si sosuri'),
 (5, 'Paine'),
 (6, 'Desert'),
 (7, 'Meniul zilei')
