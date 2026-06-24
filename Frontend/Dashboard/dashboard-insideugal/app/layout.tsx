@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-// @ts-ignore: Local VS Code bypass
-// @ts-expect-error: CI strict environment bypass
+// @ts-expect-error: bypass for CSS assert in strict CI environment
 import "./globals.css" assert { type: "css" };
 import Sidebar from "./components/global/Sidebar";
 import Header from "./components/global/PageHeader";
