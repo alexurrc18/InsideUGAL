@@ -45,10 +45,12 @@ class Profile(Base, TimestampMixin):
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     email = Column(String(255), unique=True, nullable=False)
+    faculty_id = Column(Integer, ForeignKey("public.faculties.id", ondelete="SET NULL"), nullable=True)
     
     role = Column(ENUM('STUDENT', 'STUDENT_RESPONSABIL', 'PROFESOR', 'HEAD_CANTINA', 'HEAD_FACULTATI', 'HEAD_ADMIN', name='user_role', create_type=False), nullable=False, server_default="STUDENT")
     is_active = Column(Boolean, nullable=False, default=True)
 
+    faculty = relationship("Faculty", back_populates="profiles")
     complaints = relationship("Complaint", back_populates="user")
     announcements = relationship("Announcement", back_populates="creator")
 
@@ -69,6 +71,7 @@ class Faculty(Base, TimestampMixin):
 
     locations = relationship("Location", back_populates="faculty")
     announcements = relationship("Announcement", back_populates="faculty")
+    profiles = relationship("Profile", back_populates="faculty")
 
 
 class Category(Base):

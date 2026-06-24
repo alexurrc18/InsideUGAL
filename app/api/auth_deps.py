@@ -10,6 +10,7 @@ import jwt
 from jwt import ExpiredSignatureError, InvalidTokenError, PyJWKClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.db.database import get_db
 from app.models.models import Profile
@@ -127,7 +128,7 @@ async def get_current_profile(
     session: AsyncSession = Depends(get_db),
 ) -> Profile:
     result = await session.execute(
-        select(Profile).where(Profile.id == user_id)
+        select(Profile).options(joinedload(Profile.faculty)).where(Profile.id == user_id)
     )
     profile = result.scalars().first()
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 from typing import Generic, Optional, List, TypeVar
 from uuid import UUID
@@ -64,9 +66,12 @@ class ProfileUpdate(BaseModel):
     last_name: Optional[str] = None
     role: Optional[UserRole] = None
     is_active: Optional[bool] = None
+    faculty_id: Optional[int] = None
 
 class ProfileResponse(ProfileBase):
     id: UUID
+    faculty_id: Optional[int] = None
+    faculty: Optional[FacultyResponse] = None
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
