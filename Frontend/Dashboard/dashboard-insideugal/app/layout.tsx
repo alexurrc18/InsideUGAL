@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-// @ts-expect-error: side-effect import for global CSS
+// @ts-ignore: Permite importul de CSS global fără fișier de tipuri
 import "./globals.css";
 import Sidebar from "./components/global/Sidebar";
 import Header from "./components/global/PageHeader";
