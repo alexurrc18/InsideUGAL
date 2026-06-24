@@ -124,15 +124,15 @@ export default function ConturiPage() {
           currentPage++;
         }
       }
-      setDbFaculties(allItems);
+      return allItems;
     } catch (err) {
       console.error("Eroare la încărcarea listei de facultăți din DB:", err);
+      return null;
     }
   }, [getAuthHeaders]);
 
   const fetchProfiles = useCallback(async () => {
     try {
-      setLoading(true);
       const response = await fetch(`${API_PROFILES_URL}/?size=50&page=1`, {
         method: 'GET',
         headers: getAuthHeaders()
@@ -195,24 +195,55 @@ export default function ConturiPage() {
         });
       }
 
-      setUsers(mappedUsers);
-      setError(null);
+      return mappedUsers;
     } catch (err) {
       const errorInstance = err as Error;
-      setError(errorInstance.message || 'A apărut o eroare la preluarea datelor.');
-    } finally {
-      setLoading(false);
+      throw new Error(errorInstance.message || 'A apărut o eroare la preluarea datelor.');
     }
   }, [getAuthHeaders]);
 
-  const handleFetchData = useCallback(() => {
-    fetchProfiles();
-    fetchAllFaculties();
-  }, [fetchProfiles, fetchAllFaculties]);
-
+  // FIX: Efect izolat pentru Profile utilizatori cu guard de montare
   useEffect(() => {
-    handleFetchData();
-  }, [handleFetchData]);
+    let isMounted = true;
+    setLoading(true);
+
+    fetchProfiles()
+      .then((data) => {
+        if (isMounted) {
+          setUsers(data);
+          setError(null);
+        }
+      })
+      .catch((err: Error) => {
+        if (isMounted) {
+          setError(err.message);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchProfiles]);
+
+  // FIX: Efect izolat pentru Facultăți din DB cu guard de montare
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchAllFaculties().then((data) => {
+      if (isMounted && data) {
+        setDbFaculties(data);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchAllFaculties]);
 
   const handleDeleteUser = async (id: string, name: string) => {
     if (confirm(`Sigur vrei să ștergi definitiv contul lui ${name}?`)) {
@@ -263,7 +294,8 @@ export default function ConturiPage() {
         setIsModalOpen(false);
         setNewUser({ email: '', username: '', first_name: '', last_name: '', password: '', role: 'Student', faculty: '' });
         await delay(300);
-        await fetchProfiles();
+        const updatedUsers = await fetchProfiles();
+        setUsers(updatedUsers);
 
       } catch (err) {
         const errorInstance = err as Error;
@@ -272,7 +304,8 @@ export default function ConturiPage() {
           setIsModalOpen(false);
           setNewUser({ email: '', username: '', first_name: '', last_name: '', password: '', role: 'Student', faculty: '' });
           await delay(400);
-          await fetchProfiles();
+          const updatedUsers = await fetchProfiles().catch(() => []);
+          if (updatedUsers.length > 0) setUsers(updatedUsers);
         } else {
           alert(errorInstance.message);
         }
@@ -312,7 +345,8 @@ export default function ConturiPage() {
         setIsModalOpen(false);
         setEditPassword('');
         await delay(200);
-        await fetchProfiles();
+        const updatedUsers = await fetchProfiles();
+        setUsers(updatedUsers);
 
       } catch (err) {
         const errorInstance = err as Error;
@@ -320,7 +354,8 @@ export default function ConturiPage() {
           setIsModalOpen(false);
           setEditPassword('');
           await delay(300);
-          await fetchProfiles();
+          const updatedUsers = await fetchProfiles().catch(() => []);
+          if (updatedUsers.length > 0) setUsers(updatedUsers);
         } else {
           alert(errorInstance.message);
         }
