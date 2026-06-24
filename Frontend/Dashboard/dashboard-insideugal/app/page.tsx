@@ -9,7 +9,6 @@ import {
   CardTitle 
 } from "./components/ui/Card";
 import DashboardCalendar from "./components/ui/DashboardCalendar";
-import { dashboardEvents } from "./data/events";
 import { CalendarPlus, Bell, Megaphone, X } from "lucide-react";
 
 export default function Page() {
@@ -89,7 +88,7 @@ export default function Page() {
         </div>
 
         <div className="lg:col-span-3">
-          <DashboardCalendar events={dashboardEvents} />
+          <DashboardCalendar />
         </div>
       </section>
 

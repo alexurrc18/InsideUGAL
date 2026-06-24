@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useApiMutation } from "@/hooks/useApiMutation";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { announcementsService } from "@/lib/announcements-service";
+import type { GenerateBannerPayload, GenerateBannerResult } from "@/lib/announcements-service";
 import {
   coursesSchema,
   facultiesSchema,
@@ -37,6 +38,12 @@ export function useDeleteAnnouncement() {
   return useApiMutation<unknown, number>({
     mutationFn: (id) => announcementsService.delete(id),
     invalidateKeys: [["announcements"]],
+  });
+}
+
+export function useGenerateAiBanner() {
+  return useApiMutation<GenerateBannerResult, GenerateBannerPayload>({
+    mutationFn: (data) => announcementsService.generateBanner(data),
   });
 }
 
