@@ -3,6 +3,7 @@ import logging
 import uuid
 import os
 import datetime
+import app.api.dashboard as dashboard
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -149,3 +150,4 @@ app.include_router(auth.router)
 app.include_router(llm.router)
 app.include_router(llm_stream.router)
 app.include_router(uploads.router)
+app.include_router(dashboard.router)
