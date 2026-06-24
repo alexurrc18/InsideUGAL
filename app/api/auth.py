@@ -79,7 +79,7 @@ async def get_current_user(authorization: str = Header(...)):
         # Supabase verifică validitatea token-ului
         user = supabase.auth.get_user(token)
         return user.user
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, 
             detail="Token invalid sau expirat"
