@@ -2,7 +2,7 @@ import os
 from functools import lru_cache
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from fastapi.concurrency import run_in_threadpool
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
@@ -66,6 +66,24 @@ def _session_to_response(auth_response) -> AuthTokenResponse:
         expires_in=session.expires_in,
         expires_at=session.expires_at,
     )
+
+
+async def get_current_user(authorization: str = Header(...)):
+    """
+    Extrage și validează utilizatorul pe baza token-ului din header.
+    """
+    token = authorization.replace("Bearer ", "")
+    supabase = get_supabase_client()
+    
+    try:
+        # Supabase verifică validitatea token-ului
+        user = supabase.auth.get_user(token)
+        return user.user
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail="Token invalid sau expirat"
+        )
 
 
 @router.post("/login", response_model=AuthTokenResponse)
