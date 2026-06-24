@@ -10,8 +10,12 @@ from app.repositories.base import CRUDRepository, schema_to_data
 class DailyMenuRepository(CRUDRepository[DailyMenu]):
     model = DailyMenu
 
+    @staticmethod
+    def _products_with_category_loader():
+        return selectinload(DailyMenu.products).selectinload(Product.category)
+
     async def get_all(self, session: AsyncSession, day_of_week: int | None = None) -> list[DailyMenu]:
-        query = select(DailyMenu).options(selectinload(DailyMenu.products)).order_by(DailyMenu.day_of_week.asc())
+        query = select(DailyMenu).options(self._products_with_category_loader()).order_by(DailyMenu.day_of_week.asc())
         if day_of_week is not None:
             query = query.where(DailyMenu.day_of_week == day_of_week)
 
@@ -26,7 +30,7 @@ class DailyMenuRepository(CRUDRepository[DailyMenu]):
         offset: int,
         day_of_week: int | None = None,
     ) -> tuple[list[DailyMenu], int]:
-        query = select(DailyMenu).options(selectinload(DailyMenu.products)).order_by(DailyMenu.day_of_week.asc())
+        query = select(DailyMenu).options(self._products_with_category_loader()).order_by(DailyMenu.day_of_week.asc())
         count_query = select(DailyMenu)
         if day_of_week is not None:
             query = query.where(DailyMenu.day_of_week == day_of_week)
@@ -40,7 +44,7 @@ class DailyMenuRepository(CRUDRepository[DailyMenu]):
 
     async def get_by_id(self, session: AsyncSession, menu_id: int) -> DailyMenu | None:
         result = await session.execute(
-            select(DailyMenu).options(selectinload(DailyMenu.products)).where(DailyMenu.id == menu_id)
+            select(DailyMenu).options(self._products_with_category_loader()).where(DailyMenu.id == menu_id)
         )
         return result.scalars().unique().first()
 
@@ -48,7 +52,11 @@ class DailyMenuRepository(CRUDRepository[DailyMenu]):
         if not product_ids:
             return []
 
-        result = await session.execute(select(Product).where(Product.id.in_(product_ids)))
+        result = await session.execute(
+            select(Product)
+            .options(selectinload(Product.category))
+            .where(Product.id.in_(product_ids))
+        )
         products = list(result.scalars().all())
         found_ids = {product.id for product in products}
         missing_ids = sorted(set(product_ids) - found_ids)

@@ -76,6 +76,16 @@ class Category(Base):
     name = Column(String(100), unique=True, nullable=False)
 
 
+class ProductCategory(Base):
+    __tablename__ = "product_categories"
+    __table_args__ = {"schema": "public"}
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), unique=True, nullable=False)
+
+    products = relationship("Product", back_populates="category")
+
+
 class Location(Base, TimestampMixin):
     __tablename__ = "locations"
     __table_args__ = {"schema": "public"}
@@ -98,7 +108,9 @@ class Product(Base, TimestampMixin):
     description = Column(Text)
     quantity = Column(String(50), nullable=False)
     price = Column(Numeric(10, 2), nullable=False)
+    category_id = Column(Integer, ForeignKey("public.product_categories.id", ondelete="SET NULL"))
 
+    category = relationship("ProductCategory", back_populates="products")
     daily_menus = relationship("DailyMenu", secondary=menu_products, back_populates="products")
 
 
