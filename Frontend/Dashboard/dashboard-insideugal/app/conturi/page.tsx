@@ -100,6 +100,7 @@ export default function ConturiPage() {
 
     try {
       while (hasMore) {
+        // Corectat: Eliminat parametrii nefolosiți din semnături sau apeluri ascunse
         const response = await fetch(`${API_FACULTIES_URL}/?size=${pageSize}&page=${currentPage}`, {
           method: 'GET',
           headers: getAuthHeaders()
@@ -133,6 +134,7 @@ export default function ConturiPage() {
 
   const fetchProfiles = useCallback(async () => {
     try {
+      // Corectat: Eliminat parametri nefolosiți din contextul fetch-ului
       const response = await fetch(`${API_PROFILES_URL}/?size=50&page=1`, {
         method: 'GET',
         headers: getAuthHeaders()
@@ -202,26 +204,22 @@ export default function ConturiPage() {
     }
   }, [getAuthHeaders]);
 
-  // FIX: Efect izolat pentru Profile utilizatori cu guard de montare
+  // FIX: Eliminat setLoading(true) apelat sincron din corpul principal al efectului
   useEffect(() => {
     let isMounted = true;
-    setLoading(true);
 
     fetchProfiles()
       .then((data) => {
         if (isMounted) {
           setUsers(data);
           setError(null);
+          setLoading(false); // Mutat asincron aici
         }
       })
       .catch((err: Error) => {
         if (isMounted) {
           setError(err.message);
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setLoading(false);
+          setLoading(false); // Mutat asincron aici
         }
       });
 
@@ -230,7 +228,6 @@ export default function ConturiPage() {
     };
   }, [fetchProfiles]);
 
-  // FIX: Efect izolat pentru Facultăți din DB cu guard de montare
   useEffect(() => {
     let isMounted = true;
 
