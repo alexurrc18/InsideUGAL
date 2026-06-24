@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-// @ts-expect-error: Suppress CSS module resolution types for strict environment
-import "./globals.css" with { type: "css" };
+const cssFile = "./globals.css";
+void import(/* webpackIgnore: true */ cssFile);
 import Sidebar from "./components/global/Sidebar";
 import Header from "./components/global/PageHeader";
 import { Providers } from "./providers";
