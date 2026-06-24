@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import "./globals.css"; 
+// @ts-ignore: side-effect import for global CSS
+import "./globals.css";
 import Sidebar from "./components/global/Sidebar";
 import Header from "./components/global/PageHeader";
 import { Providers } from "./providers";
