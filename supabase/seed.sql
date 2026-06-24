@@ -114,9 +114,9 @@ INSERT INTO public.locations (id, name, coordinates, faculty_id, facility_id, ma
 (33, 'Camin C', ST_SetSRID(ST_MakePoint(28.049362979286386, 45.453942185824026), 4326), NULL, NULL, 'C'),
 (34, 'Cantina Studenteasca (Campus)', ST_SetSRID(ST_MakePoint(28.048737131910197, 45.453962406325694), 4326), NULL, 1, 'C'),
 (35, 'Casa de Cultura a Studentilor', ST_SetSRID(ST_MakePoint(28.04718963325447, 45.45460878195807), 4326), NULL, 4, 'C'),
-(36, 'Sala de sport Puskin', NULL, NULL, 5, 'P'),
-(37, 'Cantina Corp J', NULL, NULL, 2, 'J'),
-(38, 'Cantina Universitate', NULL, NULL, 3, 'U')
+(36, 'Sala de sport Puskin', ST_SetSRID(ST_MakePoint(28.05620861947643, 45.44978557674398), 4326), NULL, 5, 'P'),
+(37, 'Cantina Corp J',ST_SetSRID(ST_MakePoint(28.052721, 45.445936), 4326), NULL, 2, 'J'),
+(38, 'Cantina Universitate', ST_SetSRID(ST_MakePoint(28.055712, 45.438673), 4326), NULL, 3, 'U')
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     coordinates = EXCLUDED.coordinates,
