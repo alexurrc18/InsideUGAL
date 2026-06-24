@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Table, { Column } from '../components/ui/Table';
 import Modal from '../components/ui/Modal';
 import { apiBaseUrl } from "@/lib/api-client";
@@ -48,13 +48,12 @@ function getLoggedInUserEmail(): string | null {
     const base64Url = token.split('.')[1];
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
     const payload = JSON.parse(window.atob(base64));
-    return payload.email || null;
-  } catch (e) {
+    return (payload.email as string) || null;
+  } catch {
     return null;
   }
 }
 
-// Funcție utilitară pentru a introduce o mică întârziere artificială de siguranță
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export default function ConturiPage() {
@@ -83,7 +82,7 @@ export default function ConturiPage() {
     faculty: '' 
   });
 
-  const getAuthHeaders = () => {
+  const getAuthHeaders = useCallback(() => {
     const token = localStorage.getItem("access_token");
     const tokenType = localStorage.getItem("token_type") || "Bearer";
     
@@ -91,9 +90,9 @@ export default function ConturiPage() {
       'Content-Type': 'application/json',
       ...(token ? { 'Authorization': `${tokenType} ${token}` } : {})
     };
-  };
+  }, []);
 
-  const fetchAllFaculties = async () => {
+  const fetchAllFaculties = useCallback(async () => {
     let allItems: FacultyDBItem[] = [];
     let currentPage = 1;
     let hasMore = true;
@@ -110,7 +109,12 @@ export default function ConturiPage() {
           throw new Error(`Eroare la paginarea facultăților: ${response.status}`);
         }
         
-        const data = await response.json();
+        interface APIFacultiesResponse {
+          items?: FacultyDBItem[];
+          total?: number;
+        }
+
+        const data = (await response.json()) as APIFacultiesResponse;
         const items = data.items || [];
         allItems = [...allItems, ...items];
         
@@ -124,9 +128,9 @@ export default function ConturiPage() {
     } catch (err) {
       console.error("Eroare la încărcarea listei de facultăți din DB:", err);
     }
-  };
+  }, [getAuthHeaders]);
 
-  const fetchProfiles = async () => {
+  const fetchProfiles = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`${API_PROFILES_URL}/?size=50&page=1`, {
@@ -141,11 +145,27 @@ export default function ConturiPage() {
         throw new Error('Eroare la încărcarea profilelor de pe server.');
       }
       
-      const data = await response.json();
+      interface APIProfilesItem {
+        id: string;
+        role?: string;
+        first_name?: string;
+        last_name?: string;
+        email: string;
+        is_active?: boolean;
+        faculty?: string;
+        created_at?: string;
+        username?: string;
+      }
+
+      interface APIProfilesResponse {
+        items?: APIProfilesItem[];
+      }
+
+      const data = (await response.json()) as APIProfilesResponse;
       const currentEmail = getLoggedInUserEmail();
       
-      const mappedUsers: UserItem[] = (data.items || []).map((item: any) => {
-        let rawRole = item.role ? item.role.trim().toUpperCase() : 'STUDENT';
+      const mappedUsers: UserItem[] = (data.items || []).map((item: APIProfilesItem) => {
+        const rawRole = item.role ? item.role.trim().toUpperCase() : 'STUDENT';
         let cleanRole: UserRole = 'Student';
         
         if (rawRole === 'ADMIN' || rawRole === 'HEAD_ADMIN') cleanRole = 'Admin';
@@ -177,17 +197,22 @@ export default function ConturiPage() {
 
       setUsers(mappedUsers);
       setError(null);
-    } catch (err: any) {
-      setError(err.message || 'A apărut o eroare la preluarea datelor.');
+    } catch (err) {
+      const errorInstance = err as Error;
+      setError(errorInstance.message || 'A apărut o eroare la preluarea datelor.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [getAuthHeaders]);
 
-  useEffect(() => {
+  const handleFetchData = useCallback(() => {
     fetchProfiles();
     fetchAllFaculties();
-  }, []);
+  }, [fetchProfiles, fetchAllFaculties]);
+
+  useEffect(() => {
+    handleFetchData();
+  }, [handleFetchData]);
 
   const handleDeleteUser = async (id: string, name: string) => {
     if (confirm(`Sigur vrei să ștergi definitiv contul lui ${name}?`)) {
@@ -198,8 +223,9 @@ export default function ConturiPage() {
         });
         if (!response.ok) throw new Error('Eroare la ștergerea utilizatorului.');
         setUsers(users.filter(u => u.id !== id));
-      } catch (err: any) {
-        alert(err.message);
+      } catch (err) {
+        const errorInstance = err as Error;
+        alert(errorInstance.message);
       }
     }
   };
@@ -227,39 +253,35 @@ export default function ConturiPage() {
         });
 
         if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
+          interface ErrorDetail {
+            detail?: string;
+          }
+          const errData = (await response.json().catch(() => ({}))) as ErrorDetail;
           throw new Error(errData.detail ? JSON.stringify(errData.detail) : 'Nu s-a putut crea profilul.');
         }
 
-        // Dacă totul a mers perfect pe calea normală
         setIsModalOpen(false);
         setNewUser({ email: '', username: '', first_name: '', last_name: '', password: '', role: 'Student', faculty: '' });
         await delay(300);
         await fetchProfiles();
 
-      } catch (err: any) {
-        // AICI E REPARATIA: Prindem eroarea de rețea. 
-        // Dacă e "Failed to fetch", dar știm că utilizatorul s-a creat în spate, forțăm închiderea și update-ul silențios
-        if (err.message === "Failed to fetch") {
+      } catch (err) {
+        const errorInstance = err as Error;
+        if (errorInstance.message === "Failed to fetch") {
           console.warn("Serverul a procesat cererea, dar a întrerupt conexiunea înainte de răspuns.");
-          
-          // Închidem modalul și curățăm datele pentru că utilizatorul a fost adăugat cu succes în DB
           setIsModalOpen(false);
           setNewUser({ email: '', username: '', first_name: '', last_name: '', password: '', role: 'Student', faculty: '' });
-          
-          // Reîncărcăm lista de profile după o scurtă pauză
           await delay(400);
           await fetchProfiles();
         } else {
-          // Dacă este o eroare reală de validare de la formular, o afișăm normal
-          alert(err.message);
+          alert(errorInstance.message);
         }
       } finally {
         setIsSaving(false);
       }
     } else if (modalMode === 'edit' && selectedUser) {
       try {
-        const payload: Record<string, any> = {
+        const payload: Record<string, unknown> = {
           role: selectedUser.role.toUpperCase(),
           is_active: selectedUser.status === 'Activ',
           first_name: selectedUser.first_name,
@@ -280,7 +302,10 @@ export default function ConturiPage() {
         });
 
         if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
+          interface ErrorDetail {
+            detail?: string;
+          }
+          const errData = (await response.json().catch(() => ({}))) as ErrorDetail;
           throw new Error(errData.detail ? JSON.stringify(errData.detail) : 'Modificările nu s-au putut salva.');
         }
 
@@ -289,14 +314,15 @@ export default function ConturiPage() {
         await delay(200);
         await fetchProfiles();
 
-      } catch (err: any) {
-        if (err.message === "Failed to fetch") {
+      } catch (err) {
+        const errorInstance = err as Error;
+        if (errorInstance.message === "Failed to fetch") {
           setIsModalOpen(false);
           setEditPassword('');
           await delay(300);
           await fetchProfiles();
         } else {
-          alert(err.message);
+          alert(errorInstance.message);
         }
       } finally {
         setIsSaving(false);
@@ -387,7 +413,7 @@ export default function ConturiPage() {
         <div className="flex space-x-3 text-xs whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
-            className="text-blue-600 hover:text-blue-800 hover:underline font-semibold cursor-pointer"
+            className="text-blue-600 hover:text-blue-800 hover:underline font-bold cursor-pointer"
             onClick={() => {
               setModalMode('edit');
               setSelectedUser({ ...item });
@@ -395,7 +421,7 @@ export default function ConturiPage() {
               setIsModalOpen(true);
             }}
           >
-            Editare
+            Modifică
           </button>
           <button
             type="button"
@@ -412,7 +438,6 @@ export default function ConturiPage() {
   return (
     <div className="p-3 md:p-6 max-w-7xl mx-auto space-y-4 w-full overflow-x-hidden">
       
-      {/* Zona Filtre */}
       <div className="flex flex-col gap-4 w-full bg-background p-1">
         <div className="flex flex-row justify-between items-center w-full gap-4">
           <div className="relative w-full sm:w-64 md:w-80 min-w-[200px]">
@@ -487,7 +512,6 @@ export default function ConturiPage() {
         </div>
       )}
 
-      {/* Modal */}
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => !isSaving && setIsModalOpen(false)} 
@@ -499,12 +523,13 @@ export default function ConturiPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">Nume</label>
-                <input required disabled={isSaving} type="text" value={newUser.first_name} onChange={(e) => setNewUser({...newUser, first_name: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="Popescu" />
+                <input required disabled={isSaving} type="text" value={newUser.first_name} onChange={(e) => setNewUser({...newUser, first_name: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="Andrei" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">Prenume</label>
-                <input required disabled={isSaving} type="text" value={newUser.last_name} onChange={(e) => setNewUser({...newUser, last_name: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="Andrei" />
+                <input required disabled={isSaving} type="text" value={newUser.last_name} onChange={(e) => setNewUser({...newUser, last_name: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="Popescu" />
               </div>
+
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">Username</label>
                 <input required disabled={isSaving} type="text" autoComplete="one-time-code" value={newUser.username} onChange={(e) => setNewUser({...newUser, username: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="apopescu" />

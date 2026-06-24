@@ -51,7 +51,7 @@ test("announcementsService update uses PATCH with auth", async () => {
 
 test("announcementsService create uses the authenticated collection endpoint", async () => {
   stubLocalStorage();
-  const fetchMock = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async (_url, _init) =>
+  const fetchMock = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async (url, init) => 
     new Response(JSON.stringify(announcementPayload()), {
       headers: { "Content-Type": "application/json" },
       status: 200,
