@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 // Ignore TS warning for side-effect CSS import when no type declarations are present
 // @ts-ignore: CSS module without type declarations
-import "./globals.css";
+import "./globals.css" assert { type: "css" };
 import Sidebar from "./components/global/Sidebar";
 import Header from "./components/global/PageHeader";
 import { Providers } from "./providers";
