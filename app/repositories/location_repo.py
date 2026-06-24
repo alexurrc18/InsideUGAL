@@ -41,6 +41,8 @@ class LocationRepository(CRUDRepository[Location]):
             "id": row.id,
             "name": row.name,
             "faculty_id": row.faculty_id,
+            "facility_id": row.facility_id,
+            "marker": row.marker,
             "coordinates": (
                 {"latitude": latitude, "longitude": longitude}
                 if latitude is not None and longitude is not None
@@ -56,6 +58,8 @@ class LocationRepository(CRUDRepository[Location]):
             Location.id,
             Location.name,
             Location.faculty_id,
+            Location.facility_id,
+            Location.marker,
             Location.created_at,
             Location.updated_at,
             func.ST_Y(Location.coordinates).label("latitude"),

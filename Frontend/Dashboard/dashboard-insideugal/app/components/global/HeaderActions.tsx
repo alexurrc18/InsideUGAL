@@ -1,10 +1,11 @@
 "use client";
 
-import { Bell, UserRound, LogOut } from "lucide-react";
+import { Bell, UserRound, LogOut, Sun, Moon } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation"; 
 import Link from "next/link";
 import { announcementsService } from "@/lib/announcements-service";
+import { useTheme } from "../../providers";
 
 interface Announcement {
   id: number;
@@ -17,6 +18,7 @@ const STORAGE_KEY = "last_seen_announcement_id";
 
 export default function HeaderActions() {
   const router = useRouter(); 
+  const { isDark, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -129,6 +131,26 @@ export default function HeaderActions() {
 
   return (
     <div className="relative flex items-center gap-1">
+      {/* Light Mode */}
+      
+<button
+  type="button"
+  aria-label="Mod luminos"
+  onClick={() => isDark && toggleTheme()}
+  className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
+>
+  <Sun size={18} />
+</button>
+
+{/* Dark Mode */}
+<button
+  type="button"
+  aria-label="Mod întunecat"
+  onClick={() => !isDark && toggleTheme()}
+  className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
+>
+  <Moon size={18} />
+</button>
       {/* Bell */}
       <div className="relative" ref={dropdownRef}>
         <button

@@ -2,6 +2,7 @@
 from geoalchemy2 import Geometry
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Column,
     DateTime,
     ForeignKey,
@@ -10,6 +11,7 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    Time,
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID, ENUM
@@ -43,10 +45,12 @@ class Profile(Base, TimestampMixin):
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     email = Column(String(255), unique=True, nullable=False)
+    faculty_id = Column(Integer, ForeignKey("public.faculties.id", ondelete="SET NULL"), nullable=True)
     
     role = Column(ENUM('STUDENT', 'STUDENT_RESPONSABIL', 'PROFESOR', 'HEAD_CANTINA', 'HEAD_FACULTATI', 'HEAD_ADMIN', name='user_role', create_type=False), nullable=False, server_default="STUDENT")
     is_active = Column(Boolean, nullable=False, default=True)
 
+    faculty = relationship("Faculty", back_populates="profiles")
     complaints = relationship("Complaint", back_populates="user")
     announcements = relationship("Announcement", back_populates="creator")
 
@@ -63,9 +67,11 @@ class Faculty(Base, TimestampMixin):
     phone = Column(String(50))
     website_url = Column(Text)
     dormitory_url = Column(Text)
+    logo_url = Column(Text)
 
     locations = relationship("Location", back_populates="faculty")
     announcements = relationship("Announcement", back_populates="faculty")
+    profiles = relationship("Profile", back_populates="faculty")
 
 
 class Category(Base):
@@ -76,6 +82,16 @@ class Category(Base):
     name = Column(String(100), unique=True, nullable=False)
 
 
+class ProductCategory(Base):
+    __tablename__ = "product_categories"
+    __table_args__ = {"schema": "public"}
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), unique=True, nullable=False)
+
+    products = relationship("Product", back_populates="category")
+
+
 class Location(Base, TimestampMixin):
     __tablename__ = "locations"
     __table_args__ = {"schema": "public"}
@@ -84,9 +100,45 @@ class Location(Base, TimestampMixin):
     name = Column(String(255), nullable=False)
     coordinates = Column(Geometry(geometry_type="POINT", srid=4326))
     faculty_id = Column(Integer, ForeignKey("public.faculties.id", ondelete="SET NULL"))
+    facility_id = Column(Integer, ForeignKey("public.facilities.id", ondelete="SET NULL"))
+    marker = Column(String(10))
 
     faculty = relationship("Faculty", back_populates="locations")
+    facility = relationship("Facility", back_populates="locations")
     complaints = relationship("Complaint", back_populates="location")
+
+
+class Facility(Base, TimestampMixin):
+    __tablename__ = "facilities"
+    __table_args__ = {"schema": "public"}
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+
+    locations = relationship("Location", back_populates="facility")
+    schedules = relationship(
+        "FacilitySchedule",
+        back_populates="facility",
+        cascade="all, delete-orphan",
+        order_by="FacilitySchedule.day_of_week",
+    )
+
+
+class FacilitySchedule(Base):
+    __tablename__ = "facility_schedules"
+    __table_args__ = (
+        CheckConstraint("day_of_week BETWEEN 1 AND 7", name="ck_facility_schedules_day_of_week"),
+        {"schema": "public"},
+    )
+
+    id = Column(Integer, primary_key=True)
+    facility_id = Column(Integer, ForeignKey("public.facilities.id", ondelete="CASCADE"), nullable=False)
+    day_of_week = Column(Integer, nullable=False)
+    open_time = Column(Time, nullable=False)
+    close_time = Column(Time, nullable=False)
+
+    facility = relationship("Facility", back_populates="schedules")
 
 
 class Product(Base, TimestampMixin):
@@ -98,7 +150,9 @@ class Product(Base, TimestampMixin):
     description = Column(Text)
     quantity = Column(String(50), nullable=False)
     price = Column(Numeric(10, 2), nullable=False)
+    category_id = Column(Integer, ForeignKey("public.product_categories.id", ondelete="SET NULL"))
 
+    category = relationship("ProductCategory", back_populates="products")
     daily_menus = relationship("DailyMenu", secondary=menu_products, back_populates="products")
 
 

@@ -16,8 +16,14 @@ manage_locations = require_roles(schemas.UserRole.HEAD_ADMIN, schemas.UserRole.H
 
 async def validate_faculty(payload: BaseModel, db: AsyncSession) -> None:
     faculty_id = getattr(payload, "faculty_id", None)
-    if faculty_id:
+    if faculty_id is not None:
         await ensure_exists(db, models.Faculty, faculty_id, "Faculty not found.")
+
+
+async def validate_facility(payload: BaseModel, db: AsyncSession) -> None:
+    facility_id = getattr(payload, "facility_id", None)
+    if facility_id is not None:
+        await ensure_exists(db, models.Facility, facility_id, "Facility not found.")
 
 
 @router.get("/", response_model=schemas.PaginatedResponse[schemas.LocationResponse])
@@ -44,6 +50,7 @@ async def create_location(
     current_profile=Depends(manage_locations),
 ):
     await validate_faculty(location_in, session)
+    await validate_facility(location_in, session)
     location = await repo.create(session, location_in)
     return await repo.get_response_by_id(session, location.id)
 
@@ -59,6 +66,7 @@ async def update_location(
     if not location:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Location not found.")
     await validate_faculty(location_in, session)
+    await validate_facility(location_in, session)
     updated_location = await repo.update(session, location, location_in)
     return await repo.get_response_by_id(session, updated_location.id)
 
