@@ -1,10 +1,9 @@
 "use client";
 
-import React from "react";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-// Ignore TS warning for side-effect CSS import when no type declarations are present
-// @ts-ignore: CSS module without type declarations
+// @ts-ignore: Local VS Code bypass
+// @ts-expect-error: CI strict environment bypass
 import "./globals.css" assert { type: "css" };
 import Sidebar from "./components/global/Sidebar";
 import Header from "./components/global/PageHeader";
