@@ -14,17 +14,17 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-  const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("access_token");
 
-  if (!token && pathname !== "/login") {
-    router.replace("/login");
-    return;
-  }
+    if (!token && pathname !== "/login") {
+      router.replace("/login");
+      return;
+    }
 
-  queueMicrotask(() => {
-    setChecking(false);
-  });
-}, [pathname, router]);
+    queueMicrotask(() => {
+      setChecking(false);
+    });
+  }, [pathname, router]);
 
   if (checking && pathname !== "/login") return null;
 
@@ -45,11 +45,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {children}
               </div>
             ) : (
-              <div className="flex min-h-screen">
+              /* MODIFICAT: h-screen și overflow-hidden blochează scroll-ul pe toată fereastra */
+              <div className="flex h-screen overflow-hidden">
                 <Sidebar />
-                <div className="flex-1 flex flex-col">
+                <div className="flex-1 flex flex-col min-w-0 h-full">
                   <Header />
-                  <main className="p-6 flex-1 bg-background">
+                  {/* MODIFICAT: overflow-y-auto pe main lasă doar conținutul paginii să facă scroll */}
+                  <main className="p-6 flex-1 bg-background overflow-y-auto custom-scrollbar">
                     {children}
                   </main>
                 </div>

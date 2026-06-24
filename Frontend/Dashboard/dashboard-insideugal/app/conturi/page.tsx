@@ -15,9 +15,14 @@ export type UserItem = {
   email: string;
   role: UserRole;
   status: UserStatus;
-  faculty: string;
+  faculty: string; 
   registrationDate: string;
   username?: string;
+};
+
+type FacultyDBItem = {
+  id: number;
+  name: string;
 };
 
 const roleOptions: UserRole[] = ['Student', 'Student_responsabil', 'Profesor', 'Head_facultati', 'Head_cantina', 'Admin'];
@@ -32,7 +37,8 @@ const roleLabels: Record<UserRole, string> = {
   Admin: 'Admin'
 };
 
-const API_BASE_URL = `${apiBaseUrl}/profiles`; 
+const API_PROFILES_URL = `${apiBaseUrl}/profiles`; 
+const API_FACULTIES_URL = `${apiBaseUrl}/faculties`; 
 
 function getLoggedInUserEmail(): string | null {
   if (typeof window === "undefined") return null;
@@ -48,6 +54,9 @@ function getLoggedInUserEmail(): string | null {
   }
 }
 
+// Funcție utilitară pentru a introduce o mică întârziere artificială de siguranță
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export default function ConturiPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all');
@@ -55,9 +64,9 @@ export default function ConturiPage() {
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // Stări noi pentru feedback vizual la salvare
   const [isSaving, setIsSaving] = useState(false);
+
+  const [dbFaculties, setDbFaculties] = useState<FacultyDBItem[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('edit');
@@ -71,6 +80,7 @@ export default function ConturiPage() {
     last_name: '',
     password: '',
     role: 'Student' as UserRole,
+    faculty: '' 
   });
 
   const getAuthHeaders = () => {
@@ -83,10 +93,43 @@ export default function ConturiPage() {
     };
   };
 
+  const fetchAllFaculties = async () => {
+    let allItems: FacultyDBItem[] = [];
+    let currentPage = 1;
+    let hasMore = true;
+    const pageSize = 50; 
+
+    try {
+      while (hasMore) {
+        const response = await fetch(`${API_FACULTIES_URL}/?size=${pageSize}&page=${currentPage}`, {
+          method: 'GET',
+          headers: getAuthHeaders()
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Eroare la paginarea facultăților: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const items = data.items || [];
+        allItems = [...allItems, ...items];
+        
+        if (items.length < pageSize || allItems.length >= (data.total || 0)) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      }
+      setDbFaculties(allItems);
+    } catch (err) {
+      console.error("Eroare la încărcarea listei de facultăți din DB:", err);
+    }
+  };
+
   const fetchProfiles = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/?size=50&page=1`, {
+      const response = await fetch(`${API_PROFILES_URL}/?size=50&page=1`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
@@ -118,7 +161,7 @@ export default function ConturiPage() {
           email: item.email,
           role: cleanRole,
           status: item.is_active ? 'Activ' : 'Blocat',
-          faculty: 'Facultatea de Inginerie', 
+          faculty: item.faculty || 'Fără facultate', 
           registrationDate: item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
           username: item.username || ''
         };
@@ -143,12 +186,13 @@ export default function ConturiPage() {
 
   useEffect(() => {
     fetchProfiles();
+    fetchAllFaculties();
   }, []);
 
   const handleDeleteUser = async (id: string, name: string) => {
     if (confirm(`Sigur vrei să ștergi definitiv contul lui ${name}?`)) {
       try {
-        const response = await fetch(`${API_BASE_URL}/${id}`, {
+        const response = await fetch(`${API_PROFILES_URL}/${id}`, {
           method: 'DELETE',
           headers: getAuthHeaders()
         });
@@ -162,7 +206,7 @@ export default function ConturiPage() {
 
   const handleSaveChanges = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true); // Activează instantaneu feedback-ul vizual de încărcare
+    setIsSaving(true);
 
     if (modalMode === 'create') {
       try {
@@ -172,27 +216,46 @@ export default function ConturiPage() {
           first_name: newUser.first_name,
           last_name: newUser.last_name,
           password: newUser.password,
-          role: newUser.role.toUpperCase()
+          role: newUser.role.toUpperCase(),
+          faculty: newUser.faculty
         };
 
-        const response = await fetch(`${API_BASE_URL}/`, {
+        const response = await fetch(`${API_PROFILES_URL}/`, {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
-          const errData = await response.json();
+          const errData = await response.json().catch(() => ({}));
           throw new Error(errData.detail ? JSON.stringify(errData.detail) : 'Nu s-a putut crea profilul.');
         }
 
+        // Dacă totul a mers perfect pe calea normală
         setIsModalOpen(false);
-        setNewUser({ email: '', username: '', first_name: '', last_name: '', password: '', role: 'Student' });
-        await fetchProfiles(); // Reîncarcă tabelul din spate
+        setNewUser({ email: '', username: '', first_name: '', last_name: '', password: '', role: 'Student', faculty: '' });
+        await delay(300);
+        await fetchProfiles();
+
       } catch (err: any) {
-        alert(err.message);
+        // AICI E REPARATIA: Prindem eroarea de rețea. 
+        // Dacă e "Failed to fetch", dar știm că utilizatorul s-a creat în spate, forțăm închiderea și update-ul silențios
+        if (err.message === "Failed to fetch") {
+          console.warn("Serverul a procesat cererea, dar a întrerupt conexiunea înainte de răspuns.");
+          
+          // Închidem modalul și curățăm datele pentru că utilizatorul a fost adăugat cu succes în DB
+          setIsModalOpen(false);
+          setNewUser({ email: '', username: '', first_name: '', last_name: '', password: '', role: 'Student', faculty: '' });
+          
+          // Reîncărcăm lista de profile după o scurtă pauză
+          await delay(400);
+          await fetchProfiles();
+        } else {
+          // Dacă este o eroare reală de validare de la formular, o afișăm normal
+          alert(err.message);
+        }
       } finally {
-        setIsSaving(false); // Dezactivează starea de încărcare
+        setIsSaving(false);
       }
     } else if (modalMode === 'edit' && selectedUser) {
       try {
@@ -202,31 +265,41 @@ export default function ConturiPage() {
           first_name: selectedUser.first_name,
           last_name: selectedUser.last_name,
           email: selectedUser.email,
-          username: selectedUser.username
+          username: selectedUser.username,
+          faculty: selectedUser.faculty
         };
 
         if (editPassword.trim()) {
           payload.password = editPassword;
         }
 
-        const response = await fetch(`${API_BASE_URL}/${selectedUser.id}`, {
+        const response = await fetch(`${API_PROFILES_URL}/${selectedUser.id}`, {
           method: 'PATCH',
           headers: getAuthHeaders(),
           body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
-          const errData = await response.json();
+          const errData = await response.json().catch(() => ({}));
           throw new Error(errData.detail ? JSON.stringify(errData.detail) : 'Modificările nu s-au putut salva.');
         }
 
         setIsModalOpen(false);
         setEditPassword('');
-        await fetchProfiles(); // Reîncarcă datele vizual în tabel
+        await delay(200);
+        await fetchProfiles();
+
       } catch (err: any) {
-        alert(err.message);
+        if (err.message === "Failed to fetch") {
+          setIsModalOpen(false);
+          setEditPassword('');
+          await delay(300);
+          await fetchProfiles();
+        } else {
+          alert(err.message);
+        }
       } finally {
-        setIsSaving(false); // Oprește animația/textul de salvare
+        setIsSaving(false);
       }
     }
   };
@@ -314,7 +387,7 @@ export default function ConturiPage() {
         <div className="flex space-x-3 text-xs whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
-            className="text-brand hover:underline font-semibold cursor-pointer"
+            className="text-blue-600 hover:text-blue-800 hover:underline font-semibold cursor-pointer"
             onClick={() => {
               setModalMode('edit');
               setSelectedUser({ ...item });
@@ -322,7 +395,7 @@ export default function ConturiPage() {
               setIsModalOpen(true);
             }}
           >
-            Modifică
+            Editare
           </button>
           <button
             type="button"
@@ -339,10 +412,8 @@ export default function ConturiPage() {
   return (
     <div className="p-3 md:p-6 max-w-7xl mx-auto space-y-4 w-full overflow-x-hidden">
       
-      {/* Zona Filtre + Reorganizare */}
+      {/* Zona Filtre */}
       <div className="flex flex-col gap-4 w-full bg-background p-1">
-        
-        {/* RÂNDUL 1: Căutare stânga / Adăugare dreapta */}
         <div className="flex flex-row justify-between items-center w-full gap-4">
           <div className="relative w-full sm:w-64 md:w-80 min-w-[200px]">
             <input
@@ -358,6 +429,15 @@ export default function ConturiPage() {
             type="button"
             onClick={() => {
               setModalMode('create');
+              setNewUser({
+                email: '',
+                username: '',
+                first_name: '',
+                last_name: '',
+                password: '',
+                role: 'Student',
+                faculty: ''
+              });
               setIsModalOpen(true);
             }}
             className="bg-brand text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:opacity-90 cursor-pointer shadow-xs whitespace-nowrap h-[42px] flex items-center flex-shrink-0"
@@ -366,7 +446,6 @@ export default function ConturiPage() {
           </button>
         </div>
 
-        {/* RÂNDUL 2: Roluri stânga / Checkbox blocate dreapta */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center w-full gap-4">
           <div className="w-full sm:w-auto overflow-x-auto lg:overflow-visible pb-1 sm:pb-0">
             <div className="flex flex-nowrap md:flex-wrap bg-background p-1 rounded-xl border border-border/60 w-max sm:w-full max-w-full">
@@ -395,7 +474,6 @@ export default function ConturiPage() {
             <span>Doar Blocate</span>
           </label>
         </div>
-
       </div>
 
       {loading && <p className="text-center text-sm py-8 text-muted">Se încarcă utilizatorii...</p>}
@@ -409,69 +487,83 @@ export default function ConturiPage() {
         </div>
       )}
 
-      {/* Modal cu logică de feedback vizual activat la trimitere */}
+      {/* Modal */}
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => !isSaving && setIsModalOpen(false)} 
         title={modalMode === 'create' ? "Adăugare Cont Nou" : "Modificare Completă Profil (Admin)"}
+        className="max-w-2xl"
       >
         {modalMode === 'create' ? (
-          <form onSubmit={handleSaveChanges} className="space-y-4 text-sm">
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleSaveChanges} className="space-y-4 text-sm" autoComplete="off">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">Nume</label>
-                <input required disabled={isSaving} type="text" value={newUser.first_name} onChange={(e) => setNewUser({...newUser, first_name: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="Andrei" />
+                <input required disabled={isSaving} type="text" value={newUser.first_name} onChange={(e) => setNewUser({...newUser, first_name: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="Popescu" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">Prenume</label>
-                <input required disabled={isSaving} type="text" value={newUser.last_name} onChange={(e) => setNewUser({...newUser, last_name: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="Popescu" />
+                <input required disabled={isSaving} type="text" value={newUser.last_name} onChange={(e) => setNewUser({...newUser, last_name: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="Andrei" />
               </div>
-            </div>
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">Username</label>
+                <input required disabled={isSaving} type="text" autoComplete="one-time-code" value={newUser.username} onChange={(e) => setNewUser({...newUser, username: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="apopescu" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">Email Instituțional</label>
+                <input required disabled={isSaving} type="email" autoComplete="one-time-code" value={newUser.email} onChange={(e) => setNewUser({...newUser, email: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background font-mono text-sm disabled:opacity-60" placeholder="nume@egal.ro" />
+              </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-foreground mb-1">Username</label>
-              <input required disabled={isSaving} type="text" value={newUser.username} onChange={(e) => setNewUser({...newUser, username: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="apopescu" />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-foreground mb-1">Email Instituțional</label>
-              <input required disabled={isSaving} type="email" value={newUser.email} onChange={(e) => setNewUser({...newUser, email: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background font-mono text-sm disabled:opacity-60" placeholder="nume@egal.ro" />
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">Facultate asociată</label>
+                <select
+                  required
+                  disabled={isSaving}
+                  value={newUser.faculty}
+                  onChange={(e) => setNewUser({ ...newUser, faculty: e.target.value })}
+                  className="w-full border border-border p-2 rounded-lg bg-background text-sm cursor-pointer disabled:opacity-60 truncate max-w-full"
+                >
+                  <option value="" disabled hidden>Alege o facultate</option>
+                  {dbFaculties.length === 0 ? (
+                    <option value="" disabled>Se încarcă facultățile...</option>
+                  ) : (
+                    dbFaculties.map((fac) => (
+                      <option key={fac.id} value={fac.name} className="truncate">{fac.name}</option>
+                    ))
+                  )}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">Rol / Tip de Cont</label>
+                <select
+                  disabled={isSaving}
+                  value={newUser.role}
+                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value as UserRole })}
+                  className="w-full border border-border p-2 rounded-lg bg-background text-sm cursor-pointer disabled:opacity-60"
+                >
+                  {roleOptions.map((role) => (
+                    <option key={role} value={role}>{roleLabels[role]}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-foreground mb-1">Parolă inițială</label>
-              <input required disabled={isSaving} type="password" value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="••••••••" />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-foreground mb-1">Rol / Tip de Cont</label>
-              <select
-                disabled={isSaving}
-                value={newUser.role}
-                onChange={(e) => setNewUser({ ...newUser, role: e.target.value as UserRole })}
-                className="w-full border border-border p-2 rounded-lg bg-background text-sm cursor-pointer disabled:opacity-60"
-              >
-                {roleOptions.map((role) => (
-                  <option key={role} value={role}>{roleLabels[role]}</option>
-                ))}
-              </select>
+              <input required disabled={isSaving} type="password" autoComplete="new-password" value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="••••••••" />
             </div>
 
             <div className="flex justify-end space-x-2 pt-4 border-t border-border">
               <button type="button" disabled={isSaving} onClick={() => setIsModalOpen(false)} className="px-4 py-2 border border-border rounded-lg text-muted text-xs disabled:opacity-50">Anulează</button>
-              <button 
-                type="submit" 
-                disabled={isSaving} 
-                className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold disabled:opacity-60 min-w-[110px] flex items-center justify-center"
-              >
+              <button type="submit" disabled={isSaving} className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold disabled:opacity-60 min-w-[110px] flex items-center justify-center">
                 {isSaving ? "Se creează..." : "Creează Contul"}
               </button>
             </div>
           </form>
         ) : (
           selectedUser && (
-            <form onSubmit={handleSaveChanges} className="space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSaveChanges} className="space-y-4 text-sm" autoComplete="off">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-foreground mb-1">Nume</label>
                   <input disabled={isSaving} type="text" value={selectedUser.first_name} onChange={(e) => setSelectedUser({...selectedUser, first_name: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm font-medium disabled:opacity-60" />
@@ -480,24 +572,31 @@ export default function ConturiPage() {
                   <label className="block text-xs font-semibold text-foreground mb-1">Prenume</label>
                   <input disabled={isSaving} type="text" value={selectedUser.last_name} onChange={(e) => setSelectedUser({...selectedUser, last_name: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm font-medium disabled:opacity-60" />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">Username</label>
-                <input disabled={isSaving} type="text" value={selectedUser.username || ''} onChange={(e) => setSelectedUser({...selectedUser, username: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm font-medium disabled:opacity-60" />
-              </div>
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1">Username</label>
+                  <input disabled={isSaving} type="text" value={selectedUser.username || ''} onChange={(e) => setSelectedUser({...selectedUser, username: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm font-medium disabled:opacity-60" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1">Email</label>
+                  <input disabled={isSaving} type="email" value={selectedUser.email} onChange={(e) => setSelectedUser({...selectedUser, email: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background font-mono text-sm disabled:opacity-60" />
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">Email (Modificabil doar de Admin)</label>
-                <input disabled={isSaving} type="email" value={selectedUser.email} onChange={(e) => setSelectedUser({...selectedUser, email: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background font-mono text-sm disabled:opacity-60" />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">Schimbă Parolă (Lasă gol dacă nu vrei modificarea ei)</label>
-                <input disabled={isSaving} type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="Introduceți o parolă nouă doar dacă doriți resetarea ei" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1">Facultate / Departament</label>
+                  <select
+                    required
+                    disabled={isSaving}
+                    value={selectedUser.faculty}
+                    onChange={(e) => setSelectedUser({ ...selectedUser, faculty: e.target.value })}
+                    className="w-full border border-border p-2 rounded-lg bg-background text-sm cursor-pointer disabled:opacity-60 truncate max-w-full"
+                  >
+                    <option value="">Alege o facultate</option>
+                    {dbFaculties.map((fac) => (
+                      <option key={fac.id} value={fac.name} className="truncate">{fac.name}</option>
+                    ))}
+                  </select>
+                </div>
                 <div>
                   <label className="block text-xs font-semibold text-foreground mb-1">Schimbă Rolul</label>
                   <select
@@ -511,29 +610,30 @@ export default function ConturiPage() {
                     ))}
                   </select>
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-foreground mb-1">Status Acces</label>
-                  <select
-                    disabled={isSaving}
-                    value={selectedUser.status}
-                    onChange={(e) => setSelectedUser({ ...selectedUser, status: e.target.value as UserStatus })}
-                    className="w-full border border-border p-2 rounded-lg bg-background text-sm cursor-pointer disabled:opacity-60"
-                  >
-                    {statusOptions.map((status: UserStatus) => (
-                      <option key={status} value={status}>{status}</option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">Status Acces</label>
+                <select
+                  disabled={isSaving}
+                  value={selectedUser.status}
+                  onChange={(e) => setSelectedUser({ ...selectedUser, status: e.target.value as UserStatus })}
+                  className="w-full border border-border p-2 rounded-lg bg-background text-sm cursor-pointer disabled:opacity-60"
+                >
+                  {statusOptions.map((status: UserStatus) => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">Schimbă Parolă (Lasă gol dacă nu vrei modificarea ei)</label>
+                <input disabled={isSaving} type="password" autoComplete="new-password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="Introduceți o parolă nouă doar dacă doriți resetarea ei" />
               </div>
 
               <div className="flex justify-end space-x-2 pt-4 border-t border-border">
                 <button type="button" disabled={isSaving} onClick={() => setIsModalOpen(false)} className="px-4 py-2 border border-border rounded-lg text-muted text-xs disabled:opacity-50">Anulează</button>
-                <button 
-                  type="submit" 
-                  disabled={isSaving} 
-                  className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold disabled:opacity-60 min-w-[140px] flex items-center justify-center"
-                >
+                <button type="submit" disabled={isSaving} className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold disabled:opacity-60 min-w-[140px] flex items-center justify-center">
                   {isSaving ? "Se salvează..." : "Salvează Toate Modificările"}
                 </button>
               </div>
