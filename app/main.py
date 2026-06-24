@@ -23,6 +23,7 @@ import app.api.llm as llm
 import app.api.llm_stream as llm_stream
 import app.api.locations as locations
 import app.api.products as products
+import app.api.product_categories as product_categories
 import app.api.profiles as profiles
 import app.api.uploads as uploads
 from app.api.errors import (
@@ -136,6 +137,7 @@ app.include_router(profiles.router)
 app.include_router(faculties.router)
 app.include_router(categories.router)
 app.include_router(locations.router)
+app.include_router(product_categories.router)
 app.include_router(products.router)
 app.include_router(daily_menus.router)
 app.include_router(cafeteria_menus.router)

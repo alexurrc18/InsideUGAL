@@ -169,6 +169,23 @@ class CategoryResponse(CategoryBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ProductCategoryBase(BaseModel):
+    name: str
+
+
+class ProductCategoryCreate(ProductCategoryBase):
+    pass
+
+
+class ProductCategoryUpdate(BaseModel):
+    name: Optional[str] = None
+
+
+class ProductCategoryResponse(ProductCategoryBase):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+
+
 # ==========================================
 # COMPLAINTS (SESIZĂRI)
 # ==========================================
@@ -254,16 +271,19 @@ class ProductBase(BaseModel):
     price: Decimal
 
 class ProductCreate(ProductBase):
-    pass
+    category_id: Optional[int] = None
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     quantity: Optional[str] = None
     price: Optional[Decimal] = None
+    category_id: Optional[int] = None
 
 class ProductResponse(ProductBase):
     id: int
+    category_id: Optional[int] = None
+    category: Optional[ProductCategoryResponse] = None
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
