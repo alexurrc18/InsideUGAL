@@ -3,10 +3,9 @@
 -- ==========================================================
 
 CREATE EXTENSION IF NOT EXISTS postgis;
--- Supabase manages the auth and storage schemas in hosted/recent local projects.
--- Do not create auth/storage schemas, auth.uid(), or storage.buckets here:
--- those objects are owned by Supabase and recreating them can fail with
--- "permission denied for schema auth/storage".
+-- Supabase manages the auth schema in hosted/recent local projects.
+-- Do not create auth schemas or auth.uid() here: those objects are owned by
+-- Supabase and recreating them can fail with "permission denied for schema auth".
 -- pgcrypto is also available by default in Supabase; public.llm_calls can use
 -- gen_random_uuid() without this migration owning the extension.
 
@@ -275,7 +274,7 @@ CREATE TRIGGER handle_complaints_updated_at BEFORE UPDATE ON public.complaints F
 CREATE TRIGGER handle_announcements_updated_at BEFORE UPDATE ON public.announcements FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- ==========================================================
--- 5. ROW LEVEL SECURITY (RLS) & STORAGE
+-- 5. ROW LEVEL SECURITY (RLS)
 -- ==========================================================
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -292,9 +291,6 @@ ALTER TABLE public.complaints ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_calls ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.questions_history ENABLE ROW LEVEL SECURITY;
-
--- Bucket-ul pentru logo-uri este creat mai jos, dupa definirea politicilor
--- public schema, pentru a pastra setup-ul principal intr-un singur loc.
 
 -- ==========================================================
 -- 6. POLITICI POLICIES (RLS)
@@ -363,28 +359,6 @@ CREATE POLICY "announcements_authorized_manage" ON public.announcements FOR ALL 
 -- ==========================================================
 -- 7. INDECȘI PENTRU PERFORMANȚĂ
 -- ==========================================================
-
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('faculty-logos', 'faculty-logos', TRUE)
-ON CONFLICT (id) DO NOTHING;
-
-DROP POLICY IF EXISTS "faculty_logos_public_read" ON storage.objects;
-CREATE POLICY "faculty_logos_public_read" ON storage.objects FOR SELECT USING (bucket_id = 'faculty-logos');
-
-DROP POLICY IF EXISTS "faculty_logos_head_insert" ON storage.objects;
-CREATE POLICY "faculty_logos_head_insert" ON storage.objects FOR INSERT WITH CHECK (
-    bucket_id = 'faculty-logos'
-    AND public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_FACULTATI', 'HEAD_CANTINA')
-);
-
-DROP POLICY IF EXISTS "faculty_logos_head_update" ON storage.objects;
-CREATE POLICY "faculty_logos_head_update" ON storage.objects FOR UPDATE USING (
-    bucket_id = 'faculty-logos'
-    AND public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_FACULTATI', 'HEAD_CANTINA')
-) WITH CHECK (
-    bucket_id = 'faculty-logos'
-    AND public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_FACULTATI', 'HEAD_CANTINA')
-);
 
 CREATE INDEX IF NOT EXISTS idx_products_category_id ON public.products(category_id);
 CREATE INDEX IF NOT EXISTS idx_locations_facility_id ON public.locations(facility_id);
