@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-// @ts-expect-error: bypass for CSS assert in strict CI environment
-import "./globals.css" assert { type: "css" };
+// @ts-expect-error: Suppress CSS module resolution types for strict environment
+import "./globals.css" with { type: "css" };
 import Sidebar from "./components/global/Sidebar";
 import Header from "./components/global/PageHeader";
 import { Providers } from "./providers";
