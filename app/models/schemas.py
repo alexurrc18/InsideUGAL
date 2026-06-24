@@ -4,7 +4,8 @@ from uuid import UUID
 from datetime import datetime, time
 from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, field_validator
-
+from pydantic import BaseModel
+from typing import Dict, List, Any
 # Importuri adăugate pentru conversia coordonatelor PostGIS
 from geoalchemy2.elements import WKBElement
 from geoalchemy2.shape import to_shape
@@ -365,3 +366,8 @@ class DailyMenuResponse(DailyMenuBase):
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+class DashboardStatsResponse(BaseModel):
+    total_users: int
+    complaints_stats: Dict[str, int]
+    recent_announcements: List[Dict[str, Any]]    
