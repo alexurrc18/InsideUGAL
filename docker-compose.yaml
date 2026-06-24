@@ -366,6 +366,8 @@ services:
     build:
       context: ./Frontend/Mobile
       dockerfile: Dockerfile
+    env_file:
+      - .env
     command: npm run web -- --host lan
     restart: unless-stopped
     ports:
