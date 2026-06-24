@@ -26,6 +26,17 @@ Scopul principal este asistarea studenților și a secretariatului prin intermed
 - `POST /api/v1/ask`: (Campus Chat) Căutare semantică RAG și răspuns.
 - `POST /api/v1/upload-pdf`: Procesare PDF, chunking și indexare în `pgvector`.
 - `POST /api/v1/extract-announcement-info`: Extragere structurată metadate din anunțuri.
+- `POST /api/v1/admin/rebuild-rag`: Declanșare manuală rebuild index RAG (necesită `X-Admin-Secret`).
+- `POST /webhook/supabase`: Ingestie automată date din webhook Supabase (necesită `X-Webhook-Secret`).
+
+## ⚙️ Configurare (Variabile de mediu)
+
+Asigurați-vă că fișierul `LLM/.env` conține următoarele variabile:
+
+- `GEMINI_API_KEY`: Cheia API pentru Google Gemini.
+- `ADMIN_SECRET`: Secretul utilizat pentru securizarea endpoint-ului `/api/v1/admin/rebuild-rag`.
+- `SUPABASE_WEBHOOK_SECRET`: Secretul utilizat pentru securizarea endpoint-ului `/webhook/supabase`.
+
 
 ## 🧪 Testare & Evaluare
 
