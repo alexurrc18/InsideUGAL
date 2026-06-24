@@ -12,7 +12,8 @@ import {
   useCreateAnnouncement, 
   useUpdateAnnouncement, 
   useDeleteAnnouncement,
-  useFaculties
+  useFaculties,
+  useGenerateAiBanner
 } from '@/hooks/useDashboardApi';
 import { Announcement as BackendAnnouncement } from '@/lib/api-types';
 
@@ -34,6 +35,7 @@ function AnnouncementsContent() {
   const createMutation = useCreateAnnouncement();
   const updateMutation = useUpdateAnnouncement();
   const deleteMutation = useDeleteAnnouncement();
+  const generateBannerMutation = useGenerateAiBanner();
 
   const [activeModal, setActiveModal] = useState<'add' | 'edit' | 'details' | null>(null);
   const [selectedItem, setSelectedItem] = useState<Announcement | null>(null);
@@ -262,8 +264,32 @@ function AnnouncementsContent() {
     }
   };
 
-  const handleAiGenerate = () => {
-    console.info("Generare imagine AI... (Legătură LLM viitoare)");
+ const handleAiGenerate = () => {
+    if (!formState.title?.trim() || !formState.description?.trim()) {
+      alert('Completează titlul și descrierea înainte de a genera o imagine cu AI.');
+      return;
+    }
+
+    generateBannerMutation.mutate(
+      {
+        title: formState.title,
+        description: formState.description,
+        faculty: formState.faculties?.[0],
+      },
+      {
+        onSuccess: (result) => {
+          const image = result.image_url || result.image_base64;
+          if (image) {
+            setFormState(prev => ({ ...prev, thumbnail: image }));
+          } else {
+            alert(result.error_message || 'Generarea imaginii a eșuat.');
+          }
+        },
+        onError: (error) => {
+          alert(error.message || 'Generarea imaginii a eșuat. Încearcă din nou.');
+        },
+      }
+    );
   };
 
   // 👉 REPARAT: Payload-ul acum trimite corect câmpurile structurate pentru Backend
@@ -500,12 +526,13 @@ function AnnouncementsContent() {
                   <button
                     type="button"
                     onClick={handleAiGenerate}
-                    className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-md text-xs font-bold cursor-pointer hover:opacity-90 transition-all shadow-xs w-full sm:w-auto"
+                    disabled={generateBannerMutation.isPending}
+                    className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-md text-xs font-bold cursor-pointer hover:opacity-90 transition-all shadow-xs w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <svg className="w-3.5 h-3.5 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className={`w-3.5 h-3.5 ${generateBannerMutation.isPending ? 'animate-spin' : 'animate-pulse'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
-                    Generează cu AI
+                    {generateBannerMutation.isPending ? 'Se generează...' : 'Generează cu AI'}
                   </button>
                 </div>
 

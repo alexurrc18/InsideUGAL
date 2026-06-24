@@ -15,7 +15,7 @@ import { useEffect, useState } from 'react';
 //
 // ...sau, daca folositi React Query / SWR, `const { isLoading } = useQuery(...)`.
 // Restul paginii (randarea `{loading ? <Skeleton/> : <Continut/>}`) ramane la fel.
-export function useMockLoading(durationMs: number = 5000): boolean {
+export function useMockLoading(durationMs: number = 800): boolean {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

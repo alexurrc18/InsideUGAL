@@ -1,10 +1,3 @@
-// Meniu de profil (DOAR web — folosit din web-navbar). Trigger = iconita user.
-// La click se deschide un card cu numele + email-ul utilizatorului, buton Dashboard
-// (doar daca are acces) si Deconectare.
-//
-// NOTA: datele utilizatorului sunt momentan PLACEHOLDER. Dupa ce conectam login-ul
-// (endpoint /auth, vezi config.ts), inlocuim MOCK_USER cu user-ul real (din context/
-// store) si implementam logout-ul (stergere token) + URL-ul real de Dashboard.
 import { useEffect, useState } from "react";
 import { Animated, Easing, Linking, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -12,18 +5,14 @@ import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import UserIcon from "@/assets/icons/svg/user.svg";
+import api, { getAuthToken, setAuthToken } from "@/services/api";
+import { Config } from "@/constants/config";
 
-// TODO: inlocuieste cu utilizatorul real dupa conectarea login-ului.
-export const MOCK_USER = {
-  name: "Utilizator",
-  email: "user@ugal.ro",
-  hasDashboardAccess: true,
-};
-// TODO: URL-ul real al Dashboard-ului.
-export const DASHBOARD_URL = "https://dashboard.insideugal.ro";
+export const DASHBOARD_URL = Config.DASHBOARD_URL;
 
 export function ProfileMenu({
   open: controlledOpen,
+  onToggle,
   onClose,
 }: {
   open?: boolean;
@@ -38,6 +27,17 @@ export function ProfileMenu({
   const open = controlledOpen !== undefined ? controlledOpen : localOpen;
   const [anim] = useState(() => new Animated.Value(0));
 
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<{ name: string; email: string; role?: string } | null>(null);
+
+  const toggle = () => {
+    if (onToggle) {
+      onToggle();
+    } else {
+      setLocalOpen(!localOpen);
+    }
+  };
+
   const close = () => {
     if (onClose) {
       onClose();
@@ -45,6 +45,39 @@ export function ProfileMenu({
       setLocalOpen(false);
     }
   };
+
+  useEffect(() => {
+    let isMounted = true;
+    const checkUser = async () => {
+      try {
+        const token = await getAuthToken();
+        if (token) {
+          if (isMounted) setIsAuthenticated(true);
+          const res = await api.get("/profiles/me");
+          if (res.data && isMounted) {
+            setUser({
+              name: `${res.data.first_name || ""} ${res.data.last_name || ""}`.trim() || "Utilizator",
+              email: res.data.email || "",
+              role: res.data.role || "STUDENT"
+            });
+          }
+        } else {
+          if (isMounted) {
+            setIsAuthenticated(false);
+            setUser(null);
+          }
+        }
+      } catch (err) {
+        console.warn("[API] Error loading profile for profile-menu:", err);
+      }
+    };
+    if (open) {
+      checkUser();
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [open]);
 
   useEffect(() => {
     Animated.timing(anim, {
@@ -69,14 +102,27 @@ export function ProfileMenu({
     close();
     Linking.openURL(DASHBOARD_URL).catch(() => {});
   };
-  const handleProfilePress = () => {
+
+  const handleLogin = () => {
     close();
     router.push("/(auth)");
   };
-  const handleLogout = () => {
+
+  const handleLogout = async () => {
     close();
-    // TODO: sterge token-ul/sesiunea cand login-ul e conectat.
-    router.push("/(auth)");
+    await setAuthToken(null);
+    setIsAuthenticated(false);
+    setUser(null);
+    router.push("/(public)/acasa");
+  };
+
+  const handleProfilePress = async () => {
+    const token = await getAuthToken();
+    if (!token) {
+      router.push("/(auth)");
+      return;
+    }
+    toggle();
   };
 
   const rowStyle = ({ pressed, hovered }: any) => [
@@ -136,16 +182,18 @@ export function ProfileMenu({
           {/* Antet: cine e conectat (nume + email). */}
           <View style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: 2 }}>
             <Text style={[Typography.Heading5, { color: ColorScheme.black }]} numberOfLines={1}>
-              {MOCK_USER.name}
+              {isAuthenticated ? (user?.name || "Utilizator") : "Neautentificat"}
             </Text>
-            <Text style={[Typography.Small2, { color: ColorScheme.gray }]} numberOfLines={1}>
-              {MOCK_USER.email}
-            </Text>
+            {isAuthenticated && user?.email ? (
+              <Text style={[Typography.Small2, { color: ColorScheme.gray }]} numberOfLines={1}>
+                {user.email}
+              </Text>
+            ) : null}
           </View>
 
           <View style={{ height: 1, backgroundColor: "#E5E7EB" }} />
 
-          {MOCK_USER.hasDashboardAccess && (
+          {isAuthenticated && user?.role !== "STUDENT" && (
             <Pressable onPress={handleDashboard} accessibilityRole="link" style={rowStyle}>
               {({ pressed, hovered }: any) => (
                 <Text style={[Typography.Heading5, { color: (pressed || hovered) ? theme.primary : ColorScheme.black }]}>
@@ -155,9 +203,15 @@ export function ProfileMenu({
             </Pressable>
           )}
 
-          <Pressable onPress={handleLogout} accessibilityRole="button" style={rowStyle}>
-            <Text style={[Typography.Heading5, { color: ColorScheme.red }]}>Deconectare</Text>
-          </Pressable>
+          {isAuthenticated ? (
+            <Pressable onPress={handleLogout} accessibilityRole="button" style={rowStyle}>
+              <Text style={[Typography.Heading5, { color: ColorScheme.red }]}>Deconectare</Text>
+            </Pressable>
+          ) : (
+            <Pressable onPress={handleLogin} accessibilityRole="button" style={rowStyle}>
+              <Text style={[Typography.Heading5, { color: theme.primary }]}>Autentificare</Text>
+            </Pressable>
+          )}
         </View>
       </Animated.View>
     </View>

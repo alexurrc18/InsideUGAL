@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Sitemap cu paginile stabile (statice) ale site-ului. Actualizeaza domeniul daca
+  difera de insideugal.ro. Paginile de detaliu (eveniment/anunt) NU sunt incluse
+  aici pentru ca momentan nu au rute proprii cu URL stabil — se pot adauga ulterior
+  (eventual generate automat din backend la build).
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://insideugal.ro/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://insideugal.ro/acasa</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://insideugal.ro/cantina</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://insideugal.ro/harta</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://insideugal.ro/sesizari</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://insideugal.ro/more</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+</urlset>

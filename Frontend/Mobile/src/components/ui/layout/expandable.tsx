@@ -36,9 +36,9 @@ export function Expandable({ title, children, initialExpanded = false, expanded,
             flexDirection: "row",
             justifyContent: "space-between",
             alignItems: "center",
-            paddingTop: Spacing.lg,
+            paddingTop: Spacing.md,
             paddingBottom: 0,
-            paddingHorizontal: Spacing.lg,
+            paddingHorizontal: 0,
           }, 
           { opacity: pressed ? 0.7 : 1 }
         ]}
@@ -56,7 +56,7 @@ export function Expandable({ title, children, initialExpanded = false, expanded,
       </Pressable>
       
       {isExpanded && (
-        <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.xxs, overflow: "hidden" }}>
+        <View style={{ paddingHorizontal: 0, paddingTop: Spacing.xxs, overflow: "hidden" }}>
           {children}
         </View>
       )}

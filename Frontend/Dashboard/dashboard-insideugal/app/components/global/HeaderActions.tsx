@@ -1,10 +1,11 @@
 "use client";
 
-import { Bell, UserRound } from "lucide-react";
+import { Bell, UserRound, LogOut, Sun, Moon } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation"; 
 import Link from "next/link";
 import { announcementsService } from "@/lib/announcements-service";
+import { useTheme } from "../../providers";
 
 interface Announcement {
   id: number;
@@ -17,17 +18,58 @@ const STORAGE_KEY = "last_seen_announcement_id";
 
 export default function HeaderActions() {
   const router = useRouter(); 
+  const { isDark, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [, setUnreadCount] = useState(0);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+  let isMounted = true;
+
+  const loadUser = () => {
+    const token = localStorage.getItem("access_token");
+
+    if (!token) {
+      if (isMounted) {
+        setUserEmail(null);
+      }
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+
+      queueMicrotask(() => {
+        if (isMounted) {
+          setUserEmail(payload.email ?? null);
+        }
+      });
+
+    } catch {
+      queueMicrotask(() => {
+        if (isMounted) {
+          setUserEmail(null);
+        }
+      });
+    }
+  };
+
+  loadUser();
+
+  return () => {
+    isMounted = false;
+  };
+}, []); // Already has empty dependency array - this is actually fine
 
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
         const data = await announcementsService.list();
         
-        // 👉 REZOLVARE PENTRU data.items: Gestionăm formatul paginat { items: [], total: ... }
         let items: Announcement[] = [];
         if (Array.isArray(data)) {
           items = data;
@@ -41,7 +83,6 @@ export default function HeaderActions() {
           const latest = items.slice(0, 5);
           setAnnouncements(latest);
 
-          // Calculează câte sunt "necitite" față de ultima vizită
           const lastSeen = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
           const unseen = latest.filter((a) => a.id > lastSeen).length;
           setUnreadCount(unseen);
@@ -59,6 +100,7 @@ export default function HeaderActions() {
   const handleToggleNotifications = () => {
     const willOpen = !open;
     setOpen(willOpen);
+    setProfileOpen(false);
 
     if (willOpen && announcements.length > 0) {
       const maxId = Math.max(...announcements.map((a) => a.id));
@@ -67,10 +109,20 @@ export default function HeaderActions() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("token_type");
+    router.replace("/login");
+  };
+
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
+        profileRef.current && !profileRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
+        setProfileOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -78,8 +130,29 @@ export default function HeaderActions() {
   }, []);
 
   return (
-    <div className="relative flex items-center gap-1" ref={dropdownRef}>
-      <div className="relative">
+    <div className="relative flex items-center gap-1">
+      {/* Light Mode */}
+      
+<button
+  type="button"
+  aria-label="Mod luminos"
+  onClick={() => isDark && toggleTheme()}
+  className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
+>
+  <Sun size={18} />
+</button>
+
+{/* Dark Mode */}
+<button
+  type="button"
+  aria-label="Mod întunecat"
+  onClick={() => !isDark && toggleTheme()}
+  className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
+>
+  <Moon size={18} />
+</button>
+      {/* Bell */}
+      <div className="relative" ref={dropdownRef}>
         <button
           type="button"
           aria-label="Notificări"
@@ -116,14 +189,43 @@ export default function HeaderActions() {
         )}
       </div>
 
-      <button
-        type="button"
-        aria-label="Cont"
-        onClick={() => router.push("/login")} 
-        className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
-      >
-        <UserRound size={18} />
-      </button>
+      {/* Profil */}
+      <div className="relative" ref={profileRef}>
+        <button
+          type="button"
+          aria-label="Cont"
+          onClick={() => { setProfileOpen((v) => !v); setOpen(false); }}
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
+        >
+          <UserRound size={18} />
+        </button>
+
+        {profileOpen && (
+          <div className="absolute right-0 mt-2 w-64 bg-card border border-border rounded-xl shadow-lg p-4 z-50">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-white">
+                <UserRound size={18} />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-semibold text-foreground truncate">
+                  {userEmail ?? "Utilizator"}
+                </span>
+                <span className="text-[11px] text-muted">Cont activ</span>
+              </div>
+            </div>
+            <div className="border-t border-border pt-3">
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
+              >
+                <LogOut size={16} />
+                Deconectare
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

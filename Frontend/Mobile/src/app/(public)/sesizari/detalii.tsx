@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { View, Text, ScrollView, useColorScheme, Modal, Pressable } from "react-native";
+import React, { useState, useMemo, useEffect } from "react";
+import { View, Text, ScrollView, useColorScheme, Modal, Pressable, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,9 +7,9 @@ import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { getFormattedDate } from "@/utils/date";
 import { Carousel } from "@/components/ui/display/carousel/carousel";
-import { CAROUSEL_CARD_WIDTH, CAROUSEL_CARD_MARGIN } from "@/components/ui/display/carousel/carousel.shared";
-import MockData from "@/constants/mock-data.json";
+import { CAROUSEL_CARD_MARGIN } from "@/components/ui/display/carousel/carousel.shared";
 import { CategoryHeader } from "@/components/ui/display/category-header";
+import api, { storage, resolveImageUrl } from "@/services/api";
 
 import LocationIcon from "@/assets/icons/svg/location.svg";
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
@@ -27,6 +27,18 @@ interface TimelineStep {
   isError?: boolean;
 }
 
+function mapApiStatus(apiStatus: string): "active" | "respinse" | "finalizate" {
+  switch (apiStatus) {
+    case 'respins':
+      return 'respinse';
+    case 'finalizat':
+    case 'solutionat':
+      return 'finalizate';
+    default:
+      return 'active'; // in_asteptare, in_lucru
+  }
+}
+
 export default function SesizareDetaliiScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -36,26 +48,72 @@ export default function SesizareDetaliiScreen() {
 
   const id = params.id as string;
   
-  const report = useMemo(() => {
-    return MockData.reports.find(r => r.id === id) || {
-      id: id || "",
-      title: (params.title as string) || "Titlu lipsă",
-      description: (params.description as string) || "Nicio descriere adăugată.",
-      category: (params.category as string) || "General",
-      location: (params.location as string) || "Locație nespecificată",
-      status: (params.status as "active" | "respinse" | "finalizate") || "active",
-      date: (params.date as string) || "Dată nespecificată",
-      image: (params.image as string) || "",
-    };
-  }, [id, params]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [report, setReport] = useState<any>(null);
 
-  const title = report.title;
-  const description = report.description;
-  const category = report.category;
-  const location = report.location;
-  const status = report.status;
-  const date = report.date;
-  const image = report.image;
+  useEffect(() => {
+    async function loadComplaint() {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // 1. Fetch locations for mapping (using cached first)
+        let locationsData: any[] = [];
+        const cachedLocs = await storage.getItem('cached_facilities');
+        if (cachedLocs) {
+          locationsData = JSON.parse(cachedLocs);
+        }
+        try {
+          const locsRes = await api.get('/locations/', { params: { page: 1, size: 50 } });
+          if (locsRes.data?.items) {
+            locationsData = locsRes.data.items;
+            await storage.setItem('cached_facilities', JSON.stringify(locsRes.data.items));
+          }
+        } catch (locError) {
+          console.warn('[API] Could not fetch fresh locations for complaint detail:', locError);
+        }
+        const locationMap = new Map<number, string>();
+        locationsData.forEach((loc: any) => {
+          locationMap.set(loc.id, loc.name);
+        });
+
+        // 2. Fetch the specific complaint
+        const res = await api.get(`/complaints/${id}`);
+        if (res.data) {
+          const item = res.data;
+          setReport({
+            id: item.id.toString(),
+            title: item.title || "Titlu lipsă",
+            description: item.description || "Nicio descriere adăugată.",
+            category: "General",
+            location: locationMap.get(item.location_id) || "Locație nespecificată",
+            status: mapApiStatus(item.status),
+            date: item.created_at || "Dată nespecificată",
+            image: resolveImageUrl(item.image_url) || "",
+          });
+        } else {
+          setError("Sesizarea nu a putut fi găsită.");
+        }
+      } catch (err: any) {
+        console.error("[API] Error fetching complaint detail:", err);
+        setError(err.message || "A apărut o eroare la încărcarea sesizării.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadComplaint();
+  }, [id]);
+
+  const title = report?.title || "";
+  const description = report?.description || "";
+  const location = report?.location || "Locație nespecificată";
+  const status = report?.status || "active";
+  const date = report?.date || "Dată nespecificată";
 
   const statusLabel = status === "active" ? "Activă" : status === "respinse" ? "Respinsă" : "Soluționată";
 
@@ -68,7 +126,8 @@ export default function SesizareDetaliiScreen() {
   };
 
   const images = useMemo(() => {
-    const reportImages = (report as any).images || (report.image ? [report.image] : []);
+    if (!report) return [];
+    const reportImages = report.images || (report.image ? [report.image] : []);
     return reportImages.map((img: string) => typeof img === "string" ? { uri: img } : img);
   }, [report]);
 
@@ -95,6 +154,72 @@ export default function SesizareDetaliiScreen() {
         return [];
     }
   }, [status, date]);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <Stack.Screen
+          options={{
+            headerShown: true,
+            headerTransparent: false,
+            headerStyle: {
+              backgroundColor: theme.background,
+            },
+            headerShadowVisible: false,
+            headerTitle: "",
+            headerLeft: () => (
+              <Pressable 
+                onPress={() => router.back()} 
+                style={{ padding: Spacing.xs }}
+              >
+                <BackIcon width={28} height={28} color={theme.text} />
+              </Pressable>
+            ),
+          }}
+        />
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" color={theme.primary} />
+        </View>
+      </View>
+    );
+  }
+
+  if (error || !report) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <Stack.Screen
+          options={{
+            headerShown: true,
+            headerTransparent: false,
+            headerStyle: {
+              backgroundColor: theme.background,
+            },
+            headerShadowVisible: false,
+            headerTitle: "",
+            headerLeft: () => (
+              <Pressable 
+                onPress={() => router.back()} 
+                style={{ padding: Spacing.xs }}
+              >
+                <BackIcon width={28} height={28} color={theme.text} />
+              </Pressable>
+            ),
+          }}
+        />
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: Spacing.xl, gap: Spacing.md }}>
+          <Text style={[Typography.Heading3, { color: theme.text, textAlign: "center" }]}>
+            {error || "Sesizarea nu a putut fi găsită."}
+          </Text>
+          <Pressable 
+            onPress={() => router.back()} 
+            style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}
+          >
+            <Text style={{ color: ColorScheme.white, fontWeight: "bold" }}>Înapoi</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
@@ -194,11 +319,9 @@ export default function SesizareDetaliiScreen() {
           <View style={{ marginTop: Spacing.xs }}>
             {steps.map((step, index) => {
               let dotColor: string = theme.border;
-              let textColor: string = theme.textSecondary;
 
               if (step.completed) {
                 dotColor = theme.primary;
-                textColor = theme.text;
               }
 
               return (

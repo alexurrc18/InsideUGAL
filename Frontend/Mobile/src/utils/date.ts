@@ -3,8 +3,15 @@
  */
 export const getFormattedDate = (dateStr?: string) => {
     if (!dateStr) return "";
-    const parts = dateStr.split(" ");
-    if (parts.length < 2) return dateStr;
+    
+    let targetDateStr = dateStr;
+    // Check if it is an ISO date string (contains T or format YYYY-MM-DD)
+    if (dateStr.includes("T") || /^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+        targetDateStr = isoToRomanianDateStr(dateStr);
+    }
+    
+    const parts = targetDateStr.split(" ");
+    if (parts.length < 2) return targetDateStr;
 
     const day = parts[0];
     const monthName = parts[1].toLowerCase();
@@ -18,7 +25,7 @@ export const getFormattedDate = (dateStr?: string) => {
     const dayNames = ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'];
 
     const monthIndex = monthRO[monthName];
-    if (monthIndex === undefined) return dateStr;
+    if (monthIndex === undefined) return targetDateStr;
 
     const d = new Date(parseInt(year), monthIndex, parseInt(day));
     const dayOfWeek = dayNames[d.getDay()];
@@ -41,15 +48,17 @@ export const getReadingTime = (text?: string) => {
  * Convertește o dată din formatul "21 septembrie 2026" și un timp opțional "10:00" într-un obiect Date
  */
 export const parseRomanianDate = (dateStr?: string, timeStr?: string) => {
-    if (!dateStr) return new Date();
+    if (!dateStr || dateStr.toLowerCase().includes("necunoscut")) return new Date(0);
     
     // Eliminăm eventualele caractere suplimentare (ex: virgule)
     const cleanDateStr = dateStr.replace(",", "");
     const parts = cleanDateStr.trim().split(/\s+/);
     
-    if (parts.length < 2) return new Date();
+    if (parts.length < 2) return new Date(0);
 
     const day = parseInt(parts[0]);
+    if (isNaN(day)) return new Date(0);
+
     const monthName = parts[1].toLowerCase();
     
     // Dacă anul lipsește, presupunem anul curent sau 2026 conform contextului proiectului
@@ -84,4 +93,25 @@ export const getTodayRomanianDate = (): string => {
     const month = months[d.getMonth()];
     const year = d.getFullYear();
     return `${day} ${month} ${year}`;
+};
+
+/**
+ * Convertește o dată ISO (ex: "2026-06-16T12:00:00Z") în format text românesc ("16 iunie 2026")
+ */
+export const isoToRomanianDateStr = (isoStr?: string): string => {
+  if (!isoStr) return "";
+  try {
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return isoStr;
+    const months = [
+        "ianuarie", "februarie", "martie", "aprilie", "mai", "iunie",
+        "iulie", "august", "septembrie", "octombrie", "noiembrie", "decembrie"
+    ];
+    const day = d.getDate();
+    const month = months[d.getMonth()];
+    const year = d.getFullYear();
+    return `${day} ${month} ${year}`;
+  } catch (e) {
+    return isoStr;
+  }
 };

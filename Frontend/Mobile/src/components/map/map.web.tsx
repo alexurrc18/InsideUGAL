@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import MockData from '@/constants/mock-data.json';
 import { Config } from '@/constants/config';
 import { Colors } from '@/constants/theme';
 import { getBuildingLetter, cleanMapStyle } from '@/utils/map-helper';
@@ -12,9 +11,10 @@ interface MapProps {
   themeName: 'light' | 'dark';
   selectedFacultyId: string | null;
   onFacultySelect: (id: string | null) => void;
+  buildings?: any[];
 }
 
-export default function Map({ themeName, selectedFacultyId, onFacultySelect }: MapProps) {
+export default function Map({ themeName, selectedFacultyId, onFacultySelect, buildings }: MapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
@@ -97,9 +97,10 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect }: M
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
+    const sourceBuildings = buildings && buildings.length > 0 ? buildings : [];
     const list = selectedFacultyId
-      ? MockData.buildings.filter(b => b.facultyId === selectedFacultyId)
-      : MockData.buildings;
+      ? sourceBuildings.filter(b => b.facultyId === selectedFacultyId)
+      : sourceBuildings;
     const visibleBuildings = [...list].sort((a, b) => b.lat - a.lat);
 
     visibleBuildings.forEach(b => {

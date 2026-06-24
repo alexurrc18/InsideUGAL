@@ -4,16 +4,62 @@ import { useColorScheme, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";
+import api, { storage } from "@/services/api";
 
 export default function SplashScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      router.replace("/(public)/acasa");
-    }, 5000);
+    let isRedirected = false;
 
-    return () => clearTimeout(timeout);
+    const redirect = () => {
+      if (!isRedirected) {
+        isRedirected = true;
+        router.replace("/(public)/acasa");
+      }
+    };
+
+    // Maximum timeout of 3 seconds so the user is never stuck
+    const maxTimeout = setTimeout(redirect, 3000);
+
+    const prefetchData = async () => {
+      try {
+        await Promise.all([
+          api.get("/announcements/", {
+            params: { page: 1, size: 50 }
+          }).then(res => {
+            if (res.data && res.data.items) {
+              return storage.setItem('cached_announcements', JSON.stringify(res.data.items));
+            }
+          }),
+          api.get("/faculties/", {
+            params: { page: 1, size: 50 }
+          }).then(res => {
+            if (res.data && res.data.items) {
+              return storage.setItem('cached_faculties', JSON.stringify(res.data.items));
+            }
+          }),
+          api.get("/locations/", {
+            params: { page: 1, size: 50 }
+          }).then(res => {
+            if (res.data && res.data.items) {
+              return storage.setItem('cached_facilities', JSON.stringify(res.data.items));
+            }
+          })
+        ]);
+        console.log("[Splash] Successfully pre-fetched all public API data.");
+      } catch (err) {
+        console.warn("[Splash] Error pre-fetching data:", err);
+      } finally {
+        redirect();
+      }
+    };
+
+    prefetchData();
+
+    return () => {
+      clearTimeout(maxTimeout);
+    };
   }, []);
 
   return (

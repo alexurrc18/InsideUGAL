@@ -29,7 +29,7 @@ export function HeroSlideshow({ slides, onPressItem }: HeroSlideshowProps) {
   const { width: windowWidth } = useWindowDimensions();
   const [active, setActive] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
-  const autoRotateTimer = useRef<NodeJS.Timeout | null>(null);
+  const autoRotateTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const startAutoRotate = () => {
     stopAutoRotate();

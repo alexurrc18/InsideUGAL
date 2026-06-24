@@ -2,11 +2,13 @@ import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import React from 'react';
 import { useColorScheme, View } from 'react-native';
 import { Colors } from '@/constants/theme';
-import { useNavigation } from 'expo-router';
-import { Ace } from '@/components/ui/layout/ace';
+import { useNavigation, useRouter } from 'expo-router';
+// import { Ace } from '@/components/ui/layout/ace';
+import { getAuthToken } from '@/services/api';
 
 export default function TabLayout() {
     const navigation = useNavigation<any>();
+    const router = useRouter();
     const themeName = (useColorScheme() ?? 'light') as keyof typeof Colors;
     const theme = Colors[themeName];
     const activeColor = theme.primary;
@@ -23,7 +25,7 @@ export default function TabLayout() {
                         const state = navigation.getState();
                         if (state) {
                             const route = state.routes.find((r: any) => r.key === e.target);
-                            if (route && (route.name === 'more' || route.name === 'acasa' || route.name === 'sesizari')) {
+                            if (route) {
                                 navigation.navigate(route.name, { screen: 'index' });
                             }
                         }
@@ -85,7 +87,7 @@ export default function TabLayout() {
                     <NativeTabs.Trigger.Label>Mai multe</NativeTabs.Trigger.Label>
                 </NativeTabs.Trigger>
             </NativeTabs>
-            <Ace />
+            {/* <Ace /> */}
         </View>
     );
 }

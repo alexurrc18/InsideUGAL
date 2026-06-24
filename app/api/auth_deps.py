@@ -10,6 +10,7 @@ import jwt
 from jwt import ExpiredSignatureError, InvalidTokenError, PyJWKClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.db.database import get_db
 from app.models.models import Profile
@@ -41,6 +42,8 @@ def verify_supabase_token(token: str) -> dict[str, Any]:
     jwt_secret = os.environ.get("SUPABASE_JWT_SECRET")
     if not jwt_secret:
         raise RuntimeError("SUPABASE_JWT_SECRET is not configured.")
+    audience = os.environ.get("SUPABASE_JWT_AUDIENCE", "authenticated")
+    decode_options = {"verify_aud": bool(audience)}
 
     header = jwt.get_unverified_header(token)
     algorithm = header.get("alg")
@@ -62,9 +65,8 @@ def verify_supabase_token(token: str) -> dict[str, Any]:
             token,
             signing_key,
             algorithms=["ES256"],
-            options={
-                "verify_aud": False  # 🔥 FIX IMPORTANT
-            },
+            audience=audience or None,
+            options=decode_options,
         )
 
         return payload
@@ -81,14 +83,9 @@ def verify_supabase_token(token: str) -> dict[str, Any]:
         token,
         jwt_secret,
         algorithms=["HS256"],
-        options={
-            "verify_aud": False  # 🔥 FIX IMPORTANT (aceasta rezolvă 80% din 401)
-        },
+        audience=audience or None,
+        options=decode_options,
     )
-
-    # 🔥 SAFETY FIX: normalizează aud dacă lipsește
-    if not payload.get("aud"):
-        payload["aud"] = "authenticated"
 
     return payload
 
@@ -131,7 +128,7 @@ async def get_current_profile(
     session: AsyncSession = Depends(get_db),
 ) -> Profile:
     result = await session.execute(
-        select(Profile).where(Profile.id == user_id)
+        select(Profile).options(joinedload(Profile.faculty)).where(Profile.id == user_id)
     )
     profile = result.scalars().first()
 

@@ -1,13 +1,26 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, Pressable, useColorScheme, FlatList } from "react-native";
+import { View, Text, Pressable, useColorScheme, FlatList, RefreshControl, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { SesizareCard, Sesizare } from "@/components/ui/display/sesizare-card";
-import MockData from "@/constants/mock-data.json";
+import api, { storage, getAuthToken, resolveImageUrl } from "@/services/api";
+import { SesizariListSkeleton } from "@/components/ui/display/skeletons";
 
-type FilterType = "mele" | "active" | "respinse" | "finalizate";
+type FilterType = "toate" | "mele" | "active" | "respinse" | "finalizate";
+
+function mapApiStatus(apiStatus: string): "active" | "respinse" | "finalizate" {
+  switch (apiStatus) {
+    case 'respins':
+      return 'respinse';
+    case 'finalizat':
+    case 'solutionat':
+      return 'finalizate';
+    default:
+      return 'active'; // in_asteptare, in_lucru
+  }
+}
 
 export default function SesizariScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
@@ -17,17 +30,132 @@ export default function SesizariScreen() {
   const navigation = useNavigation();
   const params = useLocalSearchParams();
 
-  const [reports, setReports] = useState<Sesizare[]>(MockData.reports as Sesizare[]);
-  const activeFilter = (params.filter as FilterType) || "mele";
+  const [reports, setReports] = useState<Sesizare[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const activeFilter = (params.filter as FilterType) || "toate";
+  const [refreshing, setRefreshing] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  };
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await getAuthToken();
+      setIsAuthenticated(!!token);
+      setIsAuthChecked(true);
+      if (!token) {
+        setReports([]);
+        setLoading(false);
+        return;
+      }
+      let locationsData: any[] = [];
+      const cachedLocs = await storage.getItem('cached_facilities');
+      if (cachedLocs) {
+        locationsData = JSON.parse(cachedLocs);
+      }
+      try {
+        const locsRes = await api.get('/locations/', { params: { page: 1, size: 50 } });
+        if (locsRes.data?.items) {
+          locationsData = locsRes.data.items;
+          await storage.setItem('cached_facilities', JSON.stringify(locsRes.data.items));
+        }
+      } catch (locError) {
+        console.warn('[API] Could not fetch fresh locations for complaints:', locError);
+      }
+
+      const locationMap = new Map<number, string>();
+      locationsData.forEach((loc: any) => {
+        locationMap.set(loc.id, loc.name);
+      });
+
+      let myProfileId: string | null = null;
+      if (token) {
+        try {
+          const profileRes = await api.get('/profiles/me');
+          if (profileRes.data?.id) {
+            myProfileId = profileRes.data.id;
+          }
+        } catch (profileError) {
+          console.warn('[API] Could not fetch user profile (maybe unauthenticated):', profileError);
+        }
+      }
+
+      // 3. Fetch complaints based on activeFilter
+      let apiItems: any[] = [];
+      if (activeFilter === "toate") {
+        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50 } });
+        console.log('[API] Fetched all complaints:', complaintsRes.data);
+        apiItems = complaintsRes.data?.items || [];
+      } else if (activeFilter === "mele") {
+        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50 } });
+        console.log('[API] Fetched my complaints:', complaintsRes.data);
+        const allItems = complaintsRes.data?.items || [];
+        apiItems = myProfileId ? allItems.filter((item: any) => item.user_id === myProfileId) : [];
+      } else if (activeFilter === "active") {
+        const [resPending, resWorking] = await Promise.all([
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_asteptare' } }),
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_lucru' } })
+        ]);
+        console.log('[API] Fetched active complaints:', { pending: resPending.data, working: resWorking.data });
+        apiItems = [...(resPending.data?.items || []), ...(resWorking.data?.items || [])];
+        apiItems.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      } else if (activeFilter === "respinse") {
+        const res = await api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'respins' } });
+        console.log('[API] Fetched rejected complaints:', res.data);
+        apiItems = res.data?.items || [];
+      } else if (activeFilter === "finalizate") {
+        const [resFinalized, resSolved] = await Promise.all([
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'finalizat' } }),
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'solutionat' } })
+        ]);
+        console.log('[API] Fetched finalized complaints:', { finalized: resFinalized.data, solved: resSolved.data });
+        apiItems = [...(resFinalized.data?.items || []), ...(resSolved.data?.items || [])];
+        apiItems.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      }
+
+      const mappedReports: Sesizare[] = apiItems.map((item: any) => ({
+        id: item.id.toString(),
+        title: item.title,
+        description: item.description,
+        category: "General",
+        status: mapApiStatus(item.status),
+        date: item.created_at,
+        location: locationMap.get(item.location_id) || "Locație nespecificată",
+        isUserReport: myProfileId ? item.user_id === myProfileId : false,
+        image: resolveImageUrl(item.image_url) || undefined,
+      }));
+      setReports(mappedReports);
+    } catch (err: any) {
+      console.warn('[API] Error fetching complaints:', err);
+      setError(err.message || "A apărut o eroare la încărcarea sesizărilor.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
+    loadData();
     const unsubscribe = navigation.addListener("focus", () => {
-      setReports([...(MockData.reports as Sesizare[])]);
+      loadData();
     });
     return unsubscribe;
-  }, [navigation]);
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigation, activeFilter]);
+  useEffect(() => {
+    if (isAuthChecked && !isAuthenticated) {
+      router.push("/(auth)");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isAuthChecked]);
   const filteredData = reports.filter(item => {
+    if (activeFilter === "toate") return true;
     if (activeFilter === "mele") return item.isUserReport;
     if (activeFilter === "active") return item.status === "active";
     if (activeFilter === "respinse") return item.status === "respinse";
@@ -40,13 +168,6 @@ export default function SesizariScreen() {
       pathname: "/(public)/sesizari/detalii",
       params: {
         id: item.id,
-        title: item.title,
-        description: item.description,
-        category: item.category,
-        location: item.location,
-        status: item.status,
-        date: item.date,
-        image: item.image,
       },
     });
   };
@@ -60,6 +181,58 @@ export default function SesizariScreen() {
     </Pressable>
   );
 
+  if ((loading && reports.length === 0) || refreshing) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} tintColor={theme.primary} />
+          }
+        >
+          <View style={{ paddingTop: Spacing.md }}>
+            <SesizariListSkeleton />
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  if (error && reports.length === 0) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: "center", alignItems: "center", padding: Spacing.xl }}>
+        <Text style={[Typography.Heading4, { color: theme.text, textAlign: "center", marginBottom: Spacing.md }]}>
+          {error}
+        </Text>
+        <Pressable 
+          onPress={loadData} 
+          style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}
+        >
+          <Text style={{ color: 'white', fontWeight: "bold" }}>Reîncearcă</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: "center", alignItems: "center", padding: Spacing.xl }}>
+        <Text style={[Typography.Heading5, { color: theme.text, marginBottom: Spacing.xs, textAlign: "center" }]}>
+          Trebuie să fii conectat
+        </Text>
+        <Text style={[Typography.Paragraph3, { color: theme.textSecondary, textAlign: "center", marginBottom: Spacing.md }]}>
+          Conectează-te pentru a trimite sau vizualiza sesizările tale.
+        </Text>
+        <Pressable
+          onPress={() => router.push("/(auth)")}
+          style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}
+        >
+          <Text style={{ color: "white", fontWeight: "bold" }}>Conectare</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <FlatList
@@ -72,8 +245,11 @@ export default function SesizariScreen() {
           paddingBottom: insets.bottom + Spacing.xl,
           gap: Spacing.md
         }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} tintColor={theme.primary} />
+        }
         ListEmptyComponent={
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 64 }}>
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 64, paddingHorizontal: Spacing.xl }}>
             <Text style={[Typography.Heading5, { color: theme.text, marginBottom: Spacing.xs }]}>
               Nicio sesizare în această secțiune
             </Text>

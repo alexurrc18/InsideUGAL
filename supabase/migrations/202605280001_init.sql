@@ -3,29 +3,12 @@
 -- ==========================================================
 
 CREATE EXTENSION IF NOT EXISTS postgis;
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
-CREATE SCHEMA IF NOT EXISTS auth;
-CREATE SCHEMA IF NOT EXISTS storage;
-
-CREATE OR REPLACE FUNCTION auth.uid()
-RETURNS uuid
-LANGUAGE sql
-STABLE
-AS $$
-  SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid
-$$;
-
-CREATE TABLE IF NOT EXISTS storage.buckets (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    owner UUID,
-    public BOOLEAN DEFAULT FALSE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS bname ON storage.buckets USING BTREE (name);
+-- Supabase manages the auth and storage schemas in hosted/recent local projects.
+-- Do not create auth/storage schemas, auth.uid(), or storage.buckets here:
+-- those objects are owned by Supabase and recreating them can fail with
+-- "permission denied for schema auth/storage".
+-- pgcrypto is also available by default in Supabase; public.llm_calls can use
+-- gen_random_uuid() without this migration owning the extension.
 
 DO $$ 
 BEGIN
@@ -65,6 +48,7 @@ CREATE TABLE IF NOT EXISTS public.faculties (
     phone VARCHAR(50),
     website_url TEXT,
     dormitory_url TEXT,
+    logo_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
@@ -74,11 +58,35 @@ CREATE TABLE IF NOT EXISTS public.categories (
     name VARCHAR(100) UNIQUE NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.product_categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.facilities (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) UNIQUE NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.facility_schedules (
+    id SERIAL PRIMARY KEY,
+    facility_id INTEGER NOT NULL REFERENCES public.facilities(id) ON DELETE CASCADE,
+    day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 1 AND 7),
+    open_time TIME NOT NULL,
+    close_time TIME NOT NULL,
+    UNIQUE (facility_id, day_of_week)
+);
+
 CREATE TABLE IF NOT EXISTS public.locations (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     coordinates GEOMETRY(Point, 4326),
     faculty_id INTEGER REFERENCES public.faculties(id) ON DELETE SET NULL,
+    facility_id INTEGER REFERENCES public.facilities(id) ON DELETE SET NULL,
+    marker VARCHAR(10),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
@@ -89,6 +97,7 @@ CREATE TABLE IF NOT EXISTS public.products (
     description TEXT,
     quantity VARCHAR(50) NOT NULL,
     price DECIMAL(10, 2) NOT NULL CHECK (price > 0),
+    category_id INTEGER REFERENCES public.product_categories(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
@@ -173,13 +182,22 @@ BEGIN
 END; 
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION public.current_auth_uid()
+RETURNS uuid AS $$
+BEGIN
+    RETURN NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid;
+EXCEPTION WHEN invalid_text_representation THEN
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
 CREATE OR REPLACE FUNCTION public.current_user_role()
 RETURNS text AS $$
 BEGIN
     RETURN (
         SELECT role::text 
         FROM public.profiles 
-        WHERE id = auth.uid()
+        WHERE id = public.current_auth_uid()
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -242,20 +260,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Conectăm funcția de mai sus la momentul în care un user e creat în Supabase Auth
-DO $$
-BEGIN
-    IF to_regclass('auth.users') IS NOT NULL THEN
-        DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-        CREATE TRIGGER on_auth_user_created
-            AFTER INSERT ON auth.users
-            FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-    END IF;
-END $$;
+-- The auth.users trigger is installed by a dedicated auth/profile sync migration.
+-- Keep this init migration focused on public schema objects only, so it can run
+-- in Supabase environments where auth is managed by the platform.
 
 -- Declanșatoare Update (Setează timestampul automat când editezi un rând)
 CREATE TRIGGER handle_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER handle_faculties_updated_at BEFORE UPDATE ON public.faculties FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+CREATE TRIGGER handle_facilities_updated_at BEFORE UPDATE ON public.facilities FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER handle_locations_updated_at BEFORE UPDATE ON public.locations FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER handle_products_updated_at BEFORE UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER handle_daily_menus_updated_at BEFORE UPDATE ON public.daily_menus FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
@@ -269,6 +281,9 @@ CREATE TRIGGER handle_announcements_updated_at BEFORE UPDATE ON public.announcem
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.faculties ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.product_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.facilities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.facility_schedules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.daily_menus ENABLE ROW LEVEL SECURITY;
@@ -278,17 +293,18 @@ ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_calls ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.questions_history ENABLE ROW LEVEL SECURITY;
 
-INSERT INTO storage.buckets (id, name, public) VALUES ('images', 'images', true) ON CONFLICT (id) DO NOTHING;
+-- Bucket-ul pentru logo-uri este creat mai jos, dupa definirea politicilor
+-- public schema, pentru a pastra setup-ul principal intr-un singur loc.
 
 -- ==========================================================
 -- 6. POLITICI POLICIES (RLS)
 -- ==========================================================
 
 DROP POLICY IF EXISTS "profiles_self_read" ON public.profiles;
-CREATE POLICY "profiles_self_read" ON public.profiles FOR SELECT USING (id = auth.uid() OR public.current_user_role() = 'HEAD_ADMIN');
+CREATE POLICY "profiles_self_read" ON public.profiles FOR SELECT USING (id = public.current_auth_uid() OR public.current_user_role() = 'HEAD_ADMIN');
 
 DROP POLICY IF EXISTS "profiles_self_insert" ON public.profiles;
-CREATE POLICY "profiles_self_insert" ON public.profiles FOR INSERT WITH CHECK (id = auth.uid());
+CREATE POLICY "profiles_self_insert" ON public.profiles FOR INSERT WITH CHECK (id = public.current_auth_uid());
 
 DROP POLICY IF EXISTS "profiles_admin_manage" ON public.profiles;
 CREATE POLICY "profiles_admin_manage" ON public.profiles FOR ALL USING (public.current_user_role() = 'HEAD_ADMIN') WITH CHECK (public.current_user_role() = 'HEAD_ADMIN');
@@ -305,6 +321,24 @@ CREATE POLICY "locations_public_read" ON public.locations FOR SELECT USING (TRUE
 DROP POLICY IF EXISTS "locations_authorized_manage" ON public.locations;
 CREATE POLICY "locations_authorized_manage" ON public.locations FOR ALL USING (public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_FACULTATI')) WITH CHECK (public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_FACULTATI'));
 
+DROP POLICY IF EXISTS "product_categories_public_read" ON public.product_categories;
+CREATE POLICY "product_categories_public_read" ON public.product_categories FOR SELECT USING (TRUE);
+
+DROP POLICY IF EXISTS "product_categories_authorized_manage" ON public.product_categories;
+CREATE POLICY "product_categories_authorized_manage" ON public.product_categories FOR ALL USING (public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_CANTINA', 'HEAD_FACULTATI')) WITH CHECK (public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_CANTINA', 'HEAD_FACULTATI'));
+
+DROP POLICY IF EXISTS "facilities_public_read" ON public.facilities;
+CREATE POLICY "facilities_public_read" ON public.facilities FOR SELECT USING (TRUE);
+
+DROP POLICY IF EXISTS "facilities_head_manage" ON public.facilities;
+CREATE POLICY "facilities_head_manage" ON public.facilities FOR ALL USING (public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_FACULTATI', 'HEAD_CANTINA')) WITH CHECK (public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_FACULTATI', 'HEAD_CANTINA'));
+
+DROP POLICY IF EXISTS "facility_schedules_public_read" ON public.facility_schedules;
+CREATE POLICY "facility_schedules_public_read" ON public.facility_schedules FOR SELECT USING (TRUE);
+
+DROP POLICY IF EXISTS "facility_schedules_head_manage" ON public.facility_schedules;
+CREATE POLICY "facility_schedules_head_manage" ON public.facility_schedules FOR ALL USING (public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_FACULTATI', 'HEAD_CANTINA')) WITH CHECK (public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_FACULTATI', 'HEAD_CANTINA'));
+
 DROP POLICY IF EXISTS "cafeteria_public_read" ON public.daily_menus;
 CREATE POLICY "cafeteria_public_read" ON public.daily_menus FOR SELECT USING (TRUE);
 
@@ -312,10 +346,10 @@ DROP POLICY IF EXISTS "cafeteria_authorized_manage" ON public.daily_menus;
 CREATE POLICY "cafeteria_authorized_manage" ON public.daily_menus FOR ALL USING (public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_CANTINA')) WITH CHECK (public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_CANTINA'));
 
 DROP POLICY IF EXISTS "complaints_owner_or_staff_read" ON public.complaints;
-CREATE POLICY "complaints_owner_or_staff_read" ON public.complaints FOR SELECT USING (user_id = auth.uid() OR public.current_user_role() IN ('HEAD_ADMIN', 'PROFESOR', 'HEAD_FACULTATI'));
+CREATE POLICY "complaints_owner_or_staff_read" ON public.complaints FOR SELECT USING (user_id = public.current_auth_uid() OR public.current_user_role() IN ('HEAD_ADMIN', 'PROFESOR', 'HEAD_FACULTATI'));
 
 DROP POLICY IF EXISTS "complaints_student_create" ON public.complaints;
-CREATE POLICY "complaints_student_create" ON public.complaints FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "complaints_student_create" ON public.complaints FOR INSERT WITH CHECK (user_id = public.current_auth_uid());
 
 DROP POLICY IF EXISTS "complaints_staff_update" ON public.complaints;
 CREATE POLICY "complaints_staff_update" ON public.complaints FOR UPDATE USING (public.current_user_role() IN ('HEAD_ADMIN', 'PROFESOR', 'HEAD_FACULTATI')) WITH CHECK (public.current_user_role() IN ('HEAD_ADMIN', 'PROFESOR', 'HEAD_FACULTATI'));
@@ -324,12 +358,37 @@ DROP POLICY IF EXISTS "announcements_public_read" ON public.announcements;
 CREATE POLICY "announcements_public_read" ON public.announcements FOR SELECT USING (TRUE);
 
 DROP POLICY IF EXISTS "announcements_authorized_manage" ON public.announcements;
-CREATE POLICY "announcements_authorized_manage" ON public.announcements FOR ALL USING (public.current_user_role() IN ('HEAD_ADMIN', 'PROFESOR', 'STUDENT_RESPONSABIL') AND (public.current_user_role() <> 'STUDENT_RESPONSABIL' OR created_by = auth.uid())) WITH CHECK (public.current_user_role() IN ('HEAD_ADMIN', 'PROFESOR', 'STUDENT_RESPONSABIL') AND (public.current_user_role() <> 'STUDENT_RESPONSABIL' OR created_by = auth.uid()));
+CREATE POLICY "announcements_authorized_manage" ON public.announcements FOR ALL USING (public.current_user_role() IN ('HEAD_ADMIN', 'PROFESOR', 'STUDENT_RESPONSABIL') AND (public.current_user_role() <> 'STUDENT_RESPONSABIL' OR created_by = public.current_auth_uid())) WITH CHECK (public.current_user_role() IN ('HEAD_ADMIN', 'PROFESOR', 'STUDENT_RESPONSABIL') AND (public.current_user_role() <> 'STUDENT_RESPONSABIL' OR created_by = public.current_auth_uid()));
 
 -- ==========================================================
 -- 7. INDECȘI PENTRU PERFORMANȚĂ
 -- ==========================================================
 
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('faculty-logos', 'faculty-logos', TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "faculty_logos_public_read" ON storage.objects;
+CREATE POLICY "faculty_logos_public_read" ON storage.objects FOR SELECT USING (bucket_id = 'faculty-logos');
+
+DROP POLICY IF EXISTS "faculty_logos_head_insert" ON storage.objects;
+CREATE POLICY "faculty_logos_head_insert" ON storage.objects FOR INSERT WITH CHECK (
+    bucket_id = 'faculty-logos'
+    AND public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_FACULTATI', 'HEAD_CANTINA')
+);
+
+DROP POLICY IF EXISTS "faculty_logos_head_update" ON storage.objects;
+CREATE POLICY "faculty_logos_head_update" ON storage.objects FOR UPDATE USING (
+    bucket_id = 'faculty-logos'
+    AND public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_FACULTATI', 'HEAD_CANTINA')
+) WITH CHECK (
+    bucket_id = 'faculty-logos'
+    AND public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_FACULTATI', 'HEAD_CANTINA')
+);
+
+CREATE INDEX IF NOT EXISTS idx_products_category_id ON public.products(category_id);
+CREATE INDEX IF NOT EXISTS idx_locations_facility_id ON public.locations(facility_id);
+CREATE INDEX IF NOT EXISTS idx_facility_schedules_facility_id ON public.facility_schedules(facility_id);
 CREATE INDEX IF NOT EXISTS idx_llm_calls_function ON public.llm_calls (function_name);
 CREATE INDEX IF NOT EXISTS idx_llm_calls_created  ON public.llm_calls (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_qh_user_id ON public.questions_history(user_id); -- Nou index pentru user

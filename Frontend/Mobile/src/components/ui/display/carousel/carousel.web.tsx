@@ -25,7 +25,7 @@ export function Carousel<T>({ data, renderItem, keyExtractor, title, viewAllHref
                     paddingHorizontal: Spacing.lg,
                     marginBottom: Spacing.sm
                 }}>
-                    {title && <Text style={[Typography.Heading1, { color: theme.text }]}>{title}</Text>}
+                    {title && <Text accessibilityRole="header" {...({ "aria-level": 2 } as any)} style={[Typography.Heading1, { color: theme.text }]}>{title}</Text>}
                     {viewAllHref && (
                         <Pressable 
                             onPress={() => router.push(viewAllHref as any)}

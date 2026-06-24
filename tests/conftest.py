@@ -4,11 +4,21 @@ from collections.abc import AsyncGenerator, Generator
 
 import pytest
 import pytest_asyncio
+from dotenv import load_dotenv
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-TEST_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@127.0.0.1:54399/postgres"
+load_dotenv()
+
+POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD", "postgres")
+POSTGRES_HOST_PORT = os.environ.get("POSTGRES_HOST_PORT", "54399")
+POSTGRES_DB = os.environ.get("POSTGRES_DB", "postgres")
+
+TEST_DATABASE_URL = (
+    f"postgresql+asyncpg://postgres:{POSTGRES_PASSWORD}"
+    f"@127.0.0.1:{POSTGRES_HOST_PORT}/{POSTGRES_DB}"
+)
 SUPABASE_URL = "http://127.0.0.1:54325"
 SUPABASE_JWT_SECRET = "test-supabase-jwt-secret"
 SUPABASE_JWT_AUDIENCE = "authenticated"

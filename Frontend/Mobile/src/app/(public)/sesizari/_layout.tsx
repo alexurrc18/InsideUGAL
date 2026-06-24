@@ -20,7 +20,7 @@ export default function SesizariLayout() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
-  const activeFilter = (params.filter as string) || "mele";
+  const activeFilter = (params.filter as string) || "toate";
 
   const scalePlusAnim = useRef(new Animated.Value(1)).current;
 
@@ -45,6 +45,7 @@ export default function SesizariLayout() {
   };
 
   const filters: FilterItem[] = [
+    { id: "toate", title: "Toate sesizările" },
     { id: "mele", title: "Sesizările mele" },
     { id: "active", title: "Active" },
     { id: "respinse", title: "Respinse" },

@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { View, Text, ScrollView, Modal, Pressable } from "react-native";
+import React, { useState, useMemo, useEffect } from "react";
+import { View, Text, ScrollView, Modal, Pressable, ActivityIndicator } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image } from "expo-image";
@@ -9,15 +9,15 @@ import { Typography } from "@/constants/typography";
 import { getFormattedDate } from "@/utils/date";
 import { Carousel } from "@/components/ui/display/carousel/carousel";
 import { CAROUSEL_CARD_MARGIN } from "@/components/ui/display/carousel/carousel.shared";
-import MockData from "@/constants/mock-data.json";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import { WebContainer } from "@/components/ui/layout/web-container";
+import { Breadcrumbs } from "@/components/ui/navigation/breadcrumbs";
+import api, { storage, resolveImageUrl } from "@/services/api";
 
 import LocationIcon from "@/assets/icons/svg/location.svg";
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
 import AlertOctagonIcon from "@/assets/icons/svg/alert-octagon.svg";
 import XIcon from "@/assets/icons/svg/x.svg";
-import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 
 interface TimelineStep {
   title: string;
@@ -29,6 +29,18 @@ interface TimelineStep {
   isError?: boolean;
 }
 
+function mapApiStatus(apiStatus: string): "active" | "respinse" | "finalizate" {
+  switch (apiStatus) {
+    case 'respins':
+      return 'respinse';
+    case 'finalizat':
+    case 'solutionat':
+      return 'finalizate';
+    default:
+      return 'active'; // in_asteptare, in_lucru
+  }
+}
+
 export default function SesizareDetaliiScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -38,20 +50,72 @@ export default function SesizareDetaliiScreen() {
 
   const id = params.id as string;
 
-  const report = useMemo(() => {
-    return MockData.reports.find((r) => r.id === id) || {
-      id: id || "",
-      title: (params.title as string) || "Titlu lipsă",
-      description: (params.description as string) || "Nicio descriere adăugată.",
-      category: (params.category as string) || "General",
-      location: (params.location as string) || "Locație nespecificată",
-      status: (params.status as "active" | "respinse" | "finalizate") || "active",
-      date: (params.date as string) || "Dată nespecificată",
-      image: (params.image as string) || "",
-    };
-  }, [id, params]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [report, setReport] = useState<any>(null);
 
-  const { title, description, location, status, date } = report;
+  useEffect(() => {
+    async function loadComplaint() {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // 1. Fetch locations for mapping (using cached first)
+        let locationsData: any[] = [];
+        const cachedLocs = await storage.getItem('cached_facilities');
+        if (cachedLocs) {
+          locationsData = JSON.parse(cachedLocs);
+        }
+        try {
+          const locsRes = await api.get('/locations/', { params: { page: 1, size: 50 } });
+          if (locsRes.data?.items) {
+            locationsData = locsRes.data.items;
+            await storage.setItem('cached_facilities', JSON.stringify(locsRes.data.items));
+          }
+        } catch (locError) {
+          console.warn('[API] Could not fetch fresh locations for complaint detail web:', locError);
+        }
+        const locationMap = new Map<number, string>();
+        locationsData.forEach((loc: any) => {
+          locationMap.set(loc.id, loc.name);
+        });
+
+        // 2. Fetch the specific complaint
+        const res = await api.get(`/complaints/${id}`);
+        if (res.data) {
+          const item = res.data;
+          setReport({
+            id: item.id.toString(),
+            title: item.title || "Titlu lipsă",
+            description: item.description || "Nicio descriere adăugată.",
+            category: "General",
+            location: locationMap.get(item.location_id) || "Locație nespecificată",
+            status: mapApiStatus(item.status),
+            date: item.created_at || "Dată nespecificată",
+            image: resolveImageUrl(item.image_url) || "",
+          });
+        } else {
+          setError("Sesizarea nu a putut fi găsită.");
+        }
+      } catch (err: any) {
+        console.error("[API] Error fetching complaint detail web:", err);
+        setError(err.message || "A apărut o eroare la încărcarea sesizării.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadComplaint();
+  }, [id]);
+
+  const title = report?.title || "";
+  const description = report?.description || "";
+  const location = report?.location || "Locație nespecificată";
+  const status = report?.status || "active";
+  const date = report?.date || "Dată nespecificată";
 
   const statusLabel = status === "active" ? "Activă" : status === "respinse" ? "Respinsă" : "Soluționată";
 
@@ -64,7 +128,8 @@ export default function SesizareDetaliiScreen() {
   };
 
   const images = useMemo(() => {
-    const reportImages = (report as any).images || (report.image ? [report.image] : []);
+    if (!report) return [];
+    const reportImages = report.images || (report.image ? [report.image] : []);
     return reportImages.map((img: string) => (typeof img === "string" ? { uri: img } : img));
   }, [report]);
 
@@ -92,6 +157,74 @@ export default function SesizareDetaliiScreen() {
     }
   }, [status, date]);
 
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            paddingTop: insets.top + 100,
+            paddingBottom: insets.bottom + Spacing.xxl,
+            gap: Spacing.lg,
+          }}
+        >
+          <WebContainer>
+            <View style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm }}>
+              <Breadcrumbs 
+                items={[
+                  { label: "Acasă", href: "/(public)/acasa" },
+                  { label: "Sesizări", href: "/(public)/sesizari" },
+                  { label: "Încărcare..." }
+                ]} 
+              />
+            </View>
+            <View style={{ minHeight: 400, justifyContent: "center", alignItems: "center" }}>
+              <ActivityIndicator size="large" color={theme.primary} />
+            </View>
+          </WebContainer>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  if (error || !report) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            paddingTop: insets.top + 100,
+            paddingBottom: insets.bottom + Spacing.xxl,
+            gap: Spacing.lg,
+          }}
+        >
+          <WebContainer>
+            <View style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm }}>
+              <Breadcrumbs 
+                items={[
+                  { label: "Acasă", href: "/(public)/acasa" },
+                  { label: "Sesizări", href: "/(public)/sesizari" },
+                  { label: "Eroare" }
+                ]} 
+              />
+            </View>
+            <View style={{ minHeight: 400, justifyContent: "center", alignItems: "center", padding: Spacing.xl, gap: Spacing.md }}>
+              <Text style={[Typography.Heading3, { color: theme.text, textAlign: "center" }]}>
+                {error || "Sesizarea nu a putut fi găsită."}
+              </Text>
+              <Pressable 
+                onPress={() => router.back()} 
+                style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}
+              >
+                <Text style={{ color: ColorScheme.white, fontWeight: "bold" }}>Înapoi</Text>
+              </Pressable>
+            </View>
+          </WebContainer>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <ScrollView
@@ -103,14 +236,15 @@ export default function SesizareDetaliiScreen() {
         }}
       >
         <WebContainer>
-          {/* Header propriu (back) — pe web nu folosim header-ul nativ */}
+          {/* Pe web nu mai folosim butonul nativ de back, ramane doar Breadcrumbs ca navigare principala */}
           <View style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm }}>
-            <Pressable
-              onPress={() => router.back()}
-              style={({ pressed }) => [{ padding: Spacing.xs, alignSelf: "flex-start", opacity: pressed ? 0.7 : 1 }]}
-            >
-              <BackIcon width={28} height={28} color={theme.text} />
-            </Pressable>
+            <Breadcrumbs 
+              items={[
+                { label: "Acasă", href: "/(public)/acasa" },
+                { label: "Sesizări", href: "/(public)/sesizari" },
+                { label: title || "Detalii sesizare" }
+              ]} 
+            />
           </View>
 
           <CategoryHeader title={title} />

@@ -58,11 +58,16 @@ export const announcementSchema = z.object({
   type: z.enum(["NOUTATE", "EVENIMENT"]),
   title: z.string(),
   content: z.string(),
-  created_by: z.union([z.number().int(), z.string()]), // Acceptă atât ID-uri numerice cât și UUID-uri/Usernames
+  created_by: z.union([z.number().int(), z.string()]),
   is_pinned: z.boolean().default(false),
-  expires_at: isoDateSchema.nullable().optional(),
-  created_at: isoDateSchema,
-  updated_at: isoDateSchema,
+  expires_at: z.string().nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  start_date: z.string().nullable().optional(),
+  end_date: z.string().nullable().optional(),
+  image_url: z.string().nullable().optional(),
+  faculty_id: z.number().int().nullable().optional(),
+  location_name: z.string().nullable().optional(),
 });
 
 export const paginatedAnnouncementsSchema = z.object({
@@ -97,6 +102,7 @@ export const createPaginatedResponseSchema = <T extends z.ZodTypeAny>(itemSchema
     size: z.number().int(),
     total_pages: z.number().int(),
   });
+  
 
 export const usersSchema = z.array(userSchema);
 export const facultiesSchema = z.array(facultySchema);
@@ -104,4 +110,41 @@ export const studentsSchema = z.array(studentSchema);
 export const professorsSchema = z.array(professorSchema);
 export const coursesSchema = z.array(courseSchema);
 export const announcementsSchema = createPaginatedResponseSchema(announcementSchema);
+export const productSchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  category: z.string().nullable().default("General"),
+  description: z.string().nullable(),
+  quantity: z.string(),
+  price: z.union([z.number(), z.string()]).transform((val) => Number(val)),
+  nutritional_values: z.string().nullable().optional(),
+  created_at: isoDateSchema.optional(),
+  updated_at: isoDateSchema.optional(),
+});
+
+export const dailyMenuSchema = z.object({
+  id: z.number().int(),
+  day_of_week: z.number().int(),
+  products: z.array(productSchema),
+});
+
+export const productsSchema = z.union([
+  z.object({
+    items: z.array(productSchema),
+    total: z.number().int().optional(),
+  }),
+  z.array(productSchema).transform((arr) => ({
+    items: arr,
+    total: arr.length,
+  })),
+]);
+
+export const dailyMenusSchema = z.object({
+  items: z.array(dailyMenuSchema),
+  total: z.number().int(),
+});
+
+export const dishSchema = productSchema;
+export const dishesSchema = productsSchema;
+
 export const enrollmentsSchema = z.array(enrollmentSchema);
