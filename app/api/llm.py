@@ -2,7 +2,7 @@ import os
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +16,8 @@ router = APIRouter(prefix="/api/v1/llm", tags=["LLM"])
 LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://llm:8000")
 
 
+class ChatRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=2000)
 class GenerateBannerRequest(BaseModel):
     title: str
     description: str
@@ -25,12 +27,13 @@ class GenerateBannerRequest(BaseModel):
 @router.post("/ask")
 @limiter.limit(LLM_RATE_LIMIT)
 async def ask_chatbot(
+    body: ChatRequest,
     request: Request,
     current_profile: Profile = Depends(get_current_profile),
     session: AsyncSession = Depends(get_db),
 ):
     try:
-        user_question = "placeholder"
+        user_question = body.question.strip()
 
         cached = await session.execute(
             select(QuestionsHistory)

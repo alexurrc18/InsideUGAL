@@ -142,7 +142,7 @@ export default function AdaugaSesizareScreen() {
       newErrors.description = "Descrierea este obligatorie.";
     }
     if (photos.length === 0) {
-      newErrors.photos = "Este obligatoriu să adăugați cel puțin o fotografie.";
+      newErrors.photos = "Este obligatoriu să adăugați o fotografie.";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -152,35 +152,28 @@ export default function AdaugaSesizareScreen() {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
-      alert("Permisiunea de acces la fotografii este necesară pentru a adăuga poze!");
+      alert("Permisiunea de acces la fotografii este necesară pentru a adăuga o poză!");
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsMultipleSelection: true,
-      selectionLimit: 3 - photos.length,
+      allowsMultipleSelection: false,
       quality: 0.8,
     });
 
-    if (!result.canceled) {
-      const selectedUris = result.assets.map(asset => asset.uri);
-      const updatedPhotos = [...photos, ...selectedUris].slice(0, 3);
-      setPhotos(updatedPhotos);
-      if (updatedPhotos.length > 0 && errors.photos) {
+    if (!result.canceled && result.assets.length > 0) {
+      const selectedUri = result.assets[0].uri;
+      setPhotos([selectedUri]);
+      if (errors.photos) {
         setErrors({ ...errors, photos: undefined });
       }
     }
   };
 
   const handleRemovePhoto = (index: number) => {
-    const updatedPhotos = photos.filter((_, idx) => idx !== index);
-    setPhotos(updatedPhotos);
-    if (updatedPhotos.length === 0) {
-      setErrors({ ...errors, photos: "Este obligatoriu să adăugați cel puțin o fotografie." });
-    } else if (errors.photos) {
-      setErrors({ ...errors, photos: undefined });
-    }
+    setPhotos([]);
+    setErrors({ ...errors, photos: "Este obligatoriu să adăugați o fotografie." });
   };
 
   const handleSubmit = async () => {
@@ -339,11 +332,9 @@ export default function AdaugaSesizareScreen() {
                 {errors.description}
               </Text>
             )}
-          </View>
-
-          <View style={{ gap: Spacing.xs }}>
-            <Text style={[Typography.Heading5, { color: theme.text }]}>Adaugă fotografii (maxim 3)</Text>
-            {photos.length < 3 && (
+          </View>          <View style={{ gap: Spacing.xs }}>
+            <Text style={[Typography.Heading5, { color: theme.text }]}>Adaugă o fotografie</Text>
+            {photos.length < 1 && (
               <Pressable
                 onPress={handleAddPhoto}
                 disabled={submitting}
@@ -364,7 +355,7 @@ export default function AdaugaSesizareScreen() {
               >
                 <ImagesIcon width={24} height={24} color={theme.textSecondary} />
                 <Text style={{ ...Typography.Small1, color: theme.textSecondary }}>
-                  Adaugă poză (până la 3 poze)
+                  Adaugă poză
                 </Text>
               </Pressable>
             )}
@@ -381,8 +372,8 @@ export default function AdaugaSesizareScreen() {
                   <View
                     key={index}
                     style={{
-                      width: 80,
-                      height: 80,
+                      width: 120,
+                      height: 120,
                       borderRadius: Spacing.md,
                       backgroundColor: theme.surface,
                       overflow: "hidden",
@@ -399,25 +390,24 @@ export default function AdaugaSesizareScreen() {
                       disabled={submitting}
                       style={{
                         position: "absolute",
-                        top: 4,
-                        right: 4,
+                        top: 6,
+                        right: 6,
                         backgroundColor: "rgba(0, 0, 0, 0.6)",
-                        borderRadius: 12,
-                        width: 24,
-                        height: 24,
+                        borderRadius: 14,
+                        width: 28,
+                        height: 28,
                         justifyContent: "center",
                         alignItems: "center",
                         zIndex: 10
                       }}
                     >
-                      <XIcon width={12} height={12} color="white" />
+                      <XIcon width={14} height={14} color="white" />
                     </Pressable>
                   </View>
                 ))}
               </View>
             )}
           </View>
-
           <Pressable
             style={({ pressed }) => [
               {

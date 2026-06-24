@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from "react";
-import { View, Text, Pressable, ScrollView, ActivityIndicator } from "react-native";
+import React, { useState, useCallback, useEffect } from "react";
+import { View, Text, Pressable, ScrollView } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -8,16 +8,16 @@ import { Typography } from "@/constants/typography";
 import { WebContainer } from "@/components/ui/layout/web-container";
 import { CategoryHeader, FilterItem } from "@/components/ui/display/category-header";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
-import { useMockLoading } from "@/hooks/use-mock-loading";
 import { SesizariListSkeleton } from "@/components/ui/display/skeletons";
 import { Seo } from "@/components/seo";
 import { SesizareCard, Sesizare } from "@/components/ui/display/sesizare-card";
 import PlusIcon from "@/assets/icons/svg/plus.svg";
-import api, { storage, getAuthToken } from "@/services/api";
+import api, { storage, getAuthToken, resolveImageUrl } from "@/services/api";
 
-type FilterType = "mele" | "active" | "respinse" | "finalizate";
+type FilterType = "toate" | "mele" | "active" | "respinse" | "finalizate";
 
 const filters: FilterItem[] = [
+  { id: "toate", title: "Toate sesizările" },
   { id: "mele", title: "Sesizările mele" },
   { id: "active", title: "Active" },
   { id: "respinse", title: "Respinse" },
@@ -44,23 +44,23 @@ export default function SesizariScreen() {
   const router = useRouter();
 
   const [reports, setReports] = useState<Sesizare[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeFilter, setActiveFilter] = useState<FilterType>("mele");
+  const [activeFilter, setActiveFilter] = useState<FilterType>("toate");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
   const loadData = async () => {
     setLoading(true);
     setError(null);
     try {
       const token = await getAuthToken();
       setIsAuthenticated(!!token);
-      if (!token && activeFilter === "mele") {
+      setIsAuthChecked(true);
+      if (!token) {
         setReports([]);
         setLoading(false);
         return;
       }
-
       // 1. Fetch/load locations to build a map of id -> name
       let locationsData: any[] = [];
       const cachedLocs = await storage.getItem('cached_facilities');
@@ -97,8 +97,13 @@ export default function SesizariScreen() {
 
       // 3. Fetch complaints based on activeFilter
       let apiItems: any[] = [];
-      if (activeFilter === "mele") {
+      if (activeFilter === "toate") {
         const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50 } });
+        console.log('[API] Fetched all complaints (web):', complaintsRes.data);
+        apiItems = complaintsRes.data?.items || [];
+      } else if (activeFilter === "mele") {
+        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50 } });
+        console.log('[API] Fetched my complaints (web):', complaintsRes.data);
         const allItems = complaintsRes.data?.items || [];
         apiItems = myProfileId ? allItems.filter((item: any) => item.user_id === myProfileId) : [];
       } else if (activeFilter === "active") {
@@ -106,16 +111,19 @@ export default function SesizariScreen() {
           api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_asteptare' } }),
           api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_lucru' } })
         ]);
+        console.log('[API] Fetched active complaints (web):', { pending: resPending.data, working: resWorking.data });
         apiItems = [...(resPending.data?.items || []), ...(resWorking.data?.items || [])];
         apiItems.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       } else if (activeFilter === "respinse") {
         const res = await api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'respins' } });
+        console.log('[API] Fetched rejected complaints (web):', res.data);
         apiItems = res.data?.items || [];
       } else if (activeFilter === "finalizate") {
         const [resFinalized, resSolved] = await Promise.all([
           api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'finalizat' } }),
           api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'solutionat' } })
         ]);
+        console.log('[API] Fetched finalized complaints (web):', { finalized: resFinalized.data, solved: resSolved.data });
         apiItems = [...(resFinalized.data?.items || []), ...(resSolved.data?.items || [])];
         apiItems.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       }
@@ -129,7 +137,7 @@ export default function SesizariScreen() {
         date: item.created_at,
         location: locationMap.get(item.location_id) || "Locație nespecificată",
         isUserReport: myProfileId ? item.user_id === myProfileId : false,
-        image: item.image_url || undefined,
+        image: resolveImageUrl(item.image_url) || undefined,
       }));
       setReports(mappedReports);
     } catch (err: any) {
@@ -145,10 +153,19 @@ export default function SesizariScreen() {
   useFocusEffect(
     useCallback(() => {
       loadData();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeFilter])
   );
 
+  useEffect(() => {
+    if (isAuthChecked && !isAuthenticated) {
+      router.push("/(auth)");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isAuthChecked]);
+
   const filteredData = reports.filter((item) => {
+    if (activeFilter === "toate") return true;
     if (activeFilter === "mele") return item.isUserReport;
     if (activeFilter === "active") return item.status === "active";
     if (activeFilter === "respinse") return item.status === "respinse";
@@ -161,13 +178,6 @@ export default function SesizariScreen() {
       pathname: "/(public)/sesizari/detalii",
       params: {
         id: item.id,
-        title: item.title,
-        description: item.description,
-        category: item.category,
-        location: item.location,
-        status: item.status,
-        date: item.date,
-        image: item.image,
       },
     });
   };
@@ -212,7 +222,22 @@ export default function SesizariScreen() {
           />
 
           <View style={{ paddingHorizontal: Spacing.lg, gap: Spacing.md, marginTop: Spacing.xs }}>
-            {loading && reports.length === 0 ? (
+            {!isAuthenticated ? (
+              <View style={{ paddingVertical: 64, justifyContent: "center", alignItems: "center", gap: Spacing.md }}>
+                <Text style={[Typography.Heading5, { color: theme.text, marginBottom: Spacing.xs, textAlign: "center" }]}>
+                  Trebuie să fii conectat
+                </Text>
+                <Text style={[Typography.Paragraph3, { color: theme.textSecondary, textAlign: "center", marginBottom: Spacing.md }]}>
+                  Conectează-te pentru a trimite sau vizualiza sesizările tale.
+                </Text>
+                <Pressable
+                  onPress={() => router.push("/(auth)")}
+                  style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}
+                >
+                  <Text style={{ color: "white", fontWeight: "bold" }}>Conectare</Text>
+                </Pressable>
+              </View>
+            ) : loading && reports.length === 0 ? (
               <SesizariListSkeleton />
             ) : error && reports.length === 0 ? (
               <View style={{ paddingVertical: 64, justifyContent: "center", alignItems: "center", gap: Spacing.md }}>
@@ -240,31 +265,12 @@ export default function SesizariScreen() {
 
                  {filteredData.length === 0 && (
                   <View style={{ alignItems: "center", justifyContent: "center", paddingVertical: 64 }}>
-                    {activeFilter === "mele" && !isAuthenticated ? (
-                      <>
-                        <Text style={[Typography.Heading5, { color: theme.text, marginBottom: Spacing.xs, textAlign: "center" }]}>
-                          Trebuie să fii conectat
-                        </Text>
-                        <Text style={[Typography.Paragraph3, { color: theme.textSecondary, textAlign: "center", marginBottom: Spacing.md }]}>
-                          Conectează-te pentru a trimite sau vizualiza sesizările tale.
-                        </Text>
-                        <Pressable
-                          onPress={() => router.push("/(auth)")}
-                          style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}
-                        >
-                          <Text style={{ color: "white", fontWeight: "bold" }}>Conectare</Text>
-                        </Pressable>
-                      </>
-                    ) : (
-                      <>
-                        <Text style={[Typography.Heading5, { color: theme.text, marginBottom: Spacing.xs }]}>
-                          Nicio sesizare în această secțiune
-                        </Text>
-                        <Text style={[Typography.Paragraph3, { color: theme.textSecondary, textAlign: "center" }]}>
-                          Momentan nu există înregistrări.
-                        </Text>
-                      </>
-                    )}
+                    <Text style={[Typography.Heading5, { color: theme.text, marginBottom: Spacing.xs }]}>
+                      Nicio sesizare în această secțiune
+                    </Text>
+                    <Text style={[Typography.Paragraph3, { color: theme.textSecondary, textAlign: "center" }]}>
+                      Momentan nu există înregistrări.
+                    </Text>
                   </View>
                 )}
               </>

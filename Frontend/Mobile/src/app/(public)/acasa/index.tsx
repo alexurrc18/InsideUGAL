@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, useColorScheme, RefreshControl, Platform, Pressable, Alert, Animated, StyleSheet } from "react-native";
+import { View, Text, ScrollView, useColorScheme, RefreshControl, Platform, Pressable, Animated, Alert, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { Carousel } from "@/components/ui/display/carousel/carousel";
@@ -34,9 +34,12 @@ function hexToRgba(hex: string, alpha: number) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+
+
 export default function HomeScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
+  const headerBgColor = themeName === "light" ? ColorScheme.pureBlack : ColorScheme.pureWhite;
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -389,12 +392,11 @@ export default function HomeScreen() {
           paddingBottom: Spacing.sm,
           paddingHorizontal: Spacing.lg, 
           flexDirection: "row", 
-          justifyContent: "space-between", 
+          justifyContent: "flex-end", 
           alignItems: "center", 
           zIndex: 100,
         }}
       >
-        {/* Animated gradient background overlay */}
         <Animated.View
           style={[
             StyleSheet.absoluteFill,
@@ -405,21 +407,14 @@ export default function HomeScreen() {
         >
           <LinearGradient
             colors={[
-              hexToRgba(theme.background, 0.8),
-              hexToRgba(theme.background, 0.8),
-              hexToRgba(theme.background, 0.0)
+              hexToRgba(headerBgColor, 0.5),
+              hexToRgba(headerBgColor, 0.0)
             ]}
-            locations={[0.0, 0.8, 1.0]}
             style={StyleSheet.absoluteFill}
           />
         </Animated.View>
 
-        {/* Permanent Logo */}
-        <Image 
-          source={require("@/assets/images/logo.png")}
-          style={{ width: 40, height: 40 }}
-          contentFit="contain"
-        />
+
 
         {Platform.OS === 'ios' ? (
           <Pressable

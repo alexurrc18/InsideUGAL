@@ -215,6 +215,23 @@ services:
       sh -c "psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -v ON_ERROR_STOP=1 -f /tmp/ensure_storage_buckets.sql"
     networks:
       - internal
+  supabase-storage-assets:
+    image: curlimages/curl:8.10.1
+    restart: "no"
+    depends_on:
+      supabase-storage:
+        condition: service_healthy
+      supabase-storage-buckets:
+        condition: service_completed_successfully
+    environment:
+      SUPABASE_URL: http://supabase-kong:8000
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      STORAGE_ASSETS_ROOT: /workspace
+    volumes:
+      - ./:/workspace:ro
+    command: sh /workspace/scripts/seed_storage_assets.sh
+    networks:
+      - internal
   supabase-rest:
     image: postgrest/postgrest:v12.2.0
     restart: unless-stopped
@@ -366,6 +383,8 @@ services:
     build:
       context: ./Frontend/Mobile
       dockerfile: Dockerfile
+    env_file:
+      - .env
     command: npm run web -- --host lan
     restart: unless-stopped
     ports:
