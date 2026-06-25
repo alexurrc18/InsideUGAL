@@ -8,11 +8,12 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth_deps import get_current_profile, require_roles
+from app.api.auth_deps import get_current_profile, get_current_user_token, require_roles
 from app.api.crud import ensure_exists
 from app.api.pagination import PaginationParams, paginated_response
 from app.db.database import get_db
 from app.models import models, schemas
+from app.rate_limit import limiter, UPLOAD_RATE_LIMIT
 from app.repositories.announcement_repo import AnnouncementRepository
 
 router = APIRouter(prefix="/announcements", tags=["Announcements"])
@@ -92,12 +93,15 @@ async def create_announcement(
 
 
 @router.post("/upload-image/", dependencies=[Depends(manage_announcements)])
+@limiter.limit(UPLOAD_RATE_LIMIT)
 async def upload_announcement_image(
+    request: Request,
     file: UploadFile = File(...),
+    current_user_token: str = Depends(get_current_user_token),
 ):
     supabase_url = os.environ.get("SUPABASE_URL")
-    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
-    if not supabase_url or not supabase_key:
+    supabase_anon_key = os.environ.get("SUPABASE_ANON_KEY")
+    if not supabase_url or not supabase_anon_key:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Supabase Storage is not configured.")
 
     safe_filename = Path(file.filename or "upload").name
@@ -108,12 +112,11 @@ async def upload_announcement_image(
     public_url = f"{supabase_url.rstrip('/')}/storage/v1/object/public/images/announcements/{encoded_filename}"
     
     headers = {
-        "apikey": supabase_key,
-        "Authorization": f"Bearer {supabase_key}",
+        "apikey": supabase_anon_key,
+        "Authorization": f"Bearer {current_user_token}",
         "Content-Type": file.content_type or "application/octet-stream",
     }
 
-    # FIX: Citește imaginea în memorie înainte de a face request-ul HTTP
     file_bytes = await file.read()
 
     async with httpx.AsyncClient(timeout=30.0) as client:

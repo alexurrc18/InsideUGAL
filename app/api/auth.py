@@ -2,12 +2,14 @@ import os
 from functools import lru_cache
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from fastapi.concurrency import run_in_threadpool
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
 from supabase import Client, create_client
 from supabase_auth.errors import AuthApiError, AuthError
+
+from app.rate_limit import AUTH_LOGOUT_RATE_LIMIT, AUTH_RATE_LIMIT, AUTH_REFRESH_RATE_LIMIT, limiter
 
 load_dotenv()
 
@@ -87,7 +89,8 @@ async def get_current_user(authorization: str = Header(...)):
 
 
 @router.post("/login", response_model=AuthTokenResponse)
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+@limiter.limit(AUTH_RATE_LIMIT)
+async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     """
     OAuth2-compatible email/password login through Supabase Auth.
     Returns both the short-lived access token and the refresh token.
@@ -111,7 +114,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 
 @router.post("/refresh", response_model=AuthTokenResponse)
-async def refresh_token(payload: RefreshTokenRequest):
+@limiter.limit(AUTH_REFRESH_RATE_LIMIT)
+async def refresh_token(request: Request, payload: RefreshTokenRequest):
     """
     Exchanges a valid Supabase refresh token for a new auth session.
     Protected endpoints must continue to receive the returned access_token
@@ -133,5 +137,6 @@ async def refresh_token(payload: RefreshTokenRequest):
 
 
 @router.post("/logout")
-async def logout():
+@limiter.limit(AUTH_LOGOUT_RATE_LIMIT)
+async def logout(request: Request):
     return {"message": "Logged out successfully"}

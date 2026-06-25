@@ -98,7 +98,6 @@ async def get_current_user(
 
     token_value = token.strip()
 
-    # elimină ghilimele accidentale
     if len(token_value) >= 2 and (
         (token_value.startswith('"') and token_value.endswith('"'))
         or (token_value.startswith("'") and token_value.endswith("'"))
@@ -121,6 +120,32 @@ async def get_current_user(
         raise _unauthorized("Invalid token payload.")
 
     return str(user_id)
+
+
+async def get_current_user_token(
+    token: str | None = Depends(oauth2_scheme),
+) -> str:
+    if token is None:
+        raise _unauthorized("Missing authentication token.")
+
+    token_value = token.strip()
+
+    if len(token_value) >= 2 and (
+        (token_value.startswith('"') and token_value.endswith('"'))
+        or (token_value.startswith("'") and token_value.endswith("'"))
+    ):
+        token_value = token_value[1:-1]
+
+    try:
+        verify_supabase_token(token_value)
+    except ExpiredSignatureError as exc:
+        logger.error("JWT expired: %s", exc)
+        raise _unauthorized("Token expired.") from exc
+    except InvalidTokenError as exc:
+        logger.error("Invalid JWT: %s", exc)
+        raise _unauthorized("Invalid or expired authentication token.") from exc
+
+    return token_value
 
 
 async def get_current_profile(
