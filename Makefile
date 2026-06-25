@@ -24,9 +24,15 @@ migrate:
 	docker compose exec backend python scripts/migrate.py
 
 reset:
-	docker compose down -v && docker compose up -d --build --force-recreate $(SERVICES)
+	docker compose down && docker compose up -d --build --force-recreate $(SERVICES)
 
 reset-all:
+	docker compose down && docker compose up -d --build --force-recreate
+
+reset-hard:
+	docker compose down -v && docker compose up -d --build --force-recreate $(SERVICES)
+
+reset-hard-all:
 	docker compose down -v && docker compose up -d --build --force-recreate
 
 validate-env:
