@@ -47,6 +47,8 @@ services:
       SUPABASE_URL: http://supabase-kong:8000
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       ALLOWED_ORIGINS: ${LLM_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      ADMIN_SECRET: ${ADMIN_SECRET}
+      SUPABASE_WEBHOOK_SECRET: ${SUPABASE_WEBHOOK_SECRET}
     restart: unless-stopped
     depends_on:
       supabase-db:

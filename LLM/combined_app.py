@@ -7,13 +7,24 @@ import logging
 import tempfile
 from pathlib import Path
 from importlib.util import spec_from_file_location, module_from_spec
-from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
+from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi import Request, Depends
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from llm_optimizer import LLMOptimizer
+
+# Importuri noi pentru RAG și Scraping
+import threading
+import time
+from src.ChatBot.rag_engine import RAGEngine
+from src.ChatBot.scraper import scrape_all
+from src.ChatBot.chatbot_shared import SYSTEM_PROMPT
+
+RESCRAPE_INTERVAL_HOURS = 24
+
+
 
 BASE_DIR = Path(__file__).resolve().parent
 SRC_DIR = BASE_DIR / "src"
@@ -113,13 +124,61 @@ else:
     )
 llm_optimizer_service = LLMOptimizer(api_key=API_KEY, supabase_client=mod_marius_functions.supabase_client)
 
+# ... (codul existent până la app = FastAPI(...))
+
 app = FastAPI(
     title="InsideUGAL LLM Integrated Service",
     description="Serviciu FastAPI care combină extragerea de task-uri UGAL, funcționalitățile PDF/RAG și asistentul virtual campus.",
     version="2.0.0"
 )
+
+# ── RAG și Scraping Setup ──────────────────────────────────────────────────
+logger.info("Se încarcă indexul RAG...")
+rag = RAGEngine()
+logger.info("RAG gata — %d chunk-uri indexate.", rag.collection.count())
+
+_rag_lock = threading.Lock()
+_scraping_in_progress = threading.Event()
+
+def _run_scraper(full_rebuild: bool = False):
+    if _scraping_in_progress.is_set():
+        logger.warning("Scraping deja în desfășurare — skip.")
+        return
+    _scraping_in_progress.set()
+    try:
+        if full_rebuild:
+            logger.info("Rebuild complet — șterg indexul vechi...")
+            with _rag_lock:
+                rag.rebuild()
+        chunks = scrape_all()
+        with _rag_lock:
+            rag.ingest(chunks)
+        logger.info("Index actualizat: %d chunk-uri totale.", rag.collection.count())
+    except Exception as e:
+        logger.error("Eroare scraper: %s", e, exc_info=True)
+    finally:
+        _scraping_in_progress.clear()
+
+def _schedule_scraper():
+    while True:
+        time.sleep(RESCRAPE_INTERVAL_HOURS * 3600)
+        logger.info("Re-scraping automat (la fiecare %dh)...", RESCRAPE_INTERVAL_HOURS)
+        _run_scraper(full_rebuild=True)
+
+if rag.collection.count() < 50:
+    logger.info("Index mic — pornesc scraping inițial în background...")
+    threading.Thread(target=_run_scraper, daemon=True).start()
+else:
+    logger.info("Index populat (%d chunk-uri).", rag.collection.count())
+
+threading.Thread(target=_schedule_scraper, daemon=True).start()
+logger.info("Re-scraping automat activat la fiecare %d ore.", RESCRAPE_INTERVAL_HOURS)
+
+# ── Middleware și Rute ────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
+# ...
+
     allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(","),
     allow_credentials=True,
     allow_methods=["*"],
@@ -278,6 +337,62 @@ async def delete_pdf(pdf_id: str):
         logger.warning("Nu am putut sterge vectorii pentru %s: %s", pdf_id, exc)
 
     return {"ok": True, "pdf_id": pdf_id}
+
+
+# ── Administrare RAG ────────────────────────────────────────────────────────
+
+@app.post("/api/v1/admin/rebuild-rag")
+def rebuild_rag(secret: str = Header(..., alias="X-Admin-Secret")):
+    expected = os.getenv("ADMIN_SECRET", "")
+    if expected and secret != expected:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    threading.Thread(target=lambda: _run_scraper(full_rebuild=True), daemon=True).start()
+    return {"status": "ok", "message": "Rebuild pornit în background"}
+
+
+@app.post("/webhook/supabase")
+async def webhook_supabase(request: Request, secret: str = Header(..., alias="X-Webhook-Secret")):
+    expected = os.getenv("SUPABASE_WEBHOOK_SECRET", "")
+    if expected and secret != expected:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    payload = await request.json()
+    if payload.get("type") != "INSERT":
+        return {"status": "ignored"}
+
+    record = payload.get("record", {})
+    table  = payload.get("table", "unknown")
+
+    parts = []
+    if record.get("title"):
+        parts.append(f"Titlu: {record['title']}")
+    if record.get("content") or record.get("description"):
+        parts.append(record.get("content") or record.get("description"))
+    if record.get("url"):
+        parts.append(f"Link: {record['url']}")
+
+    if not parts:
+        return {"status": "no_content"}
+
+    chunk_id  = f"webhook_{table}_{record.get('id', str(uuid.uuid4())[:8])}"
+    chunk_src = record.get("url") or f"supabase/{table}"
+
+    def _ingest_webhook():
+        with _rag_lock:
+            rag.ingest([{
+                "id": chunk_id,
+                "text": "\n".join(parts),
+                "source": chunk_src,
+                "type": "webhook",
+            }])
+
+    threading.Thread(target=_ingest_webhook, daemon=True).start()
+
+    logger.info("Webhook ingestat: %s", chunk_id)
+    return {"status": "ok", "id": chunk_id}
+
+
 
 
 # ── Campus Chat (Asistentul Virtual InsideUGAL) ──────────────────────────────
