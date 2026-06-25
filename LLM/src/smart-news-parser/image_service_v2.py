@@ -112,6 +112,10 @@ class ImageServiceV2:
 
         # ── Assets ───────────────────────────────────────────────────────────
         self.assets_dir = Path(assets_dir) if assets_dir else Path(__file__).parent / "assets" / "buildings"
+        self.assets_dir.mkdir(parents=True, exist_ok=True)  # creeaza daca nu exista
+        # Folder separat pentru bannere generate (nu amestecam cu cele pre-fabricate)
+        self.generated_dir = Path(__file__).parent / "assets" / "generated"
+        self.generated_dir.mkdir(parents=True, exist_ok=True)
         logger.info(f"Assets dir: {self.assets_dir}")
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -711,8 +715,12 @@ class ImageServiceV2:
             if not public_url:
                 base64_fallback = "data:image/jpeg;base64," + base64.b64encode(image_bytes).decode("utf-8")
             
-            local_save_path = self.assets_dir / f"generated_banner_{uuid.uuid4().hex[:8]}.jpg"
-            image.convert("RGB").save(local_save_path, "JPEG")
+            # Salvare locala optionala (nu blocheaza raspunsul daca da eroare)
+            try:
+                local_save_path = self.generated_dir / f"generated_banner_{uuid.uuid4().hex[:8]}.jpg"
+                image.convert("RGB").save(local_save_path, "JPEG")
+            except Exception as save_err:
+                logger.warning(f"Salvare locala esuata (ignorata): {save_err}")
 
             return ImageGenerationResult(
                 success=True,
