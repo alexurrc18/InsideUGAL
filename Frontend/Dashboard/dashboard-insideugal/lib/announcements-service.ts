@@ -21,16 +21,19 @@ const generateBannerSchema = z.object({
 export type GenerateBannerResult = z.infer<typeof generateBannerSchema>;
 
 export const announcementsService = {
-  list: (params?: { announcement_type?: string; faculty_id?: number }) => {
-  const query = params
-    ? "?" + new URLSearchParams(
-        Object.fromEntries(
-          Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
-        )
-      ).toString()
-    : "";
-  return apiRequest(`/announcements/${query}`, announcementsSchema);
-},
+  list: (params?: { announcement_type?: string; faculty_id?: number; page?: number; size?: number }) => {
+    const queryParams = {
+      page: 1,
+      size: 50,
+      ...params,
+    };
+    const query = "?" + new URLSearchParams(
+      Object.fromEntries(
+        Object.entries(queryParams).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
+      )
+    ).toString();
+    return apiRequest(`/announcements/${query}`, announcementsSchema);
+  },
 
   create: (data: Partial<Announcement>) =>
     apiRequest("/announcements/", announcementSchema, {

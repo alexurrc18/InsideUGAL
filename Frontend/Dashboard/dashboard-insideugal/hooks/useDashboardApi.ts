@@ -13,10 +13,10 @@ import {
 } from "@/lib/api-schemas";
 import type { Announcement } from "@/lib/api-types";
 
-export function useAnnouncements() {
+export function useAnnouncements(params?: { announcement_type?: string; faculty_id?: number; page?: number; size?: number }) {
   return useQuery({
-    queryKey: ["announcements"],
-    queryFn: () => announcementsService.list(),
+    queryKey: ["announcements", params],
+    queryFn: () => announcementsService.list(params),
   });
 }
 

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { announcementsService } from "@/lib/announcements-service";
 import { useTheme } from "../../providers";
+import { clearDashboardSession, getStoredDashboardProfile } from "@/lib/dashboard-auth";
 
 interface Announcement {
   id: number;
@@ -31,6 +32,12 @@ export default function HeaderActions() {
   let isMounted = true;
 
   const loadUser = () => {
+    const profile = getStoredDashboardProfile();
+    if (profile?.email) {
+      setUserEmail(profile.email);
+      return;
+    }
+
     const token = localStorage.getItem("access_token");
 
     if (!token) {
@@ -110,8 +117,7 @@ export default function HeaderActions() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("token_type");
+    clearDashboardSession();
     router.replace("/login");
   };
 

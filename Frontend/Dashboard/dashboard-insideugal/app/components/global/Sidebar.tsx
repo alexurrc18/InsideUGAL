@@ -15,6 +15,7 @@ import {
   Users,
   Utensils,
 } from "lucide-react";
+import { canManageAccounts, getStoredDashboardProfile, normalizeRole } from "@/lib/dashboard-auth";
 
 const menuItems = [
   { label: "Acasă", href: "/", icon: Home },
@@ -30,6 +31,8 @@ const menuItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const role = normalizeRole(getStoredDashboardProfile()?.role);
+  const visibleMenuItems = menuItems.filter((item) => item.href !== "/conturi" || canManageAccounts(role));
 
   return (
     <aside
@@ -73,7 +76,7 @@ export default function Sidebar() {
         )}
 
         <nav className="custom-scrollbar flex-1 space-y-1 overflow-y-auto">
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;
 

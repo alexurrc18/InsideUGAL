@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Table, { Column } from '../components/ui/Table';
 import Modal from '../components/ui/Modal';
 import { apiBaseUrl } from "@/lib/api-client";
+import { canManageAccounts, getStoredDashboardProfile, normalizeRole } from "@/lib/dashboard-auth";
 
 export type UserRole = 'Student' | 'Student_responsabil' | 'Profesor' | 'Head_facultati' | 'Head_cantina' | 'Admin';
 export type UserStatus = 'Activ' | 'Blocat';
@@ -16,6 +17,7 @@ export type UserItem = {
   role: UserRole;
   status: UserStatus;
   faculty: string; 
+  facultyId: number | null;
   registrationDate: string;
   username?: string;
 };
@@ -23,6 +25,7 @@ export type UserItem = {
 type FacultyDBItem = {
   id: number;
   name: string;
+  abbreviation?: string | null;
 };
 
 const roleOptions: UserRole[] = ['Student', 'Student_responsabil', 'Profesor', 'Head_facultati', 'Head_cantina', 'Admin'];
@@ -64,6 +67,7 @@ export default function ConturiPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const canAccessAccounts = canManageAccounts(normalizeRole(getStoredDashboardProfile()?.role));
 
   const [dbFaculties, setDbFaculties] = useState<FacultyDBItem[]>([]);
 
@@ -154,7 +158,12 @@ export default function ConturiPage() {
         last_name?: string;
         email: string;
         is_active?: boolean;
-        faculty?: string;
+        faculty_id?: number | null;
+        faculty?: {
+          id: number;
+          name: string;
+          abbreviation?: string | null;
+        } | null;
         created_at?: string;
         username?: string;
       }
@@ -183,7 +192,8 @@ export default function ConturiPage() {
           email: item.email,
           role: cleanRole,
           status: item.is_active ? 'Activ' : 'Blocat',
-          faculty: item.faculty || 'Fără facultate', 
+          faculty: item.faculty?.name || 'Fara facultate',
+          facultyId: item.faculty_id ?? item.faculty?.id ?? null,
           registrationDate: item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
           username: item.username || ''
         };
@@ -271,7 +281,7 @@ export default function ConturiPage() {
           last_name: newUser.last_name,
           password: newUser.password,
           role: newUser.role.toUpperCase(),
-          faculty: newUser.faculty
+          faculty_id: newUser.faculty ? Number(newUser.faculty) : null
         };
 
         const response = await fetch(`${API_PROFILES_URL}/`, {
@@ -318,7 +328,7 @@ export default function ConturiPage() {
           last_name: selectedUser.last_name,
           email: selectedUser.email,
           username: selectedUser.username,
-          faculty: selectedUser.faculty
+          faculty_id: selectedUser.facultyId
         };
 
         if (editPassword.trim()) {
@@ -585,7 +595,7 @@ export default function ConturiPage() {
                     <option value="" disabled>Se încarcă facultățile...</option>
                   ) : (
                     dbFaculties.map((fac) => (
-                      <option key={fac.id} value={fac.name} className="truncate">{fac.name}</option>
+                      <option key={fac.id} value={String(fac.id)} className="truncate">{fac.name}</option>
                     ))
                   )}
                 </select>
@@ -644,13 +654,17 @@ export default function ConturiPage() {
                   <select
                     required
                     disabled={isSaving}
-                    value={selectedUser.faculty}
-                    onChange={(e) => setSelectedUser({ ...selectedUser, faculty: e.target.value })}
+                    value={selectedUser.facultyId ? String(selectedUser.facultyId) : ''}
+                    onChange={(e) => {
+                      const facultyId = e.target.value ? Number(e.target.value) : null;
+                      const faculty = dbFaculties.find((item) => item.id === facultyId);
+                      setSelectedUser({ ...selectedUser, facultyId, faculty: faculty?.name || 'Fara facultate' });
+                    }}
                     className="w-full border border-border p-2 rounded-lg bg-background text-sm cursor-pointer disabled:opacity-60 truncate max-w-full"
                   >
                     <option value="">Alege o facultate</option>
                     {dbFaculties.map((fac) => (
-                      <option key={fac.id} value={fac.name} className="truncate">{fac.name}</option>
+                      <option key={fac.id} value={String(fac.id)} className="truncate">{fac.name}</option>
                     ))}
                   </select>
                 </div>

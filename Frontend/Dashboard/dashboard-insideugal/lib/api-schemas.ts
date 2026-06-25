@@ -15,8 +15,13 @@ export const userSchema = z.object({
 export const facultySchema = z.object({
   id: z.number().int(),
   name: z.string(),
-  abbreviation: z.string(),
+  abbreviation: z.string().nullable().optional(),
   description: z.string().nullable(),
+  address: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  website_url: z.string().nullable().optional(),
+  dormitory_url: z.string().nullable().optional(),
+  logo_url: z.string().nullable().optional(),
   created_at: isoDateSchema,
   updated_at: isoDateSchema,
 });
@@ -105,7 +110,10 @@ export const createPaginatedResponseSchema = <T extends z.ZodTypeAny>(itemSchema
   
 
 export const usersSchema = z.array(userSchema);
-export const facultiesSchema = z.array(facultySchema);
+export const paginatedFacultiesSchema = createPaginatedResponseSchema(facultySchema);
+export const facultiesSchema = z
+  .union([z.array(facultySchema), paginatedFacultiesSchema])
+  .transform((value) => (Array.isArray(value) ? value : value.items));
 export const studentsSchema = z.array(studentSchema);
 export const professorsSchema = z.array(professorSchema);
 export const coursesSchema = z.array(courseSchema);

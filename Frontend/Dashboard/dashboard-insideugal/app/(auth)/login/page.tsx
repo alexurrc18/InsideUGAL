@@ -5,6 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app
 import { Input } from "@/app/components/ui/Input";
 import { Button } from "@/app/components/ui/Button";
 import { apiBaseUrl } from "@/lib/api-client";
+import {
+  clearDashboardSession,
+  consumeDashboardAccessError,
+  fetchDashboardProfile,
+  isDashboardRole,
+  storeDashboardProfile,
+} from "@/lib/dashboard-auth";
 
 function extractAccessToken(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") {
@@ -19,7 +26,12 @@ function extractAccessToken(payload: unknown): string | null {
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+    return consumeDashboardAccessError();
+  });
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,6 +71,13 @@ export default function LoginPage() {
 
       localStorage.setItem("access_token", accessToken);
       localStorage.setItem("token_type", tokenType);
+
+      const profile = await fetchDashboardProfile();
+      if (!isDashboardRole(profile.role)) {
+        clearDashboardSession();
+        throw new Error("Conturile de student nu au acces la dashboard.");
+      }
+      storeDashboardProfile(profile);
 
       window.location.href = "/";
       

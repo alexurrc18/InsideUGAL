@@ -6,6 +6,15 @@ import "./globals.css";
 import Sidebar from "./components/global/Sidebar";
 import Header from "./components/global/PageHeader";
 import { Providers } from "./providers";
+import {
+  canAccessDashboardPath,
+  clearDashboardSession,
+  fetchDashboardProfile,
+  getStoredDashboardProfile,
+  isDashboardRole,
+  setDashboardAccessError,
+  storeDashboardProfile,
+} from "@/lib/dashboard-auth";
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -15,14 +24,49 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const token = localStorage.getItem("access_token");
 
+    if (pathname === "/login") {
+      queueMicrotask(() => {
+        setChecking(false);
+      });
+      return;
+    }
+
     if (!token && pathname !== "/login") {
       router.replace("/login");
       return;
     }
 
-    queueMicrotask(() => {
-      setChecking(false);
-    });
+    const validateAccess = async () => {
+      try {
+        const cachedProfile = getStoredDashboardProfile();
+        if (cachedProfile && canAccessDashboardPath(cachedProfile.role, pathname)) {
+          setChecking(false);
+          return;
+        }
+
+        const profile = await fetchDashboardProfile();
+        storeDashboardProfile(profile);
+
+        if (!isDashboardRole(profile.role)) {
+          clearDashboardSession();
+          setDashboardAccessError("Conturile de student nu au acces la dashboard.");
+          router.replace("/login");
+          return;
+        }
+
+        if (!canAccessDashboardPath(profile.role, pathname)) {
+          router.replace("/");
+          return;
+        }
+
+        setChecking(false);
+      } catch {
+        clearDashboardSession();
+        router.replace("/login");
+      }
+    };
+
+    void validateAccess();
   }, [pathname, router]);
 
   if (checking && pathname !== "/login") return null;
