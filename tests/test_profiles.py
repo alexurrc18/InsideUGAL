@@ -6,7 +6,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import schemas
-from tests.integration_helpers import create_auth_user, create_profile
+from tests.integration_helpers import create_auth_user, create_faculty, create_profile
 
 
 @pytest.mark.asyncio
@@ -32,6 +32,79 @@ async def test_profile_me_returns_authenticated_profile(
     assert body["email"] == student.email
     assert body["role"] == schemas.UserRole.STUDENT.value
     assert body["is_active"] is True
+
+
+@pytest.mark.asyncio
+async def test_student_can_update_own_faculty_id(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    student = await create_profile(db_session, role=schemas.UserRole.STUDENT)
+    faculty = await create_faculty(db_session)
+
+    response = await client.patch(
+        "/profiles/me",
+        json={"faculty_id": faculty.id},
+        headers=student.headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["id"] == student.id
+    assert body["faculty_id"] == faculty.id
+    assert body["faculty"]["id"] == faculty.id
+    assert body["faculty"]["name"] == faculty.name
+    assert body["role"] == schemas.UserRole.STUDENT.value
+    assert body["is_active"] is True
+
+
+@pytest.mark.asyncio
+async def test_student_cannot_update_own_role_or_active_status(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    student = await create_profile(db_session, role=schemas.UserRole.STUDENT)
+
+    role_response = await client.patch(
+        "/profiles/me",
+        json={"role": schemas.UserRole.HEAD_ADMIN.value},
+        headers=student.headers,
+    )
+    active_response = await client.patch(
+        "/profiles/me",
+        json={"is_active": False},
+        headers=student.headers,
+    )
+
+    assert role_response.status_code == 403
+    assert role_response.json()["detail"] == "Only faculty_id can be updated on your own profile."
+    assert active_response.status_code == 403
+    assert active_response.json()["detail"] == "Only faculty_id can be updated on your own profile."
+
+    read_response = await client.get("/profiles/me", headers=student.headers)
+    assert read_response.status_code == 200
+    body = read_response.json()
+    assert body["role"] == schemas.UserRole.STUDENT.value
+    assert body["is_active"] is True
+
+
+@pytest.mark.asyncio
+async def test_profile_me_returns_faculty_object(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    faculty = await create_faculty(db_session)
+    student = await create_profile(db_session, role=schemas.UserRole.STUDENT)
+    await client.patch("/profiles/me", json={"faculty_id": faculty.id}, headers=student.headers)
+
+    response = await client.get("/profiles/me", headers=student.headers)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["faculty_id"] == faculty.id
+    assert body["faculty"] is not None
+    assert body["faculty"]["id"] == faculty.id
+    assert body["faculty"]["name"] == faculty.name
 
 
 @pytest.mark.asyncio
