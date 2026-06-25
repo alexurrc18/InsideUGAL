@@ -12,7 +12,8 @@ numpy==2.4.6
 google-genai==1.66.0
 tenacity==9.1.4
 pybreaker==1.4.1
-huggingface_hub==0.28.1
+huggingface_hub==0.30.2
+aiohttp==3.11.11
 
 # Database & Storage
 supabase==2.31.0

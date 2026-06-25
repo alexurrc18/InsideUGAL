@@ -27,10 +27,9 @@ import re
 import uuid
 from pathlib import Path
 
-from huggingface_hub import AsyncInferenceClient
-from huggingface_hub.errors import HfHubHTTPError
+import httpx
 from pydantic import BaseModel
-from PIL import Image as PILImage, ImageOps
+from PIL import Image as PILImage
 
 from parser_schemas import ExtractedAnnouncementInfo
 from supabase import create_client, Client
@@ -88,14 +87,14 @@ class ImageServiceV2:
         hf_api_key: str | None = None,
         assets_dir: str | None = None,
     ):
-        # ── HF client ───────────────────────────────────────────────────────
+        # ── HF API key ──────────────────────────────────────────────────────
+        # Folosim httpx direct (deja in requirements) in loc de AsyncInferenceClient
+        # pentru a evita dependinta de aiohttp care cauzeaza erori in Docker.
         self.hf_api_key = hf_api_key or os.getenv("HUGGINGFACE_API_KEY")
-        self.hf_client = AsyncInferenceClient(token=self.hf_api_key) if self.hf_api_key else None
 
         # ── Modele ───────────────────────────────────────────────────────────
         self.hf_text_model_id = "meta-llama/Llama-3.3-70B-Instruct"
         self.flux_model_id    = "black-forest-labs/FLUX.1-schnell"
-        self.img2img_model_id = "stabilityai/stable-diffusion-xl-base-1.0"
 
         # ── Supabase Storage ─────────────────────────────────────────────────
         self.supabase = None
@@ -116,51 +115,333 @@ class ImageServiceV2:
         logger.info(f"Assets dir: {self.assets_dir}")
 
     # ─────────────────────────────────────────────────────────────────────────
-    # Detectare poză originală (color) pentru facultate
+    # Generator de prompt vizual optimizat pentru Grok Imagine
     # ─────────────────────────────────────────────────────────────────────────
-    async def _generate_prompt(self, info: ExtractedAnnouncementInfo, has_building_ref: bool) -> str:
-        building_instruction = (
-            "Because a real photo of the university building will be overlaid later, the background MUST NOT contain any drawn buildings. "
-            "Generate ONLY a beautiful, thematic, abstract or environmental background related to the subject, leaving space for an overlay. "
+    def _build_base_prompt(self, info: ExtractedAnnouncementInfo, has_building_ref: bool) -> str:
+        """
+        Construieste un prompt concret, specific si detaliat direct din contextul
+        anuntului, fara a depinde de un LLM text intermediar.
+        Optimizat specific pentru Grok Imagine (obiecte concrete > descriptori abstracti).
+        """
+        tip_val = info.tip_eveniment.value if hasattr(info.tip_eveniment, "value") else str(info.tip_eveniment)
+        tags_lower = [t.lower() for t in info.taguri_cheie]
+        subject_lower = info.materie_sau_subiect.lower()
+
+        # ── Detectare tematici cheie din taguri + subiect + rezumat ──────────
+        rezumat_lower = (info.rezumat_notificare or "").lower()
+        combined = " ".join(tags_lower + [subject_lower, rezumat_lower])
+
+        is_tech = any(k in combined for k in [
+            "it", "tech", "programming", "programare", "software", "hardware",
+            "calculator", "cod", "code", "hackathon", "web", "ai", "database",
+            "retea", "cybersecurity", "informatica", "electronica", "robotica"])
+        is_ai = any(k in combined for k in [
+            "ai", "inteligenta artificiala", "intelligence", "machine learning",
+            "neural", "deep learning", "ml"])
+        is_sport = any(k in combined for k in [
+            "sport", "fotbal", "baschet", "volei", "tenis", "atletism", "natatie",
+            "handbal", "rugby", "box", "karate", "judo", "fitness", "gym", "competitie sportiva"])
+        is_transport = any(k in combined for k in [
+            "transport", "decontare", "bilet", "tren", "autobuz", "metrou",
+            "naveta", "calatorie", "tramvai", "microbus"])
+        is_conference = any(k in combined for k in [
+            "conferinta", "simpozion", "seminar", "workshop", "webinar",
+            "prezentare", "congress", "forum"])
+        is_master = any(k in combined for k in [
+            "master", "masterat", "postuniversitar", "studii avansate"])
+        is_phd = any(k in combined for k in [
+            "doctorat", "phd", "cercetare", "teza", "teză", "stiinta"])
+        is_lab = tip_val in ("laborator", "proiect")
+        is_opportunity = tip_val == "oportunitate" or any(k in combined for k in [
+            "oportunitate", "opportunity", "grant", "finantare europeana", "erasmus",
+            "mobilitate", "schimb", "international"])
+        is_general = tip_val in ("anunt_general", "administrativ")
+        is_contest = tip_val in ("concurs",) or any(k in combined for k in [
+            "hackathon", "concurs", "competition", "olimpiada", "campionat"])
+        is_scholarship = tip_val == "bursa" or any(k in combined for k in [
+            "bursa", "scholarship", "grant academic", "finantare studii", "ajutor social"])
+        # Sub-tipuri de bursa (detectate din combined care include si rezumatul)
+        is_eu_funded = any(k in combined for k in [
+            "european", "fond social", "fonduri europene", "smis", "cofinantat",
+            "uniunea europeana", "programul educatie", "erasmus+", "ue ", "eu ",
+            "program operational", "uefiscdi"])
+        is_social_scholarship = any(k in combined for k in [
+            "social", "dezavantaj", "medii dezavantajate", "grupuri vulnerabile",
+            "abandon", "venit redus", "suport social"])
+        is_merit_scholarship = any(k in combined for k in [
+            "merit", "performanta", "performanță", "rezultate", "olimpiada",
+            "excelen", "top ", "premiu academic"])
+        is_internship = tip_val == "internship" or any(k in combined for k in [
+            "internship", "practica", "stagiu", "job", "angajare", "cariera"])
+        is_volunteer = tip_val == "voluntariat"
+        is_housing = tip_val == "cazare"
+        is_exam = tip_val in ("examen", "partial", "colocviu")
+        is_admission = tip_val == "admitere"
+
+        # ── Selectie obiecte vizuale si stil ─────────────────────────────────
+        if is_contest and is_tech:
+            focal_objects = (
+                "a gleaming silver and gold competition trophy standing tall in the center, "
+                "a sleek open ultrabook laptop with a vivid colorful code editor on screen, "
+                "floating holographic 3D circuit board fragments and glowing microchips"
+            )
+            if is_ai:
+                focal_objects += ", glowing neural network node connections spreading outward"
+            color_scheme = "deep midnight navy to electric cyan gradient, vivid purple accent lighting"
+            style = (
+                "premium esports / tech competition aesthetic, "
+                "dramatic cinematic rim lighting, 3D glassmorphism floating panels, "
+                "subtle particle effects and light streaks, vibrant yet sophisticated"
+            )
+        elif is_contest and is_sport:
+            focal_objects = (
+                "a large gleaming gold sports trophy in the center, "
+                "dynamic abstract motion-blur athletic shapes, "
+                "floating medal and star elements"
+            )
+            color_scheme = "vibrant orange to deep red gradient, golden accent highlights"
+            style = "premium sports competition aesthetic, energetic dynamic lighting, bold composition"
+        elif is_contest:
+            focal_objects = (
+                "a gleaming metallic trophy as the centerpiece, "
+                "elegant podium steps (1st, 2nd, 3rd), floating gold stars and confetti"
+            )
+            color_scheme = "deep purple to electric blue gradient, golden accent highlights"
+            style = "premium competition aesthetic, dramatic spotlight lighting, glassmorphism"
+        elif is_scholarship:
+            if is_eu_funded:
+                # Bursa finantata din fonduri UE (Fond Social European, SMIS, Erasmus+ etc.)
+                focal_objects = (
+                    "a large, prominent ceramic piggy bank as the central hero element, "
+                    "with a small EU flag (deep blue rectangle with a circle of twelve golden stars) "
+                    "painted elegantly on its side, "
+                    "softly floating golden coins surrounding it, "
+                    "a subtle glowing upward arrow suggesting social mobility"
+                )
+                color_scheme = "deep EU institutional blue (#003399) to warm gold gradient, European palette"
+                style = (
+                    "premium European social program aesthetic, "
+                    "clean institutional design with a warm hopeful tone, "
+                    "soft diffused lighting, polished ceramic surface on piggy bank"
+                )
+            elif is_social_scholarship:
+                # Bursa sociala fara branding UE explicit
+                focal_objects = (
+                    "a large friendly ceramic piggy bank as the clear central element, "
+                    "surrounded by gently floating golden coins and warm glowing heart icons, "
+                    "a subtle rising pathway of warm light beneath it suggesting opportunity"
+                )
+                color_scheme = "warm amber to soft teal gradient, supportive hopeful palette"
+                style = (
+                    "modern social support / student welfare aesthetic, "
+                    "warm empathetic lighting, clean and uplifting design"
+                )
+            elif is_merit_scholarship:
+                # Bursa de merit / performanta
+                focal_objects = (
+                    "a gleaming open diploma scroll tied with a golden ribbon in the center, "
+                    "elegant laurel wreath branches framing it, "
+                    "floating gold star medals and shining coins"
+                )
+                color_scheme = "deep royal navy to rich warm gold gradient, prestige academic palette"
+                style = (
+                    "premium academic excellence aesthetic, "
+                    "classical meets modern design, regal polished surfaces, soft spotlight"
+                )
+            else:
+                # Bursa generica (tip neclar)
+                focal_objects = (
+                    "a large ceramic piggy bank as the central element, "
+                    "elegant floating golden coins around it, "
+                    "a subtle glowing document with a golden seal in the background"
+                )
+                color_scheme = "deep navy to warm gold gradient, sophisticated financial palette"
+                style = "premium academic finance aesthetic, polished surfaces, soft ambient light"
+        elif is_transport:
+            focal_objects = (
+                "a sleek modern train or bus stylized silhouette, "
+                "floating ticket stubs with holographic shimmer, "
+                "abstract road or rail track lines fading into the horizon"
+            )
+            color_scheme = "deep royal blue to vibrant teal gradient, motion-blur accent streaks"
+            style = "modern transport / mobility aesthetic, clean dynamic design, speed lines"
+        elif is_internship:
+            focal_objects = (
+                "a sleek modern office desk setup with dual monitors displaying dashboards, "
+                "a professional briefcase, floating geometric career-ladder icon"
+            )
+            color_scheme = "clean navy to warm amber gradient"
+            style = "premium corporate professional aesthetic, minimal clean design, soft office lighting"
+        elif is_conference:
+            focal_objects = (
+                "an elegant speaker podium with a glowing microphone, "
+                "abstract audience silhouettes as geometric shapes (no faces), "
+                "floating speech-bubble and lightbulb icons"
+            )
+            color_scheme = "deep charcoal to rich teal gradient, warm stage spotlight accent"
+            style = "premium academic / corporate conference aesthetic, dramatic stage lighting"
+        elif is_volunteer:
+            focal_objects = (
+                "interconnected glowing stylized hand-shapes forming a circle "
+                "(abstract, no wrists or bodies), "
+                "floating heart icons and star elements, warm community glow"
+            )
+            color_scheme = "warm coral to teal gradient, uplifting vibrant palette"
+            style = "modern community / social impact aesthetic, warm hopeful lighting"
+        elif is_housing:
+            focal_objects = (
+                "a cozy modern apartment building facade (stylized architectural), "
+                "a warm glowing window at night, floating key icon"
+            )
+            color_scheme = "warm amber and deep blue night-sky gradient"
+            style = "modern residential premium aesthetic, warm cozy lighting"
+        elif is_exam:
+            focal_objects = (
+                "an elegant open hardcover book with softly glowing pages, "
+                "a sleek digital countdown timer / clock, "
+                "floating geometric knowledge symbols"
+            )
+            color_scheme = "deep royal blue to silver gradient, calm focused palette"
+            style = "premium academic aesthetic, clean minimal design, soft focused lighting"
+        elif is_admission or is_master:
+            focal_objects = (
+                "a grand stylized university gateway arch with golden trim, "
+                "a floating diploma scroll tied with a ribbon, "
+                "a glowing pathway of light leading through the gate"
+            )
+            color_scheme = "golden sunrise gradient on deep blue sky"
+            style = "inspiring premium academic aesthetic, aspirational cinematic lighting"
+        elif is_phd:
+            focal_objects = (
+                "floating scientific formula symbols and molecular structures, "
+                "an elegant open research journal, "
+                "abstract glowing data visualization spheres"
+            )
+            color_scheme = "deep space blue to vibrant violet gradient"
+            style = "premium scientific / research aesthetic, cosmic depth, clean precision"
+        elif is_lab or is_tech:
+            focal_objects = (
+                "a sleek laptop with code on screen, "
+                "floating 3D gear and tool icons, "
+                "abstract circuit-board pattern in the background"
+            )
+            color_scheme = "dark slate to electric green-blue gradient"
+            style = "modern tech lab aesthetic, clean precision, subtle glow effects"
+        elif is_opportunity:
+            focal_objects = (
+                "a bright glowing open doorway in the center, "
+                "abstract ascending arrow and star elements, "
+                "Erasmus-style subtle map-globe silhouette"
+            )
+            color_scheme = "warm gold sunrise to deep blue sky gradient"
+            style = "premium aspirational aesthetic, hopeful cinematic lighting"
+        elif is_general or is_sport:
+            if is_sport:
+                focal_objects = (
+                    "dynamic abstract athletic motion shapes, "
+                    "a stylized sports field overhead view, "
+                    "floating trophy and medal icons"
+                )
+                color_scheme = "vibrant orange-red to deep navy gradient"
+                style = "bold energetic sports aesthetic, dynamic diagonal composition"
+            else:
+                focal_objects = (
+                    "a stylized university crest emblem, "
+                    "floating geometric shapes: squares, circles, triangles in harmony, "
+                    "abstract light rays spreading outward"
+                )
+                color_scheme = "deep navy to vibrant teal gradient"
+                style = "premium modern academic aesthetic, professional clean design"
+        else:
+            # Ultimate fallback — still themed, not fully abstract
+            focal_objects = (
+                "floating elegant geometric shapes — hexagons, circles, triangles — "
+                "in a harmonious arrangement suggesting knowledge and growth, "
+                "a subtle glowing orb centerpiece"
+            )
+            color_scheme = "deep navy to electric indigo gradient"
+            style = "premium modern university aesthetic, professional clean design, soft ambient glow"
+
+
+        # ── Instructiune compozitie si negativi ───────────────────────────────
+        building_note = (
+            "The background should be abstract/atmospheric with NO buildings drawn, "
+            "as a real building photo will be overlaid. "
         ) if has_building_ref else ""
 
-        prompt_system = (
-            "You are an expert art director and prompt engineer. "
-            "Transform the following university announcement into an English image prompt. "
-            "INSTRUCTION 1: Visually represent the announcement's meaning using modern, premium graphic design concepts. "
-            "Include 1-2 clear, recognizable thematic objects STRICTLY RELATED to the announcement's actual core subject (e.g., stylized sleek train/bus tickets for 'transportation', elegant premium coins, sleek credit cards, or a clean ceramic piggy-bank for 'scholarships/money', elegant 3D microchips for 'hardware'). DO NOT use generic academic clichés like books, pens, or graduation caps unless the announcement is literally about graduation or the library. Integrate the objects elegantly into the background. Ensure these objects are highly detailed, richly colored, and visually striking. Avoid making them look like blank, boring shapes. "
-            "INSTRUCTION 2: Incorporate specific nuances from the text ONLY IF they are highly relevant. If the announcement EXPLICITLY mentions specific funding or sources (e.g., EU social grants, European funds), incorporate subtle related symbols (e.g., an elegant EU flag motif). DO NOT add any country flags (like the Romanian flag) or EU flags randomly. For general events like Hackathons, keep the design strictly tech-focused without any flags or geopolitical symbols. "
-            "INSTRUCTION 3: Keep the composition clean, highly aesthetic, and professional. "
-            f"{building_instruction}"
-            "INSTRUCTION 4: Adapt art style: "
-            "Exciting events (Hackathons, Contests) → 'modern tech-art, elegant dynamic lighting, sleek and vibrant but balanced colors, subtle 3D glassmorphism, energetic yet professional'. Use vibrant accents (like cyan or purple) but keep the overall tone sophisticated. "
-            "Formal/Administrative events (Transportation, Exams, Grants) → 'sophisticated, premium academic aesthetic, beautiful soft ambient lighting, smooth vibrant corporate gradients (e.g. deep blues, warm golds, or elegant purples), subtle 3D symbolic icons gently floating. Very polished and visually striking but clean and professional. DO NOT use neon, glowing sci-fi elements, or futuristic cyberpunk lighting here.' "
-            "INSTRUCTION 5: The final image will be heavily cropped to a 16:9 widescreen ratio. You MUST compose the image panoramically, centering all important focal objects horizontally and leaving generous empty atmospheric space at the top and bottom so nothing gets cut off. "
-            "No photorealism. No human faces. "
-            "Output ONLY the prompt string."
+        prompt = (
+            f"Ultra-premium wide 16:9 panoramic banner image. "
+            f"Main visual elements: {focal_objects}. "
+            f"Color scheme: {color_scheme}. "
+            f"Art style: {style}. "
+            f"{building_note}"
+            f"Composition: all main elements centered horizontally, "
+            f"generous atmospheric empty space at top and bottom for text overlay. "
+            f"NO text, NO words, NO letters, NO numbers anywhere in the image. "
+            f"NO human faces, NO human bodies, NO hands. "
+            f"Hyperdetailed, professional digital art, 8K quality rendering."
         )
+        return prompt
 
-        announcement_context = (
-            f"Event Type: {info.tip_eveniment.value if hasattr(info.tip_eveniment, 'value') else info.tip_eveniment}\n"
-            f"Subject: {info.materie_sau_subiect}\n"
-            f"Source: {info.entitate_sursa}\n"
-            f"Tags: {', '.join(info.taguri_cheie)}\n"
-            f"Summary: {info.rezumat_notificare}"
-        )
+    async def _generate_prompt(self, info: ExtractedAnnouncementInfo, has_building_ref: bool) -> str:
+        """
+        Genereaza promptul vizual final pentru Grok:
+        1. Construieste un prompt template concret (sigur, consistent)
+        2. Incearca sa il imbunatateasca cu GPT-4o-mini via OpenRouter (optional)
+        3. Returneaza template-ul direct daca LLM-ul nu e disponibil
+        """
+        base_prompt = self._build_base_prompt(info, has_building_ref)
+        logger.info(f"Prompt template construit: {base_prompt[:100]}...")
 
-        if not self.hf_client:
-            return f"University event banner for {info.materie_sau_subiect}, modern design, vibrant colors"
+        # ── Enhancing optional cu GPT-4o-mini (adauga nuante specifice) ──────
+        openrouter_key = os.getenv("OPENROUTER_API_KEY")
+        if openrouter_key:
+            try:
+                import requests as req
+                tip_val = info.tip_eveniment.value if hasattr(info.tip_eveniment, "value") else str(info.tip_eveniment)
+                enhance_system = (
+                    "You are a Grok Imagine prompt specialist. "
+                    "You will receive a base image prompt for a university event banner. "
+                    "Your task: REFINE and ENHANCE it by adding 1-2 highly specific visual details "
+                    "that match the actual event subject. Keep ALL existing elements. "
+                    "Do NOT add text, faces, or make it abstract. Keep it concrete and visual. "
+                    "Output ONLY the enhanced prompt, max 200 words."
+                )
+                enhance_user = (
+                    f"Event: {info.materie_sau_subiect} (type: {tip_val})\n"
+                    f"Tags: {', '.join(info.taguri_cheie)}\n"
+                    f"Summary: {info.rezumat_notificare}\n\n"
+                    f"Base prompt to enhance:\n{base_prompt}"
+                )
+                r = req.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {openrouter_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": "openai/gpt-4o-mini",
+                        "messages": [
+                            {"role": "system", "content": enhance_system},
+                            {"role": "user", "content": enhance_user}
+                        ],
+                        "max_tokens": 250,
+                        "temperature": 0.6,
+                    },
+                    timeout=15,
+                )
+                r.raise_for_status()
+                enhanced = r.json()["choices"][0]["message"]["content"].strip()
+                # Validare minima: promptul trebuie sa fie mai lung de 50 chars si sa nu fie gol
+                if len(enhanced) > 50:
+                    logger.info(f"Prompt enhanced via GPT-4o-mini: {enhanced[:100]}...")
+                    return enhanced
+            except Exception as e:
+                logger.warning(f"GPT-4o-mini enhance a esuat ({e}). Folosim template direct.")
 
-        result = await self.hf_client.chat_completion(
-            model=self.hf_text_model_id,
-            messages=[
-                {"role": "system", "content": prompt_system},
-                {"role": "user", "content": f"Announcement:\n{announcement_context}"}
-            ],
-            max_tokens=256,
-            temperature=0.7
-        )
-        return result.choices[0].message.content.strip()
+        return base_prompt
+
+
 
     # ─────────────────────────────────────────────────────────────────────────
     # Generare cu image-to-image via HF
@@ -222,12 +503,21 @@ class ImageServiceV2:
                 img_resp.raise_for_status()
                 return PILImage.open(io.BytesIO(img_resp.content)).convert("RGBA")
                 
-            # If it's base64 encoded
+            # Daca e direct base64 string
             if "base64," in content:
-                b64_data = content.split("base64,")[1].split()[0]
-                b64_data += "=" * ((4 - len(b64_data) % 4) % 4)
+                b64_data = content.split("base64,")[1]
+            else:
+                b64_data = content
+                
+            # Curățăm caracterele de la final (ex. paranteza de markdown ')')
+            # NOTA: re este importat la nivel de modul, NU reimportam local (cauzeaza UnboundLocalError)
+            b64_data = re.sub(r'[^a-zA-Z0-9+/=]', '', b64_data)
+                
+            try:
                 image_data = base64.b64decode(b64_data)
                 return PILImage.open(io.BytesIO(image_data)).convert("RGBA")
+            except Exception as e:
+                logger.warning(f"Eroare procesare base64: {e}")
                 
             logger.warning("Nu am gasit URL sau Base64 in raspunsul OpenRouter pentru imagine.")
             return None
@@ -236,15 +526,34 @@ class ImageServiceV2:
             return None
 
     async def _generate_with_flux(self, prompt: str) -> PILImage.Image:
-        if not self.hf_client:
-            raise ValueError("HUGGINGFACE_API_KEY lipsește.")
-        logger.info("Generare FLUX.1-schnell (fără referință vizuală)...")
-        return await self.hf_client.text_to_image(
-            prompt=prompt,
-            model=self.flux_model_id,
-            width=1024,
-            height=576,
-        )
+        """Fallback: genereaza imagine cu FLUX.1-schnell via HuggingFace Inference API.
+        Folosim requests (sync) via asyncio.to_thread pentru a evita bug-ul anyio/httpx
+        cu DNS-ul pe Windows / Python 3.14.
+        """
+        if not self.hf_api_key:
+            raise ValueError("HUGGINGFACE_API_KEY lipseste — fallback FLUX dezactivat.")
+        logger.info("Generare FLUX.1-schnell (fara referinta vizuala) via requests...")
+        safe_prompt = prompt + " DO NOT generate any text, words, or letters in the image."
+        hf_key = self.hf_api_key
+        flux_model = self.flux_model_id
+
+        def _flux_sync() -> bytes:
+            import requests as req
+            r = req.post(
+                f"https://api-inference.huggingface.co/models/{flux_model}",
+                headers={
+                    "Authorization": f"Bearer {hf_key}",
+                    "Content-Type": "application/json",
+                },
+                json={"inputs": safe_prompt, "parameters": {"width": 1024, "height": 576}},
+                timeout=120,
+            )
+            r.raise_for_status()
+            return r.content
+
+        import asyncio
+        raw_bytes = await asyncio.to_thread(_flux_sync)
+        return PILImage.open(io.BytesIO(raw_bytes)).convert("RGBA")
 
     # ─────────────────────────────────────────────────────────────────────────
     # Overlay Advanced (Transparent & Administrative adaptiv)
@@ -287,7 +596,10 @@ class ImageServiceV2:
                 file=image_bytes,
                 file_options={"content-type": "image/jpeg"}
             )
-            return self.supabase.storage.from_("images").get_public_url(file_name)
+            url = self.supabase.storage.from_("images").get_public_url(file_name)
+            if "supabase-kong:8000" in url:
+                url = url.replace("supabase-kong:8000", "localhost:8004")
+            return url
         except Exception as e:
             logger.error(f"Eroare upload Supabase: {e}")
             return None
@@ -296,28 +608,42 @@ class ImageServiceV2:
     # Metodă publică principală
     # ─────────────────────────────────────────────────────────────────────────
     def _resolve_premade_banner(self, info: ExtractedAnnouncementInfo) -> Path | None:
+        """
+        Rezolva bannerul pre-facut din assets dupa urmatoarea logica:
+        1. Daca sursa (entitate_sursa) contine un keyword de facultate → banner_[facultate].jpg
+        2. Daca e cazare → banner_camin.jpg
+        3. Daca e administrativ sau anunt_general FARA facultate identificata → banner_universitate.jpg
+        4. Daca e administrativ sau anunt_general CU facultate → banner_[facultate].jpg (din FACULTY_ASSET_MAP)
+        5. Altfel → None (se genereaza AI)
+        """
+        tip = str(getattr(info, 'tip_eveniment', '') or '').lower()
         source = (info.entitate_sursa or "").lower()
+        is_admin_type = tip in ("administrativ", "anunt_general")
+
+        # 1. Incercam sa gasim bannerul de facultate din sursa
         matched_filename = None
         for keyword, filename in FACULTY_ASSET_MAP.items():
             if keyword in source:
                 matched_filename = filename
                 break
-        
-        if not matched_filename:
-            # Daca e un anunt legat de cazare, folosim banner-ul dedicat pentru camine
-            if getattr(info, 'tip_eveniment', None) == "cazare":
-                matched_filename = "banner_camin.jpg"
-            # Daca e administrativ generic, folosim banner universitate
-            elif getattr(info, 'tip_eveniment', None) == "administrativ":
-                matched_filename = "banner_universitate.jpg"
-            else:
-                return None
-            
-        file_path = self.assets_dir / matched_filename
-        if not file_path.exists():
-            return None
-            
-        return file_path
+
+        if matched_filename:
+            # Facultate identificata — folosim bannerul ei
+            file_path = self.assets_dir / matched_filename
+            return file_path if file_path.exists() else None
+
+        # 2. Cazare → banner dedicat
+        if tip == "cazare":
+            file_path = self.assets_dir / "banner_camin.jpg"
+            return file_path if file_path.exists() else None
+
+        # 3. Administrativ / anunt_general fara facultate specifica → banner universitate
+        if is_admin_type:
+            file_path = self.assets_dir / "banner_universitate.jpg"
+            return file_path if file_path.exists() else None
+
+        # 4. Altfel: nici un banner pre-facut potrivit → se va genera AI
+        return None
 
     async def generate_announcement_banner(
         self,
@@ -329,8 +655,17 @@ class ImageServiceV2:
         try:
             # 1. Verificam daca e un anunt administrativ/simplu care ar trebui sa foloseasca bannerul prefacut
             # Daca e hackathon, party, concurs, ignoram poza cladirii fallback si generam ceva tematic.
-            thematic_types = ['concurs', 'hackathon', 'party', 'voluntariat', 'oportunitate']
-            is_thematic = any(t in str(info.tip_eveniment).lower() for t in thematic_types) or any(t in str(info.materie_sau_subiect).lower() for t in thematic_types)
+            # Tipuri care cer generare AI tematica (nu placeholder din assets)
+            # anunt_general si administrativ sunt EXCLUSE intentionat — merg la _resolve_premade_banner
+            thematic_types = [
+                'concurs', 'hackathon', 'party', 'bursa', 'internship',
+                'voluntariat', 'oportunitate', 'admitere', 'examen',
+                'partial', 'colocviu', 'proiect', 'laborator'
+            ]
+            is_thematic = (
+                any(t in str(info.tip_eveniment).lower() for t in thematic_types)
+                or any(t in str(info.materie_sau_subiect).lower() for t in thematic_types)
+            )
             
             if not is_thematic:
                 premade_banner = self._resolve_premade_banner(info)
