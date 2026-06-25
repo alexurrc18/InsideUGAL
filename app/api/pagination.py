@@ -12,7 +12,7 @@ class PaginationParams:
     def __init__(
         self,
         page: int = Query(1, ge=1),
-        size: int = Query(20, ge=1, le=50),
+        size: int = Query(20, ge=1, le=500),
     ) -> None:
         self.page = page
         self.size = size

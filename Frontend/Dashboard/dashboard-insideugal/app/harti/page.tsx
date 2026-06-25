@@ -134,7 +134,7 @@ export default function HartiPage() {
     setErrorMessage(null);
 
     try {
-      const response = await fetch(`${apiBaseUrl}/locations/`);
+      const response = await fetch(`${apiBaseUrl}/locations/?size=200`);
       if (!response.ok) throw new Error(`Status ${response.status}`);
       const payload = await response.json() as PaginatedResponse<LocationApiItem> | LocationApiItem[];
       setCladiri(itemsFromResponse(payload).map((item) => ({

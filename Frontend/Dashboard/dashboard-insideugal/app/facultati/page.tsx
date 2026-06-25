@@ -74,8 +74,8 @@ export default function Page() {
 
     try {
       const [facultiesResponse, locationsResponse] = await Promise.all([
-        fetch(`${apiBaseUrl}/faculties/`),
-        fetch(`${apiBaseUrl}/locations/`),
+        fetch(`${apiBaseUrl}/faculties/?size=200`),
+        fetch(`${apiBaseUrl}/locations/?size=200`),
       ]);
 
       if (!facultiesResponse.ok) {

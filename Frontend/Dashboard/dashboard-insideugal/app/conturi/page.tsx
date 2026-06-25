@@ -154,7 +154,7 @@ export default function ConturiPage() {
         last_name?: string;
         email: string;
         is_active?: boolean;
-        faculty?: string;
+        faculty?: { name: string; abbreviation?: string } | null;
         created_at?: string;
         username?: string;
       }
@@ -183,7 +183,7 @@ export default function ConturiPage() {
           email: item.email,
           role: cleanRole,
           status: item.is_active ? 'Activ' : 'Blocat',
-          faculty: item.faculty || 'Fără facultate', 
+          faculty: item.faculty?.name || 'Fără facultate', 
           registrationDate: item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
           username: item.username || ''
         };
@@ -191,8 +191,10 @@ export default function ConturiPage() {
 
       if (currentEmail) {
         mappedUsers.sort((a, b) => {
-          if (a.email.toLowerCase() === currentEmail.toLowerCase()) return -1;
-          if (b.email.toLowerCase() === currentEmail.toLowerCase()) return 1;
+          const emailA = (a.email || '').toLowerCase();
+          const emailB = (b.email || '').toLowerCase();
+          if (emailA === currentEmail.toLowerCase()) return -1;
+          if (emailB === currentEmail.toLowerCase()) return 1;
           return 0;
         });
       }

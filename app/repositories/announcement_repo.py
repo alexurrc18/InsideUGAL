@@ -11,15 +11,7 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
     admin_roles = {UserRole.HEAD_ADMIN.value, UserRole.HEAD_FACULTATI.value}
 
     def _apply_visibility_filter(self, query, current_profile: Profile | None):
-        if current_profile is None or current_profile.role in self.admin_roles:
-            return query
-
-        return query.where(
-            or_(
-                Announcement.faculty_id.is_(None),
-                Announcement.faculty_id == current_profile.faculty_id,
-            )
-        )
+        return query
 
     async def get_all(
         self,

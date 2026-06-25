@@ -82,7 +82,9 @@ function EventsPageContent() {
     console.log("[Events] fetchEvents start", { url: eventsUrl });
     setIsDataLoading(true);
     try {
-      const res = await fetch(eventsUrl);
+      const token = localStorage.getItem("access_token");
+      const headers: Record<string, string> = token ? { "Authorization": `Bearer ${token}` } : {};
+      const res = await fetch(eventsUrl, { headers });
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const apiData = await res.json() as PaginatedAnnouncementsResponse;
       const items = Array.isArray(apiData.items) ? apiData.items : [];
