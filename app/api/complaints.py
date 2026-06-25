@@ -38,14 +38,13 @@ async def read_complaints(
     profile=Depends(get_current_profile),
 ):
     status_value = complaint_status.value if complaint_status else None
-    user_id = None if is_role(profile, staff_roles) else str(profile.id)
     items, total = await repo.get_page(
         session,
         limit=pagination.size,
         offset=pagination.offset,
         status=status_value,
         location_id=location_id,
-        user_id=user_id,
+        current_profile=profile,
     )
     return paginated_response(items, total, pagination)
 

@@ -8,7 +8,7 @@ from app.repositories.base import CRUDRepository, schema_to_data
 
 class AnnouncementRepository(CRUDRepository[Announcement]):
     model = Announcement
-    admin_roles = {UserRole.HEAD_ADMIN.value, UserRole.HEAD_FACULTATI.value}
+    admin_roles = {UserRole.HEAD_ADMIN.value}
 
     def _apply_visibility_filter(self, query, current_profile: Profile | None):
         if current_profile is None or current_profile.role in self.admin_roles:

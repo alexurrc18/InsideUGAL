@@ -21,6 +21,8 @@ services:
         condition: service_healthy
       supabase-kong:
         condition: service_started
+      supabase-post-init:
+        condition: service_completed_successfully
     healthcheck:
       test:
       - CMD-SHELL
@@ -73,13 +75,13 @@ services:
       context: ./Frontend/Dashboard/dashboard-insideugal
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
-        - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+        - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL:-http://localhost:8002}
+        - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-http://localhost:8004}
         - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     environment:
     - NODE_ENV=production
-    - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
-    - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+    - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL:-http://localhost:8002}
+    - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-http://localhost:8004}
     - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     restart: unless-stopped
     deploy:
@@ -114,7 +116,7 @@ services:
     image: supabase/postgres:15.8.1.085
     restart: unless-stopped
     ports:
-    - "${POSTGRES_HOST_PORT:-54399}:${POSTGRES_PORT:-5432}"
+    - "${POSTGRES_HOST_PORT:-55432}:${POSTGRES_PORT:-5432}"
     healthcheck:
       test:
       - CMD-SHELL
@@ -347,6 +349,8 @@ services:
     depends_on:
       supabase-meta:
         condition: service_started
+      supabase-post-init:
+        condition: service_completed_successfully
     environment:
       STUDIO_PG_META_URL: http://supabase-meta:8080
       HOSTNAME: 0.0.0.0

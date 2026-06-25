@@ -117,6 +117,6 @@ Never commit real credentials to version control.
 Infrastructură Supabase (Note pentru dev)
 Porturile custom pentru dezvoltare locală sunt:
 
-DB Port: 54399
+DB Port: 55432
 
-Auth/API Port: 54325
+Auth/API Port: 8004

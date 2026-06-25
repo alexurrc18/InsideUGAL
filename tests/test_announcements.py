@@ -215,6 +215,64 @@ async def test_student_feed_contains_general_and_own_faculty_announcements_only(
 
 
 @pytest.mark.asyncio
+async def test_head_facultati_feed_contains_general_and_own_faculty_announcements_only(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    own_faculty = await create_faculty(db_session, name="Head Own Faculty")
+    other_faculty = await create_faculty(db_session, name="Head Other Faculty")
+    author = await create_profile(db_session, role=schemas.UserRole.HEAD_ADMIN)
+    head_facultati = await create_profile(
+        db_session,
+        role=schemas.UserRole.HEAD_FACULTATI,
+        faculty_id=own_faculty.id,
+    )
+
+    general_response = await client.post(
+        "/announcements/",
+        json={
+            "type": schemas.PostType.NOUTATE.value,
+            "title": "General head news",
+            "content": "Visible to every faculty head.",
+        },
+        headers=author.headers,
+    )
+    own_event_response = await client.post(
+        "/announcements/",
+        json={
+            "type": schemas.PostType.EVENIMENT.value,
+            "title": "Own faculty event",
+            "content": "Visible to this faculty head.",
+            "faculty_id": own_faculty.id,
+            "start_date": "2026-10-10T09:00:00Z",
+        },
+        headers=author.headers,
+    )
+    other_event_response = await client.post(
+        "/announcements/",
+        json={
+            "type": schemas.PostType.EVENIMENT.value,
+            "title": "Other faculty event",
+            "content": "Hidden from this faculty head.",
+            "faculty_id": other_faculty.id,
+            "start_date": "2026-10-11T09:00:00Z",
+        },
+        headers=author.headers,
+    )
+    assert general_response.status_code == 201
+    assert own_event_response.status_code == 201
+    assert other_event_response.status_code == 201
+
+    response = await client.get("/announcements/", headers=head_facultati.headers)
+
+    assert response.status_code == 200
+    returned_ids = {announcement["id"] for announcement in response.json()["items"]}
+    assert general_response.json()["id"] in returned_ids
+    assert own_event_response.json()["id"] in returned_ids
+    assert other_event_response.json()["id"] not in returned_ids
+
+
+@pytest.mark.asyncio
 async def test_create_event_announcement_requires_start_date(
     client: AsyncClient,
     db_session: AsyncSession,

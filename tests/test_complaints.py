@@ -117,8 +117,9 @@ async def test_staff_can_filter_and_update_complaint_status(
     db_session: AsyncSession,
 ) -> None:
     student = await create_profile(db_session, role=schemas.UserRole.STUDENT)
-    staff = await create_profile(db_session, role=schemas.UserRole.HEAD_FACULTATI)
-    location = await create_location(db_session)
+    faculty = await create_faculty(db_session)
+    staff = await create_profile(db_session, role=schemas.UserRole.HEAD_FACULTATI, faculty_id=faculty.id)
+    location = await create_location(db_session, faculty_id=faculty.id)
 
     create_response = await client.post(
         "/complaints/",
@@ -147,6 +148,52 @@ async def test_staff_can_filter_and_update_complaint_status(
     assert filter_response.status_code == 200
     filtered_ids = {complaint["id"] for complaint in filter_response.json()["items"]}
     assert complaint_id in filtered_ids
+
+
+@pytest.mark.asyncio
+async def test_head_facultati_sees_only_complaints_for_own_faculty_locations(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    faculty = await create_faculty(db_session, name="Visible Faculty")
+    other_faculty = await create_faculty(db_session, name="Hidden Faculty")
+    faculty_location = await create_location(db_session, faculty_id=faculty.id)
+    other_location = await create_location(db_session, faculty_id=other_faculty.id)
+    head_facultati = await create_profile(
+        db_session,
+        role=schemas.UserRole.HEAD_FACULTATI,
+        faculty_id=faculty.id,
+    )
+    student = await create_profile(db_session, role=schemas.UserRole.STUDENT)
+    other_student = await create_profile(db_session, role=schemas.UserRole.STUDENT)
+
+    faculty_response = await client.post(
+        "/complaints/",
+        json={
+            "location_id": faculty_location.id,
+            "title": "Faculty issue",
+            "description": "Visible to faculty head.",
+        },
+        headers=student.headers,
+    )
+    other_response = await client.post(
+        "/complaints/",
+        json={
+            "location_id": other_location.id,
+            "title": "Other faculty issue",
+            "description": "Must stay hidden from this faculty head.",
+        },
+        headers=other_student.headers,
+    )
+    assert faculty_response.status_code == 201
+    assert other_response.status_code == 201
+
+    list_response = await client.get("/complaints/", headers=head_facultati.headers)
+
+    assert list_response.status_code == 200
+    complaint_ids = {complaint["id"] for complaint in list_response.json()["items"]}
+    assert faculty_response.json()["id"] in complaint_ids
+    assert other_response.json()["id"] not in complaint_ids
 
 
 @pytest.mark.asyncio
