@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth_deps import require_roles
+from app.api.auth_deps import get_current_profile, require_roles
 from app.api.crud import ensure_exists
 from app.api.pagination import PaginationParams, paginated_response
 from app.db.database import get_db
@@ -58,6 +58,7 @@ async def read_announcements(
     faculty_id: int | None = None,
     pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_db),
+    profile=Depends(get_current_profile),
 ):
     type_value = announcement_type.value if announcement_type else None
     items, total = await repo.get_page(
@@ -66,6 +67,7 @@ async def read_announcements(
         offset=pagination.offset,
         announcement_type=type_value,
         faculty_id=faculty_id,
+        current_profile=profile,
     )
     return paginated_response(items, total, pagination)
 

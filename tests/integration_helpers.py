@@ -78,6 +78,7 @@ async def create_profile(
     db_session: AsyncSession,
     *,
     role: schemas.UserRole = schemas.UserRole.STUDENT,
+    faculty_id: int | None = None,
     user_id: str | None = None,
     email: str | None = None,
     username: str | None = None,
@@ -99,6 +100,7 @@ async def create_profile(
         existing_profile.last_name = role.value.title()
         existing_profile.email = resolved_email
         existing_profile.role = role.value
+        existing_profile.faculty_id = faculty_id
         existing_profile.is_active = is_active
     else:
         db_session.add(
@@ -109,6 +111,7 @@ async def create_profile(
                 last_name=role.value.title(),
                 email=resolved_email,
                 role=role.value,
+                faculty_id=faculty_id,
                 is_active=is_active,
             )
         )
