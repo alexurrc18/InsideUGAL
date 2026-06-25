@@ -22,10 +22,6 @@ export type EventItem = {
   pdfFiles?: PdfFile[];
 };
 
-const availableFacultiesFromSystem = [
-  "AC", "FIE", "ACIEE", "Mecanică", "SIA", "Litere", "Drept", "Medicină", "Economie"
-];
-
 type AnnouncementApiItem = {
   id: number;
   type: "NOUTATE" | "EVENIMENT";
@@ -40,12 +36,22 @@ type AnnouncementApiItem = {
   updated_at: string;
 };
 
+type FacultyApiItem = {
+  id: number;
+  name: string;
+  abbreviation?: string | null;
+};
+
 type PaginatedAnnouncementsResponse = {
   items: AnnouncementApiItem[];
   total: number;
   page: number;
   size: number;
   total_pages: number;
+};
+
+type PaginatedFacultiesResponse = {
+  items: FacultyApiItem[];
 };
 
 const toDateInputValue = (value?: string | null) => {
@@ -70,6 +76,7 @@ function EventsPageContent() {
   
   const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
   const [isDataLoading, setIsDataLoading] = useState<boolean>(false); 
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const dropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -77,22 +84,41 @@ function EventsPageContent() {
 
   const baseUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8002").replace(/\/$/, "");
 
+  const getAuthHeaders = useCallback((): HeadersInit => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }, []);
+
   const fetchEvents = useCallback(async () => {
-    const eventsUrl = `${baseUrl}/announcements/?announcement_type=EVENIMENT`;
+    const eventsUrl = `${baseUrl}/announcements/?announcement_type=EVENIMENT&size=50`;
+    const facultiesUrl = `${baseUrl}/faculties/?size=50`;
     console.log("[Events] fetchEvents start", { url: eventsUrl });
     setIsDataLoading(true);
+    setErrorMessage(null);
     try {
-      const res = await fetch(eventsUrl);
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const apiData = await res.json() as PaginatedAnnouncementsResponse;
+      const [eventsResponse, facultiesResponse] = await Promise.all([
+        fetch(eventsUrl, { headers: getAuthHeaders() }),
+        fetch(facultiesUrl),
+      ]);
+      if (!eventsResponse.ok) throw new Error(`Events API status: ${eventsResponse.status}`);
+      if (!facultiesResponse.ok) throw new Error(`Faculties API status: ${facultiesResponse.status}`);
+
+      const apiData = await eventsResponse.json() as PaginatedAnnouncementsResponse;
+      const facultiesData = await facultiesResponse.json() as PaginatedFacultiesResponse;
       const items = Array.isArray(apiData.items) ? apiData.items : [];
+      const facultyNamesById = new Map(
+        (facultiesData.items ?? []).map((faculty) => [
+          faculty.id,
+          faculty.abbreviation || faculty.name,
+        ])
+      );
       
       const mappedEvents: EventItem[] = items.map((item) => ({
         id: String(item.id),
         title: item.title,
         description: item.content || '',
         publishDate: toDateInputValue(item.start_date || item.created_at),
-        faculties: item.faculty_id ? [`Facultatea #${item.faculty_id}`] : [],
+        faculties: item.faculty_id ? [facultyNamesById.get(item.faculty_id) ?? `Facultatea #${item.faculty_id}`] : ["Toate"],
         thumbnail: item.image_url || '',
         eventLink: '',
         pdfFiles: []
@@ -102,11 +128,11 @@ function EventsPageContent() {
     } catch (error) {
       console.error("Eroare la preluarea datelor din backend:", error);
       setData([]);
-      alert("Nu există conexiune cu backend-ul pentru modulul de Evenimente! Verifică dacă serverul Python/FastAPI este pornit local.");
+      setErrorMessage("Nu am putut incarca evenimentele reale. Verifica autentificarea si conexiunea cu backend-ul local.");
     } finally {
       setIsDataLoading(false);
     }
-  }, [baseUrl]);
+  }, [baseUrl, getAuthHeaders]);
 
   useEffect(() => {
     void Promise.resolve().then(fetchEvents);
@@ -447,6 +473,12 @@ function EventsPageContent() {
           + Adaugă
         </button>
       </div>
+
+      {errorMessage && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {errorMessage}
+        </div>
+      )}
       
       <div className="bg-card border border-border rounded-2xl shadow-xs overflow-hidden">
         {isDataLoading ? (
@@ -544,7 +576,7 @@ function EventsPageContent() {
                   className="flex-1 border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm cursor-pointer"
                 >
                   <option value="">Alege o facultate...</option>
-                  {availableFacultiesFromSystem.map(fac => (
+                  {dynamicFaculties.map(fac => (
                     <option key={fac} value={fac}>{fac}</option>
                   ))}
                 </select>

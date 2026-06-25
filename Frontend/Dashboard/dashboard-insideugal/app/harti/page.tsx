@@ -11,6 +11,12 @@ type PaginatedResponse<T> = {
   items?: T[];
 };
 
+interface FacultyApiItem {
+  id: number;
+  name: string;
+  abbreviation?: string | null;
+}
+
 interface LocationApiItem {
   id: number;
   name: string;
@@ -22,6 +28,7 @@ interface Cladire {
   id: number;
   name: string;
   faculty_id: number | null;
+  faculty_label: string;
   coordinates: { latitude: number; longitude: number } | null;
 }
 
@@ -134,15 +141,27 @@ export default function HartiPage() {
     setErrorMessage(null);
 
     try {
-      const response = await fetch(`${apiBaseUrl}/locations/`);
-      if (!response.ok) throw new Error(`Status ${response.status}`);
-      const payload = await response.json() as PaginatedResponse<LocationApiItem> | LocationApiItem[];
-      setCladiri(itemsFromResponse(payload).map((item) => ({
+      const [locationsResponse, facultiesResponse] = await Promise.all([
+        fetch(`${apiBaseUrl}/locations/?size=50`),
+        fetch(`${apiBaseUrl}/faculties/?size=50`),
+      ]);
+      if (!locationsResponse.ok) throw new Error(`Locations status ${locationsResponse.status}`);
+      if (!facultiesResponse.ok) throw new Error(`Faculties status ${facultiesResponse.status}`);
+
+      const locationsPayload = await locationsResponse.json() as PaginatedResponse<LocationApiItem> | LocationApiItem[];
+      const facultiesPayload = await facultiesResponse.json() as PaginatedResponse<FacultyApiItem> | FacultyApiItem[];
+      const facultyMap = new Map(itemsFromResponse(facultiesPayload).map((faculty) => [faculty.id, faculty]));
+
+      setCladiri(itemsFromResponse(locationsPayload).map((item) => {
+        const faculty = item.faculty_id ? facultyMap.get(item.faculty_id) : null;
+        return {
         id: item.id,
         name: item.name,
         faculty_id: item.faculty_id ?? null,
+        faculty_label: faculty ? (faculty.abbreviation || faculty.name) : "UGAL",
         coordinates: item.coordinates ?? null,
-      })));
+      };
+      }));
     } catch (error) {
       console.error("Eroare la incarcarea locatiilor:", error);
       setCladiri([]);
@@ -226,7 +245,7 @@ export default function HartiPage() {
       adresa: cladire.coordinates ? `${cladire.coordinates.latitude}, ${cladire.coordinates.longitude}` : "",
       lat: cladire.coordinates!.latitude.toString(),
       lng: cladire.coordinates!.longitude.toString(),
-      facultate: cladire.faculty_id === null ? "f8" : `f${cladire.faculty_id}`,
+      facultate: cladire.faculty_id === null ? "ugal" : `f${cladire.faculty_id}`,
     }));
 
   const columns: Column<Cladire>[] = [
@@ -236,7 +255,7 @@ export default function HartiPage() {
       render: (item) => (
         <div className="flex flex-col">
           <span className="font-semibold text-foreground">{item.name}</span>
-          <span className="text-xs text-muted">{item.faculty_id ? `Facultate ${item.faculty_id}` : "UGAL"}</span>
+          <span className="text-xs text-muted">{item.faculty_label}</span>
         </div>
       ),
     },
