@@ -90,7 +90,7 @@ export function Ace() {
             backgroundColor: theme.card,
           }}
         >
-          <SparkleIcon width={34} height={34} color={theme.primary} style={{ marginLeft: 1, marginTop: -1 }} />
+          <SparkleIcon width={34} height={34} color="#FFFFFF" style={{ marginLeft: 1, marginTop: -1 }} />
         </View>
       </Animated.View>
     </Pressable>

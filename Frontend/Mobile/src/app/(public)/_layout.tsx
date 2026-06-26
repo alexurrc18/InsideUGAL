@@ -1,10 +1,12 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import React from 'react';
-import { useColorScheme, View } from 'react-native';
+import { View } from "react-native";
 import { Colors } from '@/constants/theme';
 import { useNavigation, useRouter } from 'expo-router';
 // import { Ace } from '@/components/ui/layout/ace';
 import { getAuthToken } from '@/services/api';
+import { Typography } from '@/constants/typography';
 
 export default function TabLayout() {
     const navigation = useNavigation<any>();
@@ -16,10 +18,15 @@ export default function TabLayout() {
     return (
         <View style={{ flex: 1 }}>
             <NativeTabs
+                labelVisibilityMode="labeled"
                 labelStyle={{
-                    color: activeColor,
+                    color: theme.text,
+                    fontFamily: Typography.Small2.fontFamily,
+                    fontSize: Typography.Small2.fontSize,
+                    fontWeight: Typography.Small2.fontWeight,
                 }}
                 tintColor={activeColor}
+                backgroundColor={theme.background}
                 screenListeners={() => ({
                     tabPress: (e) => {
                         const state = navigation.getState();

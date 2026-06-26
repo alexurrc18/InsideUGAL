@@ -5,10 +5,10 @@ import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import UserIcon from "@/assets/icons/svg/user.svg";
-import api, { getAuthToken, setAuthToken } from "@/services/api";
+import api, { getAuthToken, setAuthToken, logout } from "@/services/api";
 import { Config } from "@/constants/config";
 
-export const DASHBOARD_URL = Config.DASHBOARD_URL;
+export const DASHBOARD_URL = Config.DASHBOARD_URL || "";
 
 export function ProfileMenu({
   open: controlledOpen,
@@ -110,7 +110,7 @@ export function ProfileMenu({
 
   const handleLogout = async () => {
     close();
-    await setAuthToken(null);
+    await logout();
     setIsAuthenticated(false);
     setUser(null);
     router.push("/(public)/acasa");

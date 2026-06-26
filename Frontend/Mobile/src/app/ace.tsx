@@ -641,11 +641,10 @@ export default function AceScreen() {
                     borderRadius: 24,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    borderWidth: 1.5,
-                    borderColor: themeWhite + '40',
+                    backgroundColor: theme.primary,
                   }}
                 >
-                  <MessagePlusIcon width={22} height={22} color={theme.text} />
+                  <MessagePlusIcon width={22} height={22} color="#FFFFFF" />
                 </View>
               </Animated.View>
             </Pressable>
@@ -712,11 +711,10 @@ export default function AceScreen() {
                     borderRadius: 24,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    borderWidth: 1.5,
-                    borderColor: themeWhite + '40',
+                    backgroundColor: theme.primary,
                   }}
                 >
-                  <CloseIcon width={22} height={22} color={theme.text} />
+                  <CloseIcon width={22} height={22} color="#FFFFFF" />
                 </View>
               </Animated.View>
             </Pressable>

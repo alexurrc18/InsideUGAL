@@ -1,4 +1,5 @@
-import { Pressable, Text, useColorScheme } from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Pressable, Text } from "react-native";
 import { Stack, useRouter } from "expo-router";
 
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";

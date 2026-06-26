@@ -1,5 +1,6 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useRef } from "react";
-import { Pressable, Text, useColorScheme, View, Platform, Animated } from "react-native";
+import { Pressable, Text, View, Platform, Animated } from "react-native";
 import { Stack, useRouter, useGlobalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -108,13 +109,15 @@ export default function SesizariLayout() {
                       <Animated.View style={{ transform: [{ scale: scalePlusAnim }] }}>
                         <View
                           style={{
-                            padding: Spacing.xs,
-                            borderRadius: 20,
+                            width: 36,
+                            height: 36,
+                            borderRadius: 18,
                             justifyContent: "center",
-                            alignItems: "center"
+                            alignItems: "center",
+                            backgroundColor: theme.primary
                           }}
                         >
-                          <PlusIcon width={32} height={32} color={theme.text} />
+                          <PlusIcon width={20} height={20} color="#FFFFFF" />
                         </View>
                       </Animated.View>
                     </Pressable>

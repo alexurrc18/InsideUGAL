@@ -1,5 +1,8 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React from 'react';
 import { GlassView, GlassViewProps } from 'expo-glass-effect';
+import { Platform } from "react-native";
+import { Colors } from '@/constants/theme';
 
 export interface InteractiveGlassProps extends Partial<GlassViewProps> {
   size?: number;
@@ -15,6 +18,8 @@ export function InteractiveGlass({
   ...props
 }: InteractiveGlassProps) {
   const sizeStyle = size ? { width: size, height: size, borderRadius: size / 2 } : {};
+  const themeName = (useColorScheme() ?? 'light') as keyof typeof Colors;
+  const theme = Colors[themeName];
 
   return (
     <GlassView
@@ -26,6 +31,9 @@ export function InteractiveGlass({
           justifyContent: 'center',
         },
         sizeStyle,
+        Platform.select({
+          android: { backgroundColor: theme.primary },
+        }),
         style,
       ]}
       {...props}

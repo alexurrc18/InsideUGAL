@@ -6,28 +6,38 @@ import { Colors, Spacing } from "@/constants/theme";
 import { WebContainer } from "@/components/ui/layout/web-container";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
-import { useMockLoading } from "@/hooks/use-mock-loading";
 import { CantinaMenuSkeleton } from "@/components/ui/display/skeletons";
 import { Seo } from "@/components/seo";
 import { Expandable } from "@/components/ui/layout/expandable";
 import { MenuItem } from "@/components/ui/navigation/menu-item";
 import api, { storage } from "@/services/api";
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-}
+import { ErrorState } from "@/components/ui/display/error-state";
 
 const CATEGORY_ORDER = [
   "Meniul Zilei",
   "Ciorbe și Supe",
   "Preparate calde / Fel principal",
-  "Salate / Sosuri",
   "Garnituri",
+  "Salate și Sosuri",
+  "Pâine",
   "Desert"
 ];
+
+function formatCategoryName(name: string): string {
+  const mapping: Record<string, string> = {
+    "ciorbe si supe": "Ciorbe și Supe",
+    "ciorbe și supe": "Ciorbe și Supe",
+    "garnituri": "Garnituri",
+    "preparate carne": "Preparate calde / Fel principal",
+    "salate si sosuri": "Salate și Sosuri",
+    "salate și sosuri": "Salate și Sosuri",
+    "paine": "Pâine",
+    "desert": "Desert",
+    "meniul zilei": "Meniul Zilei"
+  };
+  const key = name.toLowerCase().trim();
+  return mapping[key] || (name.charAt(0).toUpperCase() + name.slice(1));
+}
 
 function getDayNumber(dayId: string): number {
   switch (dayId) {
@@ -38,26 +48,6 @@ function getDayNumber(dayId: string): number {
     case 'vineri': return 5;
     default: return 1;
   }
-}
-
-function getProductCategory(name: string): string {
-  const lower = name.toLowerCase();
-  if (lower.includes("ciorb") || lower.includes("sup")) {
-    return "Ciorbe și Supe";
-  }
-  if (lower.includes("meniul zilei")) {
-    return "Meniul Zilei";
-  }
-  if (lower.includes("cartofi") || lower.includes("piure") || lower.includes("orez") || lower.includes("legume") || lower.includes("garnitur")) {
-    return "Garnituri";
-  }
-  if (lower.includes("salat") || lower.includes("mujdei") || lower.includes("sos") || lower.includes("smantan")) {
-    return "Salate / Sosuri";
-  }
-  if (lower.includes("clatit") || lower.includes("papanas") || lower.includes("desert") || lower.includes("inghetat")) {
-    return "Desert";
-  }
-  return "Preparate calde / Fel principal";
 }
 
 export default function CantinaScreen() {
@@ -98,32 +88,34 @@ export default function CantinaScreen() {
     "Meniul Zilei": true
   });
   const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     let active = true;
-    async function loadMenu() {
+    async function loadData() {
       try {
         setLoading(true);
+        if (active) setHasError(false);
         const cached = await storage.getItem('cached_cafeteria_menus');
         if (cached && active) {
           setMenuData(JSON.parse(cached));
-          setLoading(false);
         }
-
         const res = await api.get('/cafeteria_menus/', { params: { page: 1, size: 50 } });
         if (res.data?.items && active) {
           setMenuData(res.data.items);
           await storage.setItem('cached_cafeteria_menus', JSON.stringify(res.data.items));
         }
       } catch (err) {
-        console.warn('[API] Error loading cafeteria menus:', err);
+        console.warn('[API] Error loading cafeteria data:', err);
+        if (active) setHasError(true);
       } finally {
         if (active) setLoading(false);
       }
     }
-    loadMenu();
+    loadData();
     return () => { active = false; };
-  }, []);
+  }, [retryKey]);
 
   const currentMenu = useMemo(() => {
     const dayNum = getDayNumber(selectedDay);
@@ -133,13 +125,10 @@ export default function CantinaScreen() {
       return {};
     }
 
-    // Group and sort products by category
     const grouped: Record<string, any[]> = {};
     dayItem.products.forEach((product: any) => {
-      const cat = getProductCategory(product.name);
-      if (!grouped[cat]) {
-        grouped[cat] = [];
-      }
+      const cat = formatCategoryName(product.category?.name || product.name);
+      if (!grouped[cat]) grouped[cat] = [];
       grouped[cat].push({
         id: product.id.toString(),
         name: product.name,
@@ -149,15 +138,16 @@ export default function CantinaScreen() {
     });
 
     const sortedGroups: Record<string, any[]> = {};
-    const sortedKeys = Object.keys(grouped).sort((a, b) => {
-      const indexA = CATEGORY_ORDER.indexOf(a);
-      const indexB = CATEGORY_ORDER.indexOf(b);
-      return (indexA !== -1 ? indexA : 99) - (indexB !== -1 ? indexB : 99);
-    });
-
-    sortedKeys.forEach(key => {
-      sortedGroups[key] = grouped[key];
-    });
+    Object.keys(grouped)
+      .sort((a, b) => {
+        const ia = CATEGORY_ORDER.indexOf(a);
+        const ib = CATEGORY_ORDER.indexOf(b);
+        if (ia !== -1 && ib !== -1) return ia - ib;
+        if (ia !== -1) return -1;
+        if (ib !== -1) return 1;
+        return a.localeCompare(b);
+      })
+      .forEach(key => { sortedGroups[key] = grouped[key]; });
 
     return sortedGroups;
   }, [menuData, selectedDay]);
@@ -184,39 +174,42 @@ export default function CantinaScreen() {
         }}
       >
         <WebContainer>
-        <CategoryHeader
-          title="Cantina"
-          filters={daysFilter}
-          selectedFilterId={selectedDay}
-          onSelectFilter={(id) => { if (id) { setSelectedDay(id); setOpenCategories({ "Meniul Zilei": true }); } }}
-        />
+          <CategoryHeader
+            title="Cantina"
+            filters={daysFilter}
+            selectedFilterId={selectedDay}
+            onSelectFilter={(id) => { if (id) { setSelectedDay(id); setOpenCategories({ "Meniul Zilei": true }); } }}
+          />
 
-        {loading ? (
-          <CantinaMenuSkeleton />
-        ) : (
-        <View style={{
-          marginHorizontal: Spacing.lg,
-          gap: Spacing.sm,
-        }}>
-          {Object.entries(currentMenu).map(([category, productsList]) => (
-            <View key={`${selectedDay}-${category}`}>
-              <Expandable title={category} expanded={!!openCategories[category]} onToggle={() => handleToggle(category)}>
-                <View style={{ gap: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: Spacing.sm }}>
-                  {productsList.map((product, index) => (
-                    <MenuItem
-                      key={product.id}
-                      name={product.name}
-                      price={product.price}
-                      description={product.description}
-                      isLast={index === productsList.length - 1}
-                    />
-                  ))}
+          {hasError && menuData.length === 0 ? (
+            <ErrorState onRetry={() => setRetryKey(prev => prev + 1)} style={{ minHeight: 500, paddingVertical: Spacing.xl4 }} />
+          ) : loading ? (
+            <CantinaMenuSkeleton />
+          ) : (
+            <View style={{ marginHorizontal: Spacing.lg, gap: Spacing.sm }}>
+              {Object.entries(currentMenu).map(([category, productsList]) => (
+                <View key={`${selectedDay}-${category}`}>
+                  <Expandable
+                    title={category}
+                    expanded={!!openCategories[category]}
+                    onToggle={() => handleToggle(category)}
+                  >
+                    <View style={{ gap: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: Spacing.sm }}>
+                      {productsList.map((product, index) => (
+                        <MenuItem
+                          key={product.id}
+                          name={product.name}
+                          price={product.price}
+                          description={product.description}
+                          isLast={index === productsList.length - 1}
+                        />
+                      ))}
+                    </View>
+                  </Expandable>
                 </View>
-              </Expandable>
+              ))}
             </View>
-          ))}
-        </View>
-        )}
+          )}
         </WebContainer>
       </ScrollView>
     </View>

@@ -39,6 +39,7 @@ const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect, buildings
   const cameraInitialized = useRef(false);
 
   useEffect(() => {
+    if (!Config.MAPTILER_STYLE_URL) return;
     fetch(Config.MAPTILER_STYLE_URL)
       .then(res => res.json())
       .then(style => {

@@ -6,6 +6,7 @@ import { Colors, Spacing } from '@/constants/theme';
 import Map from '@/components/map/map';
 import { CategoryHeader } from '@/components/ui/display/category-header';
 import api, { storage } from '@/services/api';
+import { ErrorState } from '@/components/ui/display/error-state';
 
 export default function HartaScreen() {
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
@@ -14,45 +15,46 @@ export default function HartaScreen() {
   const insets = useSafeAreaInsets();
   const themeName = (useColorScheme() ?? 'light') as keyof typeof Colors;
   const theme = Colors[themeName];
+  const [hasError, setHasError] = useState(false);
+
+  const loadData = useCallback(async () => {
+    try {
+      setHasError(false);
+      // Load cached data first for immediate render
+      const [cachedFacs, cachedLocs] = await Promise.all([
+        storage.getItem('cached_faculties'),
+        storage.getItem('cached_facilities'),
+      ]);
+
+      if (cachedFacs) setFaculties(JSON.parse(cachedFacs));
+      if (cachedLocs) setLocations(JSON.parse(cachedLocs));
+
+      // Fetch fresh data from API
+      const [facsRes, locsRes] = await Promise.all([
+        api.get('/faculties/', { params: { page: 1, size: 50 } }),
+        api.get('/locations/', { params: { page: 1, size: 50 } })
+      ]);
+
+      if (facsRes.data?.items) {
+        setFaculties(facsRes.data.items);
+        await storage.setItem('cached_faculties', JSON.stringify(facsRes.data.items));
+      }
+      if (locsRes.data?.items) {
+        setLocations(locsRes.data.items);
+        await storage.setItem('cached_facilities', JSON.stringify(locsRes.data.items));
+      }
+    } catch (err) {
+      console.warn('[API] Error loading map screen data:', err);
+      setHasError(true);
+    }
+  }, []);
 
   useEffect(() => {
-    let active = true;
-    async function loadData() {
-      try {
-        // Load cached data first for immediate render
-        const [cachedFacs, cachedLocs] = await Promise.all([
-          storage.getItem('cached_faculties'),
-          storage.getItem('cached_facilities'),
-        ]);
-
-        if (active) {
-          if (cachedFacs) setFaculties(JSON.parse(cachedFacs));
-          if (cachedLocs) setLocations(JSON.parse(cachedLocs));
-        }
-
-        // Fetch fresh data from API
-        const [facsRes, locsRes] = await Promise.all([
-          api.get('/faculties/', { params: { page: 1, size: 50 } }),
-          api.get('/locations/', { params: { page: 1, size: 50 } })
-        ]);
-
-        if (active) {
-          if (facsRes.data?.items) {
-            setFaculties(facsRes.data.items);
-            await storage.setItem('cached_faculties', JSON.stringify(facsRes.data.items));
-          }
-          if (locsRes.data?.items) {
-            setLocations(locsRes.data.items);
-            await storage.setItem('cached_facilities', JSON.stringify(locsRes.data.items));
-          }
-        }
-      } catch (err) {
-        console.warn('[API] Error loading map screen data:', err);
-      }
-    }
-    loadData();
-    return () => { active = false; };
-  }, []);
+    const timer = setTimeout(() => {
+      loadData();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadData]);
 
   const facultyFilters = useMemo(() => {
     return [
@@ -80,6 +82,10 @@ export default function HartaScreen() {
     setSelectedFacultyId(prev => prev === id ? null : id);
   }, []);
 
+  if (hasError && locations.length === 0) {
+    return <ErrorState onRetry={loadData} />;
+  }
+
   return (
     <View style={{ 
       flex: 1, 
@@ -97,7 +103,7 @@ export default function HartaScreen() {
         flex: 1, 
         marginLeft: Spacing.lg, 
         marginRight: Spacing.lg, 
-        marginBottom: insets.bottom + Spacing.lg 
+        marginBottom: Platform.OS === 'android' ? Spacing.lg : (insets.bottom + Spacing.lg)
       }}>
         <Map 
           themeName={themeName} 

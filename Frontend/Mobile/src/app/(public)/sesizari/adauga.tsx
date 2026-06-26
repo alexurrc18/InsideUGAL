@@ -1,17 +1,6 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useState, useMemo, useEffect } from "react";
-import { 
-  View, 
-  Text, 
-  Pressable, 
-  useColorScheme, 
-  TextInput, 
-  KeyboardAvoidingView, 
-  Platform, 
-  ScrollView,
-  Animated,
-  LayoutAnimation,
-  ActivityIndicator
-} from "react-native";
+import { View, Text, Pressable, TextInput, KeyboardAvoidingView, Platform, ScrollView, Animated, LayoutAnimation, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";

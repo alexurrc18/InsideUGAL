@@ -1,5 +1,6 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useState } from "react";
-import { View, Text, Pressable, useColorScheme, TextInput, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, Pressable, TextInput, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { Colors, Fonts, Spacing } from "@/constants/theme";
 import CloseIcon from "@/assets/icons/svg/x.svg";
@@ -47,10 +48,18 @@ export default function LoginScreen() {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     }
                 });
-                
-                const token = typeof res.data === 'string' ? res.data : res.data?.access_token;
+                let responseData = res.data;
+                if (typeof responseData === 'string' && responseData.trim().startsWith('{')) {
+                    try {
+                        responseData = JSON.parse(responseData);
+                    } catch (e) {
+                        // keep as string
+                    }
+                }
+                const token = typeof responseData === 'string' ? responseData : responseData?.access_token;
+                const refreshToken = responseData?.refresh_token;
                 if (token) {
-                    await setAuthToken(token);
+                    await setAuthToken(token, refreshToken);
                     router.back();
                 } else {
                     throw new Error("Nu s-a putut obține token-ul de autentificare.");

@@ -1,11 +1,12 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useState, useEffect } from "react";
-import { View, Text, useColorScheme, Pressable, ScrollView, Alert } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { View, Text, Pressable, ScrollView, Alert } from "react-native";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useNavigation } from "expo-router";
-import { getAuthToken, setAuthToken } from "@/services/api";
+import { getAuthToken, setAuthToken, logout } from "@/services/api";
 import { Colors, Spacing } from "@/constants/theme";
-import { CategoryHeader } from "@/components/ui/display/category-header";
+
 import { Typography } from "@/constants/typography";
 import MockData from "@/constants/mock-data.json";
 
@@ -18,6 +19,7 @@ import PhoneIcon from "@/assets/icons/svg/phone.svg";
 import GlobeIcon from "@/assets/icons/svg/globe-europe.svg";
 import UserIcon from "@/assets/icons/svg/user.svg";
 import SettingsIcon from "@/assets/icons/svg/cog.svg";
+import DoorOpenAltIcon from "@/assets/icons/svg/door-open-alt.svg";
 
 export default function MoreScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
@@ -99,7 +101,7 @@ export default function MoreScreen() {
                       text: "Deconectare", 
                       style: "destructive",
                       onPress: async () => {
-                        await setAuthToken(null);
+                        await logout();
                         setIsAuthenticated(false);
                       }
                     }
@@ -128,7 +130,11 @@ export default function MoreScreen() {
                 marginBottom: 2
               }}
             >
-              <UserIcon width={44} height={44} color={theme.primary} />
+              {isAuthenticated ? (
+                <DoorOpenAltIcon width={44} height={44} color={theme.primary} />
+              ) : (
+                <UserIcon width={44} height={44} color={theme.primary} />
+              )}
             </View>
             <Text 
               style={{ 
@@ -140,7 +146,7 @@ export default function MoreScreen() {
               }} 
               numberOfLines={2}
             >
-              {isAuthenticated ? "Profil" : "Conectare"}
+              {isAuthenticated ? "Deconectează-te" : "Conectare"}
             </Text>
           </Pressable>
 

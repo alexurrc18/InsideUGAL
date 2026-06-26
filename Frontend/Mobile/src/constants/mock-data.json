@@ -246,68 +246,6 @@
       "schedule": "Consultații medicale: Luni-Vineri 08:00 - 13:00\nCabinet stomatologic: Luni-Vineri 07:00 - 15:00\nCabinet psihologic: Luni-Vineri 08:00 - 15:00"
     }
   ],
-  "cafeteria": {
-    "products": {
-      "mz1": { "id": "mz1", "name": "Meniul Zilei 1", "price": 22, "description": "Ciorbă de văcuță, Șnițel de pui cu piure, Salată de varză (750g, 850 kcal)" },
-      "mz2": { "id": "mz2", "name": "Meniul Zilei 2", "price": 22, "description": "Supă cremă de legume, Ceafă de porc cu cartofi prăjiți, Salată de murături (750g, 920 kcal)" },
-      "c1": { "id": "c1", "name": "Ciorbă de văcuță", "price": 12, "description": "Carne de vită, legume proaspete, smântână (400g, 250 kcal)" },
-      "c2": { "id": "c2", "name": "Ciorbă de burtă", "price": 14, "description": "Burtă de vită, usturoi, smântână, ou (400g, 380 kcal)" },
-      "c3": { "id": "c3", "name": "Supă cremă de legume", "price": 10, "description": "Mix de legume de sezon, crutoane (350g, 180 kcal)" },
-      "p1": { "id": "p1", "name": "Șnițel de pui", "price": 13, "description": "Piept de pui fraged în crustă croantă (150g, 320 kcal)" },
-      "p2": { "id": "p2", "name": "Ceafă de porc la grătar", "price": 15, "description": "Ceafă de porc marinată cu ierburi (150g, 450 kcal)" },
-      "p3": { "id": "p3", "name": "Pârjoale moldovenești", "price": 12, "description": "Carne tocată de porc și vită, verdeață (120g, 280 kcal)" },
-      "g1": { "id": "g1", "name": "Piure de cartofi", "price": 7, "description": "Cartofi, unt, lapte (200g, 210 kcal)" },
-      "g2": { "id": "g2", "name": "Cartofi prăjiți", "price": 6, "description": "Cartofi tăiați manual, sare (200g, 400 kcal)" },
-      "g3": { "id": "g3", "name": "Orez cu legume", "price": 7, "description": "Orez basmati, mix de legume (200g, 150 kcal)" },
-      "s1": { "id": "s1", "name": "Salată de varză", "price": 4, "description": "Varză albă, mărar, oțet, ulei (150g, 60 kcal)" },
-      "s2": { "id": "s2", "name": "Salată de murături", "price": 5, "description": "Gogonele, castraveți murați (150g, 30 kcal)" },
-      "s3": { "id": "s3", "name": "Mujdei de usturoi", "price": 2, "description": "Usturoi proaspăt, apă, sare (50g, 40 kcal)" },
-      "d1": { "id": "d1", "name": "Papanași", "price": 18, "description": "Brânză de vaci, smântână, dulceață de afine (300g, 550 kcal)" },
-      "d2": { "id": "d2", "name": "Clătite cu ciocolată", "price": 12, "description": "Finețe de ciocolată, 2 bucăți (200g, 380 kcal)" }
-    },
-    "schedule": {
-      "luni": {
-        "Meniul Zilei": ["mz1"],
-        "Ciorbe și Supe": ["c1", "c3"],
-        "Preparate Carne": ["p1", "p3"],
-        "Salate / Sosuri": ["s1", "s3"],
-        "Garnituri": ["g1", "g3"],
-        "Desert": ["d2"]
-      },
-      "marti": {
-        "Meniul Zilei": ["mz2"],
-        "Ciorbe și Supe": ["c2", "c3"],
-        "Preparate Carne": ["p2", "p1"],
-        "Salate / Sosuri": ["s2", "s3"],
-        "Garnituri": ["g2", "g1"],
-        "Desert": ["d1"]
-      },
-      "miercuri": {
-        "Meniul Zilei": ["mz1"],
-        "Ciorbe și Supe": ["c1", "c2"],
-        "Preparate Carne": ["p1", "p2", "p3"],
-        "Salate / Sosuri": ["s1", "s2", "s3"],
-        "Garnituri": ["g1", "g2", "g3"],
-        "Desert": ["d1", "d2"]
-      },
-      "joi": {
-        "Meniul Zilei": ["mz2"],
-        "Ciorbe și Supe": ["c2", "c1"],
-        "Preparate Carne": ["p2", "p3"],
-        "Salate / Sosuri": ["s2", "s1"],
-        "Garnituri": ["g2", "g3"],
-        "Desert": ["d1"]
-      },
-      "vineri": {
-        "Meniul Zilei": ["mz1"],
-        "Ciorbe și Supe": ["c3", "c1"],
-        "Preparate Carne": ["p1", "p2"],
-        "Salate / Sosuri": ["s1", "s3"],
-        "Garnituri": ["g3", "g1"],
-        "Desert": ["d2"]
-      }
-    }
-  },
   "buildings": [
     { "id": "b1_f1", "name": "Corp D", "facultyId": "f1", "lat": 45.44663581608561, "lng": 28.053739626065855, "description": "Săli de curs pentru ACIEE și Inginerie." },
     { "id": "b1_f2", "name": "Corp D", "facultyId": "f2", "lat": 45.44663581608561, "lng": 28.053739626065855, "description": "Săli de curs pentru ACIEE și Inginerie." },

@@ -14,6 +14,7 @@ import { CompactCard } from "@/components/ui/display/home-highlights";
 import { NewsCard, CategoryTag } from "@/components/ui/display/news-card";
 import { Seo } from "@/components/seo";
 import api, { storage } from "@/services/api";
+import { ErrorState } from "@/components/ui/display/error-state";
 
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
 import LocationIcon from "@/assets/icons/svg/location.svg";
@@ -30,6 +31,8 @@ function VizualizareScreen() {
     const id = params.id as string;
     const [scrolledPast, setScrolledPast] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [hasError, setHasError] = useState(false);
+    const [retryKey, setRetryKey] = useState(0);
 
     const initialItem = {
         title: (params.title as string) || "",
@@ -91,6 +94,7 @@ function VizualizareScreen() {
                 setLoading(false);
                 return;
             }
+            if (isMounted) setHasError(false);
 
             loadRelated();
 
@@ -243,9 +247,15 @@ function VizualizareScreen() {
 
                 if (isMounted) {
                     setItemData(fetchedItem);
+                    if (!fetchedItem && !fetchedItemRef()) {
+                        setHasError(true);
+                    }
                 }
             } catch (err) {
                 console.error("[Loader] Error loading detail page:", err);
+                if (isMounted && !fetchedItemRef()) {
+                    setHasError(true);
+                }
             } finally {
                 if (isMounted) {
                     setLoading(false);
@@ -260,7 +270,8 @@ function VizualizareScreen() {
         return () => {
             isMounted = false;
         };
-    }, [id, initialTipPagina]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id, initialTipPagina, retryKey]);
 
     const title = itemData?.title || "";
     const category = itemData?.category || "";
@@ -358,15 +369,13 @@ function VizualizareScreen() {
         );
     }
 
-    if (!itemData) {
+    if (hasError || !itemData) {
         return (
             <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: "center", alignItems: "center", padding: Spacing.xl, height: 400 }}>
-                <Text style={[Typography.Heading3, { color: theme.text, textAlign: "center", marginBottom: Spacing.md }]}>
-                    Detaliile nu au putut fi găsite
-                </Text>
-                <TouchableOpacity onPress={() => router.back()} style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}>
-                    <Text style={{ color: ColorScheme.white, fontWeight: "bold" }}>Înapoi</Text>
-                </TouchableOpacity>
+                <ErrorState 
+                    message="Detaliile nu au putut fi găsite." 
+                    onRetry={() => setRetryKey(prev => prev + 1)} 
+                />
             </View>
         );
     }

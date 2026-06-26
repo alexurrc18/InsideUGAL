@@ -12,6 +12,7 @@ import { Breadcrumbs, type Crumb } from "@/components/ui/navigation/breadcrumbs"
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { getFormattedDate, isoToRomanianDateStr } from "@/utils/date";
 import { NewsListSkeleton } from "@/components/ui/display/skeletons";
+import { ErrorState } from "@/components/ui/display/error-state";
 import { Seo } from "@/components/seo";
 import { eventHref, anuntHref } from "@/utils/article-url";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
@@ -32,6 +33,7 @@ export default function CategoryScreen() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [faculties, setFaculties] = useState<any[]>([]);
 
   const crumbs: Crumb[] = [
@@ -67,6 +69,7 @@ export default function CategoryScreen() {
   const fetchData = async (pageToFetch: number, isReset: boolean = false) => {
     if (loading || (!hasMore && !isReset)) return;
     setLoading(true);
+    setHasError(false);
     try {
       let response;
       let newItems: any[] = [];
@@ -147,6 +150,7 @@ export default function CategoryScreen() {
       setPage(pageToFetch);
     } catch (err) {
       console.error("[API] Error fetching data:", err);
+      setHasError(true);
       setHasMore(false);
     } finally {
       setLoading(false);
@@ -161,6 +165,7 @@ export default function CategoryScreen() {
       fetchData(1, true);
     }, 0);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFacultyId, categoryTitle]);
 
   const handlePress = (item: any) => {
@@ -276,6 +281,8 @@ export default function CategoryScreen() {
 
           {loading && page === 1 ? (
             <NewsListSkeleton />
+          ) : hasError && data.length === 0 ? (
+            <ErrorState onRetry={() => fetchData(1, true)} style={{ minHeight: 500, paddingVertical: Spacing.xl4 }} />
           ) : (
             <>
               <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>

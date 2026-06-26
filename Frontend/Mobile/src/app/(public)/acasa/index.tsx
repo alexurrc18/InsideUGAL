@@ -1,5 +1,6 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, useColorScheme, RefreshControl, Platform, Pressable, Animated, Alert, StyleSheet } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Platform, Pressable, Animated, Alert, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -76,6 +77,7 @@ export default function HomeScreen() {
 
   const fetchApiData = async () => {
     setHasError(false);
+    let success = true;
     try {
       try {
         const response = await api.get("/announcements/", {
@@ -127,6 +129,7 @@ export default function HomeScreen() {
         }
       } catch (err) {
         console.error("[API] Could not load announcements:", err);
+        success = false;
         if (noutati.length === 0 && evenimente.length === 0) {
           setHasError(true);
         }
@@ -156,6 +159,7 @@ export default function HomeScreen() {
         }
       } catch (err) {
         console.error("[API] Could not load faculties:", err);
+        success = false;
         if (facultati.length === 0) {
           setHasError(true);
         }
@@ -186,10 +190,12 @@ export default function HomeScreen() {
         }
       } catch (err) {
         console.error("[API] Could not load facilities/locations:", err);
+        success = false;
         if (facilitati.length === 0) {
           setHasError(true);
         }
       }
+      return success;
     } finally {
       setLoading(false);
     }
@@ -198,7 +204,13 @@ export default function HomeScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     const start = Date.now();
-    await fetchApiData();
+    const success = await fetchApiData();
+    
+    const isPageEmpty = noutati.length === 0 && evenimente.length === 0 && facultati.length === 0 && facilitati.length === 0;
+    if (!success && !isPageEmpty) {
+      Alert.alert("Eroare la actualizare", "Nu s-au putut reîmprospăta datele de pe ecranul principal. Te rugăm să verifici conexiunea la internet.");
+    }
+    
     const elapsed = Date.now() - start;
     if (elapsed < 1000) {
       await new Promise(resolve => setTimeout(resolve, 1000 - elapsed));
@@ -303,6 +315,7 @@ export default function HomeScreen() {
       fetchApiData();
     };
     run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const announcementsForHero = [...noutati]
@@ -365,8 +378,8 @@ export default function HomeScreen() {
 
   const isPageEmpty = noutati.length === 0 && evenimente.length === 0 && facultati.length === 0 && facilitati.length === 0;
 
-  if (hasError || (isPageEmpty && !loading)) {
-    return <ErrorState />;
+  if ((hasError || !loading) && isPageEmpty) {
+    return <ErrorState onRetry={fetchApiData} />;
   }
 
   if (loading && isPageEmpty) {
@@ -434,13 +447,13 @@ export default function HomeScreen() {
                 width: 45,
                 height: 45,
                 borderRadius: 22.5,
-                backgroundColor: "rgba(255, 255, 255, 0.15)",
+                backgroundColor: theme.primary,
                 alignItems: "center",
                 justifyContent: "center"
               }
             ]}
           >
-            <AnimatedBell width={26} height={26} color={bellColor} />
+            <AnimatedBell width={26} height={26} color="#FFFFFF" />
           </Pressable>
         )}
       </Animated.View>
@@ -461,7 +474,7 @@ export default function HomeScreen() {
           />
         }
       >
-        <HeroSlideshow slides={heroItems} onPressItem={handlePress} />
+        <HeroSlideshow slides={heroItems} onPressItem={handlePress} scrollY={scrollY} />
 
         <View style={{paddingTop: Spacing.lg, paddingBottom: insets.bottom + Spacing.sm, flex: 1, width: "100%", maxWidth: 1200, alignSelf: "center"}}>
           {refreshing ? (

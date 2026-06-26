@@ -1,5 +1,6 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, useColorScheme, Linking, TouchableOpacity, Alert, StyleSheet, Platform, useWindowDimensions, InteractionManager } from "react-native";
+import { View, Text, ScrollView, Linking, TouchableOpacity, Alert, StyleSheet, Platform, useWindowDimensions, InteractionManager } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { Image } from "expo-image";
@@ -9,6 +10,7 @@ import { Typography } from "@/constants/typography";
 import { getFormattedDate, getReadingTime, isoToRomanianDateStr } from "@/utils/date";
 import api, { storage } from "@/services/api";
 import { VizualizareSkeleton } from "@/components/ui/display/skeletons";
+import { ErrorState } from "@/components/ui/display/error-state";
 
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
 import LocationIcon from "@/assets/icons/svg/location.svg";
@@ -24,6 +26,8 @@ function VizualizareScreen() {
     const { width } = useWindowDimensions();
     const [scrolledPast, setScrolledPast] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [hasError, setHasError] = useState(false);
+    const [retryKey, setRetryKey] = useState(0);
 
     const initialItem = {
         title: (params.title as string) || "",
@@ -70,6 +74,7 @@ function VizualizareScreen() {
                 setLoading(false);
                 return;
             }
+            if (isMounted) setHasError(false);
 
             // Try loading from cached announcements first for instant rendering!
             try {
@@ -224,9 +229,15 @@ function VizualizareScreen() {
 
                     if (isMounted) {
                         setItemData(fetchedItem);
+                        if (!fetchedItem && !fetchedItemRef()) {
+                            setHasError(true);
+                        }
                     }
                 } catch (err) {
                     console.error("[Loader] Error loading detail page:", err);
+                    if (isMounted && !fetchedItemRef()) {
+                        setHasError(true);
+                    }
                 } finally {
                     if (isMounted) {
                         setLoading(false);
@@ -245,7 +256,8 @@ function VizualizareScreen() {
                 interactionTask.cancel();
             }
         };
-    }, [id, initialTipPagina]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id, initialTipPagina, retryKey]);
 
     const title = itemData?.title || "";
     const category = itemData?.category || "";
@@ -299,15 +311,27 @@ function VizualizareScreen() {
         );
     }
 
-    if (!itemData) {
+    if (hasError || !itemData) {
         return (
-            <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: "center", alignItems: "center", padding: Spacing.xl }}>
-                <Text style={[Typography.Heading3, { color: theme.text, textAlign: "center", marginBottom: Spacing.md }]}>
-                    Detaliile nu au putut fi găsite
-                </Text>
-                <TouchableOpacity onPress={() => router.back()} style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}>
-                    <Text style={{ color: ColorScheme.white, fontWeight: "bold" }}>Înapoi</Text>
-                </TouchableOpacity>
+            <View style={{ flex: 1, backgroundColor: theme.background }}>
+                <Stack.Screen
+                    options={{
+                        headerShown: true,
+                        headerTransparent: false,
+                        headerStyle: { backgroundColor: theme.background },
+                        headerShadowVisible: false,
+                        headerTitle: "",
+                        headerLeft: () => (
+                            <TouchableOpacity onPress={() => router.back()} style={{ padding: Spacing.xs, marginLeft: Spacing.md }}>
+                                <BackIcon width={28} height={28} color={theme.text} />
+                            </TouchableOpacity>
+                        ),
+                    }}
+                />
+                <ErrorState 
+                    message="Detaliile pentru această pagină nu au putut fi încărcate." 
+                    onRetry={() => setRetryKey(prev => prev + 1)}
+                />
             </View>
         );
     }

@@ -29,6 +29,7 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
   const cameraInitialized = useRef(false);
 
   useEffect(() => {
+    if (!Config.MAPTILER_STYLE_URL) return;
     fetch(Config.MAPTILER_STYLE_URL)
       .then(res => res.json())
       .then(style => {

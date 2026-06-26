@@ -13,6 +13,7 @@ import { CategoryHeader } from "@/components/ui/display/category-header";
 import { WebContainer } from "@/components/ui/layout/web-container";
 import { Breadcrumbs } from "@/components/ui/navigation/breadcrumbs";
 import api, { storage, resolveImageUrl } from "@/services/api";
+import { ErrorState } from "@/components/ui/display/error-state";
 
 import LocationIcon from "@/assets/icons/svg/location.svg";
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
@@ -53,6 +54,7 @@ export default function SesizareDetaliiScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<any>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     async function loadComplaint() {
@@ -109,7 +111,7 @@ export default function SesizareDetaliiScreen() {
       }
     }
     loadComplaint();
-  }, [id]);
+  }, [id, retryKey]);
 
   const title = report?.title || "";
   const description = report?.description || "";
@@ -208,17 +210,11 @@ export default function SesizareDetaliiScreen() {
                 ]} 
               />
             </View>
-            <View style={{ minHeight: 400, justifyContent: "center", alignItems: "center", padding: Spacing.xl, gap: Spacing.md }}>
-              <Text style={[Typography.Heading3, { color: theme.text, textAlign: "center" }]}>
-                {error || "Sesizarea nu a putut fi găsită."}
-              </Text>
-              <Pressable 
-                onPress={() => router.back()} 
-                style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}
-              >
-                <Text style={{ color: ColorScheme.white, fontWeight: "bold" }}>Înapoi</Text>
-              </Pressable>
-            </View>
+            <ErrorState 
+              message={error || "Sesizarea nu a putut fi găsită."} 
+              onRetry={() => setRetryKey(prev => prev + 1)} 
+              style={{ minHeight: 500, paddingVertical: Spacing.xl4 }}
+            />
           </WebContainer>
         </ScrollView>
       </View>

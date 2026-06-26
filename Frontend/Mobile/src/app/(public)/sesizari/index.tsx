@@ -1,5 +1,6 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useState, useEffect } from "react";
-import { View, Text, Pressable, useColorScheme, FlatList, RefreshControl, ScrollView } from "react-native";
+import { View, Text, Pressable, FlatList, RefreshControl, ScrollView, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
@@ -7,6 +8,7 @@ import { Typography } from "@/constants/typography";
 import { SesizareCard, Sesizare } from "@/components/ui/display/sesizare-card";
 import api, { storage, getAuthToken, resolveImageUrl } from "@/services/api";
 import { SesizariListSkeleton } from "@/components/ui/display/skeletons";
+import { ErrorState } from "@/components/ui/display/error-state";
 
 type FilterType = "toate" | "mele" | "active" | "respinse" | "finalizate";
 
@@ -36,11 +38,13 @@ export default function SesizariScreen() {
   const activeFilter = (params.filter as FilterType) || "toate";
   const [refreshing, setRefreshing] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAuthChecked, setIsAuthChecked] = useState(false);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadData();
+    const success = await loadData();
+    if (!success && reports.length > 0) {
+      Alert.alert("Eroare la actualizare", "Nu s-au putut reîmprospăta sesizările. Te rugăm să verifici conexiunea la internet.");
+    }
     setRefreshing(false);
   };
   const loadData = async () => {
@@ -49,7 +53,6 @@ export default function SesizariScreen() {
     try {
       const token = await getAuthToken();
       setIsAuthenticated(!!token);
-      setIsAuthChecked(true);
       if (!token) {
         setReports([]);
         setLoading(false);
@@ -85,6 +88,14 @@ export default function SesizariScreen() {
         } catch (profileError) {
           console.warn('[API] Could not fetch user profile (maybe unauthenticated):', profileError);
         }
+      }
+      
+      // If the profile fetch cleared the token (e.g. due to expired session), abort loading complaints
+      if (!await getAuthToken()) {
+        setIsAuthenticated(false);
+        setReports([]);
+        setLoading(false);
+        return;
       }
 
       // 3. Fetch complaints based on activeFilter
@@ -132,9 +143,11 @@ export default function SesizariScreen() {
         image: resolveImageUrl(item.image_url) || undefined,
       }));
       setReports(mappedReports);
+      return true;
     } catch (err: any) {
       console.warn('[API] Error fetching complaints:', err);
       setError(err.message || "A apărut o eroare la încărcarea sesizărilor.");
+      return false;
     } finally {
       setLoading(false);
     }
@@ -148,12 +161,7 @@ export default function SesizariScreen() {
     return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigation, activeFilter]);
-  useEffect(() => {
-    if (isAuthChecked && !isAuthenticated) {
-      router.push("/(auth)");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, isAuthChecked]);
+
   const filteredData = reports.filter(item => {
     if (activeFilter === "toate") return true;
     if (activeFilter === "mele") return item.isUserReport;
@@ -199,28 +207,16 @@ export default function SesizariScreen() {
   }
 
   if (error && reports.length === 0) {
-    return (
-      <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: "center", alignItems: "center", padding: Spacing.xl }}>
-        <Text style={[Typography.Heading4, { color: theme.text, textAlign: "center", marginBottom: Spacing.md }]}>
-          {error}
-        </Text>
-        <Pressable 
-          onPress={loadData} 
-          style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}
-        >
-          <Text style={{ color: 'white', fontWeight: "bold" }}>Reîncearcă</Text>
-        </Pressable>
-      </View>
-    );
+    return <ErrorState message={error} onRetry={loadData} />;
   }
 
   if (!isAuthenticated) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: "center", alignItems: "center", padding: Spacing.xl }}>
-        <Text style={[Typography.Heading5, { color: theme.text, marginBottom: Spacing.xs, textAlign: "center" }]}>
+        <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs, textAlign: "center", width: "100%" }]}>
           Trebuie să fii conectat
         </Text>
-        <Text style={[Typography.Paragraph3, { color: theme.textSecondary, textAlign: "center", marginBottom: Spacing.md }]}>
+        <Text style={[Typography.Paragraph2, { color: theme.textSecondary, textAlign: "center", marginBottom: Spacing.md, width: "100%" }]}>
           Conectează-te pentru a trimite sau vizualiza sesizările tale.
         </Text>
         <Pressable

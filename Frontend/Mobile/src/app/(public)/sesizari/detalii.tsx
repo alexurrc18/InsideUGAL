@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { View, Text, ScrollView, useColorScheme, Modal, Pressable, ActivityIndicator } from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
+import { View, Text, ScrollView, Modal, Pressable, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -10,6 +11,7 @@ import { Carousel } from "@/components/ui/display/carousel/carousel";
 import { CAROUSEL_CARD_MARGIN } from "@/components/ui/display/carousel/carousel.shared";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import api, { storage, resolveImageUrl } from "@/services/api";
+import { ErrorState } from "@/components/ui/display/error-state";
 
 import LocationIcon from "@/assets/icons/svg/location.svg";
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
@@ -52,62 +54,66 @@ export default function SesizareDetaliiScreen() {
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<any>(null);
 
-  useEffect(() => {
-    async function loadComplaint() {
-      if (!id) {
-        setLoading(false);
-        return;
+  const loadComplaint = useCallback(async () => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // 1. Fetch locations for mapping (using cached first)
+      let locationsData: any[] = [];
+      const cachedLocs = await storage.getItem('cached_facilities');
+      if (cachedLocs) {
+        locationsData = JSON.parse(cachedLocs);
       }
       try {
-        setLoading(true);
-        setError(null);
-        
-        // 1. Fetch locations for mapping (using cached first)
-        let locationsData: any[] = [];
-        const cachedLocs = await storage.getItem('cached_facilities');
-        if (cachedLocs) {
-          locationsData = JSON.parse(cachedLocs);
+        const locsRes = await api.get('/locations/', { params: { page: 1, size: 50 } });
+        if (locsRes.data?.items) {
+          locationsData = locsRes.data.items;
+          await storage.setItem('cached_facilities', JSON.stringify(locsRes.data.items));
         }
-        try {
-          const locsRes = await api.get('/locations/', { params: { page: 1, size: 50 } });
-          if (locsRes.data?.items) {
-            locationsData = locsRes.data.items;
-            await storage.setItem('cached_facilities', JSON.stringify(locsRes.data.items));
-          }
-        } catch (locError) {
-          console.warn('[API] Could not fetch fresh locations for complaint detail:', locError);
-        }
-        const locationMap = new Map<number, string>();
-        locationsData.forEach((loc: any) => {
-          locationMap.set(loc.id, loc.name);
-        });
-
-        // 2. Fetch the specific complaint
-        const res = await api.get(`/complaints/${id}`);
-        if (res.data) {
-          const item = res.data;
-          setReport({
-            id: item.id.toString(),
-            title: item.title || "Titlu lipsă",
-            description: item.description || "Nicio descriere adăugată.",
-            category: "General",
-            location: locationMap.get(item.location_id) || "Locație nespecificată",
-            status: mapApiStatus(item.status),
-            date: item.created_at || "Dată nespecificată",
-            image: resolveImageUrl(item.image_url) || "",
-          });
-        } else {
-          setError("Sesizarea nu a putut fi găsită.");
-        }
-      } catch (err: any) {
-        console.error("[API] Error fetching complaint detail:", err);
-        setError(err.message || "A apărut o eroare la încărcarea sesizării.");
-      } finally {
-        setLoading(false);
+      } catch (locError) {
+        console.warn('[API] Could not fetch fresh locations for complaint detail:', locError);
       }
+      const locationMap = new Map<number, string>();
+      locationsData.forEach((loc: any) => {
+        locationMap.set(loc.id, loc.name);
+      });
+
+      // 2. Fetch the specific complaint
+      const res = await api.get(`/complaints/${id}`);
+      if (res.data) {
+        const item = res.data;
+        setReport({
+          id: item.id.toString(),
+          title: item.title || "Titlu lipsă",
+          description: item.description || "Nicio descriere adăugată.",
+          category: "General",
+          location: locationMap.get(item.location_id) || "Locație nespecificată",
+          status: mapApiStatus(item.status),
+          date: item.created_at || "Dată nespecificată",
+          image: resolveImageUrl(item.image_url) || "",
+        });
+      } else {
+        setError("Sesizarea nu a putut fi găsită.");
+      }
+    } catch (err: any) {
+      console.error("[API] Error fetching complaint detail:", err);
+      setError(err.message || "A apărut o eroare la încărcarea sesizării.");
+    } finally {
+      setLoading(false);
     }
-    loadComplaint();
   }, [id]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadComplaint();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadComplaint]);
 
   const title = report?.title || "";
   const description = report?.description || "";
@@ -206,17 +212,7 @@ export default function SesizareDetaliiScreen() {
             ),
           }}
         />
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: Spacing.xl, gap: Spacing.md }}>
-          <Text style={[Typography.Heading3, { color: theme.text, textAlign: "center" }]}>
-            {error || "Sesizarea nu a putut fi găsită."}
-          </Text>
-          <Pressable 
-            onPress={() => router.back()} 
-            style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}
-          >
-            <Text style={{ color: ColorScheme.white, fontWeight: "bold" }}>Înapoi</Text>
-          </Pressable>
-        </View>
+        <ErrorState message={error || "Sesizarea nu a putut fi găsită."} onRetry={loadComplaint} />
       </View>
     );
   }

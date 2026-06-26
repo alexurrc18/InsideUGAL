@@ -1,13 +1,6 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useState, useEffect } from "react";
-import { 
-  View, 
-  Text, 
-  Switch, 
-  Pressable, 
-  Animated, 
-  Linking, 
-  useColorScheme
-} from "react-native";
+import { View, Text, Switch, Pressable, Animated, Linking } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, Stack } from "expo-router";
 

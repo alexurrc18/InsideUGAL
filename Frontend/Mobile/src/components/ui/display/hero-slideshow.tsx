@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { View, Text, Pressable, StyleSheet, ScrollView, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
+import { View, Text, Pressable, StyleSheet, ScrollView, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, Animated } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { ColorScheme, Spacing } from "@/constants/theme";
@@ -23,9 +23,10 @@ export interface HeroSlide {
 interface HeroSlideshowProps {
   slides: HeroSlide[];
   onPressItem: (slide: HeroSlide) => void;
+  scrollY?: Animated.Value;
 }
 
-export function HeroSlideshow({ slides, onPressItem }: HeroSlideshowProps) {
+export function HeroSlideshow({ slides, onPressItem, scrollY }: HeroSlideshowProps) {
   const { width: windowWidth } = useWindowDimensions();
   const [active, setActive] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
@@ -59,6 +60,12 @@ export function HeroSlideshow({ slides, onPressItem }: HeroSlideshowProps) {
     }
   };
 
+  const scale = scrollY ? scrollY.interpolate({
+    inputRange: [-150, 0],
+    outputRange: [1.25, 1],
+    extrapolate: "clamp"
+  }) : 1;
+
   if (slides.length === 0) return null;
 
   return (
@@ -76,14 +83,16 @@ export function HeroSlideshow({ slides, onPressItem }: HeroSlideshowProps) {
         {slides.map((slide) => (
           <Pressable
             key={slide.id}
-            style={{ width: windowWidth, height: HERO_HEIGHT }}
+            style={{ width: windowWidth, height: HERO_HEIGHT, overflow: "hidden" }}
             onPress={() => onPressItem(slide)}
           >
-            <Image
-              source={slide.image ? { uri: slide.image } : require("@/assets/images/campus-stiintei.png")}
-              style={StyleSheet.absoluteFill}
-              contentFit="cover"
-            />
+            <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale }] }]}>
+              <Image
+                source={slide.image ? { uri: slide.image } : require("@/assets/images/campus-stiintei.png")}
+                style={StyleSheet.absoluteFill}
+                contentFit="cover"
+              />
+            </Animated.View>
 
             <LinearGradient
               colors={["transparent", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.8)"]}

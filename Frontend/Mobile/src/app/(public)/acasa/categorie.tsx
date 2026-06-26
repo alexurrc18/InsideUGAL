@@ -1,5 +1,6 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useState, useEffect } from "react";
-import { View, Text, useColorScheme, Pressable, Animated, RefreshControl } from "react-native";
+import { View, Text, Pressable, Animated, RefreshControl, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
@@ -10,6 +11,7 @@ import { getFormattedDate, isoToRomanianDateStr } from "@/utils/date";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import api from "@/services/api";
 import { NewsListSkeleton } from "@/components/ui/display/skeletons";
+import { ErrorState } from "@/components/ui/display/error-state";
 
 export default function CategoryScreen() {
   const { title: categoryTitle } = useLocalSearchParams();
@@ -27,11 +29,16 @@ export default function CategoryScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [faculties, setFaculties] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   const onRefresh = async () => {
     setRefreshing(true);
     setHasMore(true);
-    await fetchData(1, true);
+    setHasError(false);
+    const success = await fetchData(1, true);
+    if (!success && data.length > 0) {
+      Alert.alert("Eroare la actualizare", "Nu s-au putut reîmprospăta datele pentru această categorie. Te rugăm să verifici conexiunea la internet.");
+    }
     setPage(1);
     setRefreshing(false);
   };
@@ -62,7 +69,7 @@ export default function CategoryScreen() {
   ];
 
   const fetchData = async (pageToFetch: number, isReset: boolean = false) => {
-    if (loading || (!hasMore && !isReset)) return;
+    if (loading || (!hasMore && !isReset)) return false;
     setLoading(true);
     try {
       let response;
@@ -142,9 +149,12 @@ export default function CategoryScreen() {
       
       setData(prev => isReset ? newItems : [...prev, ...newItems]);
       setPage(pageToFetch);
+      return true;
     } catch (err) {
       console.error("[API] Error fetching data:", err);
+      setHasError(true);
       setHasMore(false);
+      return false;
     } finally {
       setLoading(false);
     }
@@ -155,9 +165,11 @@ export default function CategoryScreen() {
       setData([]);
       setPage(1);
       setHasMore(true);
+      setHasError(false);
       fetchData(1, true);
     }, 0);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFacultyId, categoryTitle]);
 
   const handlePress = (item: any) => {
@@ -259,6 +271,8 @@ export default function CategoryScreen() {
 
         {(loading && page === 1) || refreshing ? (
           <NewsListSkeleton />
+        ) : hasError && data.length === 0 ? (
+          <ErrorState onRetry={() => fetchData(1, true)} />
         ) : (
           <>
             <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>

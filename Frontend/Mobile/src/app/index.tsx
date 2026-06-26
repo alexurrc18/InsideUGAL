@@ -1,6 +1,7 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { router } from "expo-router";
 import React, { useEffect } from "react";
-import { useColorScheme, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";

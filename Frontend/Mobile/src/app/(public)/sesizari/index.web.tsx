@@ -13,6 +13,7 @@ import { Seo } from "@/components/seo";
 import { SesizareCard, Sesizare } from "@/components/ui/display/sesizare-card";
 import PlusIcon from "@/assets/icons/svg/plus.svg";
 import api, { storage, getAuthToken, resolveImageUrl } from "@/services/api";
+import { ErrorState } from "@/components/ui/display/error-state";
 
 type FilterType = "toate" | "mele" | "active" | "respinse" | "finalizate";
 
@@ -93,6 +94,14 @@ export default function SesizariScreen() {
         } catch (profileError) {
           console.warn('[API] Could not fetch user profile (maybe unauthenticated):', profileError);
         }
+      }
+
+      // If the profile fetch cleared the token (e.g. due to expired session), abort loading complaints
+      if (!await getAuthToken()) {
+        setIsAuthenticated(false);
+        setReports([]);
+        setLoading(false);
+        return;
       }
 
       // 3. Fetch complaints based on activeFilter
@@ -224,10 +233,10 @@ export default function SesizariScreen() {
           <View style={{ paddingHorizontal: Spacing.lg, gap: Spacing.md, marginTop: Spacing.xs }}>
             {!isAuthenticated ? (
               <View style={{ paddingVertical: 64, justifyContent: "center", alignItems: "center", gap: Spacing.md }}>
-                <Text style={[Typography.Heading5, { color: theme.text, marginBottom: Spacing.xs, textAlign: "center" }]}>
+                <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs, textAlign: "center" }]}>
                   Trebuie să fii conectat
                 </Text>
-                <Text style={[Typography.Paragraph3, { color: theme.textSecondary, textAlign: "center", marginBottom: Spacing.md }]}>
+                <Text style={[Typography.Paragraph2, { color: theme.textSecondary, textAlign: "center", marginBottom: Spacing.md }]}>
                   Conectează-te pentru a trimite sau vizualiza sesizările tale.
                 </Text>
                 <Pressable
@@ -240,17 +249,7 @@ export default function SesizariScreen() {
             ) : loading && reports.length === 0 ? (
               <SesizariListSkeleton />
             ) : error && reports.length === 0 ? (
-              <View style={{ paddingVertical: 64, justifyContent: "center", alignItems: "center", gap: Spacing.md }}>
-                <Text style={[Typography.Heading4, { color: theme.text, textAlign: "center" }]}>
-                  {error}
-                </Text>
-                <Pressable 
-                  onPress={loadData} 
-                  style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}
-                >
-                  <Text style={{ color: 'white', fontWeight: "bold" }}>Reîncearcă</Text>
-                </Pressable>
-              </View>
+              <ErrorState message={error} onRetry={loadData} style={{ minHeight: 500, paddingVertical: Spacing.xl4 }} />
             ) : (
               <>
                 {filteredData.map((item) => (
