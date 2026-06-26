@@ -126,7 +126,7 @@ class FacultyResponse(FacultyBase):
 
 class LocationBase(BaseModel):
     name: str
-    faculty_id: Optional[int] = None
+    faculty_ids: List[int] = []
     facility_id: Optional[int] = None
     marker: Optional[str] = None
     coordinates: Optional[Coordinates] = None
@@ -136,13 +136,14 @@ class LocationCreate(LocationBase):
 
 class LocationUpdate(BaseModel):
     name: Optional[str] = None
-    faculty_id: Optional[int] = None
+    faculty_ids: Optional[List[int]] = None
     facility_id: Optional[int] = None
     marker: Optional[str] = None
     coordinates: Optional[Coordinates] = None
 
 class LocationResponse(LocationBase):
     id: int
+    faculties: List[FacultyResponse] = []
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
@@ -189,6 +190,7 @@ class FacilityScheduleResponse(FacilityScheduleBase):
 class FacilityBase(BaseModel):
     name: str
     description: Optional[str] = None
+    image_url: Optional[str] = None
 
 
 class FacilityCreate(FacilityBase):
@@ -198,6 +200,7 @@ class FacilityCreate(FacilityBase):
 class FacilityUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    image_url: Optional[str] = None
 
 
 class FacilityResponse(FacilityBase):
@@ -270,6 +273,7 @@ class ComplaintUpdate(BaseModel):
 class ComplaintResponse(ComplaintBase):
     id: int
     user_id: UUID
+    author_name: Optional[str] = None
     status: ComplaintStatus
     created_at: datetime
     updated_at: datetime
@@ -316,6 +320,7 @@ class AnnouncementUpdate(BaseModel):
 class AnnouncementResponse(AnnouncementBase):
     id: int
     created_by: UUID
+    author_name: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
@@ -355,6 +360,7 @@ class ProductResponse(ProductBase):
 class DailyMenuBase(BaseModel):
     day_of_week: int
 
+
 class DailyMenuCreate(DailyMenuBase):
     product_ids: List[int] = []
     model_config = ConfigDict(json_schema_extra={
@@ -362,11 +368,13 @@ class DailyMenuCreate(DailyMenuBase):
             "day_of_week": 1,
             "product_ids": [1, 2, 3]
         }
-    }) 
+    })
+
 
 class DailyMenuUpdate(BaseModel):
     day_of_week: Optional[int] = None
     product_ids: Optional[List[int]] = None
+
 
 class DailyMenuResponse(DailyMenuBase):
     id: int
@@ -374,6 +382,7 @@ class DailyMenuResponse(DailyMenuBase):
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
 
 class DashboardStatsResponse(BaseModel):
     total_users: int

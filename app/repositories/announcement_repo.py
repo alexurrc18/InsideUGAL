@@ -1,5 +1,6 @@
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.models.models import Announcement, Profile
 from app.models.schemas import AnnouncementCreate, AnnouncementUpdate, UserRole
@@ -13,6 +14,19 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
     def _apply_visibility_filter(self, query, current_profile: Profile | None):
         return query
 
+    @staticmethod
+    def _with_author_name(announcement: Announcement) -> Announcement:
+        creator = announcement.creator
+        if creator is not None:
+            announcement.author_name = f"{creator.first_name} {creator.last_name}".strip()
+        else:
+            announcement.author_name = None
+        return announcement
+
+    @staticmethod
+    def _base_select():
+        return select(Announcement).options(joinedload(Announcement.creator))
+
     async def get_all(
         self,
         session: AsyncSession,
@@ -20,7 +34,7 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         faculty_id: int | None = None,
         current_profile: Profile | None = None,
     ) -> list[Announcement]:
-        query = select(Announcement).order_by(Announcement.created_at.desc())
+        query = self._base_select().order_by(Announcement.created_at.desc())
         if announcement_type is not None:
             query = query.where(Announcement.type == announcement_type)
         if faculty_id is not None:
@@ -28,7 +42,7 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         query = self._apply_visibility_filter(query, current_profile)
 
         result = await session.execute(query)
-        return list(result.scalars().all())
+        return [self._with_author_name(announcement) for announcement in result.scalars().all()]
 
     async def get_page(
         self,
@@ -40,7 +54,7 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         faculty_id: int | None = None,
         current_profile: Profile | None = None,
     ) -> tuple[list[Announcement], int]:
-        query = select(Announcement).order_by(Announcement.created_at.desc())
+        query = self._base_select().order_by(Announcement.created_at.desc())
         if announcement_type is not None:
             query = query.where(Announcement.type == announcement_type)
         if faculty_id is not None:
@@ -51,7 +65,12 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         total = total_result.scalar_one()
 
         result = await session.execute(query.limit(limit).offset(offset))
-        return list(result.scalars().all()), total
+        return [self._with_author_name(announcement) for announcement in result.scalars().all()], total
+
+    async def get_by_id(self, session: AsyncSession, entity_id: int) -> Announcement | None:
+        result = await session.execute(self._base_select().where(Announcement.id == entity_id))
+        announcement = result.scalars().first()
+        return self._with_author_name(announcement) if announcement else None
 
     async def create_for_user(self, session: AsyncSession, announcement_in: AnnouncementCreate, user_id: str) -> Announcement:
         return await self.create(session, announcement_in, created_by=user_id)

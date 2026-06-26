@@ -15,7 +15,6 @@ from slowapi.middleware import SlowAPIMiddleware
 
 import app.api.announcements as announcements
 import app.api.auth as auth
-import app.api.cafeteria_menus as cafeteria_menus
 import app.api.categories as categories
 import app.api.complaints as complaints
 import app.api.daily_menus as daily_menus
@@ -143,7 +142,6 @@ app.include_router(locations.router)
 app.include_router(product_categories.router)
 app.include_router(products.router)
 app.include_router(daily_menus.router)
-app.include_router(cafeteria_menus.router)
 app.include_router(complaints.router)
 app.include_router(announcements.router)
 app.include_router(auth.router)

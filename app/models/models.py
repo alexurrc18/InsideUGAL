@@ -25,12 +25,20 @@ class TimestampMixin:
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
-# Tabelul de legatura pentru meniul zilei (Multe-la-Multe)
 menu_products = Table(
     "menu_products",
     Base.metadata,
     Column("menu_id", Integer, ForeignKey("public.daily_menus.id", ondelete="CASCADE"), primary_key=True),
     Column("product_id", Integer, ForeignKey("public.products.id", ondelete="CASCADE"), primary_key=True),
+    schema="public",
+)
+
+
+location_faculties = Table(
+    "location_faculties",
+    Base.metadata,
+    Column("location_id", Integer, ForeignKey("public.locations.id", ondelete="CASCADE"), primary_key=True),
+    Column("faculty_id", Integer, ForeignKey("public.faculties.id", ondelete="CASCADE"), primary_key=True),
     schema="public",
 )
 
@@ -69,7 +77,7 @@ class Faculty(Base, TimestampMixin):
     dormitory_url = Column(Text)
     logo_url = Column(Text)
 
-    locations = relationship("Location", back_populates="faculty")
+    locations = relationship("Location", secondary=location_faculties, back_populates="faculties")
     announcements = relationship("Announcement", back_populates="faculty")
     profiles = relationship("Profile", back_populates="faculty")
 
@@ -99,11 +107,10 @@ class Location(Base, TimestampMixin):
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False)
     coordinates = Column(Geometry(geometry_type="POINT", srid=4326))
-    faculty_id = Column(Integer, ForeignKey("public.faculties.id", ondelete="SET NULL"))
     facility_id = Column(Integer, ForeignKey("public.facilities.id", ondelete="SET NULL"))
     marker = Column(String(10))
 
-    faculty = relationship("Faculty", back_populates="locations")
+    faculties = relationship("Faculty", secondary=location_faculties, back_populates="locations")
     facility = relationship("Facility", back_populates="locations")
     complaints = relationship("Complaint", back_populates="location")
 
@@ -115,6 +122,7 @@ class Facility(Base, TimestampMixin):
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False)
     description = Column(Text)
+    image_url = Column(Text)
 
     locations = relationship("Location", back_populates="facility")
     schedules = relationship(

@@ -31,7 +31,7 @@ async def test_location_coordinates_are_serialized_as_json(
         headers=admin.headers,
         json={
             "name": "QA Map Building",
-            "faculty_id": None,
+            "faculty_ids": [],
             "coordinates": {
                 "latitude": 45.4361,
                 "longitude": 28.0552,

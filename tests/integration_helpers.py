@@ -142,8 +142,12 @@ async def create_location(db_session: AsyncSession, *, faculty_id: int | None = 
     location = models.Location(
         name=f"QA Location {uuid4().hex[:8]}",
         coordinates=None,
-        faculty_id=faculty_id,
     )
+    if faculty_id is not None:
+        result = await db_session.execute(select(models.Faculty).where(models.Faculty.id == faculty_id))
+        faculty = result.scalars().first()
+        if faculty is not None:
+            location.faculties.append(faculty)
     db_session.add(location)
     await db_session.flush()
     await db_session.refresh(location)
