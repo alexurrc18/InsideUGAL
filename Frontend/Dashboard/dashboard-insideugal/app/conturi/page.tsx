@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Table, { Column } from '../components/ui/Table';
 import Modal from '../components/ui/Modal';
 import { apiBaseUrl } from "@/lib/api-client";
+import { canAccessAccounts, useRequireDashboardAccess } from "@/lib/dashboard-auth";
 
 export type UserRole = 'Student' | 'Student_responsabil' | 'Profesor' | 'Head_facultati' | 'Head_cantina' | 'Admin';
 export type UserStatus = 'Activ' | 'Blocat';
@@ -57,6 +58,7 @@ function getLoggedInUserEmail(): string | null {
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export default function ConturiPage() {
+  const access = useRequireDashboardAccess(canAccessAccounts);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all');
   const [onlyBlockedFilter, setOnlyBlockedFilter] = useState(false);
@@ -386,6 +388,8 @@ export default function ConturiPage() {
       case 'Student': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
     }
   };
+
+  if (access.loading || !access.allowed) return null;
 
   const columns: Column<UserItem>[] = [
     {

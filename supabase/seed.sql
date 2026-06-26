@@ -18,7 +18,18 @@ INSERT INTO public.faculties (id, name, abbreviation, address, phone, website_ur
 (13, 'Facultatea de Economie si Administrarea Afacerilor', 'FEAA', 'Str. Nicolae Balcescu nr. 59-61', '0236412357', 'https://feaa.ugal.ro'),
 (14, 'Facultatea de Științe ale Educației', 'FSED', 'Str. Științei nr. 2', '0336 130 164', 'https://fsed.ugal.ro'),
 (15, 'Facultatea de Arte', 'FA', 'Str. Domnească nr. 111, 800201', '0336 130 163', 'https://arte.ugal.ro')
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    abbreviation = EXCLUDED.abbreviation,
+    address = EXCLUDED.address,
+    phone = EXCLUDED.phone,
+    website_url = EXCLUDED.website_url;
+
+DELETE FROM public.faculties f
+USING public.faculties canonical
+WHERE f.id <> canonical.id
+  AND f.abbreviation = canonical.abbreviation
+  AND canonical.id BETWEEN 1 AND 15;
 
 UPDATE public.faculties
 SET logo_url = '/storage/v1/object/public/faculty-logos/ugal-logo.png'
@@ -95,53 +106,39 @@ INSERT INTO public.facility_schedules (facility_id, day_of_week, open_time, clos
 (3, 5, TIME '12:00', TIME '14:00')
 ON CONFLICT (facility_id, day_of_week) DO UPDATE SET open_time = EXCLUDED.open_time, close_time = EXCLUDED.close_time;
 
--- 6. LOCATIONS (Coordonate actualizate si legate de facultati/facilitati)
--- ATENTIE: ST_MakePoint foloseste formatul (Longitudine, Latitudine)
+-- 6. LOCATIONS (Corpurile reale din campus)
+-- ATENTIE: ST_MakePoint foloseste formatul (Longitudine, Latitudine).
 INSERT INTO public.locations (id, name, coordinates, faculty_id, facility_id, marker) VALUES
-(1, 'Facultatea de Inginerie', ST_SetSRID(ST_MakePoint(28.05365730305638, 45.446611946971665), 4326), 4, NULL, 'I'),
-(2, 'Departamentul de Calculatoare (ACIEE)', ST_SetSRID(ST_MakePoint(28.052046016019304, 45.44622578087715), 4326), 1, 6, 'D'),
-(3, 'Bazinul de Inot UGAL', ST_SetSRID(ST_MakePoint(28.04673446530012, 45.44419568490601), 4326), NULL, 8, 'B'),
-(4, 'Cantina Campusul Stiintei', ST_SetSRID(ST_MakePoint(28.052710028020087, 45.44602477034184), 4326), NULL, 1, 'C'),
-(5, 'Corp Y', ST_SetSRID(ST_MakePoint(28.052143987457615, 45.445769426854746), 4326), NULL, NULL, 'Y'),
-(6, 'Camin LSG', ST_SetSRID(ST_MakePoint(28.053204152466954, 45.44571432070904), 4326), NULL, NULL, 'L'),
-(7, 'Corp H', ST_SetSRID(ST_MakePoint(28.05314354813428, 45.44637224366411), 4326), NULL, NULL, 'H'),
-(8, 'Facultatea de Stiinta si Ingineria Alimentelor', ST_SetSRID(ST_MakePoint(28.052698584701066, 45.44647182657123), 4326), 7, NULL, 'S'),
-(9, 'Facultatea de Arhitectura Navala', ST_SetSRID(ST_MakePoint(28.05311589811024, 45.44664558272592), 4326), 2, NULL, 'N'),
-(10, 'Facultatea Transfrontaliera', ST_SetSRID(ST_MakePoint(28.05233899612814, 45.44670768805588), 4326), 8, NULL, 'T'),
-(11, 'Facultatea de Stiinte si Mediu', ST_SetSRID(ST_MakePoint(28.051510193547042, 45.44733619364721), 4326), 9, NULL, 'M'),
-(12, 'Facultatea de Istorie, Filosofie si Teologie', ST_SetSRID(ST_MakePoint(28.052961624476065, 45.44721931561829), 4326), 10, NULL, 'F'),
-(13, 'Facultatea de Litere', ST_SetSRID(ST_MakePoint(28.053417751869894, 45.44738043601649), 4326), 5, NULL, 'L'),
-(14, 'Facultatea de Drept si Stiinte Administrative', ST_SetSRID(ST_MakePoint(28.053263051320638, 45.447594143617465), 4326), 11, NULL, 'D'),
-(15, 'Facultatea de Inginerie (Corp Metalurgie)', ST_SetSRID(ST_MakePoint(28.05228463236714, 45.447612853870154), 4326), 4, NULL, 'M'),
-(16, 'Facultatea de Educatie Fizica si Sport', ST_SetSRID(ST_MakePoint(28.04934533704189, 45.443308694605946), 4326), 3, NULL, 'E'),
-(17, 'Complex Studentesc 22 Decembrie', ST_SetSRID(ST_MakePoint(28.050693542136212, 45.443269175172155), 4326), NULL, NULL, '22'),
-(18, 'Biblioteca Universitara', ST_SetSRID(ST_MakePoint(28.051011, 45.443351), 4326), NULL, 9, 'B'),
-(19, 'Facultatea de Economie si Administrarea Afacerilor', ST_SetSRID(ST_MakePoint(28.051631145440105, 45.4434653872849), 4326), 13, NULL, 'E'),
-(20, 'FMF - Corpul MG (CDT)', ST_SetSRID(ST_MakePoint(28.05283936104294, 45.44015941845244), 4326), 6, NULL, 'MG'),
-(21, 'FMF - Corpul MP', ST_SetSRID(ST_MakePoint(28.062068262889525, 45.43242403844191), 4326), 6, NULL, 'MP'),
-(22, 'FMF - Corpul MF', ST_SetSRID(ST_MakePoint(28.015464015383827, 45.410858015675565), 4326), 6, NULL, 'MF'),
-(23, 'FMF - Corpul MS', ST_SetSRID(ST_MakePoint(28.05551548377485, 45.44942122836635), 4326), 6, NULL, 'MS'),
-(24, 'Sala de sport Florin Balais', ST_SetSRID(ST_MakePoint(28.0500, 45.4500), 4326), NULL, 7, 'S'),
-(25, 'Camin E', ST_SetSRID(ST_MakePoint(28.05199171505145, 45.45433761201449), 4326), NULL, NULL, 'E'),
-(26, 'Camin J', ST_SetSRID(ST_MakePoint(28.051337777580574, 45.453991483611254), 4326), NULL, NULL, 'J'),
-(27, 'Camin A', ST_SetSRID(ST_MakePoint(28.051143808028872, 45.45352474328845), 4326), NULL, NULL, 'A'),
-(28, 'Camin B', ST_SetSRID(ST_MakePoint(28.051840745140876, 45.453713022054295), 4326), NULL, NULL, 'B'),
-(29, 'Camin F', ST_SetSRID(ST_MakePoint(28.051770825885175, 45.45327001219165), 4326), NULL, NULL, 'F'),
-(30, 'Camin G', ST_SetSRID(ST_MakePoint(28.04991673801843, 45.45300665899378), 4326), NULL, NULL, 'G'),
-(31, 'Camin D', ST_SetSRID(ST_MakePoint(28.04936833369286, 45.45313923158966), 4326), NULL, NULL, 'D'),
-(32, 'Camin H', ST_SetSRID(ST_MakePoint(28.049673552832353, 45.45341465652275), 4326), NULL, NULL, 'H'),
-(33, 'Camin C', ST_SetSRID(ST_MakePoint(28.049362979286386, 45.453942185824026), 4326), NULL, NULL, 'C'),
-(34, 'Cantina Studenteasca (Campus)', ST_SetSRID(ST_MakePoint(28.048737131910197, 45.453962406325694), 4326), NULL, 1, 'C'),
-(35, 'Casa de Cultura a Studentilor', ST_SetSRID(ST_MakePoint(28.04718963325447, 45.45460878195807), 4326), NULL, 4, 'C'),
-(36, 'Stadionul Portul Rosu', ST_SetSRID(ST_MakePoint(28.0758, 45.4411), 4326), NULL, 5, 'PR'),
-(37, 'Cantina Corp J',ST_SetSRID(ST_MakePoint(28.052721, 45.445936), 4326), NULL, 2, 'J'),
-(38, 'Cantina Universitate', ST_SetSRID(ST_MakePoint(28.055712, 45.438673), 4326), NULL, 3, 'U')
+(1, 'Corp A', ST_SetSRID(ST_MakePoint(28.0501, 45.4401), 4326), NULL, NULL, 'A'),
+(2, 'Corp AE', ST_SetSRID(ST_MakePoint(28.0502, 45.4402), 4326), NULL, NULL, 'AE'),
+(3, 'Corp AN', ST_SetSRID(ST_MakePoint(28.0503, 45.4403), 4326), NULL, NULL, 'AN'),
+(4, 'Corp AR', ST_SetSRID(ST_MakePoint(28.0504, 45.4404), 4326), NULL, NULL, 'AR'),
+(5, 'Corp AS', ST_SetSRID(ST_MakePoint(28.0505, 45.4405), 4326), NULL, NULL, 'AS'),
+(6, 'Corp Bazin Nave', ST_SetSRID(ST_MakePoint(28.0506, 45.4406), 4326), NULL, NULL, 'BN'),
+(7, 'Corp CN', ST_SetSRID(ST_MakePoint(28.0507, 45.4407), 4326), NULL, NULL, 'CN'),
+(8, 'Corp D', ST_SetSRID(ST_MakePoint(28.0508, 45.4408), 4326), NULL, NULL, 'D'),
+(9, 'Corp F', ST_SetSRID(ST_MakePoint(28.0509, 45.4409), 4326), NULL, NULL, 'F'),
+(10, 'Corp G', ST_SetSRID(ST_MakePoint(28.0510, 45.4410), 4326), NULL, NULL, 'G'),
+(11, 'Corp I', ST_SetSRID(ST_MakePoint(28.0511, 45.4411), 4326), NULL, NULL, 'I'),
+(12, 'Corp K', ST_SetSRID(ST_MakePoint(28.0512, 45.4412), 4326), NULL, NULL, 'K'),
+(13, 'Corp Medicină 1', ST_SetSRID(ST_MakePoint(28.0513, 45.4413), 4326), NULL, NULL, 'M1'),
+(14, 'Corp Medicină 2', ST_SetSRID(ST_MakePoint(28.0514, 45.4414), 4326), NULL, NULL, 'M2'),
+(15, 'Corp P', ST_SetSRID(ST_MakePoint(28.0515, 45.4415), 4326), NULL, NULL, 'P'),
+(16, 'Corp Q', ST_SetSRID(ST_MakePoint(28.0516, 45.4416), 4326), NULL, NULL, 'Q'),
+(17, 'Corp SB', ST_SetSRID(ST_MakePoint(28.0517, 45.4417), 4326), NULL, NULL, 'SB'),
+(18, 'Corp SC', ST_SetSRID(ST_MakePoint(28.0518, 45.4418), 4326), NULL, NULL, 'SC'),
+(19, 'Corp SD', ST_SetSRID(ST_MakePoint(28.0519, 45.4419), 4326), NULL, NULL, 'SD'),
+(20, 'Corp U', ST_SetSRID(ST_MakePoint(28.0520, 45.4420), 4326), NULL, NULL, 'U'),
+(21, 'Corp Y', ST_SetSRID(ST_MakePoint(28.0521, 45.4421), 4326), NULL, NULL, 'Y')
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     coordinates = EXCLUDED.coordinates,
     faculty_id = EXCLUDED.faculty_id,
     facility_id = EXCLUDED.facility_id,
     marker = EXCLUDED.marker;
+
+DELETE FROM public.locations
+WHERE id > 21;
 
 -- 7. PRODUCTS
 INSERT INTO public.products (id, name, description, quantity, price, category_id) VALUES

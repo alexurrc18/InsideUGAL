@@ -307,6 +307,9 @@ class AnnouncementUpdate(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
     type: Optional[PostType] = None
+    image_url: Optional[str] = None
+    faculty_id: Optional[int] = None
+    location_name: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
 
