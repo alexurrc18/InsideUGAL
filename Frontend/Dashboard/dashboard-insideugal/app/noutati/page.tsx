@@ -16,6 +16,7 @@ import {
   useGenerateAiBanner
 } from '@/hooks/useDashboardApi';
 import { Announcement as BackendAnnouncement } from '@/lib/api-types';
+import { canAccessContent, useRequireDashboardAccess } from '@/lib/dashboard-auth';
 
 const availableFacultiesFromSystem = [
   "AC",
@@ -30,6 +31,7 @@ const availableFacultiesFromSystem = [
 ];
 
 function AnnouncementsContent() {
+  const access = useRequireDashboardAccess(canAccessContent);
   const { data: backendData, isLoading: isLoadingAnnouncements, isError: isErrorAnnouncements, error: announcementsError } = useAnnouncements();
   const { data: backendFaculties } = useFaculties();
   const createMutation = useCreateAnnouncement();
@@ -64,7 +66,8 @@ function AnnouncementsContent() {
       description: item.content || '', 
       publishDate: item.created_at ? new Date(item.created_at).toLocaleDateString('ro-RO') : 'Fără dată',
       faculties: (item as Record<string, unknown>).faculties as string[] || [], 
-      thumbnail: (item as Record<string, unknown>).thumbnail as string || '', 
+      thumbnail: item.image_url || '',
+      image_url: item.image_url,
       eventLink: (item as Record<string, unknown>).eventLink as string || '', 
       pdfFiles: []  
     }));
@@ -144,6 +147,25 @@ function AnnouncementsContent() {
   };
 
   const columns: Column<Announcement>[] = [
+    {
+      header: 'Imagine',
+      key: 'thumbnail',
+      render: (item) => {
+        const imageSrc = item.thumbnail || item.image_url;
+        return imageSrc ? (
+          <Image
+            src={imageSrc}
+            alt="img"
+            width={44}
+            height={44}
+            className="rounded-md object-cover border border-border"
+            unoptimized
+          />
+        ) : (
+          <div className="w-11 h-11 bg-slate-100 rounded-md border border-slate-200" />
+        );
+      },
+    },
     { 
       header: 'Titlu', 
       key: 'title',
@@ -214,7 +236,8 @@ function AnnouncementsContent() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormState(prev => ({ ...prev, thumbnail: reader.result as string }));
+        const image = reader.result as string;
+        setFormState(prev => ({ ...prev, thumbnail: image, image_url: image }));
       };
       reader.readAsDataURL(file);
     }
@@ -280,7 +303,7 @@ function AnnouncementsContent() {
         onSuccess: (result) => {
           const image = result.image_url || result.image_base64;
           if (image) {
-            setFormState(prev => ({ ...prev, thumbnail: image }));
+            setFormState(prev => ({ ...prev, thumbnail: image, image_url: image }));
           } else {
             alert(result.error_message || 'Generarea imaginii a eșuat.');
           }
@@ -296,27 +319,28 @@ function AnnouncementsContent() {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const backendPayload: Record<string, unknown> = {
+    const backendPayload: Partial<BackendAnnouncement> = {
       type: 'NOUTATE',
       title: formState.title || '',
       content: formState.description || '', // Mapare description (UI) -> content (Backend)
-      is_pinned: false,
-      faculties: formState.faculties || [], // Trimite masivul de facultăți selectat
+      image_url: formState.thumbnail || formState.image_url || null,
     };
 
     if (activeModal === 'edit' && selectedItem) {
       updateMutation.mutate({ 
         id: parseInt(selectedItem.id), 
-        data: backendPayload as Partial<BackendAnnouncement>
+        data: backendPayload
       }, {
         onSuccess: () => setActiveModal(null)
       });
     } else {
-      createMutation.mutate(backendPayload as BackendAnnouncement, {
+      createMutation.mutate(backendPayload, {
         onSuccess: () => setActiveModal(null)
       });
     }
   };
+
+  if (access.loading || !access.allowed) return null;
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -503,6 +527,13 @@ function AnnouncementsContent() {
             <div>
               <span className="block text-xs font-semibold text-foreground mb-1">Thumbnail imagine</span>
               <div className="flex flex-col gap-3 p-3 border border-dashed border-border rounded-lg bg-background/50">
+                <input
+                  type="url"
+                  value={formState.image_url || formState.thumbnail || ''}
+                  onChange={(event) => setFormState({ ...formState, image_url: event.target.value, thumbnail: event.target.value })}
+                  placeholder="https://exemplu.ro/imagine.jpg"
+                  className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm"
+                />
                 <div className="flex flex-col sm:flex-row gap-2 items-center">
                   <input 
                     type="file" 
@@ -625,7 +656,6 @@ function AnnouncementsContent() {
     </div>
   );
 }
-
 export default function Page() {
   return (
     <Suspense fallback={<div className="p-6 text-sm text-muted">Se încarcă noutățile...</div>}>

@@ -5,6 +5,7 @@ import React, { useState, useMemo, useRef, useEffect, useCallback, Suspense } fr
 import Table, { Column } from '../components/ui/Table';
 import Modal from '../components/ui/Modal';
 import { useSearchParams } from "next/navigation";
+import { canAccessContent, useRequireDashboardAccess } from "@/lib/dashboard-auth";
 
 export type PdfFile = {
   name: string;
@@ -18,6 +19,7 @@ export type EventItem = {
   publishDate: string;
   faculties: string[];
   thumbnail?: string;
+  image_url?: string | null;
   eventLink?: string;
   pdfFiles?: PdfFile[];
 };
@@ -59,6 +61,7 @@ const toEventDateTime = (value?: string | null) => {
 };
 
 function EventsPageContent() {
+  const access = useRequireDashboardAccess(canAccessContent);
   const searchParams = useSearchParams();
   const [data, setData] = useState<EventItem[]>([]);
   const [activeModal, setActiveModal] = useState<'add' | 'edit' | 'details' | null>(null);
@@ -96,6 +99,7 @@ function EventsPageContent() {
         publishDate: toDateInputValue(item.start_date || item.created_at),
         faculties: item.faculty_id ? [`Facultatea #${item.faculty_id}`] : [],
         thumbnail: item.image_url || '',
+        image_url: item.image_url,
         eventLink: '',
         pdfFiles: []
       }));
@@ -166,7 +170,8 @@ function EventsPageContent() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormState(prev => ({ ...prev, thumbnail: reader.result as string }));
+        const image = reader.result as string;
+        setFormState(prev => ({ ...prev, thumbnail: image, image_url: image }));
       };
       reader.readAsDataURL(file);
     }
@@ -269,7 +274,7 @@ function EventsPageContent() {
       const result = await response.json();
 
       if (result.success && result.image_base64) {
-        setFormState(prev => ({ ...prev, thumbnail: result.image_base64 }));
+        setFormState(prev => ({ ...prev, thumbnail: result.image_base64, image_url: result.image_base64 }));
       } else {
         alert(`Eroare AI: ${result.error_message || "Generarea a eșuat."}`);
       }
@@ -289,7 +294,7 @@ function EventsPageContent() {
       title: formState.title || 'Eveniment Nou',
       content: formState.description || '',
       type: "EVENIMENT",
-      image_url: formState.thumbnail || null,
+      image_url: formState.thumbnail || formState.image_url || null,
       faculty_id: 1,
       start_date: toEventDateTime(formState.publishDate),
       end_date: null,
@@ -310,6 +315,7 @@ function EventsPageContent() {
             title: payload.title,
             content: payload.content,
             type: payload.type,
+            image_url: payload.image_url,
             start_date: payload.start_date,
             end_date: payload.end_date,
           })
@@ -353,6 +359,25 @@ function EventsPageContent() {
   };
 
   const columns: Column<EventItem>[] = [
+    {
+      header: 'Imagine',
+      key: 'thumbnail',
+      render: (item) => {
+        const imageSrc = item.thumbnail || item.image_url;
+        return imageSrc ? (
+          <Image
+            src={imageSrc}
+            alt="img"
+            width={44}
+            height={44}
+            className="rounded-md object-cover border border-border"
+            unoptimized
+          />
+        ) : (
+          <div className="w-11 h-11 bg-slate-100 rounded-md border border-slate-200" />
+        );
+      },
+    },
     { 
       header: 'Titlu', 
       key: 'title',
@@ -409,6 +434,8 @@ function EventsPageContent() {
       )
     }
   ];
+
+  if (access.loading || !access.allowed) return null;
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -587,6 +614,13 @@ function EventsPageContent() {
             <div>
               <label className="block text-xs font-semibold text-foreground mb-1">Thumbnail</label>
               <div className="flex flex-col gap-3 p-3 border border-dashed border-border rounded-lg bg-background/50">
+                <input
+                  type="url"
+                  value={formState.image_url || formState.thumbnail || ''}
+                  onChange={(event) => setFormState({ ...formState, image_url: event.target.value, thumbnail: event.target.value })}
+                  placeholder="https://exemplu.ro/imagine.jpg"
+                  className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm"
+                />
                 <div className="flex flex-col sm:flex-row gap-2 items-center">
                   <input 
                     type="file" 

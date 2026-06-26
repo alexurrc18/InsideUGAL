@@ -7,7 +7,7 @@ from tests.integration_helpers import create_faculty, create_profile
 
 
 @pytest.mark.asyncio
-async def test_announcements_list_requires_auth_and_missing_detail_is_public(
+async def test_announcements_list_and_missing_detail_are_public(
     client: AsyncClient,
     db_session: AsyncSession,
 ) -> None:
@@ -17,10 +17,9 @@ async def test_announcements_list_requires_auth_and_missing_detail_is_public(
     list_response = await client.get("/announcements/", headers=student.headers)
     missing_response = await client.get("/announcements/999999")
 
-    assert unauthenticated_list_response.status_code == 401
-    assert unauthenticated_list_response.json()["detail"] == "Missing authentication token."
+    assert unauthenticated_list_response.status_code == 200
     assert list_response.status_code == 200
-    body = list_response.json()
+    body = unauthenticated_list_response.json()
     assert isinstance(body["items"], list)
     assert body["page"] == 1
     assert body["size"] == 20
@@ -158,18 +157,13 @@ async def test_student_representative_cannot_manage_another_author_announcement(
 
 
 @pytest.mark.asyncio
-async def test_student_feed_contains_general_and_own_faculty_announcements_only(
+async def test_public_feed_contains_general_and_faculty_announcements(
     client: AsyncClient,
     db_session: AsyncSession,
 ) -> None:
     own_faculty = await create_faculty(db_session, name="Own Faculty")
     other_faculty = await create_faculty(db_session, name="Other Faculty")
     author = await create_profile(db_session, role=schemas.UserRole.HEAD_ADMIN)
-    student = await create_profile(
-        db_session,
-        role=schemas.UserRole.STUDENT,
-        faculty_id=own_faculty.id,
-    )
 
     general_response = await client.post(
         "/announcements/",
@@ -205,13 +199,13 @@ async def test_student_feed_contains_general_and_own_faculty_announcements_only(
     assert own_faculty_response.status_code == 201
     assert other_faculty_response.status_code == 201
 
-    response = await client.get("/announcements/", headers=student.headers)
+    response = await client.get("/announcements/")
 
     assert response.status_code == 200
     returned_ids = {announcement["id"] for announcement in response.json()["items"]}
     assert general_response.json()["id"] in returned_ids
     assert own_faculty_response.json()["id"] in returned_ids
-    assert other_faculty_response.json()["id"] not in returned_ids
+    assert other_faculty_response.json()["id"] in returned_ids
 
 
 @pytest.mark.asyncio

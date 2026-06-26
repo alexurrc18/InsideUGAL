@@ -12,6 +12,7 @@ import {
   useDeleteProduct,
   useUpdateMenu,
 } from "@/hooks/useCantinaApi";
+import { canAccessCantina, useRequireDashboardAccess } from "@/lib/dashboard-auth";
 
 interface Dish {
   id: string;
@@ -68,6 +69,7 @@ const CATEGORIES = [
 ];
 
 export default function Page() {
+  const access = useRequireDashboardAccess(canAccessCantina);
   const [activeDay, setActiveDay] = useState("Toate preparatele");
   const [activeModal, setActiveModal] = useState<"add" | "edit" | null>(null);
   const [selectedItem, setSelectedItem] = useState<Dish | null>(null);
@@ -225,6 +227,8 @@ export default function Page() {
       ),
     },
   ];
+
+  if (access.loading || !access.allowed) return null;
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
