@@ -49,9 +49,9 @@ export default function SplashScreen() {
           })
         ]);
         console.log("[Splash] Successfully pre-fetched all public API data.");
+        redirect();
       } catch (err) {
         console.warn("[Splash] Error pre-fetching data:", err);
-      } finally {
         redirect();
       }
     };

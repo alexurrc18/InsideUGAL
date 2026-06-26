@@ -8,12 +8,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
-  LayoutAnimation,
-  UIManager,
   Linking,
-  Animated,
-  Easing,
 } from 'react-native';
+import Animated, { useSharedValue, withSpring, withTiming, withRepeat, useAnimatedStyle, cancelAnimation, Easing } from 'react-native-reanimated';
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import { Image } from 'expo-image';
 import { useTheme } from '@/hooks/use-theme';
@@ -105,20 +102,19 @@ interface ChatInputProps {
 function ChatInput({ onSend, theme, themeWhite }: ChatInputProps) {
   const insets = useSafeAreaInsets();
   const [inputText, setInputText] = useState('');
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const bottomPad = useSharedValue(Math.max(insets.bottom, Spacing.md));
+  const padStyle = useAnimatedStyle(() => ({ paddingBottom: bottomPad.value }));
   useEffect(() => {
     const showSubscription = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       () => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setKeyboardVisible(true);
+        bottomPad.set(withTiming(Spacing.sm, { duration: 250 }));
       }
     );
     const hideSubscription = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setKeyboardVisible(false);
+        bottomPad.set(withTiming(Math.max(insets.bottom, Spacing.md), { duration: 250 }));
       }
     );
 
@@ -126,7 +122,7 @@ function ChatInput({ onSend, theme, themeWhite }: ChatInputProps) {
       showSubscription.remove();
       hideSubscription.remove();
     };
-  }, []);
+  }, [bottomPad, insets.bottom]);
 
   const handleSendPress = () => {
     if (!inputText.trim()) return;
@@ -137,15 +133,17 @@ function ChatInput({ onSend, theme, themeWhite }: ChatInputProps) {
   const isTextEmpty = !inputText.trim();
 
   return (
-    <View
-      style={{
-        width: '100%',
-        paddingHorizontal: Spacing.lg,
-        paddingTop: Spacing.sm,
-        gap: Spacing.sm,
-        paddingBottom: keyboardVisible ? Spacing.sm : Math.max(insets.bottom, Spacing.md),
-        backgroundColor: 'transparent',
-      }}
+    <Animated.View
+      style={[
+        {
+          width: '100%',
+          paddingHorizontal: Spacing.lg,
+          paddingTop: Spacing.sm,
+          gap: Spacing.sm,
+          backgroundColor: 'transparent',
+        },
+        padStyle,
+      ]}
     >
       {/* Input Field (Liquid Glass Wrapper) */}
       {Platform.OS === 'ios' ? (
@@ -165,9 +163,6 @@ function ChatInput({ onSend, theme, themeWhite }: ChatInputProps) {
             onChangeText={setInputText}
             placeholder="Pune o întrebare..."
             placeholderTextColor={theme.textSecondary}
-            onFocus={() => {
-              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            }}
             style={{
               flex: 1,
               height: '100%',
@@ -221,9 +216,6 @@ function ChatInput({ onSend, theme, themeWhite }: ChatInputProps) {
             onChangeText={setInputText}
             placeholder="Pune o întrebare..."
             placeholderTextColor={theme.textSecondary}
-            onFocus={() => {
-              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            }}
             style={{
               flex: 1,
               height: '100%',
@@ -258,33 +250,24 @@ function ChatInput({ onSend, theme, themeWhite }: ChatInputProps) {
           </Pressable>
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 }
 
 function GradientSpinner() {
-  const [rotateAnim] = useState(() => new Animated.Value(0));
+  const rotate = useSharedValue(0);
 
   useEffect(() => {
-    const animation = Animated.loop(
-      Animated.timing(rotateAnim, {
-        toValue: 1,
-        duration: 1000,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [rotateAnim]);
+    rotate.set(withRepeat(withTiming(1, { duration: 1000, easing: Easing.linear }), -1));
+    return () => cancelAnimation(rotate);
+  }, [rotate]);
 
-  const rotate = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
+  const spinStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotate.value * 360}deg` }],
+  }));
 
   return (
-    <Animated.View style={{ transform: [{ rotate }], width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
+    <Animated.View style={[spinStyle, { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }]}>
       <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
         <Defs>
           <SvgLinearGradient id="ace-grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -317,68 +300,41 @@ export default function AceScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const flatListRef = useRef<FlatList>(null);
 
-  const [scaleClearAnim] = useState(() => new Animated.Value(1));
-  const [scaleCloseAnim] = useState(() => new Animated.Value(1));
+  const scaleClearAnim = useSharedValue(1);
+  const scaleClearStyle = useAnimatedStyle(() => ({ transform: [{ scale: scaleClearAnim.value }] }));
+  const scaleCloseAnim = useSharedValue(1);
+  const scaleCloseStyle = useAnimatedStyle(() => ({ transform: [{ scale: scaleCloseAnim.value }] }));
 
   const handlePressInClear = () => {
-    Animated.spring(scaleClearAnim, {
-      toValue: 1.12,
-      useNativeDriver: true,
-      stiffness: 300,
-      damping: 15,
-      mass: 0.5,
-    }).start();
+    scaleClearAnim.set(withSpring(1.12, { stiffness: 300, damping: 15, mass: 0.5 }));
   };
 
   const handlePressOutClear = () => {
-    Animated.spring(scaleClearAnim, {
-      toValue: 1.0,
-      useNativeDriver: true,
-      stiffness: 300,
-      damping: 15,
-      mass: 0.5,
-    }).start();
+    scaleClearAnim.set(withSpring(1.0, { stiffness: 300, damping: 15, mass: 0.5 }));
   };
 
   const handlePressInClose = () => {
-    Animated.spring(scaleCloseAnim, {
-      toValue: 1.12,
-      useNativeDriver: true,
-      stiffness: 300,
-      damping: 15,
-      mass: 0.5,
-    }).start();
+    scaleCloseAnim.set(withSpring(1.12, { stiffness: 300, damping: 15, mass: 0.5 }));
   };
 
   const handlePressOutClose = () => {
-    Animated.spring(scaleCloseAnim, {
-      toValue: 1.0,
-      useNativeDriver: true,
-      stiffness: 300,
-      damping: 15,
-      mass: 0.5,
-    }).start();
+    scaleCloseAnim.set(withSpring(1.0, { stiffness: 300, damping: 15, mass: 0.5 }));
   };
 
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const emptyStatePad = useSharedValue(120);
+  const emptyStatePadStyle = useAnimatedStyle(() => ({ paddingBottom: emptyStatePad.value }));
 
   useEffect(() => {
-    if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-      UIManager.setLayoutAnimationEnabledExperimental(true);
-    }
-
     const showSubscription = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       () => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setKeyboardVisible(true);
+        emptyStatePad.set(withTiming(40, { duration: 250 }));
       }
     );
     const hideSubscription = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setKeyboardVisible(false);
+        emptyStatePad.set(withTiming(120, { duration: 250 }));
       }
     );
 
@@ -386,7 +342,7 @@ export default function AceScreen() {
       showSubscription.remove();
       hideSubscription.remove();
     };
-  }, []);
+  }, [emptyStatePad]);
 
   const themeWhite = theme.textOnDark === '#F8F9FA' ? theme.textOnDark : theme.text;
 
@@ -539,20 +495,22 @@ export default function AceScreen() {
           />
 
           {messages.length === 0 ? (
-            <View
-              style={{
-                position: 'absolute',
-                top: 0,
-                bottom: 0,
-                left: 0,
-                right: 0,
-                justifyContent: 'center',
-                alignItems: 'center',
-                paddingHorizontal: Spacing.lg,
-                paddingBottom: keyboardVisible ? 40 : 120,
-                gap: Spacing.md,
-                pointerEvents: 'box-none',
-              }}
+            <Animated.View
+              style={[
+                {
+                  position: 'absolute',
+                  top: 0,
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  paddingHorizontal: Spacing.lg,
+                  gap: Spacing.md,
+                  pointerEvents: 'box-none',
+                },
+                emptyStatePadStyle,
+              ]}
             >
               <SparkleIcon
                 width={48}
@@ -562,7 +520,7 @@ export default function AceScreen() {
               <Text style={{ ...Typography.Heading3, color: theme.text, textAlign: 'center' }}>
                 Cu ce te pot ajuta azi?
               </Text>
-            </View>
+            </Animated.View>
           ) : null}
 
           {/* Bottom Area: Input only (Floating absolutely with transparent background) */}
@@ -633,7 +591,7 @@ export default function AceScreen() {
               }}
               hitSlop={8}
             >
-              <Animated.View style={{ transform: [{ scale: scaleClearAnim }] }}>
+              <Animated.View style={scaleClearStyle}>
                 <View
                   style={{
                     width: 48,
@@ -703,7 +661,7 @@ export default function AceScreen() {
               }}
               hitSlop={8}
             >
-              <Animated.View style={{ transform: [{ scale: scaleCloseAnim }] }}>
+              <Animated.View style={scaleCloseStyle}>
                 <View
                   style={{
                     width: 48,

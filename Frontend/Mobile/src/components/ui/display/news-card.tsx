@@ -7,7 +7,7 @@ import { Typography } from "@/constants/typography";
 import { Colors, Spacing, ColorScheme } from "@/constants/theme";
 
 
-const DEFAULT_IMAGE = require("@/assets/images/placeholders/1920x1080.png");
+const DEFAULT_IMAGE = require("@/assets/images/campus-stiintei.png");
 
 export interface NewsCardProps {
     title: string;

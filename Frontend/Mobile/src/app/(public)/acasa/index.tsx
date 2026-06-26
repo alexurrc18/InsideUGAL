@@ -1,6 +1,7 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, RefreshControl, Platform, Pressable, Animated, Alert, StyleSheet } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Platform, Pressable, Alert, StyleSheet } from "react-native";
+import Animated, { useSharedValue, withTiming, useAnimatedStyle, useAnimatedProps, interpolateColor } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -51,27 +52,27 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [headerAnim] = useState(() => new Animated.Value(0));
+  const headerAnim = useSharedValue(0);
+  const scrollY = useSharedValue(0);
   const isPastThreshold = React.useRef(false);
 
-  const bellColor = headerAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [ColorScheme.white, theme.text],
-  });
+  const headerFadeStyle = useAnimatedStyle(() => ({
+    opacity: headerAnim.value,
+  }));
+  const bellAnimatedProps = useAnimatedProps(() => ({
+    color: interpolateColor(headerAnim.value, [0, 1], [ColorScheme.white, theme.text]),
+  }));
 
   const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
+    scrollY.set(offsetY);
     const headerHeight = insets.top + 56;
     const threshold = HERO_HEIGHT - headerHeight;
     const isPast = offsetY >= threshold;
 
     if (isPast !== isPastThreshold.current) {
       isPastThreshold.current = isPast;
-      Animated.timing(headerAnim, {
-        toValue: isPast ? 1 : 0,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
+      headerAnim.set(withTiming(isPast ? 1 : 0, { duration: 250 }));
     }
   };
 
@@ -149,7 +150,7 @@ export default function HomeScreen() {
           const apiFaculties = apiItems.map((item: any) => ({
             id: item.id.toString(),
             title: item.name || "Titlu necunoscut",
-            image: item.image_url || undefined,
+            image: item.logo_url || undefined,
             address: item.address || "Adresă necunoscută",
             phone: item.phone || "",
             website: item.website_url || "",
@@ -195,8 +196,9 @@ export default function HomeScreen() {
           setHasError(true);
         }
       }
+      setLoading(false);
       return success;
-    } finally {
+    } catch {
       setLoading(false);
     }
   };
@@ -413,9 +415,7 @@ export default function HomeScreen() {
         <Animated.View
           style={[
             StyleSheet.absoluteFill,
-            {
-              opacity: headerAnim,
-            }
+            headerFadeStyle,
           ]}
         >
           <LinearGradient
@@ -435,7 +435,7 @@ export default function HomeScreen() {
             style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
           >
             <InteractiveGlass size={45} style={{ shadowColor: theme.text, shadowOpacity: 0.2, shadowRadius: 5 }}>
-              <AnimatedBell width={25} height={25} color={bellColor} />
+              <AnimatedBell width={25} height={25} animatedProps={bellAnimatedProps} />
             </InteractiveGlass>
           </Pressable>
         ) : (

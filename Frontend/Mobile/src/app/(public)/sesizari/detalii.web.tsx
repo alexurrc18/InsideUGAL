@@ -103,11 +103,11 @@ export default function SesizareDetaliiScreen() {
         } else {
           setError("Sesizarea nu a putut fi găsită.");
         }
+        setLoading(false);
       } catch (err: any) {
+        setLoading(false);
         console.error("[API] Error fetching complaint detail web:", err);
         setError(err.message || "A apărut o eroare la încărcarea sesizării.");
-      } finally {
-        setLoading(false);
       }
     }
     loadComplaint();

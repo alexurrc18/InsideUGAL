@@ -149,11 +149,11 @@ export default function SesizariScreen() {
         image: resolveImageUrl(item.image_url) || undefined,
       }));
       setReports(mappedReports);
+      setLoading(false);
     } catch (err: any) {
+      setLoading(false);
       console.warn('[API] Error fetching complaints:', err);
       setError(err.message || "A apărut o eroare la încărcarea sesizărilor.");
-    } finally {
-      setLoading(false);
     }
   };
 

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { View, Platform } from 'react-native';
+import { View } from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '@/constants/theme';
@@ -87,23 +87,23 @@ export default function HartaScreen() {
   }
 
   return (
-    <View style={{ 
-      flex: 1, 
+    <View style={{
+      flex: 1,
       backgroundColor: theme.background,
-      paddingTop: insets.top + Spacing.md + (Platform.OS === 'web' ? 80 : 0)
+      paddingTop: insets.top + Spacing.md,
     }}>
-      <CategoryHeader 
+      <CategoryHeader
         title='Hartă'
         filters={facultyFilters}
         selectedFilterId={selectedFacultyId}
         onSelectFilter={handleSelectFilter}
       />
-      
-      <View style={{ 
-        flex: 1, 
-        marginLeft: Spacing.lg, 
-        marginRight: Spacing.lg, 
-        marginBottom: Platform.OS === 'android' ? Spacing.lg : (insets.bottom + Spacing.lg)
+
+      <View style={{
+        flex: 1,
+        marginHorizontal: Spacing.lg,
+        marginTop: Spacing.md,
+        marginBottom: insets.bottom + Spacing.lg,
       }}>
         <Map 
           themeName={themeName} 

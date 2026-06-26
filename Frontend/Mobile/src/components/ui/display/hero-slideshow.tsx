@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import { View, Text, Pressable, StyleSheet, ScrollView, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, Animated } from "react-native";
+import { View, Text, Pressable, StyleSheet, ScrollView, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
+import Animated, { useAnimatedStyle, interpolate, Extrapolation, type SharedValue } from "react-native-reanimated";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { ColorScheme, Spacing } from "@/constants/theme";
@@ -23,7 +24,7 @@ export interface HeroSlide {
 interface HeroSlideshowProps {
   slides: HeroSlide[];
   onPressItem: (slide: HeroSlide) => void;
-  scrollY?: Animated.Value;
+  scrollY?: SharedValue<number>;
 }
 
 export function HeroSlideshow({ slides, onPressItem, scrollY }: HeroSlideshowProps) {
@@ -60,11 +61,13 @@ export function HeroSlideshow({ slides, onPressItem, scrollY }: HeroSlideshowPro
     }
   };
 
-  const scale = scrollY ? scrollY.interpolate({
-    inputRange: [-150, 0],
-    outputRange: [1.25, 1],
-    extrapolate: "clamp"
-  }) : 1;
+  const heroImageStyle = useAnimatedStyle(() => ({
+    transform: [{
+      scale: scrollY
+        ? interpolate(scrollY.value, [-150, 0], [1.25, 1], Extrapolation.CLAMP)
+        : 1,
+    }],
+  }));
 
   if (slides.length === 0) return null;
 
@@ -86,7 +89,7 @@ export function HeroSlideshow({ slides, onPressItem, scrollY }: HeroSlideshowPro
             style={{ width: windowWidth, height: HERO_HEIGHT, overflow: "hidden" }}
             onPress={() => onPressItem(slide)}
           >
-            <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale }] }]}>
+            <Animated.View style={[StyleSheet.absoluteFill, heroImageStyle]}>
               <Image
                 source={slide.image ? { uri: slide.image } : require("@/assets/images/campus-stiintei.png")}
                 style={StyleSheet.absoluteFill}

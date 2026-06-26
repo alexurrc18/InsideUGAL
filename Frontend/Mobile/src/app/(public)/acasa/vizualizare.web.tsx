@@ -251,14 +251,16 @@ function VizualizareScreen() {
                         setHasError(true);
                     }
                 }
+                if (isMounted) {
+                    setLoading(false);
+                }
             } catch (err) {
+                if (isMounted) {
+                    setLoading(false);
+                }
                 console.error("[Loader] Error loading detail page:", err);
                 if (isMounted && !fetchedItemRef()) {
                     setHasError(true);
-                }
-            } finally {
-                if (isMounted) {
-                    setLoading(false);
                 }
             }
         };

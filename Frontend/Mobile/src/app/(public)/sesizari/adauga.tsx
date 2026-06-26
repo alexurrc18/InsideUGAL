@@ -1,6 +1,7 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useState, useMemo, useEffect } from "react";
-import { View, Text, Pressable, TextInput, KeyboardAvoidingView, Platform, ScrollView, Animated, LayoutAnimation, ActivityIndicator } from "react-native";
+import { View, Text, Pressable, TextInput, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from "react-native";
+import Animated, { useSharedValue, withTiming, useAnimatedStyle } from "react-native-reanimated";
 import { useRouter } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
@@ -18,42 +19,29 @@ interface LocationPillProps {
 }
 
 const LocationPill = ({ label, isSelected, onPress, theme }: LocationPillProps) => {
-  const scale = useMemo(() => new Animated.Value(1), []);
+  const scale = useSharedValue(1);
+  const pillStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   useEffect(() => {
-    Animated.timing(scale, {
-      toValue: 1,
-      duration: 80,
-      useNativeDriver: true,
-    }).start();
+    scale.set(withTiming(1, { duration: 80 }));
   }, [isSelected, scale]);
 
   const handlePressIn = () => {
-    Animated.timing(scale, {
-      toValue: 0.95,
-      duration: 60,
-      useNativeDriver: true,
-    }).start();
+    scale.set(withTiming(0.95, { duration: 60 }));
   };
 
   const handlePressOut = () => {
-    Animated.timing(scale, {
-      toValue: 1,
-      duration: 60,
-      useNativeDriver: true,
-    }).start();
+    scale.set(withTiming(1, { duration: 60 }));
   };
 
   return (
-    <Animated.View style={{ transform: [{ scale }] }}>
+    <Animated.View style={pillStyle}>
       <Pressable
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={() => {
-          LayoutAnimation.configureNext({
-            duration: 100,
-            update: { type: 'easeInEaseOut' },
-          });
           onPress();
         }}
         style={{ 

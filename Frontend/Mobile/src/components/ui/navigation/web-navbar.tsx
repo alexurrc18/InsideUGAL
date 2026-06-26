@@ -12,7 +12,8 @@
 //   - cand panoul hamburger e deschis, bara devine solida ca textul sa fie lizibil.
 // Textul ramane alb in toate starile. Aliniere: continutul sta intr-un WebContainer.
 import { useEffect, useRef, useState } from "react";
-import { Animated, Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import Animated, { useSharedValue, withTiming, useAnimatedStyle, interpolate, Extrapolation } from "react-native-reanimated";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, usePathname } from "expo-router";
@@ -170,25 +171,21 @@ export function WebNavbar() {
   const solid = !isHome || scrolled || (isCompact && menuOpen);
 
   // Opacitatea fundalului solid: 0 = transparent, 1 = solid. Fade pe schimbare.
-  const [bgOpacity] = useState(() => new Animated.Value(solid ? 1 : 0));
+  const bgOpacity = useSharedValue(solid ? 1 : 0);
   useEffect(() => {
-    Animated.timing(bgOpacity, {
-      toValue: solid ? 1 : 0,
-      duration: 250,
-      useNativeDriver: false,
-    }).start();
+    bgOpacity.set(withTiming(solid ? 1 : 0, { duration: 250 }));
   }, [solid, bgOpacity]);
+  const bgStyle = useAnimatedStyle(() => ({ opacity: bgOpacity.value }));
 
   // Animatia panoului hamburger (fade + slide in jos).
-  const [panelAnim] = useState(() => new Animated.Value(0));
+  const panelAnim = useSharedValue(0);
   useEffect(() => {
-    Animated.timing(panelAnim, {
-      toValue: menuOpen ? 1 : 0,
-      duration: 220,
-      useNativeDriver: false,
-    }).start();
+    panelAnim.set(withTiming(menuOpen ? 1 : 0, { duration: 220 }));
   }, [menuOpen, panelAnim]);
-  const panelTranslate = panelAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] });
+  const panelStyle = useAnimatedStyle(() => ({
+    opacity: panelAnim.value,
+    transform: [{ translateY: interpolate(panelAnim.value, [0, 1], [-8, 0], Extrapolation.CLAMP) }],
+  }));
 
   // Hide-on-scroll: bara se ascunde la scroll in jos si reapare la scroll in sus.
   // Scroll-ul se intampla in interiorul ScrollView-urilor fiecarei pagini (nu in
@@ -222,17 +219,16 @@ export function WebNavbar() {
   }, [pathname]);
 
   // Translatam bara in sus cand e ascunsa (dar nu cand panoul hamburger e deschis).
-  const [hideAnim] = useState(() => new Animated.Value(0));
+  const hideAnim = useSharedValue(0);
   useEffect(() => {
-    Animated.timing(hideAnim, {
-      toValue: hidden && !menuOpen ? -(NAVBAR_HEIGHT * zoom + 8) : 0,
-      duration: 220,
-      useNativeDriver: false,
-    }).start();
+    hideAnim.set(withTiming(hidden && !menuOpen ? -(NAVBAR_HEIGHT * zoom + 8) : 0, { duration: 220 }));
   }, [hidden, menuOpen, hideAnim, zoom]);
+  const hideStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: hideAnim.value }],
+  }));
 
   return (
-    <Animated.View style={[styles.bar, { transform: [{ translateY: hideAnim }] }]} pointerEvents="box-none">
+    <Animated.View style={[styles.bar, hideStyle]} pointerEvents="box-none">
       {/* Cand navbarul e transparent (peste hero), un gradient negru sus->transparent
           jos da contrast textului alb. Sta SUB fundalul albastru: cand bara devine
           solida, albastrul (opacity 1) il acopera complet. Extins in sus cu insets.top. */}
@@ -255,12 +251,12 @@ export function WebNavbar() {
           {
             top: -insets.top,
             backgroundColor: theme.primary,
-            opacity: bgOpacity,
             shadowColor: ColorScheme.pureBlack,
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.12,
             shadowRadius: 8,
           },
+          bgStyle,
         ]}
       />
 
@@ -366,7 +362,7 @@ export function WebNavbar() {
                 );
               })}
 
-              <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.xs, marginLeft: Spacing.xl3 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.xs, marginLeft: Spacing.xl3, height: NAVBAR_HEIGHT }}>
                 <ThemeMenu
                   solid={solid}
                   open={activeMenu === "theme"}
@@ -390,7 +386,8 @@ export function WebNavbar() {
           pointerEvents={menuOpen ? "auto" : "none"}
           style={[
             styles.panel,
-            { backgroundColor: theme.primary, opacity: panelAnim, transform: [{ translateY: panelTranslate }] },
+            { backgroundColor: theme.primary },
+            panelStyle,
           ]}
         >
           <WebContainer style={{ paddingVertical: Spacing.sm }}>

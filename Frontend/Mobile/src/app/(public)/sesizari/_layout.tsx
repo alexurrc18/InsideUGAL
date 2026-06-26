@@ -1,6 +1,6 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useRef } from "react";
-import { Pressable, Text, View, Platform, Animated } from "react-native";
+import { Pressable, Text, View, Platform } from "react-native";
+import Animated, { useSharedValue, withSpring, useAnimatedStyle } from "react-native-reanimated";
 import { Stack, useRouter, useGlobalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -23,26 +23,17 @@ export default function SesizariLayout() {
   const insets = useSafeAreaInsets();
   const activeFilter = (params.filter as string) || "toate";
 
-  const scalePlusAnim = useRef(new Animated.Value(1)).current;
+  const scalePlusAnim = useSharedValue(1);
+  const scalePlusStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scalePlusAnim.value }],
+  }));
 
   const handlePressInPlus = () => {
-    Animated.spring(scalePlusAnim, {
-      toValue: 1.12,
-      useNativeDriver: true,
-      stiffness: 300,
-      damping: 15,
-      mass: 0.5,
-    }).start();
+    scalePlusAnim.set(withSpring(1.12, { stiffness: 300, damping: 15, mass: 0.5 }));
   };
 
   const handlePressOutPlus = () => {
-    Animated.spring(scalePlusAnim, {
-      toValue: 1.0,
-      useNativeDriver: true,
-      stiffness: 300,
-      damping: 15,
-      mass: 0.5,
-    }).start();
+    scalePlusAnim.set(withSpring(1.0, { stiffness: 300, damping: 15, mass: 0.5 }));
   };
 
   const filters: FilterItem[] = [
@@ -106,7 +97,7 @@ export default function SesizariLayout() {
                         }
                       ]}
                     >
-                      <Animated.View style={{ transform: [{ scale: scalePlusAnim }] }}>
+                      <Animated.View style={scalePlusStyle}>
                         <View
                           style={{
                             width: 36,

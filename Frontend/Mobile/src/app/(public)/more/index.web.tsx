@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, Pressable, ScrollView } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, Stack } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
 import { WebContainer } from "@/components/ui/layout/web-container";
 import { CategoryHeader } from "@/components/ui/display/category-header";
@@ -29,17 +29,17 @@ export default function MoreScreen() {
   const renderIcon = (iconName: string, color: string) => {
     switch (iconName) {
       case "bus":
-        return <BusIcon width={36} height={36} color={color} />;
+        return <BusIcon width={44} height={44} color={color} />;
       case "dino":
-        return <DinoIcon width={36} height={36} color={color} />;
+        return <DinoIcon width={44} height={44} color={color} />;
       case "film-roll-alt":
-        return <FilmIcon width={36} height={36} color={color} />;
+        return <FilmIcon width={44} height={44} color={color} />;
       case "tree-alt":
-        return <TreeIcon width={36} height={36} color={color} />;
+        return <TreeIcon width={44} height={44} color={color} />;
       case "phone":
-        return <PhoneIcon width={36} height={36} color={color} />;
+        return <PhoneIcon width={44} height={44} color={color} />;
       case "globe":
-        return <GlobeIcon width={36} height={36} color={color} />;
+        return <GlobeIcon width={44} height={44} color={color} />;
       default:
         return null;
     }
@@ -47,6 +47,7 @@ export default function MoreScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
@@ -60,7 +61,7 @@ export default function MoreScreen() {
 
 
           {/* Section Title */}
-          <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.sm, marginBottom: Spacing.sm }}>
+          <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.xl3, marginBottom: Spacing.sm }}>
             <Text style={[Typography.Heading4, { color: theme.text }]}>Vizitează Galați</Text>
           </View>
 
@@ -90,11 +91,11 @@ export default function MoreScreen() {
                     gap: Spacing.xs,
                   })}
                 >
-                  <View 
-                    style={{ 
-                      width: 48,
-                      height: 48, 
-                      justifyContent: "center", 
+                  <View
+                    style={{
+                      width: 56,
+                      height: 56,
+                      justifyContent: "center",
                       alignItems: "center",
                       marginBottom: 2
                     }}

@@ -106,11 +106,11 @@ export default function CantinaScreen() {
           setMenuData(res.data.items);
           await storage.setItem('cached_cafeteria_menus', JSON.stringify(res.data.items));
         }
+        if (active) setLoading(false);
       } catch (err) {
+        if (active) setLoading(false);
         console.warn('[API] Error loading cafeteria data:', err);
         if (active) setHasError(true);
-      } finally {
-        if (active) setLoading(false);
       }
     }
     loadData();
@@ -186,7 +186,7 @@ export default function CantinaScreen() {
           ) : loading ? (
             <CantinaMenuSkeleton />
           ) : (
-            <View style={{ marginHorizontal: Spacing.lg, gap: Spacing.sm }}>
+            <View style={{ marginHorizontal: Spacing.lg }}>
               {Object.entries(currentMenu).map(([category, productsList]) => (
                 <View key={`${selectedDay}-${category}`}>
                   <Expandable

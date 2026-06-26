@@ -110,7 +110,7 @@ export default function HomeScreen() {
           const apiFaculties = apiItems.map((item: any) => ({
             id: item.id.toString(),
             title: item.name || "Titlu necunoscut",
-            image: item.image_url || undefined,
+            image: item.logo_url || undefined,
             address: item.address || "Adresă necunoscută",
             phone: item.phone || "",
             website: item.website_url || "",
@@ -154,7 +154,8 @@ export default function HomeScreen() {
           setHasError(true);
         }
       }
-    } finally {
+    setLoading(false);
+    } catch {
       setLoading(false);
     }
   };

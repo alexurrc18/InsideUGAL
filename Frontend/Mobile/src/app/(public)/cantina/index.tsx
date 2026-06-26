@@ -97,11 +97,11 @@ export default function CantinaScreen() {
         setMenuData(res.data.items);
         await storage.setItem('cached_cafeteria_menus', JSON.stringify(res.data.items));
       }
+      setLoading(false);
     } catch (err) {
+      setLoading(false);
       console.warn('[API] Error loading cafeteria data:', err);
       setHasError(true);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -114,14 +114,14 @@ export default function CantinaScreen() {
         setMenuData(res.data.items);
         await storage.setItem('cached_cafeteria_menus', JSON.stringify(res.data.items));
       }
+      setRefreshing(false);
     } catch (err) {
+      setRefreshing(false);
       console.warn('[API] Error refreshing cafeteria data:', err);
       setHasError(true);
       if (menuData.length > 0) {
         Alert.alert("Eroare la actualizare", "Nu s-a putut reîmprospăta meniul cantinei. Te rugăm să verifici conexiunea la internet.");
       }
-    } finally {
-      setRefreshing(false);
     }
   };
 
@@ -191,7 +191,7 @@ export default function CantinaScreen() {
         {loading || refreshing ? (
           <CantinaMenuSkeleton />
         ) : (
-          <View style={{ gap: Spacing.sm, marginHorizontal: Spacing.lg }}>
+          <View style={{ marginHorizontal: Spacing.lg }}>
             {Object.entries(currentMenu).map(([category, productsList]) => (
               <Expandable key={category} title={category} initialExpanded={false}>
                 <View style={{ gap: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: Spacing.sm }}>

@@ -62,7 +62,8 @@ export default function CategoryScreen() {
     { id: null, title: "Toate Facultățile", abbreviation: "Toate" },
     ...faculties.map(f => ({
       id: f.id.toString(),
-      title: f.name
+      title: f.name,
+      abbreviation: f.abbreviation || undefined,
     }))
   ];
 
@@ -148,12 +149,12 @@ export default function CategoryScreen() {
       
       setData(prev => isReset ? newItems : [...prev, ...newItems]);
       setPage(pageToFetch);
+      setLoading(false);
     } catch (err) {
+      setLoading(false);
       console.error("[API] Error fetching data:", err);
       setHasError(true);
       setHasMore(false);
-    } finally {
-      setLoading(false);
     }
   };
 

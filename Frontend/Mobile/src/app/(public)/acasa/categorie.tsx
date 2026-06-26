@@ -1,6 +1,7 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useState, useEffect } from "react";
-import { View, Text, Pressable, Animated, RefreshControl, Alert } from "react-native";
+import { View, Text, Pressable, RefreshControl, Alert } from "react-native";
+import Animated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, interpolate, Extrapolation, runOnJS } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
@@ -20,7 +21,10 @@ export default function CategoryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const [scrollY] = useState(() => new Animated.Value(0));
+  const scrollY = useSharedValue(0);
+  const headerTitleStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [50, 90], [0, 1], Extrapolation.CLAMP),
+  }));
 
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
   const [data, setData] = useState<any[]>([]);
@@ -64,7 +68,8 @@ export default function CategoryScreen() {
     { id: null, title: "Toate Facultățile", abbreviation: "Toate" },
     ...faculties.map(f => ({
       id: f.id.toString(),
-      title: f.name
+      title: f.name,
+      abbreviation: f.abbreviation || undefined,
     }))
   ];
 
@@ -149,14 +154,14 @@ export default function CategoryScreen() {
       
       setData(prev => isReset ? newItems : [...prev, ...newItems]);
       setPage(pageToFetch);
+      setLoading(false);
       return true;
     } catch (err) {
+      setLoading(false);
       console.error("[API] Error fetching data:", err);
       setHasError(true);
       setHasMore(false);
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -186,18 +191,19 @@ export default function CategoryScreen() {
     });
   };
 
-  const handleScroll = (event: any) => {
-    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 150;
-    if (isCloseToBottom && hasMore && !loading) {
+  const checkPagination = (offsetY: number, layoutHeight: number, contentHeight: number) => {
+    if (layoutHeight + offsetY >= contentHeight - 150 && hasMore && !loading) {
       fetchData(page + 1);
     }
   };
 
-  const headerTitleOpacity = scrollY.interpolate({
-    inputRange: [50, 90],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
+  const scrollHandler = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+    runOnJS(checkPagination)(
+      event.contentOffset.y,
+      event.layoutMeasurement.height,
+      event.contentSize.height
+    );
   });
 
   return (
@@ -224,7 +230,7 @@ export default function CategoryScreen() {
             </Pressable>
           ),
           headerTitle: () => (
-            <Animated.View style={{ opacity: headerTitleOpacity }}>
+            <Animated.View style={headerTitleStyle}>
               <Text 
                 style={[
                   Typography.Heading4, 
@@ -248,13 +254,7 @@ export default function CategoryScreen() {
           paddingTop: Spacing.md,
           paddingBottom: insets.bottom + Spacing.xxl
         }}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { 
-            useNativeDriver: true,
-            listener: handleScroll
-          }
-        )}
+        onScroll={scrollHandler}
         scrollEventThrottle={16}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} tintColor={theme.primary} />

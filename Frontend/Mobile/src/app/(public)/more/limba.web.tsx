@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, Stack } from "expo-router";
 
 import { Colors, Spacing, WebSidePadding } from "@/constants/theme";
+import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { Typography } from "@/constants/typography";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import { WebContainer } from "@/components/ui/layout/web-container";
@@ -17,6 +18,7 @@ export default function LanguageScreen() {
   const themeName = (systemColorScheme ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
+  const contentTop = useWebContentTop();
   const router = useRouter();
 
   const [scrollY] = useState(() => new Animated.Value(0));
@@ -48,7 +50,7 @@ export default function LanguageScreen() {
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <Stack.Screen
         options={{
-          headerShown: true,
+          headerShown: false,
           headerShadowVisible: false,
           headerStyle: {
             backgroundColor: theme.background,
@@ -88,7 +90,7 @@ export default function LanguageScreen() {
       <Animated.ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingTop: insets.top + 140,
+          paddingTop: contentTop,
           paddingBottom: insets.bottom + Spacing.xxl
         }}
         onScroll={Animated.event(
