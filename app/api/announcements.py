@@ -20,6 +20,7 @@ router = APIRouter(prefix="/announcements", tags=["Announcements"])
 repo = AnnouncementRepository()
 manage_announcements = require_roles(
     schemas.UserRole.HEAD_ADMIN,
+    schemas.UserRole.HEAD_FACULTATI,
     schemas.UserRole.PROFESOR,
     schemas.UserRole.STUDENT_RESPONSABIL
 )
@@ -49,7 +50,11 @@ def assert_can_manage_announcement(profile, announcement: models.Announcement | 
     if profile.role == schemas.UserRole.STUDENT_RESPONSABIL.value:
         if announcement is not None and announcement.created_by != str(profile.id):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Student representatives can manage only their own announcements.")
-    elif profile.role not in {schemas.UserRole.PROFESOR.value, schemas.UserRole.HEAD_ADMIN.value}:
+    elif profile.role not in {
+        schemas.UserRole.PROFESOR.value,
+        schemas.UserRole.HEAD_ADMIN.value,
+        schemas.UserRole.HEAD_FACULTATI.value,
+    }:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Nu ai permisiuni suficiente.")
 
 
@@ -59,7 +64,6 @@ async def read_announcements(
     faculty_id: int | None = None,
     pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_db),
-    profile=Depends(get_current_profile),
 ):
     type_value = announcement_type.value if announcement_type else None
     items, total = await repo.get_page(
@@ -68,7 +72,7 @@ async def read_announcements(
         offset=pagination.offset,
         announcement_type=type_value,
         faculty_id=faculty_id,
-        current_profile=profile,
+        current_profile=None,
     )
     return paginated_response(items, total, pagination)
 

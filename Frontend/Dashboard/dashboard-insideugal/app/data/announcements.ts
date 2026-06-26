@@ -11,6 +11,7 @@ export interface Announcement {
   faculties: string[];
   publishDate: string;
   thumbnail?: string;
+  image_url?: string | null;
   eventLink?: string;
   pdfFiles?: PdfFile[];
 }

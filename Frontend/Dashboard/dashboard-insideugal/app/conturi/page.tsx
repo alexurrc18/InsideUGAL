@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Table, { Column } from '../components/ui/Table';
 import Modal from '../components/ui/Modal';
 import { apiBaseUrl } from "@/lib/api-client";
+import { canAccessAccounts, useRequireDashboardAccess } from "@/lib/dashboard-auth";
 
 export type UserRole = 'Student' | 'Student_responsabil' | 'Profesor' | 'Head_facultati' | 'Head_cantina' | 'Admin';
 export type UserStatus = 'Activ' | 'Blocat';
@@ -57,6 +58,7 @@ function getLoggedInUserEmail(): string | null {
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export default function ConturiPage() {
+  const access = useRequireDashboardAccess(canAccessAccounts);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all');
   const [onlyBlockedFilter, setOnlyBlockedFilter] = useState(false);
@@ -154,7 +156,7 @@ export default function ConturiPage() {
         last_name?: string;
         email: string;
         is_active?: boolean;
-        faculty?: string;
+        faculty?: { name: string; abbreviation?: string } | null;
         created_at?: string;
         username?: string;
       }
@@ -183,7 +185,7 @@ export default function ConturiPage() {
           email: item.email,
           role: cleanRole,
           status: item.is_active ? 'Activ' : 'Blocat',
-          faculty: item.faculty || 'Fără facultate', 
+          faculty: item.faculty?.name || 'Fără facultate', 
           registrationDate: item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
           username: item.username || ''
         };
@@ -191,8 +193,10 @@ export default function ConturiPage() {
 
       if (currentEmail) {
         mappedUsers.sort((a, b) => {
-          if (a.email.toLowerCase() === currentEmail.toLowerCase()) return -1;
-          if (b.email.toLowerCase() === currentEmail.toLowerCase()) return 1;
+          const emailA = (a.email || '').toLowerCase();
+          const emailB = (b.email || '').toLowerCase();
+          if (emailA === currentEmail.toLowerCase()) return -1;
+          if (emailB === currentEmail.toLowerCase()) return 1;
           return 0;
         });
       }
@@ -384,6 +388,8 @@ export default function ConturiPage() {
       case 'Student': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
     }
   };
+
+  if (access.loading || !access.allowed) return null;
 
   const columns: Column<UserItem>[] = [
     {

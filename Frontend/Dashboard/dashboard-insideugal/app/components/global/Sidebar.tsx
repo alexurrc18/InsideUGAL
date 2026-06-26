@@ -16,20 +16,39 @@ import {
   Utensils,
 } from "lucide-react";
 
+import {
+  canAccessAccounts,
+  canAccessCantina,
+  canAccessComplaints,
+  canAccessContent,
+  canAccessDashboard,
+  canAccessFaculties,
+  canAccessMaps,
+  useDashboardRole,
+  type DashboardRole,
+} from "@/lib/dashboard-auth";
+
 const menuItems = [
-  { label: "Acasă", href: "/", icon: Home },
-  { label: "Noutăți", href: "/noutati", icon: Newspaper },
-  { label: "Evenimente", href: "/evenimente", icon: Calendar },
-  { label: "Facultăți", href: "/facultati", icon: GraduationCap },
-  { label: "Hărți", href: "/harti", icon: MapPin },
-  { label: "Sesizări", href: "/sesizari", icon: AlertTriangle },
-  { label: "Cantină", href: "/cantina", icon: Utensils },
-  { label: "Conturi", href: "/conturi", icon: Users },
-];
+  { label: "Acasa", href: "/", icon: Home, canAccess: canAccessDashboard },
+  { label: "Noutati", href: "/noutati", icon: Newspaper, canAccess: canAccessContent },
+  { label: "Evenimente", href: "/evenimente", icon: Calendar, canAccess: canAccessContent },
+  { label: "Facultati", href: "/facultati", icon: GraduationCap, canAccess: canAccessFaculties },
+  { label: "Harti", href: "/harti", icon: MapPin, canAccess: canAccessMaps },
+  { label: "Sesizari", href: "/sesizari", icon: AlertTriangle, canAccess: canAccessComplaints },
+  { label: "Cantina", href: "/cantina", icon: Utensils, canAccess: canAccessCantina },
+  { label: "Conturi", href: "/conturi", icon: Users, canAccess: canAccessAccounts },
+] satisfies Array<{
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  canAccess: (role: DashboardRole | null) => boolean;
+}>;
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const { role } = useDashboardRole();
+  const visibleMenuItems = menuItems.filter((item) => item.canAccess(role));
 
   return (
     <aside
@@ -58,7 +77,7 @@ export default function Sidebar() {
 
           <button
             type="button"
-            aria-label={collapsed ? "Arată sidebarul" : "Ascunde sidebarul"}
+            aria-label={collapsed ? "Arata sidebarul" : "Ascunde sidebarul"}
             aria-expanded={!collapsed}
             onClick={() => setCollapsed((current) => !current)}
             className="flex h-9 w-9 items-center justify-center rounded-md text-sidebar-muted transition-colors hover:bg-card/10 hover:text-white"
@@ -67,13 +86,8 @@ export default function Sidebar() {
           </button>
         </div>
 
-        {!collapsed && (
-          <div className="mb-2 px-3 text-xs font-medium text-sidebar-muted">
-          </div>
-        )}
-
         <nav className="custom-scrollbar flex-1 space-y-1 overflow-y-auto">
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;
 

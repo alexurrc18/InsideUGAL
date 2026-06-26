@@ -6,6 +6,7 @@ import "./globals.css";
 import Sidebar from "./components/global/Sidebar";
 import Header from "./components/global/PageHeader";
 import { Providers } from "./providers";
+import { canAccessPath, fetchCurrentDashboardRole } from "@/lib/dashboard-auth";
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -20,8 +21,23 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    queueMicrotask(() => {
+    if (pathname === "/login") {
+      queueMicrotask(() => setChecking(false));
+      return;
+    }
+
+    fetchCurrentDashboardRole().then((role) => {
+      if (!canAccessPath(pathname, role)) {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("token_type");
+        router.replace("/login");
+        return;
+      }
       setChecking(false);
+    }).catch(() => {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("token_type");
+      router.replace("/login");
     });
   }, [pathname, router]);
 
