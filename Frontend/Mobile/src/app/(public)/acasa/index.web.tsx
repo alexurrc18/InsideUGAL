@@ -167,7 +167,10 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    fetchApiData();
+    const run = async () => {
+      await fetchApiData();
+    };
+    run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
