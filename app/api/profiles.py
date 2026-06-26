@@ -20,7 +20,12 @@ from app.repositories.profile_repo import ProfileRepository
 load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_SERVICE_KEY")
+
+if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+    raise ValueError("LIPSESC CHEILE! Asigură-te că ai setat SUPABASE_URL și SUPABASE_SERVICE_ROLE_KEY în fișierul .env.")
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 router = APIRouter(prefix="/profiles", tags=["Profiles"])
 repo = ProfileRepository()

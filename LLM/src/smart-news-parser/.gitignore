@@ -25,3 +25,8 @@ venv/
 *.webp
 test_*.json
 response.json
+
+# Exceptie: bannere pre-fabricate din assets (trebuie urmarite de Git)
+!assets/buildings/*.jpg
+!assets/buildings/*.jpeg
+!assets/buildings/*.png

@@ -14,15 +14,44 @@ INSERT INTO public.faculties (id, name, abbreviation, address, phone, website_ur
 (9, 'Facultatea de Stiinte si Mediu', 'FSM', 'Str. Domneasca nr. 111', '0236412353', 'https://fsm.ugal.ro'),
 (10, 'Facultatea de Istorie, Filosofie si Teologie', 'FIFT', 'Str. Domneasca nr. 111', '0236412354', 'https://fift.ugal.ro'),
 (11, 'Facultatea de Drept si Stiinte Administrative', 'FDSA', 'Str. Domneasca nr. 111', '0236412355', 'https://drept.ugal.ro'),
-(12, 'Facultatea de Inginerie si Agronomie din Braila', 'FIAB', 'Str. Calea Calarasilor nr. 29', '0236412356', 'https://ingbraila.ugal.ro'),
-(13, 'Facultatea de Economie si Administrarea Afacerilor', 'FEAA', 'Str. Nicolae Balcescu nr. 59-61', '0236412357', 'https://feaa.ugal.ro')
-ON CONFLICT (id) DO NOTHING;
+(12, 'Facultatea de Inginerie si Agronomie din Braila', 'FIAB', 'Str. Calea Calarasilor nr. 29, Braila', '0236412356', 'https://ingbraila.ugal.ro'),
+(13, 'Facultatea de Economie si Administrarea Afacerilor', 'FEAA', 'Str. Nicolae Balcescu nr. 59-61', '0236412357', 'https://feaa.ugal.ro'),
+(14, 'Facultatea de Științe ale Educației', 'FSED', 'Str. Științei nr. 2', '0336 130 164', 'https://fsed.ugal.ro'),
+(15, 'Facultatea de Arte', 'FA', 'Str. Domnească nr. 111, 800201', '0336 130 163', 'https://arte.ugal.ro')
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    abbreviation = EXCLUDED.abbreviation,
+    address = EXCLUDED.address,
+    phone = EXCLUDED.phone,
+    website_url = EXCLUDED.website_url;
+
+DELETE FROM public.faculties f
+USING public.faculties canonical
+WHERE f.id <> canonical.id
+  AND f.abbreviation = canonical.abbreviation
+  AND canonical.id BETWEEN 1 AND 15;
 
 UPDATE public.faculties
 SET logo_url = '/storage/v1/object/public/faculty-logos/ugal-logo.png'
 WHERE logo_url IS NULL;
 
--- 2. CATEGORIES
+-- 2. PROFILES
+INSERT INTO public.profiles (id, username, first_name, last_name, email, faculty_id, role, is_active) VALUES
+('00000000-0000-0000-0000-000000000001', 'admin', 'Admin', 'UGAL', 'admin@ugal.ro', NULL, 'HEAD_ADMIN', TRUE),
+('00000000-0000-0000-0000-000000000002', 'student_demo', 'Student', 'Demo', 'student@ugal.ro', 1, 'STUDENT', TRUE),
+('00000000-0000-0000-0000-000000000003', 'prof_popescu', 'Ion', 'Popescu', 'ion.popescu@ugal.ro', 1, 'PROFESOR', TRUE),
+('00000000-0000-0000-0000-000000000004', 'resp_camin', 'Andrei', 'Vasile', 'andrei.vasile@ugal.ro', 4, 'STUDENT_RESPONSABIL', TRUE),
+('00000000-0000-0000-0000-000000000005', 'maria_ionescu', 'Maria', 'Ionescu', 'maria.ionescu@ugal.ro', 3, 'STUDENT', TRUE)
+ON CONFLICT (id) DO UPDATE SET
+    username = EXCLUDED.username,
+    first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name,
+    email = EXCLUDED.email,
+    faculty_id = EXCLUDED.faculty_id,
+    role = EXCLUDED.role,
+    is_active = EXCLUDED.is_active;
+
+-- 3. CATEGORIES
 INSERT INTO public.categories (id, name) VALUES
 (1, 'Burse si Ajutoare'),
 (2, 'Oportunitati de Cariera'),
@@ -32,7 +61,7 @@ INSERT INTO public.categories (id, name) VALUES
 (6, 'Practica si Laboratoare')
 ON CONFLICT (id) DO NOTHING;
 
--- 3. PRODUCT CATEGORIES
+-- 4. PRODUCT CATEGORIES
 INSERT INTO public.product_categories (id, name) VALUES
 (1, 'Ciorbe si supe'),
 (2, 'Garnituri'),
@@ -43,16 +72,17 @@ INSERT INTO public.product_categories (id, name) VALUES
 (7, 'Meniul zilei')
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
--- 4. FACILITIES
+-- 5. FACILITIES
 INSERT INTO public.facilities (id, name, description) VALUES
 (1, 'Cantina Studenteasca', 'Cantina studenteasca UGAL. Program: luni-vineri 12:00-17:00.'),
 (2, 'Cantina Corp J', 'Cantina din Corp J. Program: luni-vineri 12:00-15:30.'),
 (3, 'Cantina Universitate', 'Cantina Universitate. Program: luni-joi 12:00-15:30, vineri 12:00-14:00.'),
 (4, 'Casa de Cultura a Studentilor', 'Facilitate pentru activitati studentesti si evenimente.'),
-(5, 'Sala de sport Puskin', 'Sala de sport folosita pentru activitati didactice si sportive.'),
+(5, 'Stadionul Portul Rosu', 'Stadion din Galati, Str. Domneasca, 145, in perimetrul complexului portuar.'),
 (6, 'Departamentul de Calculatoare', 'Facilitate academica pentru activitati ale domeniului Calculatoare.'),
-(7, 'Sala de sport Florin Balais', 'Facilitate sportiva UGAL.'),
-(8, 'Bazinul de Inot UGAL', 'Facilitate sportiva pentru inot.')
+(7, 'Sala de sport Florin Balais', 'Sala de sport din Galati, Strada Mihai Bravu 44.'),
+(8, 'Bazinul de Inot UGAL', 'Facilitate sportiva pentru inot.'),
+(9, 'Biblioteca Universitara', 'Biblioteca universitara UGAL.')
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     description = EXCLUDED.description;
@@ -76,47 +106,30 @@ INSERT INTO public.facility_schedules (facility_id, day_of_week, open_time, clos
 (3, 5, TIME '12:00', TIME '14:00')
 ON CONFLICT (facility_id, day_of_week) DO UPDATE SET open_time = EXCLUDED.open_time, close_time = EXCLUDED.close_time;
 
--- 5. LOCATIONS (Coordonate actualizate si legate de facultati/facilitati)
--- ATENTIE: ST_MakePoint foloseste formatul (Longitudine, Latitudine)
+-- 6. LOCATIONS (Corpurile reale din campus)
+-- ATENTIE: ST_MakePoint foloseste formatul (Longitudine, Latitudine).
 INSERT INTO public.locations (id, name, coordinates, faculty_id, facility_id, marker) VALUES
-(1, 'Facultatea de Inginerie', ST_SetSRID(ST_MakePoint(28.05365730305638, 45.446611946971665), 4326), 4, NULL, 'I'),
-(2, 'Departamentul de Calculatoare (ACIEE)', ST_SetSRID(ST_MakePoint(28.052046016019304, 45.44622578087715), 4326), 1, 6, 'D'),
-(3, 'Bazinul de Inot UGAL', ST_SetSRID(ST_MakePoint(28.04673446530012, 45.44419568490601), 4326), NULL, 8, 'B'),
-(4, 'Cantina Campusul Stiintei', ST_SetSRID(ST_MakePoint(28.052710028020087, 45.44602477034184), 4326), NULL, 1, 'C'),
-(5, 'Corp Y', ST_SetSRID(ST_MakePoint(28.052143987457615, 45.445769426854746), 4326), NULL, NULL, 'Y'),
-(6, 'Camin LSG', ST_SetSRID(ST_MakePoint(28.053204152466954, 45.44571432070904), 4326), NULL, NULL, 'L'),
-(7, 'Corp H', ST_SetSRID(ST_MakePoint(28.05314354813428, 45.44637224366411), 4326), NULL, NULL, 'H'),
-(8, 'Facultatea de Stiinta si Ingineria Alimentelor', ST_SetSRID(ST_MakePoint(28.052698584701066, 45.44647182657123), 4326), 7, NULL, 'S'),
-(9, 'Facultatea de Arhitectura Navala', ST_SetSRID(ST_MakePoint(28.05311589811024, 45.44664558272592), 4326), 2, NULL, 'N'),
-(10, 'Facultatea Transfrontaliera', ST_SetSRID(ST_MakePoint(28.05233899612814, 45.44670768805588), 4326), 8, NULL, 'T'),
-(11, 'Facultatea de Stiinte si Mediu', ST_SetSRID(ST_MakePoint(28.051510193547042, 45.44733619364721), 4326), 9, NULL, 'M'),
-(12, 'Facultatea de Istorie, Filosofie si Teologie', ST_SetSRID(ST_MakePoint(28.052961624476065, 45.44721931561829), 4326), 10, NULL, 'F'),
-(13, 'Facultatea de Litere', ST_SetSRID(ST_MakePoint(28.053417751869894, 45.44738043601649), 4326), 5, NULL, 'L'),
-(14, 'Facultatea de Drept si Stiinte Administrative', ST_SetSRID(ST_MakePoint(28.053263051320638, 45.447594143617465), 4326), 11, NULL, 'D'),
-(15, 'Facultatea de Inginerie (Corp Metalurgie)', ST_SetSRID(ST_MakePoint(28.05228463236714, 45.447612853870154), 4326), 4, NULL, 'M'),
-(16, 'Facultatea de Educatie Fizica si Sport', ST_SetSRID(ST_MakePoint(28.04934533704189, 45.443308694605946), 4326), 3, NULL, 'E'),
-(17, 'Complex Studentesc 22 Decembrie', ST_SetSRID(ST_MakePoint(28.050693542136212, 45.443269175172155), 4326), NULL, NULL, '22'),
-(18, 'Biblioteca Universitatii', ST_SetSRID(ST_MakePoint(28.05105178829204, 45.44346821009217), 4326), NULL, NULL, 'B'),
-(19, 'Facultatea de Economie si Administrarea Afacerilor', ST_SetSRID(ST_MakePoint(28.051631145440105, 45.4434653872849), 4326), 13, NULL, 'E'),
-(20, 'FMF - Corpul MG (CDT)', ST_SetSRID(ST_MakePoint(28.05283936104294, 45.44015941845244), 4326), 6, NULL, 'MG'),
-(21, 'FMF - Corpul MP', ST_SetSRID(ST_MakePoint(28.062068262889525, 45.43242403844191), 4326), 6, NULL, 'MP'),
-(22, 'FMF - Corpul MF', ST_SetSRID(ST_MakePoint(28.015464015383827, 45.410858015675565), 4326), 6, NULL, 'MF'),
-(23, 'FMF - Corpul MS', ST_SetSRID(ST_MakePoint(28.05551548377485, 45.44942122836635), 4326), 6, NULL, 'MS'),
-(24, 'Sala de sport Florin Balais', ST_SetSRID(ST_MakePoint(28.056153845715446, 45.449513007888775), 4326), NULL, 7, 'S'),
-(25, 'Camin E', ST_SetSRID(ST_MakePoint(28.05199171505145, 45.45433761201449), 4326), NULL, NULL, 'E'),
-(26, 'Camin J', ST_SetSRID(ST_MakePoint(28.051337777580574, 45.453991483611254), 4326), NULL, NULL, 'J'),
-(27, 'Camin A', ST_SetSRID(ST_MakePoint(28.051143808028872, 45.45352474328845), 4326), NULL, NULL, 'A'),
-(28, 'Camin B', ST_SetSRID(ST_MakePoint(28.051840745140876, 45.453713022054295), 4326), NULL, NULL, 'B'),
-(29, 'Camin F', ST_SetSRID(ST_MakePoint(28.051770825885175, 45.45327001219165), 4326), NULL, NULL, 'F'),
-(30, 'Camin G', ST_SetSRID(ST_MakePoint(28.04991673801843, 45.45300665899378), 4326), NULL, NULL, 'G'),
-(31, 'Camin D', ST_SetSRID(ST_MakePoint(28.04936833369286, 45.45313923158966), 4326), NULL, NULL, 'D'),
-(32, 'Camin H', ST_SetSRID(ST_MakePoint(28.049673552832353, 45.45341465652275), 4326), NULL, NULL, 'H'),
-(33, 'Camin C', ST_SetSRID(ST_MakePoint(28.049362979286386, 45.453942185824026), 4326), NULL, NULL, 'C'),
-(34, 'Cantina Studenteasca (Campus)', ST_SetSRID(ST_MakePoint(28.048737131910197, 45.453962406325694), 4326), NULL, 1, 'C'),
-(35, 'Casa de Cultura a Studentilor', ST_SetSRID(ST_MakePoint(28.04718963325447, 45.45460878195807), 4326), NULL, 4, 'C'),
-(36, 'Sala de sport Puskin', ST_SetSRID(ST_MakePoint(28.05620861947643, 45.44978557674398), 4326), NULL, 5, 'P'),
-(37, 'Cantina Corp J',ST_SetSRID(ST_MakePoint(28.052721, 45.445936), 4326), NULL, 2, 'J'),
-(38, 'Cantina Universitate', ST_SetSRID(ST_MakePoint(28.055712, 45.438673), 4326), NULL, 3, 'U')
+(1, 'Corp A', ST_SetSRID(ST_MakePoint(28.0501, 45.4401), 4326), NULL, NULL, 'A'),
+(2, 'Corp AE', ST_SetSRID(ST_MakePoint(28.0502, 45.4402), 4326), NULL, NULL, 'AE'),
+(3, 'Corp AN', ST_SetSRID(ST_MakePoint(28.0503, 45.4403), 4326), NULL, NULL, 'AN'),
+(4, 'Corp AR', ST_SetSRID(ST_MakePoint(28.0504, 45.4404), 4326), NULL, NULL, 'AR'),
+(5, 'Corp AS', ST_SetSRID(ST_MakePoint(28.0505, 45.4405), 4326), NULL, NULL, 'AS'),
+(6, 'Corp Bazin Nave', ST_SetSRID(ST_MakePoint(28.0506, 45.4406), 4326), NULL, NULL, 'BN'),
+(7, 'Corp CN', ST_SetSRID(ST_MakePoint(28.0507, 45.4407), 4326), NULL, NULL, 'CN'),
+(8, 'Corp D', ST_SetSRID(ST_MakePoint(28.0508, 45.4408), 4326), NULL, NULL, 'D'),
+(9, 'Corp F', ST_SetSRID(ST_MakePoint(28.0509, 45.4409), 4326), NULL, NULL, 'F'),
+(10, 'Corp G', ST_SetSRID(ST_MakePoint(28.0510, 45.4410), 4326), NULL, NULL, 'G'),
+(11, 'Corp I', ST_SetSRID(ST_MakePoint(28.0511, 45.4411), 4326), NULL, NULL, 'I'),
+(12, 'Corp K', ST_SetSRID(ST_MakePoint(28.0512, 45.4412), 4326), NULL, NULL, 'K'),
+(13, 'Corp Medicină 1', ST_SetSRID(ST_MakePoint(28.0513, 45.4413), 4326), NULL, NULL, 'M1'),
+(14, 'Corp Medicină 2', ST_SetSRID(ST_MakePoint(28.0514, 45.4414), 4326), NULL, NULL, 'M2'),
+(15, 'Corp P', ST_SetSRID(ST_MakePoint(28.0515, 45.4415), 4326), NULL, NULL, 'P'),
+(16, 'Corp Q', ST_SetSRID(ST_MakePoint(28.0516, 45.4416), 4326), NULL, NULL, 'Q'),
+(17, 'Corp SB', ST_SetSRID(ST_MakePoint(28.0517, 45.4417), 4326), NULL, NULL, 'SB'),
+(18, 'Corp SC', ST_SetSRID(ST_MakePoint(28.0518, 45.4418), 4326), NULL, NULL, 'SC'),
+(19, 'Corp SD', ST_SetSRID(ST_MakePoint(28.0519, 45.4419), 4326), NULL, NULL, 'SD'),
+(20, 'Corp U', ST_SetSRID(ST_MakePoint(28.0520, 45.4420), 4326), NULL, NULL, 'U'),
+(21, 'Corp Y', ST_SetSRID(ST_MakePoint(28.0521, 45.4421), 4326), NULL, NULL, 'Y')
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     coordinates = EXCLUDED.coordinates,
@@ -124,7 +137,10 @@ ON CONFLICT (id) DO UPDATE SET
     facility_id = EXCLUDED.facility_id,
     marker = EXCLUDED.marker;
 
--- 6. PRODUCTS
+DELETE FROM public.locations
+WHERE id > 21;
+
+-- 7. PRODUCTS
 INSERT INTO public.products (id, name, description, quantity, price, category_id) VALUES
 (1, 'Ciorba de perisoare', 'Ciorba traditionala cu smantana si ardei iute', '400g', 14.50, 1),
 (2, 'Ceafa de porc la gratar', 'Ceafa suculenta rumenita pe plita', '150g', 16.00, 3),
@@ -143,12 +159,12 @@ ON CONFLICT (id) DO UPDATE SET
     price = EXCLUDED.price,
     category_id = EXCLUDED.category_id;
 
--- 7. DAILY MENUS
+-- 8. DAILY MENUS
 INSERT INTO public.daily_menus (id, day_of_week) VALUES
 (1, 1), (2, 2), (3, 3), (4, 4), (5, 5)
 ON CONFLICT (id) DO NOTHING;
 
--- 8. MENU PRODUCTS
+-- 9. MENU PRODUCTS
 INSERT INTO public.menu_products (menu_id, product_id) VALUES
 (1, 1), (1, 2), (1, 3), (1, 4), (1, 5),
 (2, 6), (2, 7), (2, 8), (2, 9), (2, 10),
@@ -157,7 +173,7 @@ INSERT INTO public.menu_products (menu_id, product_id) VALUES
 (5, 1), (5, 6), (5, 7), (5, 3), (5, 5)
 ON CONFLICT (menu_id, product_id) DO NOTHING;
 
--- 9. ANNOUNCEMENTS
+-- 10. ANNOUNCEMENTS
 INSERT INTO public.announcements (id, type, title, content, image_url, faculty_id, location_name, start_date, end_date, created_by) VALUES
 (1, 'EVENIMENT', 'Festivitatea de deschidere a anului universitar', 'Va invitam sa participati la festivitatea de deschidere a noului an universitar. Evenimentul va avea loc in holul central al universitatii.', 'https://ing.ugal.ro/Resurse/2024/WhatsApp_Image_2024-09-17_at_11.48.08.jpeg', NULL, 'Hol Central, Corp A', '2026-09-21T09:00:00Z', '2026-09-21T12:00:00Z', '00000000-0000-0000-0000-000000000001'),
 (2, 'EVENIMENT', 'Hackathon de 24 ore: Inovatie in Galati', 'Esti gata sa schimbi lumea in 24 de ore? Vino la cel mai mare hackathon din regiune.', 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=1000', 1, 'Laborator Multimedia, Corp B', '2026-11-15T10:00:00Z', '2026-11-16T10:00:00Z', '00000000-0000-0000-0000-000000000001'),
@@ -169,7 +185,7 @@ INSERT INTO public.announcements (id, type, title, content, image_url, faculty_i
 (8, 'NOUTATE', 'Stagii de practica la companii IT', 'Peste 50 de locuri de practica deschise in domeniul dezvoltarii software pentru studentii anilor 2 si 3.', 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97', 1, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000003')
 ON CONFLICT (id) DO NOTHING;
 
--- 10. COMPLAINTS
+-- 11. COMPLAINTS
 INSERT INTO public.complaints (id, title, description, location_id, status, user_id) VALUES
 (1, 'Problema retea Wi-Fi in Biblioteca', 'Semnalul eduroam se intrerupe frecvent la etajul 2 al bibliotecii. Ne ingreuneaza accesul la materiale de studiu.', 7, 'in_lucru', '00000000-0000-0000-0000-000000000002'),
 (2, 'Fereastra defecta', 'Geamul termopan nu se mai inchide etans, iar in sala de clasa este foarte frig.', 1, 'in_asteptare', '00000000-0000-0000-0000-000000000005'),

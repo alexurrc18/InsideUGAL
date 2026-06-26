@@ -19,7 +19,8 @@ export default function PageHeader() {
   const title = pageTitles[pathname] ?? "Dashboard";
 
   return (
-    <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-border bg-card px-4 sm:px-6 lg:px-8">
+    /* MODIFICAT: Adăugat sticky top-0 și z-40 pentru a rămâne fixat deasupra conținutului la scroll */
+    <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-border bg-card px-4 sm:px-6 lg:px-8 sticky top-0 z-40 shadow-xs">
       <div className="min-w-0">
         <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground">
           {title}

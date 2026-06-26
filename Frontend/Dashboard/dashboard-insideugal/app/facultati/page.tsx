@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Table, { Column } from "../components/ui/Table";
 import Modal from "../components/ui/Modal";
+import { canAccessFaculties, useRequireDashboardAccess } from "@/lib/dashboard-auth";
 
 type PaginatedResponse<T> = {
   items?: T[];
@@ -57,6 +58,7 @@ function getAuthHeaders(): HeadersInit {
 }
 
 export default function Page() {
+  const access = useRequireDashboardAccess(canAccessFaculties);
   const [activeTab, setActiveTab] = useState<"facultati" | "cladiri">("facultati");
   const [faculties, setFaculties] = useState<FacultyItem[]>([]);
   const [buildings, setBuildings] = useState<BuildingItem[]>([]);
@@ -74,8 +76,8 @@ export default function Page() {
 
     try {
       const [facultiesResponse, locationsResponse] = await Promise.all([
-        fetch(`${apiBaseUrl}/faculties/`),
-        fetch(`${apiBaseUrl}/locations/`),
+        fetch(`${apiBaseUrl}/faculties/?size=200`, { cache: "no-store" }),
+        fetch(`${apiBaseUrl}/locations/?size=200`, { cache: "no-store" }),
       ]);
 
       if (!facultiesResponse.ok) {
@@ -281,6 +283,8 @@ export default function Page() {
       ),
     },
   ];
+
+  if (access.loading || !access.allowed) return null;
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
