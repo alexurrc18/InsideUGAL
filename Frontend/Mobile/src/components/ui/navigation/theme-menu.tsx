@@ -64,6 +64,7 @@ export function ThemeMenu({
     const closeOnScroll = () => close();
     document.addEventListener("scroll", closeOnScroll, true);
     return () => document.removeEventListener("scroll", closeOnScroll, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const cogStyle = useAnimatedStyle(() => ({

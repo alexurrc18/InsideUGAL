@@ -51,6 +51,7 @@ export function HeroSlideshow({ slides, onPressItem, scrollY }: HeroSlideshowPro
   useEffect(() => {
     startAutoRotate();
     return () => stopAutoRotate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, slides.length, windowWidth]);
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {

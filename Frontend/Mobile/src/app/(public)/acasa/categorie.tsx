@@ -198,7 +198,7 @@ export default function CategoryScreen() {
   };
 
   const scrollHandler = useAnimatedScrollHandler((event) => {
-    scrollY.value = event.contentOffset.y;
+    scrollY.set(event.contentOffset.y);
     runOnJS(checkPagination)(
       event.contentOffset.y,
       event.layoutMeasurement.height,

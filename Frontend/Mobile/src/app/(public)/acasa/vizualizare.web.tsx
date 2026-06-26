@@ -29,7 +29,6 @@ const TWO_COL_BREAKPOINT = 900;
 function VizualizareScreen() {
     const params = useLocalSearchParams();
     const id = params.id as string;
-    const [scrolledPast, setScrolledPast] = useState(false);
     const [loading, setLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
     const [retryKey, setRetryKey] = useState(0);
@@ -288,7 +287,6 @@ function VizualizareScreen() {
     const address = itemData?.address || "";
     const phone = itemData?.phone || "";
     const website = itemData?.website || "";
-    const schedule = itemData?.schedule || "";
     const date = itemData?.date || "";
 
     // Anunturi inrudite: prioritizam aceeasi categorie ca articolul curent, apoi

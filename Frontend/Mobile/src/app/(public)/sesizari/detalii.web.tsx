@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { View, Text, ScrollView, Modal, Pressable, ActivityIndicator } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
@@ -44,7 +44,6 @@ function mapApiStatus(apiStatus: string): "active" | "respinse" | "finalizate" {
 
 export default function SesizareDetaliiScreen() {
   const params = useLocalSearchParams();
-  const router = useRouter();
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();

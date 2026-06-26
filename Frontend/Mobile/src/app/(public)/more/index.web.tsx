@@ -17,7 +17,6 @@ import FilmIcon from "@/assets/icons/svg/film-roll-alt.svg";
 import TreeIcon from "@/assets/icons/svg/tree-alt.svg";
 import PhoneIcon from "@/assets/icons/svg/phone.svg";
 import GlobeIcon from "@/assets/icons/svg/globe-europe.svg";
-import UserIcon from "@/assets/icons/svg/user.svg";
 
 export default function MoreScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;

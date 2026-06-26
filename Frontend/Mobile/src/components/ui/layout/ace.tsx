@@ -29,7 +29,6 @@ export function Ace() {
     scaleAnim.set(withSpring(1.0, { stiffness: 300, damping: 15, mass: 0.5 }));
   };
 
-  const themeWhite = theme.textOnDark === '#F8F9FA' ? theme.textOnDark : theme.text;
   const themeBlack = theme.text === '#121212' ? theme.text : theme.textOnDark;
 
   const commonPressableStyle: any = {

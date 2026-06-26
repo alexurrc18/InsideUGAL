@@ -51,7 +51,7 @@ export default function LoginScreen() {
                 if (typeof responseData === 'string' && responseData.trim().startsWith('{')) {
                     try {
                         responseData = JSON.parse(responseData);
-                    } catch (e) {
+                    } catch {
                         // keep as string
                     }
                 }

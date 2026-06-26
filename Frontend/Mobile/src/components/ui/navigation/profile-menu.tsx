@@ -6,7 +6,7 @@ import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import UserIcon from "@/assets/icons/svg/user.svg";
-import api, { getAuthToken, setAuthToken, logout } from "@/services/api";
+import api, { getAuthToken, logout } from "@/services/api";
 import { Config } from "@/constants/config";
 
 export const DASHBOARD_URL = Config.DASHBOARD_URL || "";
@@ -93,6 +93,7 @@ export function ProfileMenu({
     const onScroll = () => close();
     document.addEventListener("scroll", onScroll, true);
     return () => document.removeEventListener("scroll", onScroll, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const dropStyle = useAnimatedStyle(() => ({

@@ -1,5 +1,10 @@
 import React, { useEffect, useRef, useMemo, memo, useState } from 'react';
 import { View, Text } from 'react-native';
+import { Colors } from '@/constants/theme';
+import { Spacing } from '@/constants/spacing';
+import { Config } from '@/constants/config';
+import { MapPin } from './map-pin';
+import { cleanMapStyle } from '@/utils/map-helper';
 
 let MapLibre: any = null;
 let Camera: any = null;
@@ -14,12 +19,6 @@ try {
   console.error('MapLibre module could not be loaded:', e);
 }
 
-import { Colors } from '@/constants/theme';
-import { Spacing } from '@/constants/spacing';
-import { Config } from '@/constants/config';
-import { MapPin } from './map-pin';
-import { cleanMapStyle } from '@/utils/map-helper';
-
 interface MapProps {
   themeName: 'light' | 'dark';
   selectedFacultyId: string | null;
@@ -29,7 +28,6 @@ interface MapProps {
 
 const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect, buildings }: MapProps) => {
   const cameraRef = useRef<any>(null);
-  const theme = Colors[themeName];
 
   const [defaultCenter, setDefaultCenter] = useState<[number, number] | undefined>(undefined);
   const [defaultZoom, setDefaultZoom] = useState<number | undefined>(undefined);

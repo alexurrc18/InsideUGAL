@@ -4,7 +4,7 @@ import { View, Text, Pressable, ScrollView, Alert } from "react-native";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useNavigation } from "expo-router";
-import { getAuthToken, setAuthToken, logout } from "@/services/api";
+import { getAuthToken, logout } from "@/services/api";
 import { Colors, Spacing } from "@/constants/theme";
 
 import { Typography } from "@/constants/typography";

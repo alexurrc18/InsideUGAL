@@ -27,7 +27,7 @@ import { ThemeMenu } from "@/components/ui/navigation/theme-menu";
 import { ThemeToggle } from "@/components/ui/navigation/theme-toggle";
 import { ProfileMenu, DASHBOARD_URL } from "@/components/ui/navigation/profile-menu";
 import ChevronIcon from "@/assets/icons/svg/chevron-left.svg";
-import api, { getAuthToken, setAuthToken, logout } from "@/services/api";
+import api, { getAuthToken, logout } from "@/services/api";
 
 export const NAVBAR_HEIGHT = 72;
 

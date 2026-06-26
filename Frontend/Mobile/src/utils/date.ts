@@ -111,7 +111,7 @@ export const isoToRomanianDateStr = (isoStr?: string): string => {
     const month = months[d.getMonth()];
     const year = d.getFullYear();
     return `${day} ${month} ${year}`;
-  } catch (e) {
+  } catch {
     return isoStr;
   }
 };

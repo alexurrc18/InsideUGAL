@@ -3,14 +3,12 @@ import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import React from 'react';
 import { View } from "react-native";
 import { Colors } from '@/constants/theme';
-import { useNavigation, useRouter } from 'expo-router';
+import { useNavigation } from 'expo-router';
 // import { Ace } from '@/components/ui/layout/ace';
-import { getAuthToken } from '@/services/api';
 import { Typography } from '@/constants/typography';
 
 export default function TabLayout() {
     const navigation = useNavigation<any>();
-    const router = useRouter();
     const themeName = (useColorScheme() ?? 'light') as keyof typeof Colors;
     const theme = Colors[themeName];
     const activeColor = theme.primary;

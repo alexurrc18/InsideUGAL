@@ -1,11 +1,10 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Pressable, Text, View, Platform } from "react-native";
+import { Pressable, View, Platform } from "react-native";
 import Animated, { useSharedValue, withSpring, useAnimatedStyle } from "react-native-reanimated";
 import { Stack, useRouter, useGlobalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors, ColorScheme, Spacing } from "@/constants/theme";
-import { Typography } from "@/constants/typography";
+import { Colors, Spacing } from "@/constants/theme";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import PlusIcon from "@/assets/icons/svg/plus.svg";
 import { CategoryHeader, FilterItem } from "@/components/ui/display/category-header";

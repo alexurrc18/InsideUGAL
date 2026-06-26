@@ -123,6 +123,7 @@ export const storage = {
 let authToken: string | null = null;
 
 // Create Axios instance
+// eslint-disable-next-line import/no-named-as-default-member
 const api = axios.create({
   baseURL: Config.API_BASE_URL,
   timeout: 10000,
@@ -356,7 +357,7 @@ api.interceptors.response.use(
         if (typeof responseData === 'string' && responseData.trim().startsWith('{')) {
           try {
             responseData = JSON.parse(responseData);
-          } catch (e) {
+          } catch {
             // keep as string
           }
         }

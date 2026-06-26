@@ -22,12 +22,31 @@ import { InteractiveGlass } from '@/components/ui/layout/interactive-glass';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { NewsCard } from '@/components/ui/display/news-card';
-import { getMockResponse, resolveLink, generateMsgId, type ChatMessage } from '@/constants/ace-responses';
+import api from '@/services/api';
 
 import CloseIcon from '@/assets/icons/svg/x.svg';
 import MessagePlusIcon from '@/assets/icons/svg/message-plus.svg';
 import SendIcon from '@/assets/icons/svg/send.svg';
 import SparkleIcon from '@/assets/icons/svg/message-circle-star.svg';
+
+interface ChatMessage {
+  id: string;
+  text: string;
+  imageUrl?: string;
+  event?: {
+    title: string;
+    date: string;
+    location: string;
+    link?: string;
+    description?: string;
+  };
+  sender: 'user' | 'ai';
+  timestamp: Date;
+}
+
+function generateMsgId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
 
 const renderFormattedText = (text: string, baseStyle: any, boldStyle: any) => {
   const parts = text.split('**');
@@ -366,20 +385,30 @@ export default function AceScreen() {
     setIsTyping(true);
     scrollToBottom();
 
-    setTimeout(() => {
-      const response = getMockResponse(textToSend);
+    try {
+      const res = await api.post('/ace/chat', { message: textToSend });
+      const data = res.data;
       const aiMsg: ChatMessage = {
         id: generateMsgId(),
-        text: response.text,
-        imageUrl: response.imageUrl,
-        event: response.event,
+        text: data.text || data.message || '',
+        imageUrl: data.image_url || undefined,
+        event: data.event || undefined,
         sender: 'ai',
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMsg]);
+    } catch {
+      const errorMsg: ChatMessage = {
+        id: generateMsgId(),
+        text: 'A apărut o eroare. Vă rugăm să încercați din nou.',
+        sender: 'ai',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+    } finally {
       setIsTyping(false);
       scrollToBottom();
-    }, 1200);
+    }
   };
 
   const handleClearChat = () => {
@@ -414,8 +443,7 @@ export default function AceScreen() {
                       if (isWeb && !isInternalDomain) {
                         Linking.openURL(event.link).catch(err => console.error("Couldn't open URL", err));
                       } else {
-                        const resolved = resolveLink(event.link);
-                        router.push(resolved as any);
+                        router.push(event.link as any);
                       }
                     } else {
                       router.push({

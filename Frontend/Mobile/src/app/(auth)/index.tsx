@@ -2,8 +2,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useState } from "react";
 import { View, Text, Pressable, TextInput, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
-import { Colors, Fonts, Spacing } from "@/constants/theme";
-import CloseIcon from "@/assets/icons/svg/x.svg";
+import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import api, { setAuthToken } from "@/services/api";
@@ -52,7 +51,7 @@ export default function LoginScreen() {
                 if (typeof responseData === 'string' && responseData.trim().startsWith('{')) {
                     try {
                         responseData = JSON.parse(responseData);
-                    } catch (e) {
+                    } catch {
                         // keep as string
                     }
                 }
