@@ -5,7 +5,7 @@ import HeaderActions from "./HeaderActions";
 
 const pageTitles: Record<string, string> = {
   "/": "Acasă",
-  "/noutati": "Noutăți",
+  "/noutati": "Anunțuri",
   "/evenimente": "Evenimente",
   "/facultati": "Facultăți",
   "/harti": "Hărți",

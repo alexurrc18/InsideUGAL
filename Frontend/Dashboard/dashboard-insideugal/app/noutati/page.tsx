@@ -30,6 +30,9 @@ const availableFacultiesFromSystem = [
   "Economie"
 ];
 
+// 👉 TIP DEFINIT PENTRU FORMULAR ȘI TABELĂ
+type ExtendedAnnouncement = Announcement & { type: 'NOUTATE' | 'EVENIMENT' };
+
 function AnnouncementsContent() {
   const access = useRequireDashboardAccess(canAccessContent);
   const { data: backendData, isLoading: isLoadingAnnouncements, isError: isErrorAnnouncements, error: announcementsError } = useAnnouncements();
@@ -40,9 +43,10 @@ function AnnouncementsContent() {
   const generateBannerMutation = useGenerateAiBanner();
 
   const [activeModal, setActiveModal] = useState<'add' | 'edit' | 'details' | null>(null);
-  const [selectedItem, setSelectedItem] = useState<Announcement | null>(null);
-  const [formState, setFormState] = useState<Partial<Announcement>>({});
+  const [selectedItem, setSelectedItem] = useState<ExtendedAnnouncement | null>(null);
+  const [formState, setFormState] = useState<Partial<ExtendedAnnouncement>>({});
   const [selectedFaculty, setSelectedFaculty] = useState<string>('Toate');
+  const [selectedType, setSelectedType] = useState<string>('TOATE'); 
   const [newFacultyInput, setNewFacultyInput] = useState<string>('');
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -51,26 +55,31 @@ function AnnouncementsContent() {
   
   const searchParams = useSearchParams();
 
-  // 👉 REPARAT: Extrage masivul din obiectul de paginare ("items")
-  const data = useMemo(() => {
-    // Dacă backendData este direct masiv, îl folosim. Dacă are proprietatea .items, o folosim pe aceea.
+  // 👉 REPARAT: Mapează explicit backend tipul la valorile union de pe frontend
+  const data = useMemo((): ExtendedAnnouncement[] => {
     const list = backendData && typeof backendData === 'object' && 'items' in backendData 
       ? (backendData as Record<string, unknown>).items 
       : backendData;
 
     if (!list || !Array.isArray(list)) return [];
 
-    return (list as BackendAnnouncement[]).map((item: BackendAnnouncement): Announcement => ({
-      id: item.id.toString(),
-      title: item.title,
-      description: item.content || '', 
-      publishDate: item.created_at ? new Date(item.created_at).toLocaleDateString('ro-RO') : 'Fără dată',
-      faculties: (item as Record<string, unknown>).faculties as string[] || [], 
-      thumbnail: item.image_url || '',
-      image_url: item.image_url,
-      eventLink: (item as Record<string, unknown>).eventLink as string || '', 
-      pdfFiles: []  
-    }));
+    return (list as BackendAnnouncement[]).map((item: BackendAnnouncement): ExtendedAnnouncement => {
+      const rawType = (item as any).type;
+      const validType: 'NOUTATE' | 'EVENIMENT' = (rawType === 'EVENIMENT' || rawType === 'NOUTATE') ? rawType : 'NOUTATE';
+
+      return {
+        id: item.id.toString(),
+        title: item.title,
+        description: item.content || '', 
+        publishDate: item.created_at ? new Date(item.created_at).toLocaleDateString('ro-RO') : 'Fără dată',
+        faculties: (item as Record<string, unknown>).faculties as string[] || [], 
+        thumbnail: item.image_url || '',
+        image_url: item.image_url,
+        eventLink: (item as Record<string, unknown>).eventLink as string || '', 
+        pdfFiles: [],
+        type: validType
+      };
+    });
   }, [backendData]);
 
   useEffect(() => {
@@ -78,7 +87,7 @@ function AnnouncementsContent() {
 
     if (searchParams.get("open") === "true") {
       timerId = setTimeout(() => {
-        setFormState({ faculties: [], pdfFiles: [] });
+        setFormState({ faculties: [], pdfFiles: [], type: 'NOUTATE' });
         setNewFacultyInput('');
         setActiveModal('add');
       }, 0);
@@ -100,9 +109,18 @@ function AnnouncementsContent() {
   }, [dynamicFaculties]);
 
   const filteredData = useMemo(() => {
-    if (selectedFaculty === 'Toate') return data;
-    return data.filter(item => item.faculties?.includes(selectedFaculty));
-  }, [data, selectedFaculty]);
+    let result = data;
+    
+    if (selectedFaculty !== 'Toate') {
+      result = result.filter(item => item.faculties?.includes(selectedFaculty));
+    }
+    
+    if (selectedType !== 'TOATE') {
+      result = result.filter(item => item.type === selectedType);
+    }
+    
+    return result;
+  }, [data, selectedFaculty, selectedType]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -114,7 +132,7 @@ function AnnouncementsContent() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleShare = async (item: Announcement) => {
+  const handleShare = async (item: ExtendedAnnouncement) => {
     const shareData = {
       title: item.title,
       text: item.description,
@@ -128,7 +146,6 @@ function AnnouncementsContent() {
         console.error('Error sharing:', err);
       }
     } else {
-      // Fallback
       const encodedUrl = encodeURIComponent(shareData.url);
       const encodedTitle = encodeURIComponent(shareData.title);
       
@@ -137,16 +154,11 @@ function AnnouncementsContent() {
         { name: 'X', url: `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}` },
         { name: 'WhatsApp', url: `https://wa.me/?text=${encodedTitle}%20${encodedUrl}` }
       ];
-
-      // Simple alert or prompt to choose? 
-      // For simplicity and to fit in a table cell/row, let's just open the Facebook one as a direct fallback
-      // or simply copy to clipboard? The prompt asks for social media sharing links.
-      // Let's open a new window for the user to choose.
       window.open(options[0].url, '_blank');
     }
   };
 
-  const columns: Column<Announcement>[] = [
+  const columns: Column<ExtendedAnnouncement>[] = [
     {
       header: 'Imagine',
       key: 'thumbnail',
@@ -159,7 +171,7 @@ function AnnouncementsContent() {
             width={44}
             height={44}
             className="rounded-md object-cover border border-border"
-            unoptimized
+            unoptimized={imageSrc.startsWith('data:') || imageSrc.startsWith('http')}
           />
         ) : (
           <div className="w-11 h-11 bg-slate-100 rounded-md border border-slate-200" />
@@ -170,6 +182,15 @@ function AnnouncementsContent() {
       header: 'Titlu', 
       key: 'title',
       render: (item) => <span className="font-semibold text-foreground">{item.title}</span>
+    },
+    { 
+      header: 'Tip', 
+      key: 'type',
+      render: (item) => (
+        <span className={`text-xs px-2 py-0.5 rounded-md font-bold ${item.type === 'EVENIMENT' ? 'bg-amber-100 text-amber-700' : 'bg-purple-100 text-purple-700'}`}>
+          {item.type}
+        </span>
+      )
     },
     { 
       header: 'Descriere', 
@@ -208,7 +229,7 @@ function AnnouncementsContent() {
             className="text-blue-600 hover:text-blue-800 font-medium hover:underline cursor-pointer" 
             onClick={() => { 
               setSelectedItem(item); 
-              setFormState({ ...item }); 
+              setFormState({ ...item }); // 👉 EROAREA A DISPĂRUT ACUM
               setActiveModal('edit'); 
             }}
           >
@@ -315,14 +336,13 @@ function AnnouncementsContent() {
     );
   };
 
-  // 👉 REPARAT: Payload-ul acum trimite corect câmpurile structurate pentru Backend
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const backendPayload: Partial<BackendAnnouncement> = {
-      type: 'NOUTATE',
+    const backendPayload: Partial<BackendAnnouncement> & { type?: string } = {
+      type: formState.type || 'NOUTATE', 
       title: formState.title || '',
-      content: formState.description || '', // Mapare description (UI) -> content (Backend)
+      content: formState.description || '', 
       image_url: formState.thumbnail || formState.image_url || null,
     };
 
@@ -344,39 +364,58 @@ function AnnouncementsContent() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-row items-center justify-between gap-4 w-full">
-        <div className="flex items-center gap-2 relative" ref={dropdownRef}>
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Filtrează:</span>
-          <button
-            type="button"
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center justify-between min-w-[140px] border border-border px-4 py-2.5 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-foreground"
-          >
-            <span>{selectedFaculty}</span>
-            <svg className={`w-4 h-4 ml-2 text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full bg-card p-4 border border-border rounded-2xl shadow-xs">
+        <div className="flex flex-wrap items-center gap-6">
+          <div className="flex items-center gap-2 relative" ref={dropdownRef}>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Facultate:</span>
+            <button
+              type="button"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="flex items-center justify-between min-w-[140px] border border-border px-4 py-2.5 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-foreground"
+            >
+              <span>{selectedFaculty}</span>
+              <svg className={`w-4 h-4 ml-2 text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
 
-          {isDropdownOpen && (
-            <div className="absolute left-14 top-full mt-1.5 w-48 bg-card border border-border rounded-xl shadow-lg py-1 z-50">
-              {allFilterOptions.map(faculty => (
-                <div
-                  key={faculty}
-                  onClick={() => { setSelectedFaculty(faculty); setIsDropdownOpen(false); }}
-                  className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedFaculty === faculty ? 'bg-blue-50 text-blue-600 font-bold' : 'text-muted hover:bg-slate-50'}`}
-                >
-                  <span>{faculty}</span>
-                </div>
+            {isDropdownOpen && (
+              <div className="absolute left-14 top-full mt-1.5 w-48 bg-card border border-border rounded-xl shadow-lg py-1 z-50">
+                {allFilterOptions.map(faculty => (
+                  <div
+                    key={faculty}
+                    onClick={() => { setSelectedFaculty(faculty); setIsDropdownOpen(false); }}
+                    className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedFaculty === faculty ? 'bg-blue-50 text-blue-600 font-bold' : 'text-muted hover:bg-slate-50'}`}
+                  >
+                    <span>{faculty}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-4 border-l border-border pl-6">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tip Anunț:</span>
+            <div className="flex items-center gap-3">
+              {['TOATE', 'NOUTATE', 'EVENIMENT'].map((type) => (
+                <label key={type} className="flex items-center gap-1.5 text-sm font-semibold text-foreground cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={selectedType === type}
+                    onChange={() => setSelectedType(type)}
+                    className="w-4 h-4 text-brand rounded border-gray-300 focus:ring-brand cursor-pointer"
+                  />
+                  <span>{type}</span>
+                </label>
               ))}
             </div>
-          )}
+          </div>
         </div>
 
         <button 
           type="button" 
-          onClick={() => { setFormState({ faculties: [], pdfFiles: [] }); setNewFacultyInput(''); setActiveModal('add'); }} 
-          className="bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-bold cursor-pointer hover:opacity-90 transition-all shadow-md"
+          onClick={() => { setFormState({ faculties: [], pdfFiles: [], type: 'NOUTATE' }); setNewFacultyInput(''); setActiveModal('add'); }} 
+          className="bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-bold cursor-pointer hover:opacity-90 transition-all shadow-md self-end md:self-auto"
         >
           + Adaugă
         </button>
@@ -415,12 +454,17 @@ function AnnouncementsContent() {
                   fill
                   sizes="(max-width: 768px) 100vw, 512px"
                   className="object-cover"
-                  unoptimized={selectedItem.thumbnail.startsWith('data:').valueOf()}
+                  unoptimized={selectedItem.thumbnail.startsWith('data:') || selectedItem.thumbnail.startsWith('http')}
                 />
               </div>
             )}
             <div>
-              <h4 className="text-lg font-bold">{selectedItem.title}</h4>
+              <div className="flex items-center gap-2">
+                <h4 className="text-lg font-bold">{selectedItem.title}</h4>
+                <span className={`text-xs px-2 py-0.5 rounded-md font-bold ${selectedItem.type === 'EVENIMENT' ? 'bg-amber-100 text-amber-700' : 'bg-purple-100 text-purple-700'}`}>
+                  {selectedItem.type}
+                </span>
+              </div>
               <p className="text-xs text-muted mt-0.5">Publicat: {selectedItem.publishDate}</p>
             </div>
 
@@ -477,6 +521,23 @@ function AnnouncementsContent() {
             <div>
               <label htmlFor="ann-title" className="block text-xs font-semibold text-foreground mb-1">Titlu Anunț</label>
               <input id="ann-title" type="text" value={formState.title || ''} onChange={e => setFormState({...formState, title: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand" required />
+            </div>
+
+            <div>
+              <span className="block text-xs font-semibold text-foreground mb-1">Tipul Anunțului</span>
+              <div className="flex gap-4 p-2 border border-border rounded-lg bg-background">
+                {['NOUTATE', 'EVENIMENT'].map((type) => (
+                  <label key={type} className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formState.type === type}
+                      onChange={() => setFormState({ ...formState, type: type as 'NOUTATE' | 'EVENIMENT' })}
+                      className="w-4 h-4 text-brand rounded border-gray-300 focus:ring-brand"
+                    />
+                    <span>{type}</span>
+                  </label>
+                ))}
+              </div>
             </div>
 
             <div>
@@ -575,11 +636,11 @@ function AnnouncementsContent() {
                       fill
                       sizes="128px"
                       className="object-cover"
-                      unoptimized={formState.thumbnail.startsWith('data:')}
+                      unoptimized={formState.thumbnail.startsWith('data:') || formState.thumbnail.startsWith('http')}
                     />
                     <button 
                       type="button" 
-                      onClick={() => setFormState(prev => ({ ...prev, thumbnail: '' }))} 
+                      onClick={() => setFormState(prev => ({ ...prev, thumbnail: '', image_url: '' }))} 
                       className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] hover:bg-red-600"
                     >
                       ✕
@@ -656,6 +717,7 @@ function AnnouncementsContent() {
     </div>
   );
 }
+
 export default function Page() {
   return (
     <Suspense fallback={<div className="p-6 text-sm text-muted">Se încarcă noutățile...</div>}>
