@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, Platform } from 'react-native';
-import { useTheme } from '@/hooks/use-theme';
 import { ColorScheme } from '@/constants/theme';
 import { getBuildingLetter, isFacilityOpen } from '@/utils/map-helper';
 
@@ -16,10 +15,9 @@ interface MapPinProps {
 }
 
 export const MapPin = ({ name, isFacility }: MapPinProps) => {
-  const theme = useTheme();
   const letter = getBuildingLetter(name);
   const open = isFacility ? isFacilityOpen(name) : true;
-  const pinColor = isFacility ? (open ? theme.secondary : theme.textSecondary) : theme.primary;
+  const pinColor = isFacility ? ColorScheme.red : ColorScheme.blue;
 
   const renderContent = () => {
     if (!isFacility) {

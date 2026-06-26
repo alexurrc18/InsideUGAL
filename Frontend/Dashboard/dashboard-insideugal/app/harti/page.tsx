@@ -16,6 +16,7 @@ type PaginatedResponse<T> = {
 interface LocationApiItem {
   id: number;
   name: string;
+  marker?: string | null;
   faculty_ids: number[];
   facility_id?: number | null;
   coordinates: { latitude: number; longitude: number } | null;
@@ -24,6 +25,7 @@ interface LocationApiItem {
 interface Cladire {
   id: number;
   name: string;
+  marker?: string | null;
   faculty_ids: number[];
   facility_id?: number | null;
   coordinates: { latitude: number; longitude: number } | null;
@@ -143,6 +145,7 @@ export default function HartiPage() {
       setCladiri(itemsFromResponse(payload).map((item) => ({
         id: item.id,
         name: item.name,
+        marker: item.marker ?? null,
         faculty_ids: Array.isArray(item.faculty_ids) ? item.faculty_ids : [],
         facility_id: item.facility_id ?? null,
         coordinates: item.coordinates ?? null,
@@ -234,6 +237,7 @@ export default function HartiPage() {
     .map((cladire) => ({
       id: cladire.id,
       denumire: cladire.name,
+      marker: cladire.marker ?? null,
       adresa: cladire.coordinates ? `${cladire.coordinates.latitude}, ${cladire.coordinates.longitude}` : "",
       lat: cladire.coordinates!.latitude.toString(),
       lng: cladire.coordinates!.longitude.toString(),
