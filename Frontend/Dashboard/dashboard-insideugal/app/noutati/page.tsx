@@ -64,6 +64,7 @@ function AnnouncementsContent() {
     if (!list || !Array.isArray(list)) return [];
 
     return (list as BackendAnnouncement[]).map((item: BackendAnnouncement): ExtendedAnnouncement => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rawType = (item as any).type;
       const validType: 'NOUTATE' | 'EVENIMENT' = (rawType === 'EVENIMENT' || rawType === 'NOUTATE') ? rawType : 'NOUTATE';
 
