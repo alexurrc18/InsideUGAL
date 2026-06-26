@@ -1,11 +1,16 @@
 import React, { useEffect, useRef, useMemo, memo, useState } from 'react';
 import { View, Text } from 'react-native';
+import { Spacing } from '@/constants/spacing';
+import { Config } from '@/constants/config';
+import { MapPin } from './map-pin';
+import { cleanMapStyle } from '@/utils/map-helper';
 
 let MapLibre: any = null;
 let Camera: any = null;
 let Marker: any = null;
 
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const MapLibreModule = require('@maplibre/maplibre-react-native');
   MapLibre = MapLibreModule.Map;
   Camera = MapLibreModule.Camera;
@@ -13,12 +18,6 @@ try {
 } catch (e) {
   console.error('MapLibre module could not be loaded:', e);
 }
-
-import { Colors } from '@/constants/theme';
-import { Spacing } from '@/constants/spacing';
-import { Config } from '@/constants/config';
-import { MapPin } from './map-pin';
-import { cleanMapStyle } from '@/utils/map-helper';
 
 interface MapProps {
   themeName: 'light' | 'dark';
@@ -29,7 +28,6 @@ interface MapProps {
 
 const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect, buildings }: MapProps) => {
   const cameraRef = useRef<any>(null);
-  const theme = Colors[themeName];
 
   const [defaultCenter, setDefaultCenter] = useState<[number, number] | undefined>(undefined);
   const [defaultZoom, setDefaultZoom] = useState<number | undefined>(undefined);
@@ -39,6 +37,7 @@ const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect, buildings
   const cameraInitialized = useRef(false);
 
   useEffect(() => {
+    if (!Config.MAPTILER_STYLE_URL) return;
     fetch(Config.MAPTILER_STYLE_URL)
       .then(res => res.json())
       .then(style => {

@@ -1,6 +1,6 @@
 import React from "react";
 import { View, useWindowDimensions, type StyleProp, type ViewStyle } from "react-native";
-import { WebContentMaxWidth, WebMaxScale, WebSidePadding, Spacing } from "@/constants/theme";
+import { WebContentMaxWidth, WebSidePadding, Spacing } from "@/constants/theme";
 
 // Sub aceasta latime suntem "pe telefon" (browser ingust): marginile laterale
 // se micsoreaza mult, ca sa nu irosim jumatate din ecran pe padding.

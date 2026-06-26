@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { View, Text, ScrollView, Modal, Pressable, ActivityIndicator } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
@@ -13,6 +13,7 @@ import { CategoryHeader } from "@/components/ui/display/category-header";
 import { WebContainer } from "@/components/ui/layout/web-container";
 import { Breadcrumbs } from "@/components/ui/navigation/breadcrumbs";
 import api, { storage, resolveImageUrl } from "@/services/api";
+import { ErrorState } from "@/components/ui/display/error-state";
 
 import LocationIcon from "@/assets/icons/svg/location.svg";
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
@@ -43,7 +44,6 @@ function mapApiStatus(apiStatus: string): "active" | "respinse" | "finalizate" {
 
 export default function SesizareDetaliiScreen() {
   const params = useLocalSearchParams();
-  const router = useRouter();
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
@@ -53,6 +53,7 @@ export default function SesizareDetaliiScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<any>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     async function loadComplaint() {
@@ -101,15 +102,15 @@ export default function SesizareDetaliiScreen() {
         } else {
           setError("Sesizarea nu a putut fi găsită.");
         }
+        setLoading(false);
       } catch (err: any) {
+        setLoading(false);
         console.error("[API] Error fetching complaint detail web:", err);
         setError(err.message || "A apărut o eroare la încărcarea sesizării.");
-      } finally {
-        setLoading(false);
       }
     }
     loadComplaint();
-  }, [id]);
+  }, [id, retryKey]);
 
   const title = report?.title || "";
   const description = report?.description || "";
@@ -208,17 +209,11 @@ export default function SesizareDetaliiScreen() {
                 ]} 
               />
             </View>
-            <View style={{ minHeight: 400, justifyContent: "center", alignItems: "center", padding: Spacing.xl, gap: Spacing.md }}>
-              <Text style={[Typography.Heading3, { color: theme.text, textAlign: "center" }]}>
-                {error || "Sesizarea nu a putut fi găsită."}
-              </Text>
-              <Pressable 
-                onPress={() => router.back()} 
-                style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}
-              >
-                <Text style={{ color: ColorScheme.white, fontWeight: "bold" }}>Înapoi</Text>
-              </Pressable>
-            </View>
+            <ErrorState 
+              message={error || "Sesizarea nu a putut fi găsită."} 
+              onRetry={() => setRetryKey(prev => prev + 1)} 
+              style={{ minHeight: 500, paddingVertical: Spacing.xl4 }}
+            />
           </WebContainer>
         </ScrollView>
       </View>

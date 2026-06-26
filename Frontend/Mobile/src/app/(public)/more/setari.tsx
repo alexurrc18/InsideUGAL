@@ -1,14 +1,7 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useState, useEffect } from "react";
-import { 
-  View, 
-  Text, 
-  Switch, 
-  Pressable, 
-  Animated, 
-  Linking, 
-  Platform,
-  useColorScheme
-} from "react-native";
+import { View, Text, Switch, Pressable, Linking, Platform } from "react-native";
+import Animated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, interpolate, Extrapolation } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, Stack } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -28,7 +21,13 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const [scrollY] = useState(() => new Animated.Value(0));
+  const scrollY = useSharedValue(0);
+  const scrollHandler = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
+  const headerTitleStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [50, 90], [0, 1], Extrapolation.CLAMP),
+  }));
 
   // Local settings states driven by settingsStore
   const [selectedTheme, setSelectedTheme] = useState(() => settingsStore.getTheme());
@@ -65,12 +64,6 @@ export default function SettingsScreen() {
     }
   };
 
-  const headerTitleOpacity = scrollY.interpolate({
-    inputRange: [50, 90],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <Stack.Screen
@@ -94,7 +87,7 @@ export default function SettingsScreen() {
             </Pressable>
           ),
           headerTitle: () => (
-            <Animated.View style={{ opacity: headerTitleOpacity }}>
+            <Animated.View style={headerTitleStyle}>
               <Text 
                 style={[
                   Typography.Heading4, 
@@ -118,10 +111,7 @@ export default function SettingsScreen() {
           paddingTop: Spacing.md,
           paddingBottom: insets.bottom + Spacing.xxl
         }}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
+        onScroll={scrollHandler}
         scrollEventThrottle={16}
       >
         <CategoryHeader title="Setări" />

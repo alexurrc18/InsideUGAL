@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Pressable,
   Platform,
-  Animated,
 } from 'react-native';
+import Animated, { useSharedValue, withSpring, useAnimatedStyle } from 'react-native-reanimated';
 import { useTheme } from '@/hooks/use-theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -16,29 +16,19 @@ export function Ace() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const [scaleAnim] = useState(() => new Animated.Value(1));
+  const scaleAnim = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scaleAnim.value }],
+  }));
 
   const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1.12,
-      useNativeDriver: true,
-      stiffness: 300,
-      damping: 15,
-      mass: 0.5,
-    }).start();
+    scaleAnim.set(withSpring(1.12, { stiffness: 300, damping: 15, mass: 0.5 }));
   };
 
   const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1.0,
-      useNativeDriver: true,
-      stiffness: 300,
-      damping: 15,
-      mass: 0.5,
-    }).start();
+    scaleAnim.set(withSpring(1.0, { stiffness: 300, damping: 15, mass: 0.5 }));
   };
 
-  const themeWhite = theme.textOnDark === '#F8F9FA' ? theme.textOnDark : theme.text;
   const themeBlack = theme.text === '#121212' ? theme.text : theme.textOnDark;
 
   const commonPressableStyle: any = {
@@ -79,7 +69,7 @@ export function Ace() {
       onPressOut={handlePressOut}
       style={commonPressableStyle}
     >
-      <Animated.View style={{ transform: [{ scale: scaleAnim }], width: 56, height: 56 }}>
+      <Animated.View style={[animatedStyle, { width: 56, height: 56 }]}>
         <View
           style={{
             width: 56,
@@ -90,7 +80,7 @@ export function Ace() {
             backgroundColor: theme.card,
           }}
         >
-          <SparkleIcon width={34} height={34} color={theme.primary} style={{ marginLeft: 1, marginTop: -1 }} />
+          <SparkleIcon width={34} height={34} color="#FFFFFF" style={{ marginLeft: 1, marginTop: -1 }} />
         </View>
       </Animated.View>
     </Pressable>

@@ -3,10 +3,6 @@
 // Forma hibrida: /eveniment/<id>-<slug> (ex. /eveniment/2-gala-studentilor-ugal-2026).
 // - id-ul (partea dinainte de prima cratima) e canonic — dupa el cautam datele;
 // - slug-ul e doar decorativ, pentru SEO si lizibilitate.
-//
-// Momentan datele vin din mock-data.json; cand vine backend-ul, schimbi doar
-// `findEventById` / `allEventParams` ca sa intrebe API-ul.
-import MOCK_DATA from '@/constants/mock-data.json';
 
 // "Gala Studenților UGAL 2026" -> "gala-studentilor-ugal-2026"
 export function slugify(input: string): string {
@@ -30,27 +26,23 @@ export function parseEventId(param: string | string[] | undefined): string {
   return raw.split('-')[0];
 }
 
-// Cauta un eveniment dupa id (acum din mock; mai tarziu din backend).
-export function findEventById(id: string): any {
-  return MOCK_DATA.events.find((e) => e.id === id) ?? null;
+// Cauta un eveniment dupa id — datele vin din backend via API.
+export function findEventById(_id: string): any {
+  return null;
 }
 
-// Toate segmentele [id] de pre-generat la build (doar evenimentele, nu si anunturile).
+// Parametrii de pre-generat la build — se intoarce [] pana cand backend-ul
+// expune un endpoint de listare pentru generateStaticParams.
 export function allEventParams(): { id: string }[] {
-  return MOCK_DATA.events
-    .filter((e) => e.category === 'Evenimente')
-    .map((e) => ({ id: `${e.id}-${slugify(e.title)}` }));
+  return [];
 }
 
 // ── Anunturi (Noutati) — aceeasi logica, alta categorie ──────────────────────────
-// Lookup-ul e acelasi `findEventById` (anunturile sunt tot in array-ul `events`).
 export function anuntHref(item: { id: string; title: string }): string {
   const slug = slugify(item.title);
   return `/(public)/anunt/${item.id}${slug ? `-${slug}` : ''}`;
 }
 
 export function allAnuntParams(): { id: string }[] {
-  return MOCK_DATA.events
-    .filter((e) => e.category === 'Noutăți')
-    .map((e) => ({ id: `${e.id}-${slugify(e.title)}` }));
+  return [];
 }

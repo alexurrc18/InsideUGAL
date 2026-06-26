@@ -6,7 +6,8 @@
 //    - Implicit dispozitivului
 // Se inchide la selectie sau la a doua apasare pe cog. Trebuie montat intr-un <ThemeProvider>.
 import { useEffect, useState } from "react";
-import { Animated, Easing, Pressable, View, Text } from "react-native";
+import { Pressable, View, Text } from "react-native";
+import Animated, { useSharedValue, withTiming, useAnimatedStyle, interpolate, Extrapolation, Easing } from "react-native-reanimated";
 import { ColorScheme, Spacing, Colors } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { useThemeContext } from "@/contexts/theme-context";
@@ -26,7 +27,7 @@ export function ThemeMenu({
 }) {
   const [localOpen, setLocalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : localOpen;
-  const [anim] = useState(() => new Animated.Value(0)); // 0 = inchis, 1 = deschis
+  const anim = useSharedValue(0); // 0 = inchis, 1 = deschis
 
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
@@ -49,12 +50,10 @@ export function ThemeMenu({
   };
 
   useEffect(() => {
-    Animated.timing(anim, {
-      toValue: open ? 1 : 0,
+    anim.set(withTiming(open ? 1 : 0, {
       duration: open ? 280 : 200,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
+    }));
   }, [open, anim]);
 
   // Cand meniul e deschis si pagina e derulata, il inchidem inapoi (cu animatia
@@ -65,10 +64,16 @@ export function ThemeMenu({
     const closeOnScroll = () => close();
     document.addEventListener("scroll", closeOnScroll, true);
     return () => document.removeEventListener("scroll", closeOnScroll, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const rotate = anim.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "90deg"] });
-  const dropTranslate = anim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] });
+  const cogStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${interpolate(anim.value, [0, 1], [0, 90], Extrapolation.CLAMP)}deg` }],
+  }));
+  const dropStyle = useAnimatedStyle(() => ({
+    opacity: anim.value,
+    transform: [{ translateY: interpolate(anim.value, [0, 1], [-8, 0], Extrapolation.CLAMP) }],
+  }));
 
   const options = [
     { id: "light" as const, label: "Luminos" },
@@ -77,7 +82,7 @@ export function ThemeMenu({
   ];
 
   return (
-    <View style={{ position: "relative" }}>
+    <View style={{ position: "relative", height: "100%", justifyContent: "center" }}>
       {/* Trigger: cog (rotund, border alb ca sa se vada pe navbarul albastru). */}
       <Pressable
         onPress={toggle}
@@ -97,7 +102,7 @@ export function ThemeMenu({
             ...({ transitionDuration: "200ms", transitionProperty: "background-color" } as any),
           }}
         >
-          <Animated.View style={{ transform: [{ rotate }] }}>
+          <Animated.View style={cogStyle}>
             <CogIcon width={24} height={24} color={ColorScheme.white} />
           </Animated.View>
         </View>
@@ -107,15 +112,15 @@ export function ThemeMenu({
           Colturi drepte (borderRadius: 0), shadow si aspect identic cu dropdown-ul de anunturi. */}
       <Animated.View
         pointerEvents={open ? "auto" : "none"}
-        style={{
-          position: "absolute",
-          top: "100%",
-          right: 0,
-          marginTop: 8,
-          minWidth: 200,
-          opacity: anim,
-          transform: [{ translateY: dropTranslate }],
-        }}
+        style={[
+          {
+            position: "absolute",
+            top: "100%",
+            right: 0,
+            minWidth: 200,
+          },
+          dropStyle,
+        ]}
       >
         <View
           style={{

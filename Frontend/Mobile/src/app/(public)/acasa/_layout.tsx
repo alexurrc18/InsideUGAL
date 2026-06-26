@@ -1,8 +1,7 @@
-import { Pressable, Text, useColorScheme } from "react-native";
+import { Pressable } from "react-native";
 import { Stack, useRouter } from "expo-router";
 
-import { Colors, ColorScheme, Spacing } from "@/constants/theme";
-import { Typography } from "@/constants/typography";
+import { ColorScheme, Spacing } from "@/constants/theme";
 
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 
@@ -12,8 +11,6 @@ export const unstable_settings = {
 
 export default function LineupLayout() {
     const router = useRouter();
-    const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
-    const theme = Colors[themeName];
 
     return (
         <Stack screenOptions={{

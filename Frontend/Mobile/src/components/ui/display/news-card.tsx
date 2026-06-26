@@ -1,12 +1,13 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React from "react";
 import { View, Text, useWindowDimensions, Pressable, Platform } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Typography } from "@/constants/typography";
 import { Colors, Spacing, ColorScheme } from "@/constants/theme";
-import { useColorScheme } from "react-native";
 
-const DEFAULT_IMAGE = require("@/assets/images/placeholders/1920x1080.png");
+
+const DEFAULT_IMAGE = require("@/assets/images/campus-stiintei.png");
 
 export interface NewsCardProps {
     title: string;
