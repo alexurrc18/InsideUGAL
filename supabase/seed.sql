@@ -14,8 +14,10 @@ INSERT INTO public.faculties (id, name, abbreviation, address, phone, website_ur
 (9, 'Facultatea de Stiinte si Mediu', 'FSM', 'Str. Domneasca nr. 111', '0236412353', 'https://fsm.ugal.ro'),
 (10, 'Facultatea de Istorie, Filosofie si Teologie', 'FIFT', 'Str. Domneasca nr. 111', '0236412354', 'https://fift.ugal.ro'),
 (11, 'Facultatea de Drept si Stiinte Administrative', 'FDSA', 'Str. Domneasca nr. 111', '0236412355', 'https://drept.ugal.ro'),
-(12, 'Facultatea de Inginerie si Agronomie din Braila', 'FIAB', 'Str. Calea Calarasilor nr. 29', '0236412356', 'https://ingbraila.ugal.ro'),
-(13, 'Facultatea de Economie si Administrarea Afacerilor', 'FEAA', 'Str. Nicolae Balcescu nr. 59-61', '0236412357', 'https://feaa.ugal.ro')
+(12, 'Facultatea de Inginerie si Agronomie din Braila', 'FIAB', 'Str. Calea Calarasilor nr. 29, Braila', '0236412356', 'https://ingbraila.ugal.ro'),
+(13, 'Facultatea de Economie si Administrarea Afacerilor', 'FEAA', 'Str. Nicolae Balcescu nr. 59-61', '0236412357', 'https://feaa.ugal.ro'),
+(14, 'Facultatea de Științe ale Educației', 'FSED', 'Str. Științei nr. 2', '0336 130 164', 'https://fsed.ugal.ro'),
+(15, 'Facultatea de Arte', 'FA', 'Str. Domnească nr. 111, 800201', '0336 130 163', 'https://arte.ugal.ro')
 ON CONFLICT (id) DO NOTHING;
 
 UPDATE public.faculties
