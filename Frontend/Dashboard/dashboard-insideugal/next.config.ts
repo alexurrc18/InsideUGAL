@@ -1,8 +1,6 @@
 import type { NextConfig } from "next";
-import * as dotenv from 'dotenv';
-import path from 'path';
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
+// Next.js încarcă automat variabilele din .env, deci nu avem nevoie de dotenv manual aici.
 function originFromUrl(value: string | undefined): string | null {
   if (!value) return null;
   try {
@@ -13,6 +11,7 @@ function originFromUrl(value: string | undefined): string | null {
 }
 
 const backendOrigin = originFromUrl(process.env.NEXT_PUBLIC_BACKEND_URL);
+
 const connectSrc = [
   "'self'",
   "https://*.supabase.co",
@@ -30,7 +29,7 @@ const cspHeader = `
     default-src 'self';
     script-src 'self' 'unsafe-eval' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com https://*.maptiler.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.maptiler.com;
-    img-src 'self' blob: data: https://*.supabase.co https://maps.googleapis.com https://maps.gstatic.com https://*.maptiler.com https:; <-- 1. MODIFICAT AICI (am adăugat https: la final)
+    img-src 'self' blob: data: https://*.supabase.co https://maps.googleapis.com https://maps.gstatic.com https://*.maptiler.com https:;
     font-src 'self' data: https://fonts.gstatic.com https://*.maptiler.com;
     object-src 'none';
     base-uri 'self';
@@ -47,7 +46,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
   },
   
-  // <-- 2. MODIFICAT AICI (Permite componentei <Image /> din Next.js să încarce orice URL extern)
+  // Regula pentru imagini externe (care nu mai crapă serverul)
   images: {
     remotePatterns: [
       {
@@ -86,6 +85,8 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  
+  // Dezactivează temporar turbopack root dacă suspectezi că blochează build-ul în workspace-uri
   turbopack: {
     root: __dirname,
   },
