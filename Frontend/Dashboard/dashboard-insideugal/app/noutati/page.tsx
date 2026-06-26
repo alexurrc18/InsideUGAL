@@ -30,7 +30,6 @@ const availableFacultiesFromSystem = [
   "Economie"
 ];
 
-// 👉 TIP DEFINIT PENTRU FORMULAR ȘI TABELĂ
 type ExtendedAnnouncement = Announcement & { type: 'NOUTATE' | 'EVENIMENT' };
 
 function AnnouncementsContent() {
@@ -48,14 +47,18 @@ function AnnouncementsContent() {
   const [selectedFaculty, setSelectedFaculty] = useState<string>('Toate');
   const [selectedType, setSelectedType] = useState<string>('TOATE'); 
   const [newFacultyInput, setNewFacultyInput] = useState<string>('');
-  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Referințe pentru dropdown-uri custom (dacă e cazul)
+  const [isFacultyDropdownOpen, setIsFacultyDropdownOpen] = useState<boolean>(false);
+  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState<boolean>(false);
+  
+  const facultyDropdownRef = useRef<HTMLDivElement>(null);
+  const typeDropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   
   const searchParams = useSearchParams();
 
-  // 👉 REPARAT: Mapează explicit backend tipul la valorile union de pe frontend
   const data = useMemo((): ExtendedAnnouncement[] => {
     const list = backendData && typeof backendData === 'object' && 'items' in backendData 
       ? (backendData as Record<string, unknown>).items 
@@ -125,8 +128,11 @@ function AnnouncementsContent() {
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
+      if (facultyDropdownRef.current && !facultyDropdownRef.current.contains(event.target as Node)) {
+        setIsFacultyDropdownOpen(false);
+      }
+      if (typeDropdownRef.current && !typeDropdownRef.current.contains(event.target as Node)) {
+        setIsTypeDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -230,7 +236,7 @@ function AnnouncementsContent() {
             className="text-blue-600 hover:text-blue-800 font-medium hover:underline cursor-pointer" 
             onClick={() => { 
               setSelectedItem(item); 
-              setFormState({ ...item }); // 👉 EROAREA A DISPĂRUT ACUM
+              setFormState({ ...item }); 
               setActiveModal('edit'); 
             }}
           >
@@ -338,28 +344,29 @@ function AnnouncementsContent() {
   };
 
   const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const backendPayload: Partial<BackendAnnouncement> & { type?: string } = {
-      type: formState.type || 'NOUTATE', 
-      title: formState.title || '',
-      content: formState.description || '', 
-      image_url: formState.thumbnail || formState.image_url || null,
-    };
-
-    if (activeModal === 'edit' && selectedItem) {
-      updateMutation.mutate({ 
-        id: parseInt(selectedItem.id), 
-        data: backendPayload
-      }, {
-        onSuccess: () => setActiveModal(null)
-      });
-    } else {
-      createMutation.mutate(backendPayload, {
-        onSuccess: () => setActiveModal(null)
-      });
-    }
+  e.preventDefault();
+  
+  const backendPayload: Partial<BackendAnnouncement> & { type?: string; faculties?: string[] } = {
+    type: formState.type || 'NOUTATE', 
+    title: formState.title || '',
+    content: formState.description || '', 
+    image_url: formState.thumbnail || formState.image_url || null,
+    faculties: formState.faculties || [], // 👉 ACUM TRIMITEM ȘI FACULTĂȚILE SELECTATE!
   };
+
+  if (activeModal === 'edit' && selectedItem) {
+    updateMutation.mutate({ 
+      id: parseInt(selectedItem.id), 
+      data: backendPayload
+    }, {
+      onSuccess: () => setActiveModal(null)
+    });
+  } else {
+    createMutation.mutate(backendPayload, {
+      onSuccess: () => setActiveModal(null)
+    });
+  }
+};
 
   if (access.loading || !access.allowed) return null;
 
@@ -367,25 +374,26 @@ function AnnouncementsContent() {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full bg-card p-4 border border-border rounded-2xl shadow-xs">
         <div className="flex flex-wrap items-center gap-6">
-          <div className="flex items-center gap-2 relative" ref={dropdownRef}>
+          {/* Dropdown Custom Facultate */}
+          <div className="flex items-center gap-2 relative" ref={facultyDropdownRef}>
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Facultate:</span>
             <button
               type="button"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              onClick={() => setIsFacultyDropdownOpen(!isFacultyDropdownOpen)}
               className="flex items-center justify-between min-w-[140px] border border-border px-4 py-2.5 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-foreground"
             >
               <span>{selectedFaculty}</span>
-              <svg className={`w-4 h-4 ml-2 text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className={`w-4 h-4 ml-2 text-slate-400 transition-transform duration-200 ${isFacultyDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
 
-            {isDropdownOpen && (
+            {isFacultyDropdownOpen && (
               <div className="absolute left-14 top-full mt-1.5 w-48 bg-card border border-border rounded-xl shadow-lg py-1 z-50">
                 {allFilterOptions.map(faculty => (
                   <div
                     key={faculty}
-                    onClick={() => { setSelectedFaculty(faculty); setIsDropdownOpen(false); }}
+                    onClick={() => { setSelectedFaculty(faculty); setIsFacultyDropdownOpen(false); }}
                     className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedFaculty === faculty ? 'bg-blue-50 text-blue-600 font-bold' : 'text-muted hover:bg-slate-50'}`}
                   >
                     <span>{faculty}</span>
@@ -395,21 +403,33 @@ function AnnouncementsContent() {
             )}
           </div>
 
-          <div className="flex items-center gap-4 border-l border-border pl-6">
+          {/* 👉 MODIFICAT: Dropdown Custom pentru filtrul Tip Anunț (TOATE / NOUTATE / EVENIMENT) */}
+          <div className="flex items-center gap-2 relative border-l border-border pl-6" ref={typeDropdownRef}>
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tip Anunț:</span>
-            <div className="flex items-center gap-3">
-              {['TOATE', 'NOUTATE', 'EVENIMENT'].map((type) => (
-                <label key={type} className="flex items-center gap-1.5 text-sm font-semibold text-foreground cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={selectedType === type}
-                    onChange={() => setSelectedType(type)}
-                    className="w-4 h-4 text-brand rounded border-gray-300 focus:ring-brand cursor-pointer"
-                  />
-                  <span>{type}</span>
-                </label>
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
+              className="flex items-center justify-between min-w-[140px] border border-border px-4 py-2.5 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-foreground"
+            >
+              <span>{selectedType}</span>
+              <svg className={`w-4 h-4 ml-2 text-slate-400 transition-transform duration-200 ${isTypeDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {isTypeDropdownOpen && (
+              <div className="absolute left-14 top-full mt-1.5 w-48 bg-card border border-border rounded-xl shadow-lg py-1 z-50">
+                {['TOATE', 'NOUTATE', 'EVENIMENT'].map(type => (
+                  <div
+                    key={type}
+                    onClick={() => { setSelectedType(type); setIsTypeDropdownOpen(false); }}
+                    className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedType === type ? 'bg-blue-50 text-blue-600 font-bold' : 'text-muted hover:bg-slate-50'}`}
+                  >
+                    <span>{type}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -429,7 +449,7 @@ function AnnouncementsContent() {
           </div>
         ) : isErrorAnnouncements ? (
           <div className="p-12 text-center text-sm text-red-500">
-            Eroare la încărcarea noutăților: {announcementsError?.message || 'Eroare de rețea sau protocol SSL local.'}
+            Eroare la încărcarea noutăților: {announcementsError?.message || 'Eroare de rețea.'}
           </div>
         ) : (
           <Table 
@@ -524,21 +544,18 @@ function AnnouncementsContent() {
               <input id="ann-title" type="text" value={formState.title || ''} onChange={e => setFormState({...formState, title: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand" required />
             </div>
 
+            {/* 👉 MODIFICAT: Dropdown nativ select în interiorul modalului pentru Tipul Anunțului */}
             <div>
-              <span className="block text-xs font-semibold text-foreground mb-1">Tipul Anunțului</span>
-              <div className="flex gap-4 p-2 border border-border rounded-lg bg-background">
-                {['NOUTATE', 'EVENIMENT'].map((type) => (
-                  <label key={type} className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formState.type === type}
-                      onChange={() => setFormState({ ...formState, type: type as 'NOUTATE' | 'EVENIMENT' })}
-                      className="w-4 h-4 text-brand rounded border-gray-300 focus:ring-brand"
-                    />
-                    <span>{type}</span>
-                  </label>
-                ))}
-              </div>
+              <label htmlFor="ann-type" className="block text-xs font-semibold text-foreground mb-1">Tipul Anunțului</label>
+              <select
+                id="ann-type"
+                value={formState.type || 'NOUTATE'}
+                onChange={e => setFormState({ ...formState, type: e.target.value as 'NOUTATE' | 'EVENIMENT' })}
+                className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm cursor-pointer font-medium"
+              >
+                <option value="NOUTATE">NOUTATE</option>
+                <option value="EVENIMENT">EVENIMENT</option>
+              </select>
             </div>
 
             <div>

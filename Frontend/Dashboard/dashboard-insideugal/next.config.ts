@@ -30,7 +30,7 @@ const cspHeader = `
     default-src 'self';
     script-src 'self' 'unsafe-eval' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com https://*.maptiler.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.maptiler.com;
-    img-src 'self' blob: data: https://*.supabase.co https://maps.googleapis.com https://maps.gstatic.com https://*.maptiler.com;
+    img-src 'self' blob: data: https://*.supabase.co https://maps.googleapis.com https://maps.gstatic.com https://*.maptiler.com https:; <-- 1. MODIFICAT AICI (am adăugat https: la final)
     font-src 'self' data: https://fonts.gstatic.com https://*.maptiler.com;
     object-src 'none';
     base-uri 'self';
@@ -39,12 +39,28 @@ const cspHeader = `
     connect-src ${connectSrc};
     worker-src blob:;
 `.replace(/\s{2,}/g, ' ').trim();
+
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   env: {
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
   },
+  
+  // <-- 2. MODIFICAT AICI (Permite componentei <Image /> din Next.js să încarce orice URL extern)
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**', 
+      },
+      {
+        protocol: 'http',
+        hostname: '**', 
+      },
+    ],
+  },
+
   async headers() {
     return [
       {
