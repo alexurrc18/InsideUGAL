@@ -6,6 +6,7 @@ import Modal from "../components/ui/Modal";
 import { Card, CardContent } from "../components/ui/Card";
 import MapView from "../components/MapView";
 import MapComponent from "../components/MapComponent";
+import { apiFetch } from "@/lib/api-client";
 import { canAccessMaps, useRequireDashboardAccess } from "@/lib/dashboard-auth";
 
 type PaginatedResponse<T> = {
@@ -15,49 +16,48 @@ type PaginatedResponse<T> = {
 interface LocationApiItem {
   id: number;
   name: string;
-  faculty_id: number | null;
+  faculty_ids: number[];
+  facility_id?: number | null;
   coordinates: { latitude: number; longitude: number } | null;
 }
 
 interface Cladire {
   id: number;
   name: string;
-  faculty_id: number | null;
+  faculty_ids: number[];
+  facility_id?: number | null;
   coordinates: { latitude: number; longitude: number } | null;
 }
 
 interface FormState {
   name: string;
-  faculty_id: string;
+  faculty_ids: string;
   lat: string;
   lng: string;
 }
 
 const emptyForm: FormState = {
   name: "",
-  faculty_id: "",
+  faculty_ids: "",
   lat: "",
   lng: "",
 };
-
-const apiBaseUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8002").replace(/\/$/, "");
 
 function itemsFromResponse<T>(payload: PaginatedResponse<T> | T[]): T[] {
   return Array.isArray(payload) ? payload : payload.items ?? [];
 }
 
-function getAuthHeaders(): HeadersInit {
-  const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
+function parseFacultyIds(value: string): number[] {
+  return value
+    .split(",")
+    .map((part) => parseInt(part.trim(), 10))
+    .filter((id) => Number.isFinite(id));
 }
 
 function formToPayload(form: FormState) {
   return {
     name: form.name,
-    faculty_id: form.faculty_id ? parseInt(form.faculty_id, 10) : null,
+    faculty_ids: parseFacultyIds(form.faculty_ids),
     coordinates: form.lat && form.lng ? {
       latitude: parseFloat(form.lat),
       longitude: parseFloat(form.lng),
@@ -68,7 +68,7 @@ function formToPayload(form: FormState) {
 function formFromCladire(cladire: Cladire): FormState {
   return {
     name: cladire.name,
-    faculty_id: cladire.faculty_id?.toString() ?? "",
+    faculty_ids: cladire.faculty_ids.join(", "),
     lat: cladire.coordinates?.latitude.toString() ?? "",
     lng: cladire.coordinates?.longitude.toString() ?? "",
   };
@@ -93,8 +93,8 @@ function CladireForm({
           <input value={formState.name} onChange={(event) => setFormState({ ...formState, name: event.target.value })} className="w-full p-2 rounded-lg border border-border bg-background text-sm" />
         </div>
         <div>
-          <label className="block text-xs font-bold text-muted uppercase mb-1">Faculty ID</label>
-          <input type="number" value={formState.faculty_id} onChange={(event) => setFormState({ ...formState, faculty_id: event.target.value })} className="w-full p-2 rounded-lg border border-border bg-background text-sm" />
+          <label className="block text-xs font-bold text-muted uppercase mb-1">Faculty IDs</label>
+          <input value={formState.faculty_ids} onChange={(event) => setFormState({ ...formState, faculty_ids: event.target.value })} placeholder="Ex: 1, 4, 10" className="w-full p-2 rounded-lg border border-border bg-background text-sm" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -128,6 +128,7 @@ export default function HartiPage() {
   const [cladiri, setCladiri] = useState<Cladire[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedFacultyId, setSelectedFacultyId] = useState<string>("");
   const [addForm, setAddForm] = useState<FormState>(emptyForm);
   const [editForm, setEditForm] = useState<FormState>(emptyForm);
 
@@ -136,13 +137,14 @@ export default function HartiPage() {
     setErrorMessage(null);
 
     try {
-      const response = await fetch(`${apiBaseUrl}/locations/?size=200`, { cache: "no-store" });
+      const response = await apiFetch("/locations/?size=200", { cache: "no-store" });
       if (!response.ok) throw new Error(`Status ${response.status}`);
       const payload = await response.json() as PaginatedResponse<LocationApiItem> | LocationApiItem[];
       setCladiri(itemsFromResponse(payload).map((item) => ({
         id: item.id,
         name: item.name,
-        faculty_id: item.faculty_id ?? null,
+        faculty_ids: Array.isArray(item.faculty_ids) ? item.faculty_ids : [],
+        facility_id: item.facility_id ?? null,
         coordinates: item.coordinates ?? null,
       })));
     } catch (error) {
@@ -163,9 +165,9 @@ export default function HartiPage() {
     setErrorMessage(null);
 
     try {
-      const response = await fetch(`${apiBaseUrl}/locations/`, {
+      const response = await apiFetch("/locations/", {
         method: "POST",
-        headers: getAuthHeaders(),
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formToPayload(addForm)),
       });
       if (!response.ok) throw new Error(`Status ${response.status}`);
@@ -189,9 +191,9 @@ export default function HartiPage() {
     setErrorMessage(null);
 
     try {
-      const response = await fetch(`${apiBaseUrl}/locations/${editingId}`, {
+      const response = await apiFetch(`/locations/${editingId}`, {
         method: "PATCH",
-        headers: getAuthHeaders(),
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formToPayload(editForm)),
       });
       if (!response.ok) throw new Error(`Status ${response.status}`);
@@ -208,9 +210,8 @@ export default function HartiPage() {
     setErrorMessage(null);
 
     try {
-      const response = await fetch(`${apiBaseUrl}/locations/${id}`, {
+      const response = await apiFetch(`/locations/${id}`, {
         method: "DELETE",
-        headers: getAuthHeaders(),
       });
       if (!response.ok && response.status !== 204) throw new Error(`Status ${response.status}`);
       await fetchLocations();
@@ -220,7 +221,15 @@ export default function HartiPage() {
     }
   };
 
-  const cladiriForMap = cladiri
+  const filteredCladiri = selectedFacultyId === "facilities"
+    ? cladiri.filter((cladire) => cladire.facility_id !== null && cladire.facility_id !== undefined)
+    : selectedFacultyId
+      ? cladiri.filter((cladire) => cladire.faculty_ids.includes(parseInt(selectedFacultyId, 10)))
+      : cladiri;
+
+  const facultyFilterOptions = Array.from(new Set(cladiri.flatMap((cladire) => cladire.faculty_ids))).sort((a, b) => a - b);
+
+  const cladiriForMap = filteredCladiri
     .filter((cladire) => cladire.coordinates)
     .map((cladire) => ({
       id: cladire.id,
@@ -228,7 +237,7 @@ export default function HartiPage() {
       adresa: cladire.coordinates ? `${cladire.coordinates.latitude}, ${cladire.coordinates.longitude}` : "",
       lat: cladire.coordinates!.latitude.toString(),
       lng: cladire.coordinates!.longitude.toString(),
-      facultate: cladire.faculty_id === null ? "f8" : `f${cladire.faculty_id}`,
+      facultate: cladire.facility_id !== null && cladire.facility_id !== undefined ? "f8" : `f${cladire.faculty_ids[0] ?? ""}`,
     }));
 
   const columns: Column<Cladire>[] = [
@@ -238,7 +247,9 @@ export default function HartiPage() {
       render: (item) => (
         <div className="flex flex-col">
           <span className="font-semibold text-foreground">{item.name}</span>
-          <span className="text-xs text-muted">{item.faculty_id ? `Facultate ${item.faculty_id}` : "UGAL"}</span>
+          <span className="text-xs text-muted">
+            {item.facility_id ? "Facilitate UGAL" : item.faculty_ids.length ? `Facultati ${item.faculty_ids.join(", ")}` : "UGAL"}
+          </span>
         </div>
       ),
     },
@@ -272,6 +283,19 @@ export default function HartiPage() {
           <button type="button" onClick={() => setTab("locatii")} className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${tab === "locatii" ? "bg-sidebar text-white" : "text-muted hover:text-foreground"}`}>Locatii</button>
           <button type="button" onClick={() => setTab("harta")} className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${tab === "harta" ? "bg-sidebar text-white" : "text-muted hover:text-foreground"}`}>Harta</button>
         </div>
+        {tab === "harta" && (
+          <select
+            value={selectedFacultyId}
+            onChange={(event) => setSelectedFacultyId(event.target.value)}
+            className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+          >
+            <option value="">Toate facultatile</option>
+            <option value="facilities">Facilitati</option>
+            {facultyFilterOptions.map((facultyId) => (
+              <option key={facultyId} value={facultyId}>Facultatea {facultyId}</option>
+            ))}
+          </select>
+        )}
         <button type="button" onClick={() => { setAddForm(emptyForm); setShowAddModal(true); }} className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-medium hover:opacity-90">+ Adauga cladire</button>
       </div>
 

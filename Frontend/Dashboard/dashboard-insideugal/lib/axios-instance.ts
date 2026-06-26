@@ -1,7 +1,7 @@
 import axios from "axios";
-import { AxiosHeaders, type InternalAxiosRequestConfig } from "axios";
+import { AxiosHeaders, type AxiosError, type InternalAxiosRequestConfig } from "axios";
 
-import { apiBaseUrl, getStoredAccessToken } from "./api-client";
+import { apiBaseUrl, getStoredAccessToken, refreshAuthSession } from "./api-client";
 
 const axiosInstance = axios.create({
   baseURL: apiBaseUrl,
@@ -33,5 +33,25 @@ axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
   return config;
 });
+
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const config = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
+
+    if (error.response?.status !== 401 || !config || config._retry) {
+      return Promise.reject(error);
+    }
+
+    const token = await refreshAuthSession();
+    if (!token) {
+      return Promise.reject(error);
+    }
+
+    config._retry = true;
+    setAuthorizationHeader(config, token);
+    return axiosInstance(config);
+  },
+);
 
 export default axiosInstance;
