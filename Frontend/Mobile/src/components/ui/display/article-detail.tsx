@@ -21,7 +21,6 @@ import { Breadcrumbs, type Crumb } from "@/components/ui/navigation/breadcrumbs"
 import { CompactCard } from "@/components/ui/display/home-highlights";
 import { NewsCard, CategoryTag } from "@/components/ui/display/news-card";
 import { eventHref, anuntHref } from "@/utils/article-url";
-import MOCK_DATA from "@/constants/mock-data.json";
 
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
 import LocationIcon from "@/assets/icons/svg/location.svg";
@@ -77,16 +76,8 @@ export function ArticleDetail({
 
     const tipPagina = type || "Eveniment";
 
-    // Anunturi inrudite: prioritizam aceeasi categorie ca articolul curent, apoi
-    // completam cu restul. Excludem articolul curent (dupa titlu). Sidebar-ul ia
-    // primele, "Mai multe" ia urmatoarele (distincte de sidebar).
-    const pool = MOCK_DATA.events.filter((e) => e.title !== title);
-    const sameCategory = pool.filter((e) => e.category === category);
-    const otherCategory = pool.filter((e) => e.category !== category);
-    const ordered = [...sameCategory, ...otherCategory];
-
-    const sidebarItems = ordered.slice(0, 3);
-    const relatedItems = ordered.slice(3, 6);
+    const sidebarItems: any[] = [];
+    const relatedItems: any[] = [];
 
     // Latimea masurata a randului de jos, impartita egal la numarul de carduri.
     const [rowWidth, setRowWidth] = useState(0);

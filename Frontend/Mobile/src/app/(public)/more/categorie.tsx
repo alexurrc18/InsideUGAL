@@ -1,5 +1,5 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, Linking, Platform, Pressable } from "react-native";
 import Animated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, interpolate, Extrapolation } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -10,7 +10,7 @@ import { NewsCard } from "@/components/ui/display/news-card";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import * as WebBrowser from "expo-web-browser";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
-import MOCK_DATA from "@/constants/mock-data.json";
+import api from "@/services/api";
 
 export default function MoreCategoryScreen() {
   const { categoryId, title: categoryTitle } = useLocalSearchParams();
@@ -18,6 +18,14 @@ export default function MoreCategoryScreen() {
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const [items, setItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!categoryId) return;
+    api.get('/city-guide', { params: { category_id: categoryId } })
+      .then(res => setItems(res.data))
+      .catch(() => {});
+  }, [categoryId]);
 
   const scrollY = useSharedValue(0);
   const scrollHandler = useAnimatedScrollHandler((event) => {
@@ -26,10 +34,6 @@ export default function MoreCategoryScreen() {
   const headerTitleStyle = useAnimatedStyle(() => ({
     opacity: interpolate(scrollY.value, [50, 90], [0, 1], Extrapolation.CLAMP),
   }));
-
-  const filteredData = (MOCK_DATA as any).cityGuide.filter(
-    (item: any) => item.categoryId === categoryId
-  );
 
   const handlePress = async (item: any) => {
     if (item.website) {
@@ -111,8 +115,8 @@ export default function MoreCategoryScreen() {
         </View>
 
         <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>
-          {filteredData.map((item: any) => (
-            <NewsCard 
+          {items.map((item: any) => (
+            <NewsCard
               key={item.id}
               variant="list"
               title={item.title}
@@ -123,7 +127,7 @@ export default function MoreCategoryScreen() {
           ))}
         </View>
 
-        {filteredData.length === 0 && (
+        {items.length === 0 && (
           <Text style={[Typography.Paragraph1, { color: theme.text, textAlign: "center", marginTop: 40 }]}>
             Nu există elemente în această categorie.
           </Text>

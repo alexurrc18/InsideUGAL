@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useMemo, memo, useState } from 'react';
 import { View, Text } from 'react-native';
-import { Colors } from '@/constants/theme';
 import { Spacing } from '@/constants/spacing';
 import { Config } from '@/constants/config';
 import { MapPin } from './map-pin';
@@ -11,6 +10,7 @@ let Camera: any = null;
 let Marker: any = null;
 
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const MapLibreModule = require('@maplibre/maplibre-react-native');
   MapLibre = MapLibreModule.Map;
   Camera = MapLibreModule.Camera;

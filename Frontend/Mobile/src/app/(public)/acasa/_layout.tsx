@@ -1,8 +1,7 @@
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Pressable } from "react-native";
 import { Stack, useRouter } from "expo-router";
 
-import { Colors, ColorScheme, Spacing } from "@/constants/theme";
+import { ColorScheme, Spacing } from "@/constants/theme";
 
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 

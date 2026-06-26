@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, Pressable, ScrollView } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,7 +8,7 @@ import { WebContainer } from "@/components/ui/layout/web-container";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { Typography } from "@/constants/typography";
-import MockData from "@/constants/mock-data.json";
+import api from "@/services/api";
 
 // Import local SVGs
 import BusIcon from "@/assets/icons/svg/bus.svg";
@@ -24,6 +24,11 @@ export default function MoreScreen() {
   const insets = useSafeAreaInsets();
   const contentTop = useWebContentTop();
   const router = useRouter();
+  const [categories, setCategories] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.get('/city-guide/categories').then(res => setCategories(res.data)).catch(() => {});
+  }, []);
 
   const renderIcon = (iconName: string, color: string) => {
     switch (iconName) {
@@ -74,7 +79,7 @@ export default function MoreScreen() {
               justifyContent: "flex-start"
             }}
           >
-            {MockData.cityGuideCategories.map((cat) => {
+            {categories.map((cat) => {
               return (
                 <Pressable
                   key={cat.id}

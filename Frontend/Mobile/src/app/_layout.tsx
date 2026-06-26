@@ -3,7 +3,6 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
-import { Colors } from "@/constants/theme";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { View } from 'react-native';

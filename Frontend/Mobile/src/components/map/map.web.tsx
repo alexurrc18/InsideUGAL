@@ -90,7 +90,7 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
     rootsRef.current.forEach(root => {
       try {
         flushSync(() => root.unmount());
-      } catch (e) {}
+      } catch {}
     });
     rootsRef.current = [];
 

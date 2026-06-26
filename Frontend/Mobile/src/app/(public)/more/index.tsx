@@ -4,11 +4,10 @@ import { View, Text, Pressable, ScrollView, Alert } from "react-native";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useNavigation } from "expo-router";
-import { getAuthToken, logout } from "@/services/api";
+import api, { getAuthToken, logout } from "@/services/api";
 import { Colors, Spacing } from "@/constants/theme";
 
 import { Typography } from "@/constants/typography";
-import MockData from "@/constants/mock-data.json";
 
 // Import local SVGs
 import BusIcon from "@/assets/icons/svg/bus.svg";
@@ -29,6 +28,11 @@ export default function MoreScreen() {
   const navigation = useNavigation();
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.get('/city-guide/categories').then(res => setCategories(res.data)).catch(() => {});
+  }, []);
 
   const checkAuth = async () => {
     const token = await getAuthToken();
@@ -204,7 +208,7 @@ export default function MoreScreen() {
             justifyContent: "flex-start"
           }}
         >
-          {MockData.cityGuideCategories.map((cat) => {
+          {categories.map((cat) => {
             return (
               <Pressable
                 key={cat.id}
