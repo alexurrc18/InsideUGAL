@@ -90,6 +90,32 @@ class Category(Base):
     name = Column(String(100), unique=True, nullable=False)
 
 
+class CityGuideCategory(Base):
+    __tablename__ = "city_guide_categories"
+    __table_args__ = {"schema": "public"}
+
+    id = Column(String(100), primary_key=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+    icon_name = Column(String(100), nullable=False)
+
+    items = relationship("CityGuideItem", back_populates="category", cascade="all, delete-orphan")
+
+
+class CityGuideItem(Base, TimestampMixin):
+    __tablename__ = "city_guide_items"
+    __table_args__ = {"schema": "public"}
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(255), nullable=False)
+    category_id = Column(String(100), ForeignKey("public.city_guide_categories.id", ondelete="CASCADE"), nullable=False)
+    image_url = Column(Text)
+    address = Column(Text)
+    website = Column(Text)
+
+    category = relationship("CityGuideCategory", back_populates="items")
+
+
 class ProductCategory(Base):
     __tablename__ = "product_categories"
     __table_args__ = {"schema": "public"}

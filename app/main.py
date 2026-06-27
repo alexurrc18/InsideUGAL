@@ -16,6 +16,7 @@ from slowapi.middleware import SlowAPIMiddleware
 import app.api.announcements as announcements
 import app.api.auth as auth
 import app.api.categories as categories
+import app.api.city_guide as city_guide
 import app.api.complaints as complaints
 import app.api.daily_menus as daily_menus
 import app.api.faculties as faculties
@@ -138,6 +139,7 @@ app.include_router(profiles.router)
 app.include_router(faculties.router)
 app.include_router(facilities.router)
 app.include_router(categories.router)
+app.include_router(city_guide.router)
 app.include_router(locations.router)
 app.include_router(product_categories.router)
 app.include_router(products.router)

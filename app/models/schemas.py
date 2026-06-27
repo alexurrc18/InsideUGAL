@@ -5,7 +5,7 @@ from typing import Generic, Optional, List, TypeVar
 from uuid import UUID
 from datetime import datetime, time
 from decimal import Decimal
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 from typing import Dict, Any
 
 # Importuri adăugate pentru conversia coordonatelor PostGIS
@@ -227,6 +227,64 @@ class CategoryUpdate(BaseModel):
 class CategoryResponse(CategoryBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
+
+
+class CityGuideCategoryBase(BaseModel):
+    title: str
+    description: str
+    icon_name: str
+
+
+class CityGuideCategoryCreate(CityGuideCategoryBase):
+    id: str
+
+
+class CityGuideCategoryUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    icon_name: Optional[str] = None
+
+
+class CityGuideCategoryResponse(CityGuideCategoryBase):
+    id: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CityGuideItemBase(BaseModel):
+    title: str
+    category_id: str = Field(
+        validation_alias=AliasChoices("categoryId", "category_id"),
+        serialization_alias="categoryId",
+    )
+    image_url: Optional[str] = None
+    address: Optional[str] = None
+    website: Optional[str] = None
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class CityGuideItemCreate(CityGuideItemBase):
+    pass
+
+
+class CityGuideItemUpdate(BaseModel):
+    title: Optional[str] = None
+    category_id: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("categoryId", "category_id"),
+        serialization_alias="categoryId",
+    )
+    image_url: Optional[str] = None
+    address: Optional[str] = None
+    website: Optional[str] = None
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class CityGuideItemResponse(CityGuideItemBase):
+    id: int
+    category: Optional[CityGuideCategoryResponse] = None
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class ProductCategoryBase(BaseModel):

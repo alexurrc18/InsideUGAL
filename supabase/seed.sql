@@ -267,3 +267,44 @@ SELECT setval('public.products_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public
 SELECT setval('public.daily_menus_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.daily_menus));
 SELECT setval('public.announcements_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.announcements));
 SELECT setval('public.complaints_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.complaints));
+
+CREATE TABLE IF NOT EXISTS public.city_guide_categories (
+    id VARCHAR PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    icon_name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.city_guide_items (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    category_id VARCHAR NOT NULL REFERENCES public.city_guide_categories(id) ON DELETE CASCADE,
+    image_url TEXT,
+    address TEXT,
+    website TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+INSERT INTO public.city_guide_categories (id, title, description, icon_name) VALUES
+('transport', 'Transport', 'Autobuze, troleibuze, tramvaie și trenuri', 'bus'),
+('muzee', 'Muzee', 'Muzee de istorie, artă vizuală și științe', 'museum'),
+('divertisment', 'Divertisment', 'Teatre, cinema și cumpărături', 'theater'),
+('parcuri', 'Parcuri', 'Faleza Dunării și spații verzi', 'park')
+ON CONFLICT (id) DO UPDATE SET
+    title = EXCLUDED.title,
+    description = EXCLUDED.description,
+    icon_name = EXCLUDED.icon_name;
+
+INSERT INTO public.city_guide_items (id, title, category_id, image_url, address, website) VALUES
+(1, 'Transurb Galați', 'transport', 'https://example.com/bus.jpg', 'Strada 1', 'https://transurbgalati.ro'),
+(2, 'Muzeul de Artă Vizuală', 'muzee', 'https://example.com/art.jpg', 'Strada 2', 'https://mavgl.ro')
+ON CONFLICT (id) DO UPDATE SET
+    title = EXCLUDED.title,
+    category_id = EXCLUDED.category_id,
+    image_url = EXCLUDED.image_url,
+    address = EXCLUDED.address,
+    website = EXCLUDED.website,
+    updated_at = NOW();
+
+SELECT setval('public.city_guide_items_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.city_guide_items));
