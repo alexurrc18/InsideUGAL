@@ -1,5 +1,6 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Stack } from "expo-router";
-import { useColorScheme, View } from "react-native";
+import { View } from "react-native";
 import { Colors, Spacing } from "@/constants/theme";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

@@ -6,8 +6,6 @@
 // click, deschide un panou de chat ancorat in colt. Panoul e montat in
 // `_layout.web.tsx`, deci ramane montat la navigarea intre paginile (public) =>
 // conversatia persista ("sticky").
-//
-// Raspunsurile vin din acelasi mock ca pe mobil, extras in `@/constants/ace-responses`.
 import { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -26,17 +24,31 @@ import { useTheme } from '@/hooks/use-theme';
 import { Spacing, ColorScheme } from '@/constants/theme';
 import { Typography } from '@/constants/typography';
 import { NewsCard } from '@/components/ui/display/news-card';
-import {
-  getMockResponse,
-  resolveLink,
-  generateMsgId,
-  type ChatMessage,
-} from '@/constants/ace-responses';
+import api from '@/services/api';
 
 import CloseIcon from '@/assets/icons/svg/x.svg';
 import MessagePlusIcon from '@/assets/icons/svg/message-plus.svg';
 import SendIcon from '@/assets/icons/svg/send.svg';
 import SparkleIcon from '@/assets/icons/svg/message-circle-star.svg';
+
+interface ChatMessage {
+  id: string;
+  text: string;
+  imageUrl?: string;
+  event?: {
+    title: string;
+    date: string;
+    location: string;
+    link?: string;
+    description?: string;
+  };
+  sender: 'user' | 'ai';
+  timestamp: Date;
+}
+
+function generateMsgId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
 
 const FAB_SIZE = 60;
 const PANEL_MAX_WIDTH = 384;
@@ -117,7 +129,7 @@ export function Ace() {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const textToSend = inputText.trim();
     if (!textToSend) return;
 
@@ -132,20 +144,30 @@ export function Ace() {
     setIsTyping(true);
     scrollToBottom();
 
-    setTimeout(() => {
-      const response = getMockResponse(textToSend);
+    try {
+      const res = await api.post('/ace/chat', { message: textToSend });
+      const data = res.data;
       const aiMsg: ChatMessage = {
         id: generateMsgId(),
-        text: response.text,
-        imageUrl: response.imageUrl,
-        event: response.event,
+        text: data.text || data.message || '',
+        imageUrl: data.image_url || undefined,
+        event: data.event || undefined,
         sender: 'ai',
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMsg]);
+    } catch {
+      const errorMsg: ChatMessage = {
+        id: generateMsgId(),
+        text: 'A apărut o eroare. Vă rugăm să încercați din nou.',
+        sender: 'ai',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+    } finally {
       setIsTyping(false);
       scrollToBottom();
-    }, 1200);
+    }
   };
 
   const handleClearChat = () => setMessages([]);
@@ -164,7 +186,7 @@ export function Ace() {
         Linking.openURL(event.link).catch((err) => console.error("Couldn't open URL", err));
         return;
       }
-      router.push(resolveLink(event.link) as any);
+      router.push(event.link as any);
       return;
     }
 

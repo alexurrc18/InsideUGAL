@@ -3,12 +3,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
-import { Colors } from "@/constants/theme";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -19,10 +16,6 @@ SplashScreen.setOptions({
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
-  const theme = Colors[themeName];
-  const insets = useSafeAreaInsets();
-
   const [loaded] = useFonts({
     "InstrumentSans-Bold": require("@/assets/fonts/InstrumentSans-Bold.ttf"),
     "InstrumentSans-SemiBold": require("@/assets/fonts/InstrumentSans-SemiBold.ttf"),

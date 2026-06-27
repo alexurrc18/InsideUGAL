@@ -24,6 +24,7 @@ import { WebContainer, WEB_COMPACT_BREAKPOINT } from "@/components/ui/layout/web
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { Seo } from "@/components/seo";
 import api, { storage } from "@/services/api";
+import { ErrorState } from "@/components/ui/display/error-state";
 
 export default function HartaScreen() {
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
@@ -34,6 +35,8 @@ export default function HartaScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const contentTop = useWebContentTop();
+  const [hasError, setHasError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
 
   // Geometria WebContainer-ului (vezi web-container.web.tsx), reprodusa ca valori.
   const scaling = width > WebContentMaxWidth;
@@ -50,6 +53,7 @@ export default function HartaScreen() {
     let active = true;
     async function loadData() {
       try {
+        if (active) setHasError(false);
         // Load cached data first for immediate render
         const [cachedFacs, cachedLocs] = await Promise.all([
           storage.getItem('cached_faculties'),
@@ -79,11 +83,12 @@ export default function HartaScreen() {
         }
       } catch (err) {
         console.warn('[API] Error loading web map screen data:', err);
+        if (active) setHasError(true);
       }
     }
     loadData();
     return () => { active = false; };
-  }, []);
+  }, [retryKey]);
 
   const facultyFilters = useMemo(() => {
     return [
@@ -110,6 +115,32 @@ export default function HartaScreen() {
   const handleSelectFilter = useCallback((id: string | null) => {
     setSelectedFacultyId((prev) => (prev === id ? null : id));
   }, []);
+
+  if (hasError && locations.length === 0) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: theme.background,
+          paddingTop: contentTop,
+        }}
+      >
+        <Seo
+          title="Hartă campus"
+          description="Harta interactivă a campusului UGAL — facultăți, cămine, cantină și facilități din Galați."
+        />
+        <WebContainer>
+          <CategoryHeader
+            title="Hartă"
+            filters={facultyFilters}
+            selectedFilterId={selectedFacultyId}
+            onSelectFilter={handleSelectFilter}
+          />
+        </WebContainer>
+        <ErrorState onRetry={() => setRetryKey(prev => prev + 1)} />
+      </View>
+    );
+  }
 
   return (
     <View

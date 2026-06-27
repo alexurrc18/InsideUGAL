@@ -2,8 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Config } from '@/constants/config';
-import { Colors } from '@/constants/theme';
-import { getBuildingLetter, cleanMapStyle } from '@/utils/map-helper';
+import { cleanMapStyle } from '@/utils/map-helper';
 import { createRoot, flushSync } from 'react-dom/client';
 import { MapPin } from './map-pin';
 
@@ -29,6 +28,7 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
   const cameraInitialized = useRef(false);
 
   useEffect(() => {
+    if (!Config.MAPTILER_STYLE_URL) return;
     fetch(Config.MAPTILER_STYLE_URL)
       .then(res => res.json())
       .then(style => {
@@ -63,7 +63,7 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
       rootsRef.current.forEach(root => {
         try {
           flushSync(() => root.unmount());
-        } catch (e) {}
+        } catch {}
       });
       rootsRef.current = [];
       m.remove();
@@ -90,7 +90,7 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
     rootsRef.current.forEach(root => {
       try {
         flushSync(() => root.unmount());
-      } catch (e) {}
+      } catch {}
     });
     rootsRef.current = [];
 
@@ -112,8 +112,8 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
       root.render(<MapPin name={b.name} facultyId={b.facultyId} />);
       rootsRef.current.push(root);
 
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
+      el.addEventListener('click', (ev) => {
+        ev.stopPropagation();
         if (map.current) {
           map.current.flyTo({
             center: [b.lng, b.lat],
@@ -131,7 +131,7 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
 
       markersRef.current.push(marker);
     });
-  }, [mapLoaded, selectedFacultyId, defaultCenter, defaultZoom, themeName]);
+  }, [mapLoaded, selectedFacultyId, defaultCenter, defaultZoom, themeName, buildings]);
 
   if (!mapStyle) {
     return (

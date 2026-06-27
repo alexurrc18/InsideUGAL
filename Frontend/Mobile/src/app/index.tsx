@@ -1,14 +1,11 @@
 import { router } from "expo-router";
 import React, { useEffect } from "react";
-import { useColorScheme, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { Colors } from "@/constants/theme";
 import api, { storage } from "@/services/api";
 
 export default function SplashScreen() {
-  const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
-  const theme = Colors[themeName];
   useEffect(() => {
     let isRedirected = false;
 
@@ -48,9 +45,9 @@ export default function SplashScreen() {
           })
         ]);
         console.log("[Splash] Successfully pre-fetched all public API data.");
+        redirect();
       } catch (err) {
         console.warn("[Splash] Error pre-fetching data:", err);
-      } finally {
         redirect();
       }
     };

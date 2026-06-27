@@ -5,6 +5,17 @@ import { Config } from '@/constants/config';
 
 const memoryFallback = new Map<string, string>();
 
+function isValidTokenString(val: string | null | undefined): boolean {
+  if (!val) return false;
+  const trimmed = val.trim();
+  return (
+    trimmed !== '' &&
+    trimmed.toLowerCase() !== 'null' &&
+    trimmed.toLowerCase() !== 'undefined' &&
+    trimmed.toLowerCase() !== 'none'
+  );
+}
+
 function getCookie(name: string): string | null {
   if (typeof document === 'undefined') return null;
   const nameEQ = name + "=";
@@ -25,12 +36,16 @@ function setCookie(name: string, value: string, days?: number) {
     date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
     expires = "; expires=" + date.toUTCString();
   }
-  document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Strict; Secure";
+  const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+  const secureFlag = isHttps ? '; Secure' : '';
+  document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Lax" + secureFlag;
 }
 
 function eraseCookie(name: string) {
   if (typeof document === 'undefined') return;
-  document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Strict; Secure';
+  const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+  const secureFlag = isHttps ? '; Secure' : '';
+  document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax' + secureFlag;
 }
 
 // Web-safe storage wrapper to bypass native module issues on Web browsers
@@ -38,18 +53,23 @@ export const storage = {
   getItem: async (key: string): Promise<string | null> => {
     if (Platform.OS === 'web') {
       try {
+        const localVal = typeof window !== 'undefined' ? window.localStorage.getItem(key) : null;
+        if (isValidTokenString(localVal)) return localVal;
+
         if (key === 'access_token') {
           const cookieVal = getCookie(key);
-          if (cookieVal) return cookieVal;
+          if (isValidTokenString(cookieVal)) return cookieVal;
         }
-        return typeof window !== 'undefined' ? window.localStorage.getItem(key) : null;
+        return null;
       } catch (e) {
         console.error('[API] Error reading from storage:', e);
         return null;
       }
     }
     try {
-      return await AsyncStorage.getItem(key);
+      const val = await AsyncStorage.getItem(key);
+      if (isValidTokenString(val)) return val;
+      return memoryFallback.get(key) || null;
     } catch (e) {
       console.warn('[API] AsyncStorage.getItem failed, falling back to memory:', e);
       return memoryFallback.get(key) || null;
@@ -58,11 +78,11 @@ export const storage = {
   setItem: async (key: string, value: string): Promise<void> => {
     if (Platform.OS === 'web') {
       try {
-        if (key === 'access_token') {
-          setCookie(key, value, 7); // 7 days expiration
-        }
         if (typeof window !== 'undefined') {
           window.localStorage.setItem(key, value);
+        }
+        if (key === 'access_token') {
+          setCookie(key, value, 7); // 7 days expiration
         }
       } catch (e) {
         console.error('[API] Error writing to storage:', e);
@@ -79,11 +99,11 @@ export const storage = {
   removeItem: async (key: string): Promise<void> => {
     if (Platform.OS === 'web') {
       try {
-        if (key === 'access_token') {
-          eraseCookie(key);
-        }
         if (typeof window !== 'undefined') {
           window.localStorage.removeItem(key);
+        }
+        if (key === 'access_token') {
+          eraseCookie(key);
         }
       } catch (e) {
         console.error('[API] Error removing from storage:', e);
@@ -103,6 +123,7 @@ export const storage = {
 let authToken: string | null = null;
 
 // Create Axios instance
+// eslint-disable-next-line import/no-named-as-default-member
 const api = axios.create({
   baseURL: Config.API_BASE_URL,
   timeout: 10000,
@@ -116,13 +137,18 @@ const api = axios.create({
  * Sets the auth token both in memory and persists it to AsyncStorage / localStorage.
  * Call this with the access token after a successful login, or with null on logout.
  */
-export async function setAuthToken(token: string | null): Promise<void> {
+export async function setAuthToken(token: string | null, refreshToken: string | null = null): Promise<void> {
   authToken = token;
   try {
     if (token) {
       await storage.setItem('access_token', token);
     } else {
       await storage.removeItem('access_token');
+    }
+    if (refreshToken) {
+      await storage.setItem('refresh_token', refreshToken);
+    } else if (token === null) {
+      await storage.removeItem('refresh_token');
     }
   } catch (error) {
     console.error('[API] Error saving token to storage:', error);
@@ -143,21 +169,15 @@ export function resolveImageUrl(url: string | undefined): string | undefined {
 }
 
 export async function getAuthToken(): Promise<string | null> {
-  if (authToken) {
-    const trimmed = authToken.trim();
-    if (trimmed && trimmed.toLowerCase() !== 'null' && trimmed.toLowerCase() !== 'undefined' && trimmed.toLowerCase() !== 'none') {
-      return authToken;
-    }
-    authToken = null;
+  if (isValidTokenString(authToken)) {
+    return authToken;
   }
+  authToken = null;
   try {
     const token = await storage.getItem('access_token');
-    if (token) {
-      const trimmed = token.trim();
-      if (trimmed && trimmed.toLowerCase() !== 'null' && trimmed.toLowerCase() !== 'undefined' && trimmed.toLowerCase() !== 'none') {
-        authToken = token;
-        return token;
-      }
+    if (isValidTokenString(token)) {
+      authToken = token;
+      return token;
     }
     return null;
   } catch (error) {
@@ -165,6 +185,23 @@ export async function getAuthToken(): Promise<string | null> {
     return null;
   }
 }
+
+/**
+ * Logs out the user by calling /auth/logout API to invalidate the session on the backend
+ * and then clearing local authentication tokens.
+ */
+export async function logout(): Promise<void> {
+  const token = await getAuthToken();
+  if (token) {
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.warn('[API] Logout request failed:', error);
+    }
+  }
+  await setAuthToken(null);
+}
+
 
 // Request Interceptor: Attach bearer token to outgoing requests
 api.interceptors.request.use(
@@ -262,18 +299,102 @@ function cleanErrorMessage(detail: string | undefined, defaultMsg: string, statu
 }
 
 // Response Interceptor: Global error handler
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
+    const originalRequest = error.config;
     const errorDetail = (error.response?.data as any)?.detail;
     const status = error.response?.status;
     
-    // Check for 401 Unauthorized or 403 Active profile not found (expired/invalid/inactive)
-    if (
-      status === 401 ||
-      (status === 403 && errorDetail === "Active profile not found.")
-    ) {
-      console.warn('[API] Stale or invalid credentials - clearing token.');
+    // Check for 401 Unauthorized
+    if (status === 401 && originalRequest && !(originalRequest as any)._retry) {
+      if (isRefreshing) {
+        return new Promise(function(resolve, reject) {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = 'Bearer ' + token;
+          }
+          return api(originalRequest);
+        }).catch(err => {
+          return Promise.reject(err);
+        });
+      }
+
+      (originalRequest as any)._retry = true;
+      isRefreshing = true;
+
+      try {
+        const storedRefreshToken = await storage.getItem('refresh_token');
+        if (!storedRefreshToken) {
+          throw new Error('No refresh token found');
+        }
+
+        const response = await axios.post(`${Config.API_BASE_URL}/auth/refresh`, {
+          refresh_token: storedRefreshToken
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          }
+        });
+
+        let responseData = response.data;
+        if (typeof responseData === 'string' && responseData.trim().startsWith('{')) {
+          try {
+            responseData = JSON.parse(responseData);
+          } catch {
+            // keep as string
+          }
+        }
+
+        const newAccessToken = typeof responseData === 'string' ? responseData : responseData?.access_token;
+        const newRefreshToken = responseData?.refresh_token;
+
+        if (newAccessToken) {
+          await setAuthToken(newAccessToken, newRefreshToken);
+          processQueue(null, newAccessToken);
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = 'Bearer ' + newAccessToken;
+          }
+          return api(originalRequest);
+        } else {
+          throw new Error('No access token returned from refresh');
+        }
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        console.warn('[API] Refresh token failed - clearing credentials.');
+        await setAuthToken(null);
+        
+        // Formatted error message to be returned
+        const apiError = {
+          message: "Sesiunea a expirat. Vă rugăm să vă reconectați.",
+          status: 401,
+          originalError: error,
+        };
+        return Promise.reject(apiError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+    
+    // Check for 403 Active profile not found (inactive) or other 403s
+    if (status === 403 && errorDetail === "Active profile not found.") {
+      console.warn('[API] Inactive profile - clearing token.');
       await setAuthToken(null);
     }
     

@@ -1,5 +1,7 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useState, useEffect } from "react";
-import { View, Text, useColorScheme, Pressable, Animated, RefreshControl } from "react-native";
+import { View, Text, Pressable, RefreshControl, Alert } from "react-native";
+import Animated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, interpolate, Extrapolation, runOnJS } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
@@ -10,6 +12,7 @@ import { getFormattedDate, isoToRomanianDateStr } from "@/utils/date";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import api from "@/services/api";
 import { NewsListSkeleton } from "@/components/ui/display/skeletons";
+import { ErrorState } from "@/components/ui/display/error-state";
 
 export default function CategoryScreen() {
   const { title: categoryTitle } = useLocalSearchParams();
@@ -18,7 +21,10 @@ export default function CategoryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const [scrollY] = useState(() => new Animated.Value(0));
+  const scrollY = useSharedValue(0);
+  const headerTitleStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [50, 90], [0, 1], Extrapolation.CLAMP),
+  }));
 
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
   const [data, setData] = useState<any[]>([]);
@@ -27,11 +33,16 @@ export default function CategoryScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [faculties, setFaculties] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   const onRefresh = async () => {
     setRefreshing(true);
     setHasMore(true);
-    await fetchData(1, true);
+    setHasError(false);
+    const success = await fetchData(1, true);
+    if (!success && data.length > 0) {
+      Alert.alert("Eroare la actualizare", "Nu s-au putut reîmprospăta datele pentru această categorie. Te rugăm să verifici conexiunea la internet.");
+    }
     setPage(1);
     setRefreshing(false);
   };
@@ -57,12 +68,13 @@ export default function CategoryScreen() {
     { id: null, title: "Toate Facultățile", abbreviation: "Toate" },
     ...faculties.map(f => ({
       id: f.id.toString(),
-      title: f.name
+      title: f.name,
+      abbreviation: f.abbreviation || undefined,
     }))
   ];
 
   const fetchData = async (pageToFetch: number, isReset: boolean = false) => {
-    if (loading || (!hasMore && !isReset)) return;
+    if (loading || (!hasMore && !isReset)) return false;
     setLoading(true);
     try {
       let response;
@@ -142,11 +154,14 @@ export default function CategoryScreen() {
       
       setData(prev => isReset ? newItems : [...prev, ...newItems]);
       setPage(pageToFetch);
-    } catch (err) {
-      console.error("[API] Error fetching data:", err);
-      setHasMore(false);
-    } finally {
       setLoading(false);
+      return true;
+    } catch (err) {
+      setLoading(false);
+      console.error("[API] Error fetching data:", err);
+      setHasError(true);
+      setHasMore(false);
+      return false;
     }
   };
 
@@ -155,9 +170,11 @@ export default function CategoryScreen() {
       setData([]);
       setPage(1);
       setHasMore(true);
+      setHasError(false);
       fetchData(1, true);
     }, 0);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFacultyId, categoryTitle]);
 
   const handlePress = (item: any) => {
@@ -174,18 +191,19 @@ export default function CategoryScreen() {
     });
   };
 
-  const handleScroll = (event: any) => {
-    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 150;
-    if (isCloseToBottom && hasMore && !loading) {
+  const checkPagination = (offsetY: number, layoutHeight: number, contentHeight: number) => {
+    if (layoutHeight + offsetY >= contentHeight - 150 && hasMore && !loading) {
       fetchData(page + 1);
     }
   };
 
-  const headerTitleOpacity = scrollY.interpolate({
-    inputRange: [50, 90],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
+  const scrollHandler = useAnimatedScrollHandler((event) => {
+    scrollY.set(event.contentOffset.y);
+    runOnJS(checkPagination)(
+      event.contentOffset.y,
+      event.layoutMeasurement.height,
+      event.contentSize.height
+    );
   });
 
   return (
@@ -212,7 +230,7 @@ export default function CategoryScreen() {
             </Pressable>
           ),
           headerTitle: () => (
-            <Animated.View style={{ opacity: headerTitleOpacity }}>
+            <Animated.View style={headerTitleStyle}>
               <Text 
                 style={[
                   Typography.Heading4, 
@@ -236,13 +254,7 @@ export default function CategoryScreen() {
           paddingTop: Spacing.md,
           paddingBottom: insets.bottom + Spacing.xxl
         }}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { 
-            useNativeDriver: true,
-            listener: handleScroll
-          }
-        )}
+        onScroll={scrollHandler}
         scrollEventThrottle={16}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} tintColor={theme.primary} />
@@ -259,6 +271,8 @@ export default function CategoryScreen() {
 
         {(loading && page === 1) || refreshing ? (
           <NewsListSkeleton />
+        ) : hasError && data.length === 0 ? (
+          <ErrorState onRetry={() => fetchData(1, true)} />
         ) : (
           <>
             <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>

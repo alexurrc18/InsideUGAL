@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { View, ScrollView, useColorScheme, RefreshControl } from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
+import { View, ScrollView, RefreshControl, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Spacing } from "@/constants/theme";
 import { CategoryHeader } from "@/components/ui/display/category-header";
@@ -7,22 +8,33 @@ import { Expandable } from "@/components/ui/layout/expandable";
 import { MenuItem } from "@/components/ui/navigation/menu-item";
 import api, { storage } from "@/services/api";
 import { CantinaMenuSkeleton } from "@/components/ui/display/skeletons";
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-}
+import { ErrorState } from "@/components/ui/display/error-state";
 
 const CATEGORY_ORDER = [
   "Meniul Zilei",
   "Ciorbe și Supe",
   "Preparate calde / Fel principal",
-  "Salate / Sosuri",
   "Garnituri",
+  "Salate și Sosuri",
+  "Pâine",
   "Desert"
 ];
+
+function formatCategoryName(name: string): string {
+  const mapping: Record<string, string> = {
+    "ciorbe si supe": "Ciorbe și Supe",
+    "ciorbe și supe": "Ciorbe și Supe",
+    "garnituri": "Garnituri",
+    "preparate carne": "Preparate calde / Fel principal",
+    "salate si sosuri": "Salate și Sosuri",
+    "salate și sosuri": "Salate și Sosuri",
+    "paine": "Pâine",
+    "desert": "Desert",
+    "meniul zilei": "Meniul Zilei"
+  };
+  const key = name.toLowerCase().trim();
+  return mapping[key] || (name.charAt(0).toUpperCase() + name.slice(1));
+}
 
 function getDayNumber(dayId: string): number {
   switch (dayId) {
@@ -33,26 +45,6 @@ function getDayNumber(dayId: string): number {
     case 'vineri': return 5;
     default: return 1;
   }
-}
-
-function getProductCategory(name: string): string {
-  const lower = name.toLowerCase();
-  if (lower.includes("ciorb") || lower.includes("sup")) {
-    return "Ciorbe și Supe";
-  }
-  if (lower.includes("meniul zilei")) {
-    return "Meniul Zilei";
-  }
-  if (lower.includes("cartofi") || lower.includes("piure") || lower.includes("orez") || lower.includes("legume") || lower.includes("garnitur")) {
-    return "Garnituri";
-  }
-  if (lower.includes("salat") || lower.includes("mujdei") || lower.includes("sos") || lower.includes("smantan")) {
-    return "Salate / Sosuri";
-  }
-  if (lower.includes("clatit") || lower.includes("papanas") || lower.includes("desert") || lower.includes("inghetat")) {
-    return "Desert";
-  }
-  return "Preparate calde / Fel principal";
 }
 
 export default function CantinaScreen() {
@@ -69,12 +61,12 @@ export default function CantinaScreen() {
       { id: "joi", title: "Joi" },
       { id: "vineri", title: "Vineri" },
     ];
-    
+
     const now = new Date();
     let dayIndex = now.getDay();
     const isWeekend = dayIndex === 0 || dayIndex === 6;
     const effectiveDayIndex = isWeekend ? 1 : dayIndex;
-    
+
     const startIndex = effectiveDayIndex - 1;
     const sortedDays = [
       ...allDays.slice(startIndex),
@@ -90,47 +82,53 @@ export default function CantinaScreen() {
   const [selectedDay, setSelectedDay] = useState<string>(daysFilter[0].id);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setHasError(false);
+      const cached = await storage.getItem('cached_cafeteria_menus');
+      if (cached) {
+        setMenuData(JSON.parse(cached));
+      }
+      const res = await api.get('/cafeteria_menus/', { params: { page: 1, size: 50 } });
+      if (res.data?.items) {
+        setMenuData(res.data.items);
+        await storage.setItem('cached_cafeteria_menus', JSON.stringify(res.data.items));
+      }
+      setLoading(false);
+    } catch (err) {
+      setLoading(false);
+      console.warn('[API] Error loading cafeteria data:', err);
+      setHasError(true);
+    }
+  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
+    setHasError(false);
     try {
       const res = await api.get('/cafeteria_menus/', { params: { page: 1, size: 50 } });
       if (res.data?.items) {
         setMenuData(res.data.items);
         await storage.setItem('cached_cafeteria_menus', JSON.stringify(res.data.items));
       }
-    } catch (err) {
-      console.warn('[API] Error loading cafeteria menus:', err);
-    } finally {
       setRefreshing(false);
+    } catch (err) {
+      setRefreshing(false);
+      console.warn('[API] Error refreshing cafeteria data:', err);
+      setHasError(true);
+      if (menuData.length > 0) {
+        Alert.alert("Eroare la actualizare", "Nu s-a putut reîmprospăta meniul cantinei. Te rugăm să verifici conexiunea la internet.");
+      }
     }
   };
 
   useEffect(() => {
-    let active = true;
-    async function loadMenu() {
-      try {
-        setLoading(true);
-        const cached = await storage.getItem('cached_cafeteria_menus');
-        if (cached && active) {
-          setMenuData(JSON.parse(cached));
-          setLoading(false);
-        }
-
-        const res = await api.get('/cafeteria_menus/', { params: { page: 1, size: 50 } });
-        if (res.data?.items && active) {
-          setMenuData(res.data.items);
-          await storage.setItem('cached_cafeteria_menus', JSON.stringify(res.data.items));
-        }
-      } catch (err) {
-        console.warn('[API] Error loading cafeteria menus:', err);
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-    loadMenu();
-    return () => { active = false; };
-  }, []);
+    const timer = setTimeout(() => { loadData(); }, 0);
+    return () => clearTimeout(timer);
+  }, [loadData]);
 
   const currentMenu = useMemo(() => {
     const dayNum = getDayNumber(selectedDay);
@@ -140,13 +138,10 @@ export default function CantinaScreen() {
       return {};
     }
 
-    // Group and sort products by category
     const grouped: Record<string, any[]> = {};
     dayItem.products.forEach((product: any) => {
-      const cat = getProductCategory(product.name);
-      if (!grouped[cat]) {
-        grouped[cat] = [];
-      }
+      const cat = formatCategoryName(product.category?.name || product.name);
+      if (!grouped[cat]) grouped[cat] = [];
       grouped[cat].push({
         id: product.id.toString(),
         name: product.name,
@@ -156,33 +151,38 @@ export default function CantinaScreen() {
     });
 
     const sortedGroups: Record<string, any[]> = {};
-    const sortedKeys = Object.keys(grouped).sort((a, b) => {
-      const indexA = CATEGORY_ORDER.indexOf(a);
-      const indexB = CATEGORY_ORDER.indexOf(b);
-      return (indexA !== -1 ? indexA : 99) - (indexB !== -1 ? indexB : 99);
-    });
-
-    sortedKeys.forEach(key => {
-      sortedGroups[key] = grouped[key];
-    });
+    Object.keys(grouped)
+      .sort((a, b) => {
+        const ia = CATEGORY_ORDER.indexOf(a);
+        const ib = CATEGORY_ORDER.indexOf(b);
+        if (ia !== -1 && ib !== -1) return ia - ib;
+        if (ia !== -1) return -1;
+        if (ib !== -1) return 1;
+        return a.localeCompare(b);
+      })
+      .forEach(key => { sortedGroups[key] = grouped[key]; });
 
     return sortedGroups;
   }, [menuData, selectedDay]);
 
+  if (hasError && menuData.length === 0) {
+    return <ErrorState onRetry={loadData} />;
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top + Spacing.md }}>
-      <CategoryHeader 
-        title="Cantina" 
+      <CategoryHeader
+        title="Cantina"
         filters={daysFilter}
         selectedFilterId={selectedDay}
         onSelectFilter={(id) => id && setSelectedDay(id)}
       />
 
-      <ScrollView 
-        style={{ flex: 1 }} 
-        contentContainerStyle={{ 
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
           paddingBottom: insets.bottom + Spacing.xxl,
-          paddingTop: Spacing.xs 
+          paddingTop: Spacing.xs
         }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} tintColor={theme.primary} />
@@ -191,12 +191,12 @@ export default function CantinaScreen() {
         {loading || refreshing ? (
           <CantinaMenuSkeleton />
         ) : (
-          <View style={{ gap: Spacing.sm, marginHorizontal: Spacing.lg }}>
+          <View style={{ marginHorizontal: Spacing.lg }}>
             {Object.entries(currentMenu).map(([category, productsList]) => (
               <Expandable key={category} title={category} initialExpanded={false}>
                 <View style={{ gap: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: Spacing.sm }}>
                   {productsList.map((product, index) => (
-                    <MenuItem 
+                    <MenuItem
                       key={product.id}
                       name={product.name}
                       price={product.price}

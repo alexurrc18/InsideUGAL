@@ -1,11 +1,7 @@
-import React, { useState } from "react";
-import { 
-  View, 
-  Text, 
-  Pressable, 
-  Animated, 
-  useColorScheme
-} from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import React from "react";
+import { View, Text, Pressable } from "react-native";
+import Animated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, interpolate, Extrapolation } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, Stack } from "expo-router";
 
@@ -23,7 +19,13 @@ export default function ThemeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const [scrollY] = useState(() => new Animated.Value(0));
+  const scrollY = useSharedValue(0);
+  const scrollHandler = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
+  const headerTitleStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [50, 90], [0, 1], Extrapolation.CLAMP),
+  }));
 
   // Read current selected theme from settings store
   const currentTheme = settingsStore.getTheme();
@@ -38,12 +40,6 @@ export default function ThemeScreen() {
     settingsStore.setTheme(code as any);
     router.back();
   };
-
-  const headerTitleOpacity = scrollY.interpolate({
-    inputRange: [50, 90],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
@@ -68,7 +64,7 @@ export default function ThemeScreen() {
             </Pressable>
           ),
           headerTitle: () => (
-            <Animated.View style={{ opacity: headerTitleOpacity }}>
+            <Animated.View style={headerTitleStyle}>
               <Text 
                 style={[
                   Typography.Heading4, 
@@ -92,10 +88,7 @@ export default function ThemeScreen() {
           paddingTop: Spacing.md,
           paddingBottom: insets.bottom + Spacing.xxl
         }}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
+        onScroll={scrollHandler}
         scrollEventThrottle={16}
       >
         <CategoryHeader title="Temă" />

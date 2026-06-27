@@ -1,5 +1,6 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Stack, useRouter } from 'expo-router';
-import { useColorScheme, Pressable } from 'react-native';
+import { Pressable } from "react-native";
 import { Colors, Spacing } from '@/constants/theme';
 import CloseIcon from "@/assets/icons/svg/x.svg";
 
