@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { apiFetch, getStoredAccessToken } from "@/lib/api-client";
+import { apiBaseUrl, getAuthHeaders, getStoredAccessToken } from "@/lib/api-client";
 
 export type DashboardRole =
   | "STUDENT"
@@ -75,8 +75,10 @@ export async function fetchCurrentDashboardRole(): Promise<DashboardRole | null>
   const token = getStoredAccessToken();
   if (!token) return null;
 
-  const response = await apiFetch("/profiles/me", {
+  const response = await fetch(`${apiBaseUrl}/profiles/me`, {
     cache: "no-store",
+    credentials: "include",
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) return null;

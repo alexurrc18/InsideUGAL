@@ -6,7 +6,6 @@ import "./globals.css";
 import Sidebar from "./components/global/Sidebar";
 import Header from "./components/global/PageHeader";
 import { Providers } from "./providers";
-import { clearAuthSession } from "@/lib/api-client";
 import { canAccessPath, fetchCurrentDashboardRole } from "@/lib/dashboard-auth";
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -29,13 +28,15 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
     fetchCurrentDashboardRole().then((role) => {
       if (!canAccessPath(pathname, role)) {
-        clearAuthSession();
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("token_type");
         router.replace("/login");
         return;
       }
       setChecking(false);
     }).catch(() => {
-      clearAuthSession();
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("token_type");
       router.replace("/login");
     });
   }, [pathname, router]);

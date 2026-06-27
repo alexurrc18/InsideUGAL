@@ -6,7 +6,7 @@ import Modal from "../components/ui/Modal";
 import { Card, CardContent } from "../components/ui/Card";
 import MapView from "../components/MapView";
 import MapComponent from "../components/MapComponent";
-import { apiFetch } from "@/lib/api-client";
+import { apiBaseUrl, getAuthHeaders } from "@/lib/api-client";
 import { canAccessMaps, useRequireDashboardAccess } from "@/lib/dashboard-auth";
 
 type PaginatedResponse<T> = {
@@ -139,7 +139,11 @@ export default function HartiPage() {
     setErrorMessage(null);
 
     try {
-      const response = await apiFetch("/locations/?size=200", { cache: "no-store" });
+      const response = await fetch(`${apiBaseUrl}/locations/?size=200`, {
+        cache: "no-store",
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
       if (!response.ok) throw new Error(`Status ${response.status}`);
       const payload = await response.json() as PaginatedResponse<LocationApiItem> | LocationApiItem[];
       setCladiri(itemsFromResponse(payload).map((item) => ({
@@ -168,9 +172,10 @@ export default function HartiPage() {
     setErrorMessage(null);
 
     try {
-      const response = await apiFetch("/locations/", {
+      const response = await fetch(`${apiBaseUrl}/locations/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(formToPayload(addForm)),
       });
       if (!response.ok) throw new Error(`Status ${response.status}`);
@@ -194,9 +199,10 @@ export default function HartiPage() {
     setErrorMessage(null);
 
     try {
-      const response = await apiFetch(`/locations/${editingId}`, {
+      const response = await fetch(`${apiBaseUrl}/locations/${editingId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(formToPayload(editForm)),
       });
       if (!response.ok) throw new Error(`Status ${response.status}`);
@@ -213,8 +219,10 @@ export default function HartiPage() {
     setErrorMessage(null);
 
     try {
-      const response = await apiFetch(`/locations/${id}`, {
+      const response = await fetch(`${apiBaseUrl}/locations/${id}`, {
         method: "DELETE",
+        credentials: "include",
+        headers: getAuthHeaders(),
       });
       if (!response.ok && response.status !== 204) throw new Error(`Status ${response.status}`);
       await fetchLocations();

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/Card";
 import { Input } from "@/app/components/ui/Input";
 import { Button } from "@/app/components/ui/Button";
-import { apiBaseUrl, storeAuthSession } from "@/lib/api-client";
+import { apiBaseUrl } from "@/lib/api-client";
 
 function extractAccessToken(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") {
@@ -47,11 +47,17 @@ export default function LoginPage() {
         throw new Error(typeof detail === "string" ? detail : "Autentificare e\u0219uat\u0103");
       }
 
-      if (!extractAccessToken(data)) {
+      const accessToken = extractAccessToken(data);
+      if (!accessToken) {
         throw new Error("Raspunsul de autentificare nu contine un access_token valid.");
       }
 
-      storeAuthSession(data as Record<string, unknown>);
+      const tokenType = data && typeof data === "object" && typeof (data as Record<string, unknown>).token_type === "string"
+        ? (data as Record<string, string>).token_type
+        : "bearer";
+
+      localStorage.setItem("access_token", accessToken);
+      localStorage.setItem("token_type", tokenType);
 
       window.location.href = "/";
       

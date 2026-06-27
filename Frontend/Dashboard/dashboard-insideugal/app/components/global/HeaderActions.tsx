@@ -5,7 +5,6 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation"; 
 import Link from "next/link";
 import { announcementsService } from "@/lib/announcements-service";
-import { clearAuthSession } from "@/lib/api-client";
 import { useTheme } from "../../providers";
 
 interface Announcement {
@@ -111,7 +110,8 @@ export default function HeaderActions() {
   };
 
   const handleLogout = () => {
-    clearAuthSession();
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("token_type");
     router.replace("/login");
   };
 

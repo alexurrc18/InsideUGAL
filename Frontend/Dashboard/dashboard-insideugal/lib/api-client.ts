@@ -28,126 +28,13 @@ export function getStoredAccessToken(): string | null {
   return token.replace(/^Bearer\s+/i, "").trim();
 }
 
-export function getStoredRefreshToken(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const token = window.localStorage.getItem("refresh_token");
-  if (!token || token === "undefined" || token === "null") {
-    return null;
-  }
-
-  return token.trim();
-}
-
-type AuthSessionPayload = {
-  access_token?: unknown;
-  refresh_token?: unknown;
-  token_type?: unknown;
-  expires_in?: unknown;
-  expires_at?: unknown;
-};
-
-export function storeAuthSession(payload: AuthSessionPayload): string | null {
-  if (typeof window === "undefined" || typeof payload.access_token !== "string" || !payload.access_token.trim()) {
-    return null;
-  }
-
-  const accessToken = payload.access_token.trim();
-  window.localStorage.setItem("access_token", accessToken);
-
-  if (typeof payload.refresh_token === "string" && payload.refresh_token.trim()) {
-    window.localStorage.setItem("refresh_token", payload.refresh_token.trim());
-  }
-
-  window.localStorage.setItem("token_type", typeof payload.token_type === "string" ? payload.token_type : "bearer");
-
-  if (typeof payload.expires_in === "number") {
-    window.localStorage.setItem("expires_in", String(payload.expires_in));
-  }
-
-  if (typeof payload.expires_at === "number") {
-    window.localStorage.setItem("expires_at", String(payload.expires_at));
-  }
-
-  return accessToken;
-}
-
-export function clearAuthSession() {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.removeItem("access_token");
-  window.localStorage.removeItem("refresh_token");
-  window.localStorage.removeItem("token_type");
-  window.localStorage.removeItem("expires_in");
-  window.localStorage.removeItem("expires_at");
-}
-
 export function getAuthHeaders(headers?: HeadersInit): Headers {
   const requestHeaders = new Headers(headers);
-  if (!requestHeaders.has("Authorization")) {
-    const token = getStoredAccessToken();
-    if (token) {
-      requestHeaders.set("Authorization", `Bearer ${token}`);
-    }
+  const token = getStoredAccessToken();
+  if (token) {
+    requestHeaders.set("Authorization", `Bearer ${token}`);
   }
   return requestHeaders;
-}
-
-let refreshPromise: Promise<string | null> | null = null;
-
-export async function refreshAuthSession(): Promise<string | null> {
-  const refreshToken = getStoredRefreshToken();
-  if (!refreshToken) {
-    return null;
-  }
-
-  if (!refreshPromise) {
-    refreshPromise = fetch(`${apiBaseUrl}/auth/refresh`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    })
-      .then(async (response) => {
-        const payload = (await readJson(response)) as AuthSessionPayload;
-
-        if (!response.ok) {
-          clearAuthSession();
-          return null;
-        }
-
-        return storeAuthSession(payload);
-      })
-      .finally(() => {
-        refreshPromise = null;
-      });
-  }
-
-  return refreshPromise;
-}
-
-export async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
-  const execute = () =>
-    fetch(`${apiBaseUrl}${path}`, {
-      ...options,
-      credentials: options.credentials ?? "include",
-      headers: getAuthHeaders(options.headers),
-    });
-
-  let response = await execute();
-
-  if (response.status === 401 && (await refreshAuthSession())) {
-    response = await execute();
-  }
-
-  return response;
 }
 
 export class ApiClientError extends Error {
@@ -235,19 +122,12 @@ export async function apiRequest<TResponse>(
   options: ApiRequestOptions = {},
 ): Promise<TResponse> {
   const body = toBody(options.body);
-  const execute = () =>
-    fetch(`${apiBaseUrl}${path}`, {
-      ...options,
-      body,
-      credentials: options.credentials ?? "include",
-      headers: toHeaders(options.headers, body !== undefined),
-    });
-
-  let response = await execute();
-
-  if (response.status === 401 && (await refreshAuthSession())) {
-    response = await execute();
-  }
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    ...options,
+    body,
+    credentials: options.credentials ?? "include",
+    headers: toHeaders(options.headers, body !== undefined),
+  });
 
   const payload = await readJson(response);
 
