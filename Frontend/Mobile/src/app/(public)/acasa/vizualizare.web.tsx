@@ -468,7 +468,7 @@ function VizualizareScreen() {
 
                     {/* Rand principal: continut (stanga) + sidebar Noutăți (dreapta).
                         gap putin mai mare ca sa "respire" intre coloana de text si carduri. */}
-                    <View style={{ flexDirection: twoCol ? "row" : "column", gap: 64, alignItems: "flex-start" }}>
+                    <View style={{ flexDirection: twoCol ? "row" : "column", gap: 64, alignItems: twoCol ? "flex-start" : "stretch" }}>
                         {/* Stanga: continutul anuntului. */}
                         <View style={{ flex: 1, gap: Spacing.xxl, width: "100%" }}>
                             {tipPagina !== "Facultate" && (

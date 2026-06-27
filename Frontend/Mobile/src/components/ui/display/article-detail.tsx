@@ -6,7 +6,7 @@
 // ruta sa-si poata alege singura titlul/descrierea/JSON-LD-ul.
 //
 // Folosita doar din fisiere web (.web.tsx), deci nu intra in bundle-ul de mobil.
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { View, Text, ScrollView, Linking, TouchableOpacity, Alert, useWindowDimensions, StyleSheet, type LayoutChangeEvent } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,12 +15,13 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
-import { getFormattedDate, getReadingTime } from "@/utils/date";
+import { getFormattedDate, getReadingTime, isoToRomanianDateStr } from "@/utils/date";
 import { WebContainer } from "@/components/ui/layout/web-container";
 import { Breadcrumbs, type Crumb } from "@/components/ui/navigation/breadcrumbs";
 import { CompactCard } from "@/components/ui/display/home-highlights";
 import { NewsCard, CategoryTag } from "@/components/ui/display/news-card";
 import { eventHref, anuntHref } from "@/utils/article-url";
+import api, { storage } from "@/services/api";
 
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
 import LocationIcon from "@/assets/icons/svg/location.svg";
@@ -76,8 +77,64 @@ export function ArticleDetail({
 
     const tipPagina = type || "Eveniment";
 
-    const sidebarItems: any[] = [];
-    const relatedItems: any[] = [];
+    const [relatedPool, setRelatedPool] = useState<any[]>([]);
+
+    useEffect(() => {
+        let isMounted = true;
+        const loadRelated = async () => {
+            try {
+                let cachedStr = await storage.getItem('cached_announcements');
+                let items = [];
+                if (cachedStr) {
+                    items = JSON.parse(cachedStr);
+                } else {
+                    const res = await api.get('/announcements/', { params: { page: 1, size: 20 } });
+                    if (res.data?.items) {
+                        items = res.data.items;
+                    }
+                }
+                if (isMounted) {
+                    setRelatedPool(items);
+                }
+            } catch (err) {
+                console.warn('[ArticleDetail] Error loading related announcements:', err);
+            }
+        };
+        loadRelated();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    // Anunturi inrudite: prioritizam aceeasi categorie ca articolul curent, apoi
+    // completam cu restul. Excludem articolul curent (dupa titlu). Sidebar-ul ia
+    // primele, "Mai multe" ia urmatoarele (distincte de sidebar).
+    const pool = relatedPool
+        .filter((item: any) => item.title !== title)
+        .map((item: any) => ({
+            id: item.id.toString(),
+            type: item.type === "NOUTATE" ? "Anunț" : "Eveniment",
+            title: item.title || "Titlu necunoscut",
+            category: item.type === "NOUTATE" ? "Noutăți" : "Evenimente",
+            content: item.content || "Conținut necunoscut",
+            image: item.image_url || "",
+            location: item.location_name || "Locație necunoscută",
+            date_start: isoToRomanianDateStr(item.start_date) || "",
+            date_end: isoToRomanianDateStr(item.end_date) || "",
+            time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
+            time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
+            posted_at: isoToRomanianDateStr(item.created_at) || "",
+            date: isoToRomanianDateStr(item.start_date) || "Dată necunoscută",
+            author: item.author || "Autor necunoscut",
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+        }));
+    const sameCategory = pool.filter((e) => e.category === category);
+    const otherCategory = pool.filter((e) => e.category !== category);
+    const ordered = [...sameCategory, ...otherCategory];
+
+    const sidebarItems = ordered.slice(0, 3);
+    const relatedItems = ordered.slice(3, 6);
 
     // Latimea masurata a randului de jos, impartita egal la numarul de carduri.
     const [rowWidth, setRowWidth] = useState(0);
@@ -188,7 +245,7 @@ export function ArticleDetail({
 
                     {/* Rand principal: continut (stanga) + sidebar Noutăți (dreapta).
                         gap putin mai mare ca sa "respire" intre coloana de text si carduri. */}
-                    <View style={{ flexDirection: twoCol ? "row" : "column", gap: 64, alignItems: "flex-start" }}>
+                    <View style={{ flexDirection: twoCol ? "row" : "column", gap: 64, alignItems: twoCol ? "flex-start" : "stretch" }}>
                         {/* Stanga: continutul anuntului. */}
                         <View style={{ flex: 1, gap: Spacing.xxl, width: "100%" }}>
                             {tipPagina !== "Facultate" && (
