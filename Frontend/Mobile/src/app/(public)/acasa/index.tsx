@@ -370,7 +370,7 @@ export default function HomeScreen() {
   };
 
   const handleNotificationsPress = () => {
-    Alert.alert("Notificări", "Nu aveți notificări noi.");
+    router.push("/(public)/acasa/notificari");
   };
 
   const activeNoutati = noutati;

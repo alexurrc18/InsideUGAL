@@ -14,7 +14,7 @@ export function useColorScheme(): "light" | "dark" {
   }, []);
 
   if (theme === "system") {
-    return system ?? "light";
+    return system === "dark" ? "dark" : "light";
   }
   return theme;
 }

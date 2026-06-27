@@ -5,19 +5,25 @@ import { Config } from '@/constants/config';
 import { cleanMapStyle } from '@/utils/map-helper';
 import { createRoot, flushSync } from 'react-dom/client';
 import { MapPin } from './map-pin';
+import { UserLocationPin } from './user-location-pin';
 
 interface MapProps {
   themeName: 'light' | 'dark';
   selectedFacultyId: string | null;
   onFacultySelect: (id: string | null) => void;
   buildings?: any[];
+  userLocation?: { lat: number; lng: number } | null;
+  onMapClick?: () => void;
+  focusKey?: number;
 }
 
-export default function Map({ themeName, selectedFacultyId, onFacultySelect, buildings }: MapProps) {
+export default function Map({ themeName, selectedFacultyId, onFacultySelect, buildings, userLocation, onMapClick, focusKey }: MapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
   const rootsRef = useRef<any[]>([]);
+  const userMarkerRef = useRef<maplibregl.Marker | null>(null);
+  const userRootRef = useRef<any | null>(null);
 
   const [defaultCenter, setDefaultCenter] = useState<[number, number] | undefined>(undefined);
   const [defaultZoom, setDefaultZoom] = useState<number | undefined>(undefined);
@@ -58,6 +64,10 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
     m.on('load', () => {
       setMapLoaded(true);
     });
+
+    if (onMapClick) {
+      m.on('click', onMapClick);
+    }
 
     return () => {
       rootsRef.current.forEach(root => {
@@ -132,6 +142,83 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
       markersRef.current.push(marker);
     });
   }, [mapLoaded, selectedFacultyId, defaultCenter, defaultZoom, themeName, buildings]);
+
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+
+    if (!userLocation) {
+      if (userMarkerRef.current) {
+        userMarkerRef.current.remove();
+        userMarkerRef.current = null;
+      }
+      if (userRootRef.current) {
+        const root = userRootRef.current;
+        setTimeout(() => { try { root.unmount(); } catch {} }, 0);
+        userRootRef.current = null;
+      }
+      return;
+    }
+
+    if (!userMarkerRef.current) {
+      const el = document.createElement('div');
+      el.style.cursor = 'pointer';
+      el.style.zIndex = '99999999';
+
+      const root = createRoot(el);
+      root.render(<UserLocationPin />);
+      userRootRef.current = root;
+
+      const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([userLocation.lng, userLocation.lat])
+        .addTo(map.current);
+
+      userMarkerRef.current = marker;
+    } else {
+      userMarkerRef.current.setLngLat([userLocation.lng, userLocation.lat]);
+    }
+  }, [userLocation, mapLoaded]);
+
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+
+    // Force map to recalculate size when screen comes into focus
+    map.current.resize();
+
+    if (userLocation) {
+      if (userMarkerRef.current) {
+        userMarkerRef.current.setLngLat([userLocation.lng, userLocation.lat]);
+        userMarkerRef.current.addTo(map.current);
+      } else {
+        const el = document.createElement('div');
+        el.style.cursor = 'pointer';
+        el.style.zIndex = '99999999';
+
+        const root = createRoot(el);
+        root.render(<UserLocationPin />);
+        userRootRef.current = root;
+
+        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([userLocation.lng, userLocation.lat])
+          .addTo(map.current);
+
+        userMarkerRef.current = marker;
+      }
+    }
+  }, [focusKey, mapLoaded]);
+
+  useEffect(() => {
+    return () => {
+      if (userMarkerRef.current) {
+        userMarkerRef.current.remove();
+        userMarkerRef.current = null;
+      }
+      if (userRootRef.current) {
+        const root = userRootRef.current;
+        setTimeout(() => { try { root.unmount(); } catch {} }, 0);
+        userRootRef.current = null;
+      }
+    };
+  }, []);
 
   if (!mapStyle) {
     return (

@@ -7,11 +7,13 @@ import Map from '@/components/map/map';
 import { CategoryHeader } from '@/components/ui/display/category-header';
 import api, { storage } from '@/services/api';
 import { ErrorState } from '@/components/ui/display/error-state';
+import * as Location from 'expo-location';
 
 export default function HartaScreen() {
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
   const [faculties, setFaculties] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const insets = useSafeAreaInsets();
   const themeName = (useColorScheme() ?? 'light') as keyof typeof Colors;
   const theme = Colors[themeName];
@@ -55,6 +57,22 @@ export default function HartaScreen() {
     }, 0);
     return () => clearTimeout(timer);
   }, [loadData]);
+
+  useEffect(() => {
+    let subscription: Location.LocationSubscription | null = null;
+
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+
+      subscription = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.Balanced, timeInterval: 5000, distanceInterval: 10 },
+        (loc) => setUserLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude })
+      );
+    })();
+
+    return () => { subscription?.remove(); };
+  }, []);
 
   const facultyFilters = useMemo(() => {
     return [
@@ -105,11 +123,12 @@ export default function HartaScreen() {
         marginTop: Spacing.md,
         marginBottom: insets.bottom + Spacing.lg,
       }}>
-        <Map 
-          themeName={themeName} 
+        <Map
+          themeName={themeName}
           selectedFacultyId={selectedFacultyId}
           onFacultySelect={setSelectedFacultyId}
           buildings={mappedBuildings}
+          userLocation={userLocation}
         />
       </View>
     </View>
