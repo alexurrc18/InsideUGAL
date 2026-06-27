@@ -293,7 +293,10 @@ api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     // Don't inject tokens or trigger refresh for auth endpoints
     const url = config.url ?? '';
-    if (url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/logout')) {
+    if (
+      url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/logout') ||
+      url.includes('/login') || url.includes('/refresh') || url.includes('/logout')
+    ) {
       return config;
     }
 
@@ -412,8 +415,12 @@ api.interceptors.response.use(
     const errorDetail = (error.response?.data as any)?.detail;
     const status = error.response?.status;
     
+    const url = originalRequest?.url ?? '';
+    const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/logout') ||
+                           url.includes('/login') || url.includes('/refresh') || url.includes('/logout');
+
     // Check for 401 Unauthorized
-    if (status === 401 && originalRequest && !(originalRequest as any)._retry) {
+    if (status === 401 && originalRequest && !isAuthEndpoint && !(originalRequest as any)._retry) {
       console.log('[API Interceptor] 401 error caught for:', originalRequest.url);
       if (isRefreshing) {
         return new Promise<string>(function(resolve, reject) {
