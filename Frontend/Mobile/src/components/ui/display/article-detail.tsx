@@ -129,12 +129,17 @@ export function ArticleDetail({
             created_at: item.created_at,
             updated_at: item.updated_at,
         }));
+    // Dreapta (Articole similare): doar articole din aceeași categorie ca cel curent
     const sameCategory = pool.filter((e) => e.category === category);
-    const otherCategory = pool.filter((e) => e.category !== category);
-    const ordered = [...sameCategory, ...otherCategory];
+    const sidebarItems = sameCategory.slice(0, 3);
 
-    const sidebarItems = ordered.slice(0, 3);
-    const relatedItems = ordered.slice(3, 6);
+    // Jos (Mai multe): ultimele trei articole (anunțuri/evenimente) postate
+    const sortedByDate = [...pool].sort((a, b) => {
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return timeB - timeA;
+    });
+    const relatedItems = sortedByDate.slice(0, 3);
 
     // Latimea masurata a randului de jos, impartita egal la numarul de carduri.
     const [rowWidth, setRowWidth] = useState(0);
@@ -357,6 +362,7 @@ export function ArticleDetail({
                                             date={getFormattedDate(item.date_start || item.date)}
                                             author={item.author}
                                             image={item.image}
+                                            category={item.category}
                                             onPress={() => openItem(item)}
                                         />
                                     ))}
