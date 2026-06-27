@@ -12,7 +12,6 @@ import {
   useCreateAnnouncement, 
   useUpdateAnnouncement, 
   useDeleteAnnouncement,
-  useFaculties,
   useGenerateAiBanner
 } from '@/hooks/useDashboardApi';
 import { Announcement as BackendAnnouncement } from '@/lib/api-types';
@@ -30,12 +29,30 @@ const availableFacultiesFromSystem = [
   "Economie"
 ];
 
-type ExtendedAnnouncement = Announcement & { type: 'NOUTATE' | 'EVENIMENT' };
+// Extindem tipul existent fără a altera restul proprietăților
+type ExtendedAnnouncement = Announcement & { 
+  type: 'NOUTATE' | 'EVENIMENT';
+  locationName?: string;
+  startDate?: string;
+  endDate?: string;
+};
+
+// Funcție ajutătoare pentru a converti data de backend în format compatibil cu input-ul datetime-local (YYYY-MM-DDTHH:mm)
+const formatToDatetimeLocal = (dateString?: string) => {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    const offset = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+  } catch {
+    return '';
+  }
+};
 
 function AnnouncementsContent() {
   const access = useRequireDashboardAccess(canAccessContent);
   const { data: backendData, isLoading: isLoadingAnnouncements, isError: isErrorAnnouncements, error: announcementsError } = useAnnouncements();
-  const { data: backendFaculties } = useFaculties();
   const createMutation = useCreateAnnouncement();
   const updateMutation = useUpdateAnnouncement();
   const deleteMutation = useDeleteAnnouncement();
@@ -45,20 +62,22 @@ function AnnouncementsContent() {
   const [selectedItem, setSelectedItem] = useState<ExtendedAnnouncement | null>(null);
   const [formState, setFormState] = useState<Partial<ExtendedAnnouncement>>({});
   const [selectedFaculty, setSelectedFaculty] = useState<string>('Toate');
-  const [selectedType, setSelectedType] = useState<string>('TOATE'); 
-  const [newFacultyInput, setNewFacultyInput] = useState<string>('');
+  const [selectedType, setSelectedType] = useState<string>('Toate'); 
   
-  // Referințe pentru dropdown-uri custom (dacă e cazul)
+  // 1. Stare pentru bara de căutare
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  
   const [isFacultyDropdownOpen, setIsFacultyDropdownOpen] = useState<boolean>(false);
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState<boolean>(false);
   
   const facultyDropdownRef = useRef<HTMLDivElement>(null);
   const typeDropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const pdfInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null); // Folosit pentru orice tip de fișier acum
   
   const searchParams = useSearchParams();
 
+  // Maparea datelor din baza de date în interfață
   const data = useMemo((): ExtendedAnnouncement[] => {
     const list = backendData && typeof backendData === 'object' && 'items' in backendData 
       ? (backendData as Record<string, unknown>).items 
@@ -71,17 +90,37 @@ function AnnouncementsContent() {
       const rawType = (item as any).type;
       const validType: 'NOUTATE' | 'EVENIMENT' = (rawType === 'EVENIMENT' || rawType === 'NOUTATE') ? rawType : 'NOUTATE';
 
+      const backendFacultyId = (item as any).faculty_id;
+      let announcementFaculties: string[] = [];
+
+      if (backendFacultyId) {
+        const index = Number(backendFacultyId) - 1;
+        if (index >= 0 && index < availableFacultiesFromSystem.length) {
+          announcementFaculties = [availableFacultiesFromSystem[index]];
+        }
+      }
+
+      // 3. Preluăm linkul evenimentului și fișierele atașate (dacă backend-ul le trimite ca array/obiect, altfel mock)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const eventLink = (item as any).event_link || (item as any).eventLink || '';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawFiles = (item as any).files || (item as any).pdfFiles || [];
+
       return {
         id: item.id.toString(),
         title: item.title,
         description: item.content || '', 
         publishDate: item.created_at ? new Date(item.created_at).toLocaleDateString('ro-RO') : 'Fără dată',
-        faculties: (item as Record<string, unknown>).faculties as string[] || [], 
+        faculties: announcementFaculties, 
         thumbnail: item.image_url || '',
         image_url: item.image_url,
-        eventLink: (item as Record<string, unknown>).eventLink as string || '', 
-        pdfFiles: [],
-        type: validType
+        eventLink: eventLink, 
+        pdfFiles: Array.isArray(rawFiles) ? rawFiles : [],
+        type: validType,
+        // Citim coloanele specifice din imaginea_8c9b7a.png
+        locationName: (item as any).location_name || '',
+        startDate: (item as any).start_date || '',
+        endDate: (item as any).end_date || ''
       };
     });
   }, [backendData]);
@@ -91,8 +130,7 @@ function AnnouncementsContent() {
 
     if (searchParams.get("open") === "true") {
       timerId = setTimeout(() => {
-        setFormState({ faculties: [], pdfFiles: [], type: 'NOUTATE' });
-        setNewFacultyInput('');
+        setFormState({ faculties: [], pdfFiles: [], type: 'NOUTATE', locationName: '', startDate: '', endDate: '' });
         setActiveModal('add');
       }, 0);
     }
@@ -102,29 +140,35 @@ function AnnouncementsContent() {
     };
   }, [searchParams]);
 
-  const dynamicFaculties = useMemo(() => {
-    const fromBackend = backendFaculties?.map(f => f.abbreviation) || [];
-    const merged = Array.from(new Set([...availableFacultiesFromSystem, ...fromBackend]));
-    return merged.filter(f => f !== 'Toate');
-  }, [backendFaculties]);
-
   const allFilterOptions = useMemo(() => {
-    return ['Toate', ...dynamicFaculties];
-  }, [dynamicFaculties]);
+    return ['Toate', ...availableFacultiesFromSystem];
+  }, []);
 
+  // 1. Filtrare avansată care include și bara de căutare
   const filteredData = useMemo(() => {
     let result = data;
     
+    // Filtrare după facultate
     if (selectedFaculty !== 'Toate') {
       result = result.filter(item => item.faculties?.includes(selectedFaculty));
     }
     
-    if (selectedType !== 'TOATE') {
+    // Filtrare după tip
+    if (selectedType !== 'Toate') {
       result = result.filter(item => item.type === selectedType);
+    }
+
+    // Filtrare după textul din bara de căutare (Caută în Titlu sau Descriere)
+    if (searchQuery.trim() !== '') {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(item => 
+        item.title.toLowerCase().includes(query) || 
+        item.description.toLowerCase().includes(query)
+      );
     }
     
     return result;
-  }, [data, selectedFaculty, selectedType]);
+  }, [data, selectedFaculty, selectedType, searchQuery]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -154,14 +198,7 @@ function AnnouncementsContent() {
       }
     } else {
       const encodedUrl = encodeURIComponent(shareData.url);
-      const encodedTitle = encodeURIComponent(shareData.title);
-      
-      const options = [
-        { name: 'Facebook', url: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}` },
-        { name: 'X', url: `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}` },
-        { name: 'WhatsApp', url: `https://wa.me/?text=${encodedTitle}%20${encodedUrl}` }
-      ];
-      window.open(options[0].url, '_blank');
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, '_blank');
     }
   };
 
@@ -205,7 +242,7 @@ function AnnouncementsContent() {
       render: (item) => <span className="block max-w-xs truncate text-muted">{item.description}</span> 
     },
     { 
-      header: 'Facultăți relevante', 
+      header: 'Facultate relevantă', 
       key: 'faculties',
       render: (item) => (
         <div className="flex flex-wrap gap-1">
@@ -216,7 +253,7 @@ function AnnouncementsContent() {
               </span>
             ))
           ) : (
-            <span className="text-slate-300 text-[10px] italic">Fără facultăți</span>
+            <span className="text-slate-300 text-[10px] italic">Toate</span>
           )}
         </div>
       )
@@ -271,12 +308,13 @@ function AnnouncementsContent() {
     }
   };
 
-  const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 2. Modificat pentru a accepta ORICE tip de fișier
+  const handleAnyFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
       const newFiles: PdfFile[] = Array.from(files).map(file => ({
         name: file.name,
-        url: URL.createObjectURL(file)
+        url: URL.createObjectURL(file) // Creează un link temporar de descărcare/vizualizare
       }));
       setFormState(prev => ({
         ...prev,
@@ -285,37 +323,14 @@ function AnnouncementsContent() {
     }
   };
 
-  const handleRemovePdf = (indexToRemove: number) => {
+  const handleRemoveFile = (indexToRemove: number) => {
     setFormState(prev => ({
       ...prev,
       pdfFiles: prev.pdfFiles?.filter((_, index) => index !== indexToRemove)
     }));
   };
 
-  const handleAddNewFaculty = () => {
-    const trimmed = newFacultyInput.trim();
-    if (trimmed && trimmed !== 'Toate') {
-      const currentFaculties = formState.faculties || [];
-      if (!currentFaculties.includes(trimmed)) {
-        setFormState(prev => ({
-          ...prev,
-          faculties: [...currentFaculties, trimmed]
-        }));
-      }
-      setNewFacultyInput('');
-    }
-  };
-
-  const toggleFacultySelection = (faculty: string) => {
-    const current = formState.faculties || [];
-    if (current.includes(faculty)) {
-      setFormState({ ...formState, faculties: current.filter(f => f !== faculty) });
-    } else {
-      setFormState({ ...formState, faculties: [...current, faculty] });
-    }
-  };
-
- const handleAiGenerate = () => {
+  const handleAiGenerate = () => {
     if (!formState.title?.trim() || !formState.description?.trim()) {
       alert('Completează titlul și descrierea înainte de a genera o imagine cu AI.');
       return;
@@ -344,46 +359,91 @@ function AnnouncementsContent() {
   };
 
   const handleSave = (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  const backendPayload: Partial<BackendAnnouncement> & { type?: string; faculties?: string[] } = {
-    type: formState.type || 'NOUTATE', 
-    title: formState.title || '',
-    content: formState.description || '', 
-    image_url: formState.thumbnail || formState.image_url || null,
-    faculties: formState.faculties || [], // 👉 ACUM TRIMITEM ȘI FACULTĂȚILE SELECTATE!
-  };
+    e.preventDefault();
+    
+    const selectedFacultyName = formState.faculties?.[0];
+    let calculatedFacultyId: number | null = null;
 
-  if (activeModal === 'edit' && selectedItem) {
-    updateMutation.mutate({ 
-      id: parseInt(selectedItem.id), 
-      data: backendPayload
-    }, {
-      onSuccess: () => setActiveModal(null)
-    });
-  } else {
-    createMutation.mutate(backendPayload, {
-      onSuccess: () => setActiveModal(null)
-    });
-  }
-};
+    if (selectedFacultyName) {
+      const index = availableFacultiesFromSystem.indexOf(selectedFacultyName);
+      if (index !== -1) {
+        calculatedFacultyId = index + 1;
+      }
+    }
+
+    const isEveniment = formState.type === 'EVENIMENT';
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const backendPayload: Record<string, any> = {
+      type: formState.type || 'NOUTATE', 
+      title: formState.title || '',
+      content: formState.description || '', 
+      image_url: formState.thumbnail || formState.image_url || null,
+      faculty_id: calculatedFacultyId,
+      event_link: formState.eventLink || null, // Salvează link-ul în backend
+      files: formState.pdfFiles || [], // Salvează fișierele atașate
+      // Salvăm noile proprietăți asigurate din imaginea_8c9b7a.png doar dacă e de tip eveniment
+      location_name: isEveniment ? (formState.locationName || null) : null,
+      start_date: isEveniment && formState.startDate ? new Date(formState.startDate).toISOString() : null,
+      end_date: isEveniment && formState.endDate ? new Date(formState.endDate).toISOString() : null
+    };
+
+    if (activeModal === 'edit' && selectedItem) {
+      updateMutation.mutate({ 
+        id: parseInt(selectedItem.id), 
+        data: backendPayload
+      }, {
+        onSuccess: () => setActiveModal(null)
+      });
+    } else {
+      createMutation.mutate(backendPayload, {
+        onSuccess: () => setActiveModal(null)
+      });
+    }
+  };
 
   if (access.loading || !access.allowed) return null;
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full bg-card p-4 border border-border rounded-2xl shadow-xs">
-        <div className="flex flex-wrap items-center gap-6">
+      {/* Container Filtre + Bară de căutare */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 w-full bg-card p-4 border border-border rounded-2xl shadow-xs">
+        
+        <div className="flex flex-wrap items-center gap-4 flex-1 w-full">
+          {/* 1. INPUT BARA DE CĂUTARE */}
+          <div className="relative flex-1 min-w-[240px]">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input
+              type="text"
+              placeholder="Caută după titlu sau descriere..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 border border-border rounded-xl bg-background text-sm font-medium focus:outline-none focus:ring-1 focus:ring-brand placeholder:text-slate-400 text-foreground"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')} 
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 text-xs"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
           {/* Dropdown Custom Facultate */}
           <div className="flex items-center gap-2 relative" ref={facultyDropdownRef}>
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Facultate:</span>
             <button
               type="button"
               onClick={() => setIsFacultyDropdownOpen(!isFacultyDropdownOpen)}
-              className="flex items-center justify-between min-w-[140px] border border-border px-4 py-2.5 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-foreground"
+              className="flex items-center justify-between min-w-[130px] border border-border px-3 py-2 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-foreground"
             >
               <span>{selectedFaculty}</span>
-              <svg className={`w-4 h-4 ml-2 text-slate-400 transition-transform duration-200 ${isFacultyDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className={`w-4 h-4 ml-1 text-slate-400 transition-transform duration-200 ${isFacultyDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
@@ -403,23 +463,23 @@ function AnnouncementsContent() {
             )}
           </div>
 
-          {/* 👉 MODIFICAT: Dropdown Custom pentru filtrul Tip Anunț (TOATE / NOUTATE / EVENIMENT) */}
-          <div className="flex items-center gap-2 relative border-l border-border pl-6" ref={typeDropdownRef}>
+          {/* Dropdown Custom pentru filtrul Tip Anunț */}
+          <div className="flex items-center gap-2 relative sm:border-l sm:border-border sm:pl-4" ref={typeDropdownRef}>
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tip Anunț:</span>
             <button
               type="button"
               onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
-              className="flex items-center justify-between min-w-[140px] border border-border px-4 py-2.5 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-foreground"
+              className="flex items-center justify-between min-w-[130px] border border-border px-3 py-2 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-foreground"
             >
               <span>{selectedType}</span>
-              <svg className={`w-4 h-4 ml-2 text-slate-400 transition-transform duration-200 ${isTypeDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className={`w-4 h-4 ml-1 text-slate-400 transition-transform duration-200 ${isTypeDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
 
             {isTypeDropdownOpen && (
               <div className="absolute left-14 top-full mt-1.5 w-48 bg-card border border-border rounded-xl shadow-lg py-1 z-50">
-                {['TOATE', 'NOUTATE', 'EVENIMENT'].map(type => (
+                {['Toate', 'NOUTATE', 'EVENIMENT'].map(type => (
                   <div
                     key={type}
                     onClick={() => { setSelectedType(type); setIsTypeDropdownOpen(false); }}
@@ -435,10 +495,10 @@ function AnnouncementsContent() {
 
         <button 
           type="button" 
-          onClick={() => { setFormState({ faculties: [], pdfFiles: [], type: 'NOUTATE' }); setNewFacultyInput(''); setActiveModal('add'); }} 
-          className="bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-bold cursor-pointer hover:opacity-90 transition-all shadow-md self-end md:self-auto"
+          onClick={() => { setFormState({ faculties: [], pdfFiles: [], type: 'NOUTATE', eventLink: '', locationName: '', startDate: '', endDate: '' }); setActiveModal('add'); }} 
+          className="bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-bold cursor-pointer hover:opacity-90 transition-all shadow-md w-full lg:w-auto text-center"
         >
-          + Adaugă
+          + Adaugă Anunț
         </button>
       </div>
         
@@ -463,69 +523,117 @@ function AnnouncementsContent() {
         )}
       </div>
 
-      {/* Modal Vizualizare */}
+      {/* MODAL VIZUALIZARE DETALII */}
       <Modal isOpen={activeModal === 'details'} onClose={() => setActiveModal(null)} title="Vizualizare Anunț">
-        {selectedItem && (
-          <div className="space-y-4 text-sm text-foreground">
-            {selectedItem.thumbnail && (
-              <div className="relative h-48 w-full overflow-hidden rounded-xl border border-border">
-                <Image
-                  src={selectedItem.thumbnail}
-                  alt={selectedItem.title}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 512px"
-                  className="object-cover"
-                  unoptimized={selectedItem.thumbnail.startsWith('data:') || selectedItem.thumbnail.startsWith('http')}
-                />
-              </div>
-            )}
-            <div>
-              <div className="flex items-center gap-2">
-                <h4 className="text-lg font-bold">{selectedItem.title}</h4>
-                <span className={`text-xs px-2 py-0.5 rounded-md font-bold ${selectedItem.type === 'EVENIMENT' ? 'bg-amber-100 text-amber-700' : 'bg-purple-100 text-purple-700'}`}>
-                  {selectedItem.type}
-                </span>
-              </div>
-              <p className="text-xs text-muted mt-0.5">Publicat: {selectedItem.publishDate}</p>
-            </div>
+        {selectedItem && (() => {
+          const rawItem = selectedItem as any;
+          const linkExtern = selectedItem.eventLink || rawItem.event_link || rawItem.eventLink || '';
+          const fisiereAtasate = selectedItem.pdfFiles || rawItem.files || rawItem.pdfFiles || [];
+          const isEveniment = selectedItem.type === 'EVENIMENT';
 
-            <div className="flex flex-wrap gap-1">
-              {selectedItem.faculties?.map((f) => (
-                <span key={f} className="bg-background text-muted border border-border text-xs px-2 py-0.5 rounded-md font-medium">
-                  {f}
-                </span>
-              ))}
-            </div>
-
-            <p className="text-muted leading-relaxed whitespace-pre-wrap">{selectedItem.description}</p>
-
-            {selectedItem.pdfFiles && selectedItem.pdfFiles.length > 0 && (
-              <div className="space-y-2 pt-2">
-                <span className="block text-xs font-bold text-foreground">Documente atașate:</span>
-                <div className="flex flex-col gap-1.5">
-                  {selectedItem.pdfFiles.map((file) => (
-                    <div key={file.name}>
-                      <a href={file.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-100 transition-all">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                        Vezi {file.name}
-                      </a>
-                    </div>
-                  ))}
+          return (
+            <div className="space-y-4 text-sm text-foreground">
+              {selectedItem.thumbnail && (
+                <div className="relative h-48 w-full overflow-hidden rounded-xl border border-border">
+                  <Image
+                    src={selectedItem.thumbnail}
+                    alt={selectedItem.title}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 512px"
+                    className="object-cover"
+                    unoptimized={selectedItem.thumbnail.startsWith('data:') || selectedItem.thumbnail.startsWith('http')}
+                  />
                 </div>
+              )}
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-lg font-bold">{selectedItem.title}</h4>
+                  <span className={`text-xs px-2 py-0.5 rounded-md font-bold ${isEveniment ? 'bg-amber-100 text-amber-700' : 'bg-purple-100 text-purple-700'}`}>
+                    {selectedItem.type}
+                  </span>
+                </div>
+                <p className="text-xs text-muted mt-0.5">Publicat: {selectedItem.publishDate}</p>
               </div>
-            )}
 
-            {selectedItem.eventLink && (
-              <div className="pt-2 border-t border-border">
-                <a href={selectedItem.eventLink?.startsWith('http') ? selectedItem.eventLink : '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline inline-flex items-center gap-1 font-medium">
-                  Link către noutate →
-                </a>
+              <div className="flex flex-wrap gap-1">
+                {selectedItem.faculties && selectedItem.faculties.length > 0 ? (
+                  selectedItem.faculties.map((f) => (
+                    <span key={f} className="bg-blue-50 text-brand border border-blue-100 text-xs px-2 py-0.5 rounded-md font-semibold">
+                      {f}
+                    </span>
+                  ))
+                ) : (
+                  <span className="bg-slate-50 text-slate-500 border border-slate-200 text-xs px-2 py-0.5 rounded-md font-medium">Toate</span>
+                )}
               </div>
-            )}
-          </div>
-        )}
+
+              {/* AFIȘARE DETALII LOGISTICE EVENIMENT */}
+              {isEveniment && (selectedItem.locationName || selectedItem.startDate) && (
+                <div className="p-3.5 bg-amber-50/60 border border-amber-100/70 rounded-xl space-y-1.5 text-xs text-slate-700">
+                  {selectedItem.locationName && (
+                    <div className="flex items-center gap-1">
+                      <span>📍 <b>Locație:</b> {selectedItem.locationName}</span>
+                    </div>
+                  )}
+                  {selectedItem.startDate && (
+                    <div className="flex items-center gap-1">
+                      <span>📅 <b>Perioadă:</b> {new Date(selectedItem.startDate).toLocaleString('ro-RO')} {selectedItem.endDate ? ` - ${new Date(selectedItem.endDate).toLocaleString('ro-RO')}` : ''}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <p className="text-muted leading-relaxed whitespace-pre-wrap">{selectedItem.description}</p>
+
+              {/* AFIȘARE FIȘIERE ATAȘATE */}
+              {Array.isArray(fisiereAtasate) && fisiereAtasate.length > 0 ? (
+                <div className="space-y-2 pt-3 border-t border-border">
+                  <span className="block text-xs font-bold text-foreground">Fișiere atașate:</span>
+                  <div className="flex flex-col gap-2">
+                    {fisiereAtasate.map((file: any, idx: number) => {
+                      const fileName = file?.name || `Fisier_${idx + 1}`;
+                      const fileUrl = file?.url || file;
+                      
+                      return (
+                        <div key={idx}>
+                          <a 
+                            href={fileUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold transition-all max-w-full truncate"
+                          >
+                            <svg className="w-4 h-4 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span className="truncate">{fileName}</span>
+                          </a>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* AFIȘARE LINK EXTERN */}
+              {linkExtern ? (
+                <div className="pt-3 border-t border-border">
+                  <span className="block text-xs font-bold text-foreground mb-1">Link asociat:</span>
+                  <a 
+                    href={linkExtern.startsWith('http') ? linkExtern : `https://${linkExtern}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-blue-600 hover:underline inline-flex items-center gap-1 font-semibold text-xs bg-blue-50/50 border border-blue-100 px-3 py-2 rounded-xl transition-colors"
+                  >
+                    <span>Accesează link-ul atașat</span>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+              ) : null}
+            </div>
+          );
+        })()}
       </Modal>
 
       {/* Modal Adăugare / Editare */}
@@ -534,9 +642,7 @@ function AnnouncementsContent() {
           
           <div className="flex-1 overflow-y-auto space-y-4 pr-1 pb-4 scrollbar-none">
             <style dangerouslySetInnerHTML={{__html: `
-              .scrollbar-none::-webkit-scrollbar {
-                display: none;
-              }
+              .scrollbar-none::-webkit-scrollbar { display: none; }
             `}} />
 
             <div>
@@ -544,7 +650,6 @@ function AnnouncementsContent() {
               <input id="ann-title" type="text" value={formState.title || ''} onChange={e => setFormState({...formState, title: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand" required />
             </div>
 
-            {/* 👉 MODIFICAT: Dropdown nativ select în interiorul modalului pentru Tipul Anunțului */}
             <div>
               <label htmlFor="ann-type" className="block text-xs font-semibold text-foreground mb-1">Tipul Anunțului</label>
               <select
@@ -558,49 +663,64 @@ function AnnouncementsContent() {
               </select>
             </div>
 
-            <div>
-              <label htmlFor="ann-sys-faculty" className="block text-xs font-semibold text-foreground mb-1">Adaugă o facultate nouă în sistem</label>
-              <div className="flex gap-2">
-                <select
-                  id="ann-sys-faculty"
-                  value={newFacultyInput}
-                  onChange={e => setNewFacultyInput(e.target.value)}
-                  className="flex-1 border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm cursor-pointer"
-                >
-                  <option value="">Alege o facultate...</option>
-                  {dynamicFaculties.map(fac => (
-                    <option key={fac} value={fac}>{fac}</option>
-                  ))}
-                </select>
-                <button 
-                  type="button" 
-                  onClick={handleAddNewFaculty}
-                  className="bg-slate-800 text-white px-4 py-2 rounded-lg text-xs font-bold cursor-pointer hover:bg-slate-700 transition-all"
-                >
-                  + Adaugă în listă
-                </button>
-              </div>
+            {/* ADĂUGAT: Câmpurile noi din image_8c9b7a.png care apar exclusiv când este selectat EVENIMENT */}
+            {formState.type === 'EVENIMENT' && (
+              <div className="p-4 bg-slate-50/60 border border-border rounded-xl space-y-3 transition-all duration-300">
+                <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Detalii Logistice Eveniment</span>
+                
+                <div>
+                  <label htmlFor="ann-location" className="block text-xs font-semibold text-slate-700 mb-1">Locație (`location_name`)</label>
+                  <input 
+                    id="ann-location" 
+                    type="text" 
+                    placeholder="ex: Hol Central, Corp A" 
+                    value={formState.locationName || ''} 
+                    onChange={e => setFormState({...formState, locationName: e.target.value})} 
+                    className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand" 
+                    required 
+                  />
+                </div>
 
-              <div className="flex flex-wrap gap-1.5 p-2.5 border border-border rounded-lg bg-slate-50/50 mt-2">
-                {formState.faculties?.map(faculty => (
-                  <div key={faculty} className="relative group">
-                    <button
-                      type="button"
-                      onClick={() => toggleFacultySelection(faculty)}
-                      className="pr-7 pl-2.5 py-1 rounded-md text-xs font-medium border bg-blue-50 border-blue-200 text-blue-600 transition-all cursor-pointer relative font-semibold"
-                    >
-                      {faculty}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); toggleFacultySelection(faculty); }}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 text-[10px] px-0.5 font-bold transition-colors cursor-pointer"
-                    >
-                      ✕
-                    </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="ann-start-date" className="block text-xs font-semibold text-slate-700 mb-1">Dată & Oră Început (`start_date`)</label>
+                    <input 
+                      id="ann-start-date" 
+                      type="datetime-local" 
+                      value={formatToDatetimeLocal(formState.startDate)} 
+                      onChange={e => setFormState({...formState, startDate: e.target.value})} 
+                      className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand" 
+                      required 
+                    />
                   </div>
-                ))}
+                  <div>
+                    <label htmlFor="ann-end-date" className="block text-xs font-semibold text-slate-700 mb-1">Dată & Oră Sfârșit (`end_date`)</label>
+                    <input 
+                      id="ann-end-date" 
+                      type="datetime-local" 
+                      value={formatToDatetimeLocal(formState.endDate)} 
+                      onChange={e => setFormState({...formState, endDate: e.target.value})} 
+                      className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand" 
+                      required 
+                    />
+                  </div>
+                </div>
               </div>
+            )}
+
+            <div>
+              <label htmlFor="ann-faculty-select" className="block text-xs font-semibold text-foreground mb-1">Facultate asociată anunțului</label>
+              <select
+                id="ann-faculty-select"
+                value={formState.faculties?.[0] || ""}
+                onChange={e => setFormState({ ...formState, faculties: e.target.value ? [e.target.value] : [] })}
+                className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm cursor-pointer font-medium"
+              >
+                <option value="">Toate facultățile</option>
+                {availableFacultiesFromSystem.map(fac => (
+                  <option key={fac} value={fac}>{fac}</option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -669,14 +789,13 @@ function AnnouncementsContent() {
             </div>
 
             <div>
-              <span className="block text-xs font-semibold text-foreground mb-1">Documente atașate (PDF)</span>
+              <span className="block text-xs font-semibold text-foreground mb-1">Documente și fișiere atașate (Orice format)</span>
               <div className="p-3 border border-dashed border-border rounded-lg bg-background/50 flex flex-col gap-2">
                 <input 
                   type="file" 
                   ref={pdfInputRef}
-                  accept=".pdf" 
+                  onChange={handleAnyFileChange}
                   multiple
-                  onChange={handlePdfChange} 
                   className="hidden" 
                 />
                 <button
@@ -684,20 +803,20 @@ function AnnouncementsContent() {
                   onClick={() => pdfInputRef.current?.click()}
                   className="flex items-center justify-center gap-2 border border-border px-4 py-2 rounded-md text-xs font-semibold text-foreground bg-card hover:bg-slate-50 transition-all cursor-pointer w-full"
                 >
-                  <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  Atașează fișiere PDF
+                  Încarcă fișiere (PDF, Word, Excel, etc.)
                 </button>
 
                 {formState.pdfFiles && formState.pdfFiles.length > 0 && (
                   <div className="flex flex-col gap-1.5 mt-1">
-                    {formState.pdfFiles.map((file) => (
-                      <div key={file.name} className="flex items-center justify-between bg-slate-50 border border-border rounded-lg p-2 text-xs text-muted">
-                        <span className="truncate max-w-[250px] font-medium">{file.name}</span>
+                    {formState.pdfFiles.map((file, idx) => (
+                      <div key={idx} className="flex items-center justify-between bg-slate-50 border border-border rounded-lg p-2 text-xs text-muted">
+                        <span className="truncate max-w-[250px] font-medium text-slate-600">{file.name}</span>
                         <button
                           type="button"
-                          onClick={() => handleRemovePdf(formState.pdfFiles!.indexOf(file))}
+                          onClick={() => handleRemoveFile(idx)}
                           className="text-red-500 hover:text-red-700 font-bold px-1"
                         >
                           ✕
@@ -715,8 +834,8 @@ function AnnouncementsContent() {
             </div>
 
             <div>
-              <label htmlFor="ann-link" className="block text-xs font-semibold text-foreground mb-1">Link către noutate (opțional)</label>
-              <input id="ann-link" type="url" value={formState.eventLink || ''} onChange={e => setFormState({...formState, eventLink: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand" placeholder="https://..." />
+              <label htmlFor="ann-link" className="block text-xs font-semibold text-foreground mb-1">Link către noutate / sursă externă (opțional)</label>
+              <input id="ann-link" type="text" value={formState.eventLink || ''} onChange={e => setFormState({...formState, eventLink: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand" placeholder="https://..." />
             </div>
           </div>
 
