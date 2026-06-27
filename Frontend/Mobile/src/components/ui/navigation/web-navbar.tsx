@@ -148,6 +148,9 @@ export function WebNavbar() {
         return;
       }
     }
+    if (href === "/(public)/harta") {
+      navigator.geolocation?.getCurrentPosition(() => {}, () => {});
+    }
     router.push(href as any);
   };
 

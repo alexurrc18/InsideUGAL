@@ -48,6 +48,12 @@
         }
       ],
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Aplicația folosește locația pentru a afișa poziția ta pe harta campusului."
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "ios": {
@@ -55,7 +61,8 @@
             "deploymentTarget": "16.4"
           }
         }
-      ]
+      ],
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -3,6 +3,7 @@ import { View, Text } from 'react-native';
 import { Spacing } from '@/constants/spacing';
 import { Config } from '@/constants/config';
 import { MapPin } from './map-pin';
+import { UserLocationPin } from './user-location-pin';
 import { cleanMapStyle } from '@/utils/map-helper';
 
 let MapLibre: any = null;
@@ -24,9 +25,11 @@ interface MapProps {
   selectedFacultyId: string | null;
   onFacultySelect: (id: string | null) => void;
   buildings?: any[];
+  userLocation?: { lat: number; lng: number } | null;
+  focusKey?: number;
 }
 
-const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect, buildings }: MapProps) => {
+const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect, buildings, userLocation, focusKey }: MapProps) => {
   const cameraRef = useRef<any>(null);
 
   const [defaultCenter, setDefaultCenter] = useState<[number, number] | undefined>(undefined);
@@ -130,6 +133,16 @@ const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect, buildings
             </Marker>
           );
         })}
+
+        {userLocation && (
+          <Marker
+            id="user-location"
+            lngLat={[userLocation.lng, userLocation.lat]}
+            anchor="center"
+          >
+            <UserLocationPin />
+          </Marker>
+        )}
       </MapLibre>
     </View>
   );

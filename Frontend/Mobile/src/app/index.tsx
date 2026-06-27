@@ -9,10 +9,15 @@ export default function SplashScreen() {
   useEffect(() => {
     let isRedirected = false;
 
-    const redirect = () => {
+    const redirect = async () => {
       if (!isRedirected) {
         isRedirected = true;
-        router.replace("/(public)/acasa");
+        const hasSeenOnboarding = await storage.getItem("has_seen_onboarding");
+        if (hasSeenOnboarding === "true") {
+          router.replace("/(public)/acasa");
+        } else {
+          router.replace("/(onboarding)/notificari");
+        }
       }
     };
 

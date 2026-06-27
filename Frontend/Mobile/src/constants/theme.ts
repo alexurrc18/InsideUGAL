@@ -7,6 +7,7 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 import { Spacing } from './spacing';
+import { ThemeProvider } from '@/contexts/theme-context';
 
 export { Spacing };
 
@@ -37,6 +38,8 @@ export const Colors = {
 
     primary: ColorScheme.blue,
     secondary: ColorScheme.red,
+    thirdiary: ColorScheme.green,
+    tertiary: ColorScheme.yellow,
 
   },
   dark: {
@@ -46,10 +49,12 @@ export const Colors = {
     background: ColorScheme.black,
     border: ColorScheme.gray,
     surface: ColorScheme.pureBlack,
-    card: '#1C1C1E',
+    card: ColorScheme.pureBlack,
 
     primary: ColorScheme.blue,
     secondary: ColorScheme.red,
+    thirdiary: ColorScheme.green,
+    tertiary: ColorScheme.yellow,
   },
 } as const;
 
