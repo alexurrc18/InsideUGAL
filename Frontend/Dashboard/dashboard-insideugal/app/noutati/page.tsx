@@ -29,7 +29,6 @@ const availableFacultiesFromSystem = [
   "Economie"
 ];
 
-// Extindem tipul existent fără a altera restul proprietăților
 type ExtendedAnnouncement = Announcement & { 
   type: 'NOUTATE' | 'EVENIMENT';
   locationName?: string;
@@ -37,7 +36,6 @@ type ExtendedAnnouncement = Announcement & {
   endDate?: string;
 };
 
-// Funcție ajutătoare pentru a converti data de backend în format compatibil cu input-ul datetime-local (YYYY-MM-DDTHH:mm)
 const formatToDatetimeLocal = (dateString?: string) => {
   if (!dateString) return '';
   try {
@@ -62,9 +60,8 @@ function AnnouncementsContent() {
   const [selectedItem, setSelectedItem] = useState<ExtendedAnnouncement | null>(null);
   const [formState, setFormState] = useState<Partial<ExtendedAnnouncement>>({});
   const [selectedFaculty, setSelectedFaculty] = useState<string>('Toate');
-  const [selectedType, setSelectedType] = useState<string>('Toate'); 
+  const [selectedType, setSelectedType] = useState<string>('TOATE'); 
   
-  // 1. Stare pentru bara de căutare
   const [searchQuery, setSearchQuery] = useState<string>('');
   
   const [isFacultyDropdownOpen, setIsFacultyDropdownOpen] = useState<boolean>(false);
@@ -73,11 +70,10 @@ function AnnouncementsContent() {
   const facultyDropdownRef = useRef<HTMLDivElement>(null);
   const typeDropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const pdfInputRef = useRef<HTMLInputElement>(null); // Folosit pentru orice tip de fișier acum
+  const pdfInputRef = useRef<HTMLInputElement>(null);
   
   const searchParams = useSearchParams();
 
-  // Maparea datelor din baza de date în interfață
   const data = useMemo((): ExtendedAnnouncement[] => {
     const list = backendData && typeof backendData === 'object' && 'items' in backendData 
       ? (backendData as Record<string, unknown>).items 
@@ -86,11 +82,11 @@ function AnnouncementsContent() {
     if (!list || !Array.isArray(list)) return [];
 
     return (list as BackendAnnouncement[]).map((item: BackendAnnouncement): ExtendedAnnouncement => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rawType = (item as any).type;
+      const itemRaw = item as unknown as Record<string, unknown>;
+      const rawType = itemRaw.type as string | undefined;
       const validType: 'NOUTATE' | 'EVENIMENT' = (rawType === 'EVENIMENT' || rawType === 'NOUTATE') ? rawType : 'NOUTATE';
 
-      const backendFacultyId = (item as any).faculty_id;
+      const backendFacultyId = itemRaw.faculty_id;
       let announcementFaculties: string[] = [];
 
       if (backendFacultyId) {
@@ -100,11 +96,8 @@ function AnnouncementsContent() {
         }
       }
 
-      // 3. Preluăm linkul evenimentului și fișierele atașate (dacă backend-ul le trimite ca array/obiect, altfel mock)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const eventLink = (item as any).event_link || (item as any).eventLink || '';
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rawFiles = (item as any).files || (item as any).pdfFiles || [];
+      const eventLink = (itemRaw.event_link as string) || (itemRaw.eventLink as string) || '';
+      const rawFiles = itemRaw.files || itemRaw.pdfFiles || [];
 
       return {
         id: item.id.toString(),
@@ -115,12 +108,11 @@ function AnnouncementsContent() {
         thumbnail: item.image_url || '',
         image_url: item.image_url,
         eventLink: eventLink, 
-        pdfFiles: Array.isArray(rawFiles) ? rawFiles : [],
+        pdfFiles: Array.isArray(rawFiles) ? (rawFiles as PdfFile[]) : [],
         type: validType,
-        // Citim coloanele specifice din imaginea_8c9b7a.png
-        locationName: (item as any).location_name || '',
-        startDate: (item as any).start_date || '',
-        endDate: (item as any).end_date || ''
+        locationName: (itemRaw.location_name as string) || '',
+        startDate: (itemRaw.start_date as string) || '',
+        endDate: (itemRaw.end_date as string) || ''
       };
     });
   }, [backendData]);
@@ -144,21 +136,17 @@ function AnnouncementsContent() {
     return ['Toate', ...availableFacultiesFromSystem];
   }, []);
 
-  // 1. Filtrare avansată care include și bara de căutare
   const filteredData = useMemo(() => {
     let result = data;
     
-    // Filtrare după facultate
     if (selectedFaculty !== 'Toate') {
       result = result.filter(item => item.faculties?.includes(selectedFaculty));
     }
     
-    // Filtrare după tip
-    if (selectedType !== 'Toate') {
+    if (selectedType !== 'TOATE') {
       result = result.filter(item => item.type === selectedType);
     }
 
-    // Filtrare după textul din bara de căutare (Caută în Titlu sau Descriere)
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
       result = result.filter(item => 
@@ -253,7 +241,7 @@ function AnnouncementsContent() {
               </span>
             ))
           ) : (
-            <span className="text-slate-300 text-[10px] italic">Toate</span>
+            <span className="text-slate-300 text-[10px] italic">General / Toate</span>
           )}
         </div>
       )
@@ -308,13 +296,12 @@ function AnnouncementsContent() {
     }
   };
 
-  // 2. Modificat pentru a accepta ORICE tip de fișier
   const handleAnyFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
       const newFiles: PdfFile[] = Array.from(files).map(file => ({
         name: file.name,
-        url: URL.createObjectURL(file) // Creează un link temporar de descărcare/vizualizare
+        url: URL.createObjectURL(file) 
       }));
       setFormState(prev => ({
         ...prev,
@@ -373,16 +360,14 @@ function AnnouncementsContent() {
 
     const isEveniment = formState.type === 'EVENIMENT';
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const backendPayload: Record<string, any> = {
+    const backendPayload: Record<string, unknown> = {
       type: formState.type || 'NOUTATE', 
       title: formState.title || '',
       content: formState.description || '', 
       image_url: formState.thumbnail || formState.image_url || null,
       faculty_id: calculatedFacultyId,
-      event_link: formState.eventLink || null, // Salvează link-ul în backend
-      files: formState.pdfFiles || [], // Salvează fișierele atașate
-      // Salvăm noile proprietăți asigurate din imaginea_8c9b7a.png doar dacă e de tip eveniment
+      event_link: formState.eventLink || null, 
+      files: formState.pdfFiles || [], 
       location_name: isEveniment ? (formState.locationName || null) : null,
       start_date: isEveniment && formState.startDate ? new Date(formState.startDate).toISOString() : null,
       end_date: isEveniment && formState.endDate ? new Date(formState.endDate).toISOString() : null
@@ -406,11 +391,9 @@ function AnnouncementsContent() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Container Filtre + Bară de căutare */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 w-full bg-card p-4 border border-border rounded-2xl shadow-xs">
         
         <div className="flex flex-wrap items-center gap-4 flex-1 w-full">
-          {/* 1. INPUT BARA DE CĂUTARE */}
           <div className="relative flex-1 min-w-[240px]">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -434,7 +417,6 @@ function AnnouncementsContent() {
             )}
           </div>
 
-          {/* Dropdown Custom Facultate */}
           <div className="flex items-center gap-2 relative" ref={facultyDropdownRef}>
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Facultate:</span>
             <button
@@ -463,7 +445,6 @@ function AnnouncementsContent() {
             )}
           </div>
 
-          {/* Dropdown Custom pentru filtrul Tip Anunț */}
           <div className="flex items-center gap-2 relative sm:border-l sm:border-border sm:pl-4" ref={typeDropdownRef}>
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tip Anunț:</span>
             <button
@@ -479,7 +460,7 @@ function AnnouncementsContent() {
 
             {isTypeDropdownOpen && (
               <div className="absolute left-14 top-full mt-1.5 w-48 bg-card border border-border rounded-xl shadow-lg py-1 z-50">
-                {['Toate', 'NOUTATE', 'EVENIMENT'].map(type => (
+                {['TOATE', 'NOUTATE', 'EVENIMENT'].map(type => (
                   <div
                     key={type}
                     onClick={() => { setSelectedType(type); setIsTypeDropdownOpen(false); }}
@@ -526,9 +507,8 @@ function AnnouncementsContent() {
       {/* MODAL VIZUALIZARE DETALII */}
       <Modal isOpen={activeModal === 'details'} onClose={() => setActiveModal(null)} title="Vizualizare Anunț">
         {selectedItem && (() => {
-          const rawItem = selectedItem as any;
-          const linkExtern = selectedItem.eventLink || rawItem.event_link || rawItem.eventLink || '';
-          const fisiereAtasate = selectedItem.pdfFiles || rawItem.files || rawItem.pdfFiles || [];
+          const linkExtern = selectedItem.eventLink || '';
+          const fisiereAtasate = selectedItem.pdfFiles || [];
           const isEveniment = selectedItem.type === 'EVENIMENT';
 
           return (
@@ -563,11 +543,10 @@ function AnnouncementsContent() {
                     </span>
                   ))
                 ) : (
-                  <span className="bg-slate-50 text-slate-500 border border-slate-200 text-xs px-2 py-0.5 rounded-md font-medium">Toate</span>
+                  <span className="bg-slate-50 text-slate-500 border border-slate-200 text-xs px-2 py-0.5 rounded-md font-medium">General / Toate</span>
                 )}
               </div>
 
-              {/* AFIȘARE DETALII LOGISTICE EVENIMENT */}
               {isEveniment && (selectedItem.locationName || selectedItem.startDate) && (
                 <div className="p-3.5 bg-amber-50/60 border border-amber-100/70 rounded-xl space-y-1.5 text-xs text-slate-700">
                   {selectedItem.locationName && (
@@ -585,14 +564,13 @@ function AnnouncementsContent() {
 
               <p className="text-muted leading-relaxed whitespace-pre-wrap">{selectedItem.description}</p>
 
-              {/* AFIȘARE FIȘIERE ATAȘATE */}
               {Array.isArray(fisiereAtasate) && fisiereAtasate.length > 0 ? (
                 <div className="space-y-2 pt-3 border-t border-border">
                   <span className="block text-xs font-bold text-foreground">Fișiere atașate:</span>
                   <div className="flex flex-col gap-2">
-                    {fisiereAtasate.map((file: any, idx: number) => {
+                    {fisiereAtasate.map((file: PdfFile, idx: number) => {
                       const fileName = file?.name || `Fisier_${idx + 1}`;
-                      const fileUrl = file?.url || file;
+                      const fileUrl = file?.url || '';
                       
                       return (
                         <div key={idx}>
@@ -614,7 +592,6 @@ function AnnouncementsContent() {
                 </div>
               ) : null}
 
-              {/* AFIȘARE LINK EXTERN */}
               {linkExtern ? (
                 <div className="pt-3 border-t border-border">
                   <span className="block text-xs font-bold text-foreground mb-1">Link asociat:</span>
@@ -663,13 +640,12 @@ function AnnouncementsContent() {
               </select>
             </div>
 
-            {/* ADĂUGAT: Câmpurile noi din image_8c9b7a.png care apar exclusiv când este selectat EVENIMENT */}
             {formState.type === 'EVENIMENT' && (
               <div className="p-4 bg-slate-50/60 border border-border rounded-xl space-y-3 transition-all duration-300">
                 <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Detalii Logistice Eveniment</span>
                 
                 <div>
-                  <label htmlFor="ann-location" className="block text-xs font-semibold text-slate-700 mb-1">Locație (`location_name`)</label>
+                  <label htmlFor="ann-location" className="block text-xs font-semibold text-slate-700 mb-1">Locație</label>
                   <input 
                     id="ann-location" 
                     type="text" 
@@ -683,7 +659,7 @@ function AnnouncementsContent() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label htmlFor="ann-start-date" className="block text-xs font-semibold text-slate-700 mb-1">Dată & Oră Început (`start_date`)</label>
+                    <label htmlFor="ann-start-date" className="block text-xs font-semibold text-slate-700 mb-1">Dată & Oră Început</label>
                     <input 
                       id="ann-start-date" 
                       type="datetime-local" 
@@ -694,7 +670,7 @@ function AnnouncementsContent() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="ann-end-date" className="block text-xs font-semibold text-slate-700 mb-1">Dată & Oră Sfârșit (`end_date`)</label>
+                    <label htmlFor="ann-end-date" className="block text-xs font-semibold text-slate-700 mb-1">Dată & Oră Sfârșit</label>
                     <input 
                       id="ann-end-date" 
                       type="datetime-local" 
@@ -716,7 +692,7 @@ function AnnouncementsContent() {
                 onChange={e => setFormState({ ...formState, faculties: e.target.value ? [e.target.value] : [] })}
                 className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm cursor-pointer font-medium"
               >
-                <option value="">Toate facultățile</option>
+                <option value="">General / Toate facultățile</option>
                 {availableFacultiesFromSystem.map(fac => (
                   <option key={fac} value={fac}>{fac}</option>
                 ))}
