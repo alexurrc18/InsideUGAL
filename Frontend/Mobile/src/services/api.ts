@@ -416,7 +416,7 @@ api.interceptors.response.use(
     if (status === 401 && originalRequest && !(originalRequest as any)._retry) {
       console.log('[API Interceptor] 401 error caught for:', originalRequest.url);
       if (isRefreshing) {
-        return new Promise(function(resolve, reject) {
+        return new Promise<string>(function(resolve, reject) {
           failedQueue.push({ resolve, reject });
         }).then(token => {
           setAuthorizationHeader(originalRequest, token);
