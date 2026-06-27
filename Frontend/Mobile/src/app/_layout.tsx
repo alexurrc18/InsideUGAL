@@ -38,6 +38,7 @@ export default function RootLayout() {
       <View style={{ flex: 1 }}>
 
         <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(onboarding)" options={{ animation: 'none' }} />
           <Stack.Screen name="(public)" options={{ animation: 'none' }} />
           <Stack.Screen name="(auth)" options={{ presentation: 'formSheet' }} />
           <Stack.Screen name="ace" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />

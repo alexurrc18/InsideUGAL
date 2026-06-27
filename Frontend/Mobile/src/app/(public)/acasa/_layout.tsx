@@ -53,6 +53,11 @@ export default function LineupLayout() {
               }}
             />
 
+            <Stack.Screen
+              name="notificari"
+              options={{ headerShown: false }}
+            />
+
         </Stack>
     );
 }
