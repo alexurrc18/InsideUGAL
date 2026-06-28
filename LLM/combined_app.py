@@ -35,6 +35,8 @@ CHATBOT_MARIUS    = SRC_DIR / "ChatBot"
 env_path = BASE_DIR / ".env"
 load_dotenv(dotenv_path=env_path, override=False)
 
+from src.translation_service.router import router as translation_router
+
 
 def load_module(name: str, path: Path, extra_paths: list[Path] | None = None):
     old_sys_path = list(sys.path)
@@ -182,6 +184,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(translation_router)
+
 
 def check_rate_limit(request: Request):
     client_ip = request.client.host if request.client else "unknown"
@@ -203,6 +207,8 @@ def health_check():
             "/api/v1/delete-pdf/{pdf_id}",
             "/api/v1/campus-chat",
             "/api/v1/campus-chat/stream",
+            "/translate",
+            "/translate/batch",
         ],
     }
 

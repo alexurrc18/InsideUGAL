@@ -35,6 +35,7 @@ from app.api.errors import (
     validation_exception_handler,
 )
 from app.middleware.timing import TimingMiddleware
+from app.middleware.translation import TranslationMiddleware
 from app.rate_limit import limiter
 
 logging.basicConfig(level=logging.INFO)
@@ -117,6 +118,9 @@ async def add_request_id_middleware(request: Request, call_next):
 # --- 4. Timing & SlowAPI ---
 app.add_middleware(TimingMiddleware)
 app.add_middleware(SlowAPIMiddleware)
+
+# --- 4.5. Translation ---
+app.add_middleware(TranslationMiddleware)
 
 # --- 5. CORS Middleware (MUTAT LA FINAL) ---
 # OBLIGATORIU: Trebuie să fie ultimul adăugat pentru a fi primul care lovește request-ul browser-ului!
