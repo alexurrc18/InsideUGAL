@@ -134,7 +134,7 @@ export default function CategoryScreen() {
         response = await api.get("/locations/", {
           params: {
             page: pageToFetch,
-            size: 20
+            size: 50
           }
         });
         if (response.data && response.data.items) {
@@ -154,7 +154,7 @@ export default function CategoryScreen() {
         }
       }
       
-      if (receivedItemsCount < 20) {
+      if (receivedItemsCount < (categoryTitle === "Facilități" ? 50 : 20)) {
         setHasMore(false);
       }
       
