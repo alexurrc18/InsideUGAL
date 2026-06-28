@@ -1,5 +1,7 @@
-import React, { useState } from "react";
-import { View, Text, useColorScheme, Linking, Platform, Pressable, Animated } from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import React, { useState, useEffect } from "react";
+import { View, Text, Linking, Platform, Pressable } from "react-native";
+import Animated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, interpolate, Extrapolation } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
@@ -8,7 +10,7 @@ import { NewsCard } from "@/components/ui/display/news-card";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import * as WebBrowser from "expo-web-browser";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
-import MOCK_DATA from "@/constants/mock-data.json";
+import api from "@/services/api";
 
 export default function MoreCategoryScreen() {
   const { categoryId, title: categoryTitle } = useLocalSearchParams();
@@ -16,12 +18,22 @@ export default function MoreCategoryScreen() {
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const [items, setItems] = useState<any[]>([]);
 
-  const [scrollY] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    if (!categoryId) return;
+    api.get('/city-guide', { params: { category_id: categoryId } })
+      .then(res => setItems(res.data))
+      .catch(() => {});
+  }, [categoryId]);
 
-  const filteredData = (MOCK_DATA as any).cityGuide.filter(
-    (item: any) => item.categoryId === categoryId
-  );
+  const scrollY = useSharedValue(0);
+  const scrollHandler = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
+  const headerTitleStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [50, 90], [0, 1], Extrapolation.CLAMP),
+  }));
 
   const handlePress = async (item: any) => {
     if (item.website) {
@@ -46,12 +58,6 @@ export default function MoreCategoryScreen() {
     }
   };
 
-  const headerTitleOpacity = scrollY.interpolate({
-    inputRange: [50, 90],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <Stack.Screen
@@ -75,7 +81,7 @@ export default function MoreCategoryScreen() {
             </Pressable>
           ),
           headerTitle: () => (
-            <Animated.View style={{ opacity: headerTitleOpacity }}>
+            <Animated.View style={headerTitleStyle}>
               <Text 
                 style={[
                   Typography.Heading4, 
@@ -99,10 +105,7 @@ export default function MoreCategoryScreen() {
           paddingTop: Spacing.md,
           paddingBottom: insets.bottom + Spacing.xxl
         }}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
+        onScroll={scrollHandler}
         scrollEventThrottle={16}
       >
         <View style={{ marginBottom: Spacing.lg }}>
@@ -112,8 +115,8 @@ export default function MoreCategoryScreen() {
         </View>
 
         <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>
-          {filteredData.map((item: any) => (
-            <NewsCard 
+          {items.map((item: any) => (
+            <NewsCard
               key={item.id}
               variant="list"
               title={item.title}
@@ -124,7 +127,7 @@ export default function MoreCategoryScreen() {
           ))}
         </View>
 
-        {filteredData.length === 0 && (
+        {items.length === 0 && (
           <Text style={[Typography.Paragraph1, { color: theme.text, textAlign: "center", marginTop: 40 }]}>
             Nu există elemente în această categorie.
           </Text>

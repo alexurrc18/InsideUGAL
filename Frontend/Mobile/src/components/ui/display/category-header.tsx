@@ -1,5 +1,6 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React from "react";
-import { View, Text, ScrollView, TouchableOpacity, useColorScheme } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { Typography } from "@/constants/typography";
 import { Colors, Spacing } from "@/constants/theme";
 

@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
-import { Animated, Easing, Linking, Pressable, Text, View } from "react-native";
+import { Linking, Pressable, Text, View } from "react-native";
+import Animated, { useSharedValue, withTiming, useAnimatedStyle, interpolate, Extrapolation, Easing } from "react-native-reanimated";
 import { useRouter } from "expo-router";
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import UserIcon from "@/assets/icons/svg/user.svg";
-import api, { getAuthToken, setAuthToken } from "@/services/api";
+import { useAuth } from "@/contexts/auth-context";
 import { Config } from "@/constants/config";
 
-export const DASHBOARD_URL = Config.DASHBOARD_URL;
+export const DASHBOARD_URL = Config.DASHBOARD_URL || "";
 
 export function ProfileMenu({
   open: controlledOpen,
@@ -22,13 +23,11 @@ export function ProfileMenu({
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const router = useRouter();
+  const { isAuthenticated, user, logout } = useAuth();
 
   const [localOpen, setLocalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : localOpen;
-  const [anim] = useState(() => new Animated.Value(0));
-
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<{ name: string; email: string; role?: string } | null>(null);
+  const anim = useSharedValue(0);
 
   const toggle = () => {
     if (onToggle) {
@@ -47,45 +46,10 @@ export function ProfileMenu({
   };
 
   useEffect(() => {
-    let isMounted = true;
-    const checkUser = async () => {
-      try {
-        const token = await getAuthToken();
-        if (token) {
-          if (isMounted) setIsAuthenticated(true);
-          const res = await api.get("/profiles/me");
-          if (res.data && isMounted) {
-            setUser({
-              name: `${res.data.first_name || ""} ${res.data.last_name || ""}`.trim() || "Utilizator",
-              email: res.data.email || "",
-              role: res.data.role || "STUDENT"
-            });
-          }
-        } else {
-          if (isMounted) {
-            setIsAuthenticated(false);
-            setUser(null);
-          }
-        }
-      } catch (err) {
-        console.warn("[API] Error loading profile for profile-menu:", err);
-      }
-    };
-    if (open) {
-      checkUser();
-    }
-    return () => {
-      isMounted = false;
-    };
-  }, [open]);
-
-  useEffect(() => {
-    Animated.timing(anim, {
-      toValue: open ? 1 : 0,
+    anim.set(withTiming(open ? 1 : 0, {
       duration: 200,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
+    }));
   }, [open, anim]);
 
   // Inchide meniul la scroll (ca meniul de tema).
@@ -94,9 +58,13 @@ export function ProfileMenu({
     const onScroll = () => close();
     document.addEventListener("scroll", onScroll, true);
     return () => document.removeEventListener("scroll", onScroll, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const dropTranslate = anim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] });
+  const dropStyle = useAnimatedStyle(() => ({
+    opacity: anim.value,
+    transform: [{ translateY: interpolate(anim.value, [0, 1], [-8, 0], Extrapolation.CLAMP) }],
+  }));
 
   const handleDashboard = () => {
     close();
@@ -110,15 +78,12 @@ export function ProfileMenu({
 
   const handleLogout = async () => {
     close();
-    await setAuthToken(null);
-    setIsAuthenticated(false);
-    setUser(null);
+    await logout();
     router.push("/(public)/acasa");
   };
 
-  const handleProfilePress = async () => {
-    const token = await getAuthToken();
-    if (!token) {
+  const handleProfilePress = () => {
+    if (!isAuthenticated) {
       router.push("/(auth)");
       return;
     }
@@ -131,7 +96,7 @@ export function ProfileMenu({
   ];
 
   return (
-    <View style={{ position: "relative" }}>
+    <View style={{ position: "relative", height: "100%", justifyContent: "center" }}>
       {/* Trigger: iconita user, fara border, cu fundal plin cand e deschis (ca rotita). */}
       <Pressable
         onPress={handleProfilePress}
@@ -157,15 +122,15 @@ export function ProfileMenu({
       {/* Card-ul de profil, aliniat la dreapta sub iconita. */}
       <Animated.View
         pointerEvents={open ? "auto" : "none"}
-        style={{
-          position: "absolute",
-          top: "100%",
-          right: 0,
-          marginTop: 8,
-          minWidth: 240,
-          opacity: anim,
-          transform: [{ translateY: dropTranslate }],
-        }}
+        style={[
+          {
+            position: "absolute",
+            top: "100%",
+            right: 0,
+            minWidth: 240,
+          },
+          dropStyle,
+        ]}
       >
         <View
           style={{

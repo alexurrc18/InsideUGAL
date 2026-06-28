@@ -1,14 +1,14 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, Pressable, ScrollView } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, Stack } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
 import { WebContainer } from "@/components/ui/layout/web-container";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { Typography } from "@/constants/typography";
-import MockData from "@/constants/mock-data.json";
+import api from "@/services/api";
 
 // Import local SVGs
 import BusIcon from "@/assets/icons/svg/bus.svg";
@@ -17,7 +17,6 @@ import FilmIcon from "@/assets/icons/svg/film-roll-alt.svg";
 import TreeIcon from "@/assets/icons/svg/tree-alt.svg";
 import PhoneIcon from "@/assets/icons/svg/phone.svg";
 import GlobeIcon from "@/assets/icons/svg/globe-europe.svg";
-import UserIcon from "@/assets/icons/svg/user.svg";
 
 export default function MoreScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
@@ -25,21 +24,26 @@ export default function MoreScreen() {
   const insets = useSafeAreaInsets();
   const contentTop = useWebContentTop();
   const router = useRouter();
+  const [categories, setCategories] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.get('/city-guide/categories').then(res => setCategories(res.data)).catch(() => {});
+  }, []);
 
   const renderIcon = (iconName: string, color: string) => {
     switch (iconName) {
       case "bus":
-        return <BusIcon width={36} height={36} color={color} />;
+        return <BusIcon width={44} height={44} color={color} />;
       case "dino":
-        return <DinoIcon width={36} height={36} color={color} />;
+        return <DinoIcon width={44} height={44} color={color} />;
       case "film-roll-alt":
-        return <FilmIcon width={36} height={36} color={color} />;
+        return <FilmIcon width={44} height={44} color={color} />;
       case "tree-alt":
-        return <TreeIcon width={36} height={36} color={color} />;
+        return <TreeIcon width={44} height={44} color={color} />;
       case "phone":
-        return <PhoneIcon width={36} height={36} color={color} />;
+        return <PhoneIcon width={44} height={44} color={color} />;
       case "globe":
-        return <GlobeIcon width={36} height={36} color={color} />;
+        return <GlobeIcon width={44} height={44} color={color} />;
       default:
         return null;
     }
@@ -47,6 +51,7 @@ export default function MoreScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
@@ -60,7 +65,7 @@ export default function MoreScreen() {
 
 
           {/* Section Title */}
-          <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.sm, marginBottom: Spacing.sm }}>
+          <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.xl3, marginBottom: Spacing.sm }}>
             <Text style={[Typography.Heading4, { color: theme.text }]}>Vizitează Galați</Text>
           </View>
 
@@ -74,7 +79,7 @@ export default function MoreScreen() {
               justifyContent: "flex-start"
             }}
           >
-            {MockData.cityGuideCategories.map((cat) => {
+            {categories.map((cat) => {
               return (
                 <Pressable
                   key={cat.id}
@@ -90,11 +95,11 @@ export default function MoreScreen() {
                     gap: Spacing.xs,
                   })}
                 >
-                  <View 
-                    style={{ 
-                      width: 48,
-                      height: 48, 
-                      justifyContent: "center", 
+                  <View
+                    style={{
+                      width: 56,
+                      height: 56,
+                      justifyContent: "center",
                       alignItems: "center",
                       marginBottom: 2
                     }}

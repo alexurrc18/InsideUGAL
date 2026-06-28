@@ -1,10 +1,50 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import "./globals.css"; 
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import "./globals.css";
 import Sidebar from "./components/global/Sidebar";
 import Header from "./components/global/PageHeader";
 import { Providers } from "./providers";
+import { canAccessPath, fetchCurrentDashboardRole } from "@/lib/dashboard-auth";
+
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+
+    if (!token && pathname !== "/login") {
+      router.replace("/login");
+      return;
+    }
+
+    if (pathname === "/login") {
+      queueMicrotask(() => setChecking(false));
+      return;
+    }
+
+    fetchCurrentDashboardRole().then((role) => {
+      if (!canAccessPath(pathname, role)) {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("token_type");
+        router.replace("/login");
+        return;
+      }
+      setChecking(false);
+    }).catch(() => {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("token_type");
+      router.replace("/login");
+    });
+  }, [pathname, router]);
+
+  if (checking && pathname !== "/login") return null;
+
+  return <>{children}</>;
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -14,21 +54,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ro">
       <body className="bg-background">
         <Providers>
-          {isLoginPage ? (
-            <div className="w-full min-h-screen flex items-center justify-center">
-              {children}
-            </div>
-          ) : (
-            <div className="flex min-h-screen">
-              <Sidebar />
-              <div className="flex-1 flex flex-col">
-                <Header />
-                <main className="p-6 flex-1 bg-background">
-                  {children}
-                </main>
+          <AuthGuard>
+            {isLoginPage ? (
+              <div className="w-full min-h-screen flex items-center justify-center">
+                {children}
               </div>
-            </div>
-          )}
+            ) : (
+              /* MODIFICAT: h-screen și overflow-hidden blochează scroll-ul pe toată fereastra */
+              <div className="flex h-screen overflow-hidden">
+                <Sidebar />
+                <div className="flex-1 flex flex-col min-w-0 h-full">
+                  <Header />
+                  {/* MODIFICAT: overflow-y-auto pe main lasă doar conținutul paginii să facă scroll */}
+                  <main className="p-6 flex-1 bg-background overflow-y-auto custom-scrollbar">
+                    {children}
+                  </main>
+                </div>
+              </div>
+            )}
+          </AuthGuard>
         </Providers>
       </body>
     </html>

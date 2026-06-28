@@ -2,7 +2,8 @@
 import logging
 import uuid
 import os
-
+import datetime
+import app.api.dashboard as dashboard
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,10 +20,12 @@ import app.api.categories as categories
 import app.api.complaints as complaints
 import app.api.daily_menus as daily_menus
 import app.api.faculties as faculties
+import app.api.facilities as facilities
 import app.api.llm as llm
 import app.api.llm_stream as llm_stream
 import app.api.locations as locations
 import app.api.products as products
+import app.api.product_categories as product_categories
 import app.api.profiles as profiles
 import app.api.uploads as uploads
 from app.api.errors import (
@@ -63,6 +66,15 @@ app = FastAPI(
         RequestValidationError: validation_exception_handler,
     },
 )
+
+@app.get("/health")
+async def health_check():
+        return {
+            "status": "online",
+            "db_status": "connected",
+            "timestamp": datetime.datetime.now().isoformat()
+        }
+
 
 # --- 1. Rate Limiting Configuration ---
 app.state.limiter = limiter
@@ -125,8 +137,10 @@ app.add_middleware(
 # --- 6. Rutele aplicației ---
 app.include_router(profiles.router)
 app.include_router(faculties.router)
+app.include_router(facilities.router)
 app.include_router(categories.router)
 app.include_router(locations.router)
+app.include_router(product_categories.router)
 app.include_router(products.router)
 app.include_router(daily_menus.router)
 app.include_router(cafeteria_menus.router)
@@ -136,3 +150,4 @@ app.include_router(auth.router)
 app.include_router(llm.router)
 app.include_router(llm_stream.router)
 app.include_router(uploads.router)
+app.include_router(dashboard.router)

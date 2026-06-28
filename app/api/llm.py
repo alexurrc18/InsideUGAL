@@ -2,6 +2,7 @@ import os
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,15 +16,24 @@ router = APIRouter(prefix="/api/v1/llm", tags=["LLM"])
 LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://llm:8000")
 
 
+class ChatRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=2000)
+class GenerateBannerRequest(BaseModel):
+    title: str
+    description: str
+    faculty: str | None = None
+
+
 @router.post("/ask")
 @limiter.limit(LLM_RATE_LIMIT)
 async def ask_chatbot(
+    body: ChatRequest,
     request: Request,
     current_profile: Profile = Depends(get_current_profile),
     session: AsyncSession = Depends(get_db),
 ):
     try:
-        user_question = "placeholder"
+        user_question = body.question.strip()
 
         cached = await session.execute(
             select(QuestionsHistory)
@@ -83,4 +93,61 @@ async def ask_chatbot(
         raise HTTPException(
             status_code=503,
             detail="InsideUGAL AI este momentan indisponibil.",
+        ) from exc
+
+
+@router.post("/generate-banner")
+@limiter.limit(LLM_RATE_LIMIT)
+async def generate_banner(
+    payload: GenerateBannerRequest,
+    request: Request,
+    current_profile: Profile = Depends(get_current_profile),
+):
+    """
+    Proxy catre smart-news-parser: construieste un ExtractedAnnouncementInfo
+    minimal din titlu + descriere + facultate si cere generarea unui banner AI.
+    """
+    extracted_info = {
+        "materie_sau_subiect": payload.title,
+        "entitate_sursa": payload.faculty,
+        "tip_eveniment": "anunt_general",
+        "urgenta_estimata": "medie",
+        "public_tinta": ["Studenti"],
+        "deadline_absolut": None,
+        "locatie": None,
+        "rezumat_notificare": payload.title[:80],
+        "actiuni_extrase": [],
+        "penalizari_sau_reguli": [],
+        "linkuri_utile": [],
+        "taguri_cheie": [payload.faculty] if payload.faculty else [],
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            llm_resp = await client.post(
+                f"{LLM_SERVICE_URL}/api/v1/generate-banner",
+                json=extracted_info,
+            )
+            llm_resp.raise_for_status()
+            return llm_resp.json()
+
+    except httpx.TimeoutException as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Generarea imaginii a durat prea mult (timeout). Încearcă din nou.",
+        ) from exc
+
+    except httpx.HTTPStatusError as exc:
+        detail = "Generarea imaginii a eșuat."
+        try:
+            detail = exc.response.json().get("detail", detail)
+        except Exception:
+            pass
+        status_code = exc.response.status_code if exc.response.status_code < 500 else 503
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Serviciul de generare imagini este momentan indisponibil.",
         ) from exc

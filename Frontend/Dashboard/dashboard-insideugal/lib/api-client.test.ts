@@ -34,7 +34,7 @@ test.each(["undefined", "null", null])("getAuthHeaders ignores invalid stored to
 
 test("apiRequest includes auth headers and credentials for mutations", async () => {
   stubLocalStorage("Bearer test-token");
-  const fetchMock = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async (_url, _init) =>
+  const fetchMock = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async () =>
     new Response(JSON.stringify({ ok: true }), {
       headers: { "Content-Type": "application/json" },
       status: 200,
@@ -63,7 +63,7 @@ test.each([
   { body: undefined, method: "DELETE", path: "/announcements/1" },
 ])("$method request to $path is authenticated", async ({ body, method, path }: { body: Record<string, unknown> | undefined; method: string | undefined; path: string }) => {
   stubLocalStorage("test-token");
-  const fetchMock = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async (_url, _init) =>
+  const fetchMock = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async () =>
     new Response(JSON.stringify({ ok: true }), {
       headers: { "Content-Type": "application/json" },
       status: 200,

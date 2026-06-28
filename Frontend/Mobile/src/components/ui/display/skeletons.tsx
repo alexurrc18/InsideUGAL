@@ -13,8 +13,9 @@
 //   HeroSlideshow     -> HeroSkeleton
 //   SesizareCard      -> SesizareCardSkeleton
 //   meniul cantinei   -> CantinaMenuSkeleton
-import { useEffect, useState } from 'react';
-import { View, Animated, Easing, StyleSheet, useWindowDimensions } from 'react-native';
+import { useEffect } from 'react';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
+import Animated, { useSharedValue, withTiming, withRepeat, withSequence, useAnimatedStyle, cancelAnimation, Easing } from 'react-native-reanimated';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { WebContainer } from '@/components/ui/layout/web-container';
@@ -38,18 +39,20 @@ export interface SkeletonProps {
 
 export function Skeleton({ width = '100%', height = 16, radius = 8, style }: SkeletonProps) {
   const theme = useSkeletonTheme();
-  const [pulse] = useState(() => new Animated.Value(0.4));
+  const pulse = useSharedValue(0.4);
 
   useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0.4, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
+    pulse.set(withRepeat(
+      withSequence(
+        withTiming(1, { duration: 700, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.4, { duration: 700, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1
+    ));
+    return () => cancelAnimation(pulse);
   }, [pulse]);
+
+  const pulseStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
 
   return (
     <Animated.View
@@ -58,11 +61,9 @@ export function Skeleton({ width = '100%', height = 16, radius = 8, style }: Ske
           width: width as any,
           height: height as any,
           borderRadius: radius,
-          // `theme.text + '18'` = un gri subtil care se adapteaza la tema: pe fundal
-          // alb iese gri-deschis, pe fundal negru iese gri-inchis.
           backgroundColor: theme.text + '18',
-          opacity: pulse,
         },
+        pulseStyle,
         style,
       ]}
     />

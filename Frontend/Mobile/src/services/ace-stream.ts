@@ -1,10 +1,9 @@
 // Streaming-ul raspunsului asistentului ACE (web).
 //
-// Chat-ul merge prin GATEWAY-ul de pe backend-ul principal (NU direct la serviciul
-// LLM, care ruleaza intern in Docker — `llm:8000` — si nu e expus public). Gateway-ul
-// primeste cererea si o forwardeaza catre serviciul LLM:
-//   POST {API_BASE_URL}/api/v1/llm/ask/stream   body: { question, history }
-// (necesita autentificare; salveaza si istoricul intrebarilor in backend).
+// Chat-ul merge DIRECT la serviciul LLM (NU prin gateway-ul din backend principal —
+// acela e pus de forma si nu functioneaza, conform echipei LLM):
+//   POST {LLM_BASE_URL}/api/v1/campus-chat/stream   body: { question, history }
+// Baza vine din config (EXPO_PUBLIC_LLM_BASE_URL) — se schimba acolo, nu aici.
 // Raspunsul e text/event-stream cu linii:
 //   data: {"content":"...","cached":false}   -> token
 //   data: {"error":"..."}                     -> eroare
@@ -16,7 +15,7 @@
 import { Config } from '@/constants/config';
 import { getAuthToken } from '@/services/api';
 
-const STREAM_URL = `${Config.API_BASE_URL}/api/v1/llm/ask/stream`;
+const STREAM_URL = `${Config.LLM_BASE_URL}/api/v1/campus-chat/stream`;
 
 export interface AceHistoryItem {
   role: 'user' | 'assistant';

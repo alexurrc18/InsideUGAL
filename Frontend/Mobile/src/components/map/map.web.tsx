@@ -2,23 +2,28 @@ import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Config } from '@/constants/config';
-import { Colors } from '@/constants/theme';
-import { getBuildingLetter, cleanMapStyle } from '@/utils/map-helper';
+import { cleanMapStyle } from '@/utils/map-helper';
 import { createRoot, flushSync } from 'react-dom/client';
 import { MapPin } from './map-pin';
+import { UserLocationPin } from './user-location-pin';
 
 interface MapProps {
   themeName: 'light' | 'dark';
   selectedFacultyId: string | null;
   onFacultySelect: (id: string | null) => void;
   buildings?: any[];
+  userLocation?: { lat: number; lng: number } | null;
+  onMapClick?: () => void;
+  focusKey?: number;
 }
 
-export default function Map({ themeName, selectedFacultyId, onFacultySelect, buildings }: MapProps) {
+export default function Map({ themeName, selectedFacultyId, onFacultySelect, buildings, userLocation, onMapClick, focusKey }: MapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
   const rootsRef = useRef<any[]>([]);
+  const userMarkerRef = useRef<maplibregl.Marker | null>(null);
+  const userRootRef = useRef<any | null>(null);
 
   const [defaultCenter, setDefaultCenter] = useState<[number, number] | undefined>(undefined);
   const [defaultZoom, setDefaultZoom] = useState<number | undefined>(undefined);
@@ -29,6 +34,7 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
   const cameraInitialized = useRef(false);
 
   useEffect(() => {
+    if (!Config.MAPTILER_STYLE_URL) return;
     fetch(Config.MAPTILER_STYLE_URL)
       .then(res => res.json())
       .then(style => {
@@ -59,11 +65,15 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
       setMapLoaded(true);
     });
 
+    if (onMapClick) {
+      m.on('click', onMapClick);
+    }
+
     return () => {
       rootsRef.current.forEach(root => {
         try {
           flushSync(() => root.unmount());
-        } catch (e) {}
+        } catch {}
       });
       rootsRef.current = [];
       m.remove();
@@ -90,7 +100,7 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
     rootsRef.current.forEach(root => {
       try {
         flushSync(() => root.unmount());
-      } catch (e) {}
+      } catch {}
     });
     rootsRef.current = [];
 
@@ -112,8 +122,8 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
       root.render(<MapPin name={b.name} facultyId={b.facultyId} />);
       rootsRef.current.push(root);
 
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
+      el.addEventListener('click', (ev) => {
+        ev.stopPropagation();
         if (map.current) {
           map.current.flyTo({
             center: [b.lng, b.lat],
@@ -131,7 +141,84 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
 
       markersRef.current.push(marker);
     });
-  }, [mapLoaded, selectedFacultyId, defaultCenter, defaultZoom, themeName]);
+  }, [mapLoaded, selectedFacultyId, defaultCenter, defaultZoom, themeName, buildings]);
+
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+
+    if (!userLocation) {
+      if (userMarkerRef.current) {
+        userMarkerRef.current.remove();
+        userMarkerRef.current = null;
+      }
+      if (userRootRef.current) {
+        const root = userRootRef.current;
+        setTimeout(() => { try { root.unmount(); } catch {} }, 0);
+        userRootRef.current = null;
+      }
+      return;
+    }
+
+    if (!userMarkerRef.current) {
+      const el = document.createElement('div');
+      el.style.cursor = 'pointer';
+      el.style.zIndex = '99999999';
+
+      const root = createRoot(el);
+      root.render(<UserLocationPin />);
+      userRootRef.current = root;
+
+      const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([userLocation.lng, userLocation.lat])
+        .addTo(map.current);
+
+      userMarkerRef.current = marker;
+    } else {
+      userMarkerRef.current.setLngLat([userLocation.lng, userLocation.lat]);
+    }
+  }, [userLocation, mapLoaded]);
+
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+
+    // Force map to recalculate size when screen comes into focus
+    map.current.resize();
+
+    if (userLocation) {
+      if (userMarkerRef.current) {
+        userMarkerRef.current.setLngLat([userLocation.lng, userLocation.lat]);
+        userMarkerRef.current.addTo(map.current);
+      } else {
+        const el = document.createElement('div');
+        el.style.cursor = 'pointer';
+        el.style.zIndex = '99999999';
+
+        const root = createRoot(el);
+        root.render(<UserLocationPin />);
+        userRootRef.current = root;
+
+        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([userLocation.lng, userLocation.lat])
+          .addTo(map.current);
+
+        userMarkerRef.current = marker;
+      }
+    }
+  }, [focusKey, mapLoaded]);
+
+  useEffect(() => {
+    return () => {
+      if (userMarkerRef.current) {
+        userMarkerRef.current.remove();
+        userMarkerRef.current = null;
+      }
+      if (userRootRef.current) {
+        const root = userRootRef.current;
+        setTimeout(() => { try { root.unmount(); } catch {} }, 0);
+        userRootRef.current = null;
+      }
+    };
+  }, []);
 
   if (!mapStyle) {
     return (

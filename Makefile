@@ -1,7 +1,12 @@
 .PHONY: up down logs test seed migrate reset validate-env check-db compose-smoke
 
+SERVICES: dashboard mobile backend llm
+
 up:
-	docker compose up -d
+	docker compose up -d --build --force-recreate $(SERVICES)
+
+up-all:
+	docker compose up -d --build --force-recreate
 
 down:
 	docker compose down
@@ -19,7 +24,16 @@ migrate:
 	docker compose exec backend python scripts/migrate.py
 
 reset:
-	docker compose down -v && docker compose up -d
+	docker compose down && docker compose up -d --build --force-recreate $(SERVICES)
+
+reset-all:
+	docker compose down && docker compose up -d --build --force-recreate
+
+reset-hard:
+	docker compose down -v && docker compose up -d --build --force-recreate $(SERVICES)
+
+reset-hard-all:
+	docker compose down -v && docker compose up -d --build --force-recreate
 
 validate-env:
 	powershell -ExecutionPolicy Bypass -File scripts/validate-compose-env.ps1

@@ -6,6 +6,7 @@ import Modal from "../components/ui/Modal";
 import { Card, CardContent } from "../components/ui/Card";
 import MapView from "../components/MapView";
 import MapComponent from "../components/MapComponent";
+import { canAccessMaps, useRequireDashboardAccess } from "@/lib/dashboard-auth";
 
 type PaginatedResponse<T> = {
   items?: T[];
@@ -119,6 +120,7 @@ function CladireForm({
 }
 
 export default function HartiPage() {
+  const access = useRequireDashboardAccess(canAccessMaps);
   const [tab, setTab] = useState<"locatii" | "harta">("locatii");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -134,7 +136,7 @@ export default function HartiPage() {
     setErrorMessage(null);
 
     try {
-      const response = await fetch(`${apiBaseUrl}/locations/`);
+      const response = await fetch(`${apiBaseUrl}/locations/?size=200`, { cache: "no-store" });
       if (!response.ok) throw new Error(`Status ${response.status}`);
       const payload = await response.json() as PaginatedResponse<LocationApiItem> | LocationApiItem[];
       setCladiri(itemsFromResponse(payload).map((item) => ({
@@ -260,6 +262,8 @@ export default function HartiPage() {
       ),
     },
   ];
+
+  if (access.loading || !access.allowed) return null;
 
   return (
     <div className="space-y-6">

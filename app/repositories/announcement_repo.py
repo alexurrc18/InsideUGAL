@@ -1,25 +1,31 @@
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.models import Announcement
-from app.models.schemas import AnnouncementCreate, AnnouncementUpdate
+from app.models.models import Announcement, Profile
+from app.models.schemas import AnnouncementCreate, AnnouncementUpdate, UserRole
 from app.repositories.base import CRUDRepository, schema_to_data
 
 
 class AnnouncementRepository(CRUDRepository[Announcement]):
     model = Announcement
+    admin_roles = {UserRole.HEAD_ADMIN.value, UserRole.HEAD_FACULTATI.value}
+
+    def _apply_visibility_filter(self, query, current_profile: Profile | None):
+        return query
 
     async def get_all(
         self,
         session: AsyncSession,
         announcement_type: str | None = None,
         faculty_id: int | None = None,
+        current_profile: Profile | None = None,
     ) -> list[Announcement]:
         query = select(Announcement).order_by(Announcement.created_at.desc())
         if announcement_type is not None:
             query = query.where(Announcement.type == announcement_type)
         if faculty_id is not None:
             query = query.where(Announcement.faculty_id == faculty_id)
+        query = self._apply_visibility_filter(query, current_profile)
 
         result = await session.execute(query)
         return list(result.scalars().all())
@@ -32,12 +38,14 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         offset: int,
         announcement_type: str | None = None,
         faculty_id: int | None = None,
+        current_profile: Profile | None = None,
     ) -> tuple[list[Announcement], int]:
         query = select(Announcement).order_by(Announcement.created_at.desc())
         if announcement_type is not None:
             query = query.where(Announcement.type == announcement_type)
         if faculty_id is not None:
             query = query.where(Announcement.faculty_id == faculty_id)
+        query = self._apply_visibility_filter(query, current_profile)
 
         total_result = await session.execute(select(func.count()).select_from(query.order_by(None).subquery()))
         total = total_result.scalar_one()

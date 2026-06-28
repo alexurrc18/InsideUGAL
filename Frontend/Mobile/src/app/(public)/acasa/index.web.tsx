@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, ScrollView, Text, ActivityIndicator, RefreshControl } from "react-native";
+import { View, ScrollView, Text, RefreshControl } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -110,7 +110,7 @@ export default function HomeScreen() {
           const apiFaculties = apiItems.map((item: any) => ({
             id: item.id.toString(),
             title: item.name || "Titlu necunoscut",
-            image: item.image_url || undefined,
+            image: item.logo_url || undefined,
             address: item.address || "Adresă necunoscută",
             phone: item.phone || "",
             website: item.website_url || "",
@@ -154,7 +154,8 @@ export default function HomeScreen() {
           setHasError(true);
         }
       }
-    } finally {
+    setLoading(false);
+    } catch {
       setLoading(false);
     }
   };
@@ -166,102 +167,11 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    const loadCache = async () => {
-      try {
-        const cachedAnnouncements = await storage.getItem('cached_announcements');
-        const cachedFaculties = await storage.getItem('cached_faculties');
-        const cachedFacilities = await storage.getItem('cached_facilities');
-
-        let hasData = false;
-
-        if (cachedAnnouncements) {
-          const apiItems = JSON.parse(cachedAnnouncements);
-          if (Array.isArray(apiItems) && apiItems.length > 0) {
-            const apiNoutati = apiItems
-              .filter((item: any) => item.type === "NOUTATE")
-              .map((item: any) => ({
-                id: item.id.toString(),
-                title: item.title || "Titlu necunoscut",
-                category: "Noutăți",
-                date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
-                author: item.author || "Autor necunoscut",
-                image: item.image_url || undefined,
-                content: item.content || "Conținut necunoscut",
-                created_at: item.created_at,
-              }));
-
-            const apiEvenimente = apiItems
-              .filter((item: any) => item.type === "EVENIMENT")
-              .map((item: any) => ({
-                id: item.id.toString(),
-                title: item.title || "Titlu necunoscut",
-                category: "Evenimente",
-                date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
-                date_start: isoToRomanianDateStr(item.start_date) || "",
-                date_end: isoToRomanianDateStr(item.end_date) || "",
-                time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-                time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-                author: item.author || "Autor necunoscut",
-                image: item.image_url || undefined,
-                content: item.content || "Conținut necunoscut",
-                location: item.location_name || "Locație necunoscută",
-                created_at: item.created_at,
-              }));
-
-            setNoutati(apiNoutati);
-            setEvenimente(apiEvenimente);
-            hasData = true;
-          }
-        }
-
-        if (cachedFaculties) {
-          const apiItems = JSON.parse(cachedFaculties);
-          if (Array.isArray(apiItems) && apiItems.length > 0) {
-            const apiFaculties = apiItems.map((item: any) => ({
-              id: item.id.toString(),
-              title: item.name || "Titlu necunoscut",
-              image: item.image_url || undefined,
-              address: item.address || "Adresă necunoscută",
-              phone: item.phone || "",
-              website: item.website_url || "",
-              content: item.description || "Conținut necunoscut",
-            }));
-            setFacultati(apiFaculties);
-            hasData = true;
-          }
-        }
-
-        if (cachedFacilities) {
-          const apiItems = JSON.parse(cachedFacilities);
-          if (Array.isArray(apiItems) && apiItems.length > 0) {
-            const apiFacilities = apiItems.map((item: any) => ({
-              id: item.id.toString(),
-              title: item.name || "Titlu necunoscut",
-              image: item.image_url || undefined,
-              address: item.address || "Adresă necunoscută",
-              phone: item.phone || "",
-              website: item.website_url || "",
-              content: item.name || "Conținut necunoscut",
-              schedule: item.schedule || "",
-            }));
-            setFacilitati(apiFacilities);
-            hasData = true;
-          }
-        }
-
-        if (hasData) {
-          setLoading(false);
-        }
-      } catch (e) {
-        console.warn("[Cache] Could not load cached items:", e);
-      }
-    };
-
     const run = async () => {
-      await loadCache();
-      fetchApiData();
+      await fetchApiData();
     };
     run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Ultimele 3 anunturi (Noutăți), cele mai recente primele, pentru hero.
@@ -342,8 +252,8 @@ export default function HomeScreen() {
 
   const isPageEmpty = noutati.length === 0 && evenimente.length === 0 && facultati.length === 0 && facilitati.length === 0;
 
-  if (hasError || (isPageEmpty && !loading)) {
-    return <ErrorState />;
+  if ((hasError || !loading) && isPageEmpty) {
+    return <ErrorState onRetry={fetchApiData} />;
   }
 
   if (loading && isPageEmpty) {
@@ -383,11 +293,13 @@ export default function HomeScreen() {
 
           <WebContainer style={{ paddingTop: Spacing.xl3, paddingBottom: insets.bottom + Spacing.sm, flex: 1 }}>
             {activeNoutati.length === 0 ? (
-              <View style={{ marginVertical: Spacing.lg }}>
-                <View style={{ paddingBottom: Spacing.xs, borderBottomWidth: 1, borderBottomColor: "#E5E7EB", marginBottom: Spacing.sm }}>
-                  <Text style={[Typography.Heading3, { color: theme.text }]}>Noutăți</Text>
+              <View style={{ marginVertical: Spacing.xl3 }}>
+                <View style={{ paddingHorizontal: Spacing.lg }}>
+                  <Text accessibilityRole="header" {...({ "aria-level": 2 } as any)} style={[Typography.Heading1, { color: theme.text, marginBottom: Spacing.xs }]}>Noutăți</Text>
+                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>
+                    {hasError ? "Nu s-au putut încărca noutățile." : "Nu există noutăți."}
+                  </Text>
                 </View>
-                <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>Nu există noutăți.</Text>
               </View>
             ) : (
               <Carousel
@@ -410,11 +322,13 @@ export default function HomeScreen() {
             )}
 
             {activeEvenimente.length === 0 ? (
-              <View style={{ marginVertical: Spacing.lg }}>
-                <View style={{ paddingBottom: Spacing.xs, borderBottomWidth: 1, borderBottomColor: "#E5E7EB", marginBottom: Spacing.sm }}>
-                  <Text style={[Typography.Heading3, { color: theme.text }]}>Evenimente</Text>
+              <View style={{ marginVertical: Spacing.xl3 }}>
+                <View style={{ paddingHorizontal: Spacing.lg }}>
+                  <Text accessibilityRole="header" {...({ "aria-level": 2 } as any)} style={[Typography.Heading1, { color: theme.text, marginBottom: Spacing.xs }]}>Evenimente</Text>
+                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>
+                    {hasError ? "Nu s-au putut încărca evenimentele." : "Nu există evenimente."}
+                  </Text>
                 </View>
-                <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>Nu există evenimente.</Text>
               </View>
             ) : (
               <Carousel
@@ -437,11 +351,13 @@ export default function HomeScreen() {
             )}
 
             {activeFacultati.length === 0 ? (
-              <View style={{ marginVertical: Spacing.lg }}>
-                <View style={{ paddingBottom: Spacing.xs, borderBottomWidth: 1, borderBottomColor: "#E5E7EB", marginBottom: Spacing.sm }}>
-                  <Text style={[Typography.Heading3, { color: theme.text }]}>Facultăți</Text>
+              <View style={{ marginVertical: Spacing.xl3 }}>
+                <View style={{ paddingHorizontal: Spacing.lg }}>
+                  <Text accessibilityRole="header" {...({ "aria-level": 2 } as any)} style={[Typography.Heading1, { color: theme.text, marginBottom: Spacing.xs }]}>Facultăți</Text>
+                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>
+                    {hasError ? "Nu s-au putut încărca facultățile." : "Nu există facultăți."}
+                  </Text>
                 </View>
-                <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>Nu există facultăți.</Text>
               </View>
             ) : (
               <Carousel
@@ -462,11 +378,13 @@ export default function HomeScreen() {
             )}
 
             {activeFacilitati.length === 0 ? (
-              <View style={{ marginVertical: Spacing.lg }}>
-                <View style={{ paddingBottom: Spacing.xs, borderBottomWidth: 1, borderBottomColor: "#E5E7EB", marginBottom: Spacing.sm }}>
-                  <Text style={[Typography.Heading3, { color: theme.text }]}>Facilități</Text>
+              <View style={{ marginVertical: Spacing.xl3 }}>
+                <View style={{ paddingHorizontal: Spacing.lg }}>
+                  <Text accessibilityRole="header" {...({ "aria-level": 2 } as any)} style={[Typography.Heading1, { color: theme.text, marginBottom: Spacing.xs }]}>Facilități</Text>
+                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>
+                    {hasError ? "Nu s-au putut încărca facilitățile." : "Nu există facilități."}
+                  </Text>
                 </View>
-                <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>Nu există facilități.</Text>
               </View>
             ) : (
               <Carousel

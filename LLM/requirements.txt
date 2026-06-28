@@ -1,38 +1,41 @@
 # Core FastAPI
-fastapi==0.111.0
-uvicorn==0.49.0
+fastapi==0.136.1
+uvicorn==0.34.0
 
 # Data & Pydantic
 pydantic==2.13.4
 pydantic-settings==2.14.1
 orjson==3.11.9
-numpy==2.4.6
+numpy==2.2.3
 
 # AI & LLM
 google-genai==1.66.0
 tenacity==9.1.4
 pybreaker==1.4.1
-huggingface_hub==0.28.1
+huggingface_hub==0.30.2
+aiohttp==3.11.11
 
 # Database & Storage
 supabase==2.31.0
 httpx==0.28.1
+asyncpg==0.31.0
 
 # Document Processing
 pdfplumber==0.11.9
 python-docx==1.2.0
 PyMuPDF==1.27.2.3
 
-# Utils & Misc
+# Scraping & Utils
+beautifulsoup4==4.14.3
+requests==2.32.3
 python-dotenv==1.2.2
 langdetect==1.0.9
 python-multipart==0.0.32
-beautifulsoup4==4.14.3
 rich==15.0.0
 tqdm==4.67.3
 typer==0.25.1
 packaging==26.2
 
 # Testing
-pytest==7.4.3
-pytest-asyncio==0.20.3
+pytest==9.0.3
+pytest-asyncio==1.4.0

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, Linking, Pressable, Animated } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -10,7 +10,7 @@ import { CategoryHeader } from "@/components/ui/display/category-header";
 import { WebContainer } from "@/components/ui/layout/web-container";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
-import MOCK_DATA from "@/constants/mock-data.json";
+import api from "@/services/api";
 
 export default function MoreCategoryScreen() {
   const { categoryId, title: categoryTitle } = useLocalSearchParams();
@@ -21,10 +21,14 @@ export default function MoreCategoryScreen() {
   const router = useRouter();
 
   const [scrollY] = useState(() => new Animated.Value(0));
+  const [items, setItems] = useState<any[]>([]);
 
-  const filteredData = (MOCK_DATA as any).cityGuide.filter(
-    (item: any) => item.categoryId === categoryId
-  );
+  useEffect(() => {
+    if (!categoryId) return;
+    api.get('/city-guide', { params: { category_id: categoryId } })
+      .then(res => setItems(res.data))
+      .catch(() => {});
+  }, [categoryId]);
 
   const handlePress = (item: any) => {
     if (item.website) {
@@ -110,7 +114,7 @@ export default function MoreCategoryScreen() {
           </View>
 
           <View style={{ gap: Spacing.xxl, paddingHorizontal: Spacing.lg }}>
-            {filteredData.map((item: any) => (
+            {items.map((item: any) => (
               <NewsCard
                 key={item.id}
                 variant="list"
@@ -122,7 +126,7 @@ export default function MoreCategoryScreen() {
             ))}
           </View>
 
-          {filteredData.length === 0 && (
+          {items.length === 0 && (
             <Text style={[Typography.Paragraph1, { color: theme.text, textAlign: "center", marginTop: 40 }]}>
               Nu există elemente în această categorie.
             </Text>

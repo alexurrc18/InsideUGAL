@@ -14,6 +14,7 @@ import { CompactCard } from "@/components/ui/display/home-highlights";
 import { NewsCard, CategoryTag } from "@/components/ui/display/news-card";
 import { Seo } from "@/components/seo";
 import api, { storage } from "@/services/api";
+import { ErrorState } from "@/components/ui/display/error-state";
 
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
 import LocationIcon from "@/assets/icons/svg/location.svg";
@@ -28,8 +29,9 @@ const TWO_COL_BREAKPOINT = 900;
 function VizualizareScreen() {
     const params = useLocalSearchParams();
     const id = params.id as string;
-    const [scrolledPast, setScrolledPast] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [hasError, setHasError] = useState(false);
+    const [retryKey, setRetryKey] = useState(0);
 
     const initialItem = {
         title: (params.title as string) || "",
@@ -91,6 +93,7 @@ function VizualizareScreen() {
                 setLoading(false);
                 return;
             }
+            if (isMounted) setHasError(false);
 
             loadRelated();
 
@@ -243,12 +246,20 @@ function VizualizareScreen() {
 
                 if (isMounted) {
                     setItemData(fetchedItem);
+                    if (!fetchedItem && !fetchedItemRef()) {
+                        setHasError(true);
+                    }
                 }
-            } catch (err) {
-                console.error("[Loader] Error loading detail page:", err);
-            } finally {
                 if (isMounted) {
                     setLoading(false);
+                }
+            } catch (err) {
+                if (isMounted) {
+                    setLoading(false);
+                }
+                console.error("[Loader] Error loading detail page:", err);
+                if (isMounted && !fetchedItemRef()) {
+                    setHasError(true);
                 }
             }
         };
@@ -260,7 +271,8 @@ function VizualizareScreen() {
         return () => {
             isMounted = false;
         };
-    }, [id, initialTipPagina]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id, initialTipPagina, retryKey]);
 
     const title = itemData?.title || "";
     const category = itemData?.category || "";
@@ -275,7 +287,6 @@ function VizualizareScreen() {
     const address = itemData?.address || "";
     const phone = itemData?.phone || "";
     const website = itemData?.website || "";
-    const schedule = itemData?.schedule || "";
     const date = itemData?.date || "";
 
     // Anunturi inrudite: prioritizam aceeasi categorie ca articolul curent, apoi
@@ -301,12 +312,17 @@ function VizualizareScreen() {
             created_at: item.created_at,
             updated_at: item.updated_at,
         }));
+    // Dreapta (Articole similare): doar articole din aceeași categorie ca cel curent
     const sameCategory = pool.filter((e) => e.category === (category as string));
-    const otherCategory = pool.filter((e) => e.category !== (category as string));
-    const ordered = [...sameCategory, ...otherCategory];
+    const sidebarItems = sameCategory.slice(0, 3);
 
-    const sidebarItems = ordered.slice(0, 3);
-    const relatedItems = ordered.slice(3, 6);
+    // Jos (Mai multe): ultimele trei articole (anunțuri/evenimente) postate
+    const sortedByDate = [...pool].sort((a, b) => {
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return timeB - timeA;
+    });
+    const relatedItems = sortedByDate.slice(0, 3);
 
     // Latimea masurata a randului de jos, impartita egal la numarul de carduri.
     const [rowWidth, setRowWidth] = useState(0);
@@ -358,15 +374,13 @@ function VizualizareScreen() {
         );
     }
 
-    if (!itemData) {
+    if (hasError || !itemData) {
         return (
             <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: "center", alignItems: "center", padding: Spacing.xl, height: 400 }}>
-                <Text style={[Typography.Heading3, { color: theme.text, textAlign: "center", marginBottom: Spacing.md }]}>
-                    Detaliile nu au putut fi găsite
-                </Text>
-                <TouchableOpacity onPress={() => router.back()} style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}>
-                    <Text style={{ color: ColorScheme.white, fontWeight: "bold" }}>Înapoi</Text>
-                </TouchableOpacity>
+                <ErrorState 
+                    message="Detaliile nu au putut fi găsite." 
+                    onRetry={() => setRetryKey(prev => prev + 1)} 
+                />
             </View>
         );
     }
@@ -459,7 +473,7 @@ function VizualizareScreen() {
 
                     {/* Rand principal: continut (stanga) + sidebar Noutăți (dreapta).
                         gap putin mai mare ca sa "respire" intre coloana de text si carduri. */}
-                    <View style={{ flexDirection: twoCol ? "row" : "column", gap: 64, alignItems: "flex-start" }}>
+                    <View style={{ flexDirection: twoCol ? "row" : "column", gap: 64, alignItems: twoCol ? "flex-start" : "stretch" }}>
                         {/* Stanga: continutul anuntului. */}
                         <View style={{ flex: 1, gap: Spacing.xxl, width: "100%" }}>
                             {tipPagina !== "Facultate" && (
@@ -578,6 +592,7 @@ function VizualizareScreen() {
                                             date={getFormattedDate(item.date_start || item.date)}
                                             author={item.author}
                                             image={item.image}
+                                            category={item.category}
                                             onPress={() => openItem(item)}
                                         />
                                     ))}

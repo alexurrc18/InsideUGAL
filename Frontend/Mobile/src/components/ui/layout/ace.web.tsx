@@ -26,17 +26,33 @@ import { useTheme } from '@/hooks/use-theme';
 import { Spacing, ColorScheme } from '@/constants/theme';
 import { Typography } from '@/constants/typography';
 import { NewsCard } from '@/components/ui/display/news-card';
-import {
-  resolveLink,
-  generateMsgId,
-  type ChatMessage,
-} from '@/constants/ace-responses';
 import { streamAce } from '@/services/ace-stream';
 
 import CloseIcon from '@/assets/icons/svg/x.svg';
 import MessagePlusIcon from '@/assets/icons/svg/message-plus.svg';
 import SendIcon from '@/assets/icons/svg/send.svg';
 import SparkleIcon from '@/assets/icons/svg/message-circle-star.svg';
+
+// Tipul unui mesaj din chat + generator de id. Definite local: widget-ul nu mai
+// depinde de `ace-responses` (modul eliminat din proiect).
+interface ChatMessage {
+  id: string;
+  text: string;
+  sender: 'user' | 'ai';
+  timestamp: Date;
+  imageUrl?: string;
+  event?: {
+    title: string;
+    date: string;
+    location: string;
+    description?: string;
+    link?: string;
+  };
+}
+
+function generateMsgId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
 
 const FAB_SIZE = 60;
 const PANEL_MAX_WIDTH = 384;
@@ -217,7 +233,7 @@ export function Ace() {
         Linking.openURL(event.link).catch((err) => console.error("Couldn't open URL", err));
         return;
       }
-      router.push(resolveLink(event.link) as any);
+      router.push(event.link as any);
       return;
     }
 

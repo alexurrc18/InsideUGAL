@@ -7,7 +7,7 @@
 // (aceeasi geometrie ca WebContainer) si il aplicam ca padding simplu, fara zoom.
 // Rezultat: harta si antetul se aliniaza cu navbar-ul la orice latime, harta
 // ramane clara, si umple inaltimea ramasa.
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { View, useWindowDimensions } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -24,6 +24,10 @@ import { WebContainer, WEB_COMPACT_BREAKPOINT } from "@/components/ui/layout/web
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { Seo } from "@/components/seo";
 import api, { storage } from "@/services/api";
+import { ErrorState } from "@/components/ui/display/error-state";
+import { useNavigation } from "expo-router";
+
+let lastKnownUserLocation: { lat: number; lng: number } | null = null;
 
 export default function HartaScreen() {
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
@@ -34,6 +38,49 @@ export default function HartaScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const contentTop = useWebContentTop();
+  const [hasError, setHasError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(lastKnownUserLocation);
+  const watchIdRef = useRef<number | null>(null);
+  const navigation = useNavigation();
+  const [focusKey, setFocusKey] = useState(0);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      setFocusKey((prev) => prev + 1);
+    });
+    return unsubscribe;
+  }, [navigation]);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+
+    const updateLocation = (pos: any) => {
+      const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      lastKnownUserLocation = loc;
+      setUserLocation(loc);
+    };
+
+    // Get initial position immediately
+    navigator.geolocation.getCurrentPosition(
+      updateLocation,
+      (err) => console.warn("[Location Init]", err.message),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
+
+    // Watch position for updates
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      updateLocation,
+      (err) => console.warn("[Location Watch]", err.message),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+    );
+
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, [focusKey]);
 
   // Geometria WebContainer-ului (vezi web-container.web.tsx), reprodusa ca valori.
   const scaling = width > WebContentMaxWidth;
@@ -41,7 +88,7 @@ export default function HartaScreen() {
   const columnWidth = scaling ? WebContentMaxWidth * zoom : width;
   // Padding-ul lateral al WebContainer-ului e responsiv (mic pe ecran ingust), deci
   // il reproducem identic aici ca harta sa ramana aliniata cu titlul "Hartă".
-  const sidePadding = width < WEB_COMPACT_BREAKPOINT ? Math.min(Spacing.lg, WebSidePadding) : WebSidePadding;
+  const sidePadding = width < WEB_COMPACT_BREAKPOINT ? Spacing.lg : (WebSidePadding || Spacing.xxl);
   // Inset-ul orizontal pana la continutul navbarului (logo / "Hartă"):
   //   margine de centrare + (padding lateral + Spacing.lg) scalate cu zoom.
   const contentInset = (width - columnWidth) / 2 + (sidePadding + Spacing.lg) * zoom;
@@ -50,6 +97,7 @@ export default function HartaScreen() {
     let active = true;
     async function loadData() {
       try {
+        if (active) setHasError(false);
         // Load cached data first for immediate render
         const [cachedFacs, cachedLocs] = await Promise.all([
           storage.getItem('cached_faculties'),
@@ -79,11 +127,12 @@ export default function HartaScreen() {
         }
       } catch (err) {
         console.warn('[API] Error loading web map screen data:', err);
+        if (active) setHasError(true);
       }
     }
     loadData();
     return () => { active = false; };
-  }, []);
+  }, [retryKey]);
 
   const facultyFilters = useMemo(() => {
     return [
@@ -110,6 +159,32 @@ export default function HartaScreen() {
   const handleSelectFilter = useCallback((id: string | null) => {
     setSelectedFacultyId((prev) => (prev === id ? null : id));
   }, []);
+
+  if (hasError && locations.length === 0) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: theme.background,
+          paddingTop: contentTop,
+        }}
+      >
+        <Seo
+          title="Hartă campus"
+          description="Harta interactivă a campusului UGAL — facultăți, cămine, cantină și facilități din Galați."
+        />
+        <WebContainer>
+          <CategoryHeader
+            title="Hartă"
+            filters={facultyFilters}
+            selectedFilterId={selectedFacultyId}
+            onSelectFilter={handleSelectFilter}
+          />
+        </WebContainer>
+        <ErrorState onRetry={() => setRetryKey(prev => prev + 1)} />
+      </View>
+    );
+  }
 
   return (
     <View
@@ -149,6 +224,8 @@ export default function HartaScreen() {
           selectedFacultyId={selectedFacultyId}
           onFacultySelect={setSelectedFacultyId}
           buildings={mappedBuildings}
+          userLocation={userLocation}
+          focusKey={focusKey}
         />
       </View>
     </View>

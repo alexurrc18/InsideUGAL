@@ -5,12 +5,13 @@ import { useRouter } from "expo-router";
 import { Colors, Spacing, WebSidePadding } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { KeyboardProvider } from 'react-native-keyboard-controller';
-import api, { setAuthToken } from "@/services/api";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function LoginScreen() {
     const router = useRouter();
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
     const theme = Colors[themeName];
+    const { login } = useAuth();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -37,33 +38,19 @@ export default function LoginScreen() {
     };
 
     const handleLogin = async () => {
-        if (validate() && !submitting) {
-            setSubmitting(true);
-            setErrors(prev => ({ ...prev, general: undefined }));
-            try {
-                const body = `grant_type=password&username=${encodeURIComponent(email.trim())}&password=${encodeURIComponent(password)}`;
-                const res = await api.post('/auth/login', body, {
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    }
-                });
-                
-                const token = typeof res.data === 'string' ? res.data : res.data?.access_token;
-                if (token) {
-                    await setAuthToken(token);
-                    router.back();
-                } else {
-                    throw new Error("Nu s-a putut obține token-ul de autentificare.");
-                }
-            } catch (err: any) {
-                console.warn('[API] Login error:', err);
-                setErrors(prev => ({
-                    ...prev,
-                    general: err.message || "Email-ul sau parola sunt incorecte."
-                }));
-            } finally {
-                setSubmitting(false);
-            }
+        if (!validate() || submitting) return;
+        setSubmitting(true);
+        setErrors(prev => ({ ...prev, general: undefined }));
+        try {
+            await login(email, password);
+            router.back();
+        } catch (err: any) {
+            setErrors(prev => ({
+                ...prev,
+                general: err.message || "Email-ul sau parola sunt incorecte."
+            }));
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -146,6 +133,7 @@ export default function LoginScreen() {
                                         backgroundColor: theme.surface
                                     }}
                                     returnKeyType="done"
+                                    onSubmitEditing={handleLogin}
                                     editable={!submitting}
                                 />
                                 {errors.password && (
