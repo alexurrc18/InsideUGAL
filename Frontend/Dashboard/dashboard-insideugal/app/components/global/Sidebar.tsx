@@ -29,13 +29,13 @@ import {
 } from "@/lib/dashboard-auth";
 
 const menuItems = [
-  { label: "Acasa", href: "/", icon: Home, canAccess: canAccessDashboard },
-  { label: "Noutati", href: "/noutati", icon: Newspaper, canAccess: canAccessContent },
+  { label: "Acasă", href: "/", icon: Home, canAccess: canAccessDashboard },
+  { label: "Anunțuri", href: "/noutati", icon: Newspaper, canAccess: canAccessContent },
   { label: "Evenimente", href: "/evenimente", icon: Calendar, canAccess: canAccessContent },
-  { label: "Facultati", href: "/facultati", icon: GraduationCap, canAccess: canAccessFaculties },
-  { label: "Harti", href: "/harti", icon: MapPin, canAccess: canAccessMaps },
-  { label: "Sesizari", href: "/sesizari", icon: AlertTriangle, canAccess: canAccessComplaints },
-  { label: "Cantina", href: "/cantina", icon: Utensils, canAccess: canAccessCantina },
+  { label: "Facultăți", href: "/facultati", icon: GraduationCap, canAccess: canAccessFaculties },
+  { label: "Hărți", href: "/harti", icon: MapPin, canAccess: canAccessMaps },
+  { label: "Sesizări", href: "/sesizari", icon: AlertTriangle, canAccess: canAccessComplaints },
+  { label: "Cantină", href: "/cantina", icon: Utensils, canAccess: canAccessCantina },
   { label: "Conturi", href: "/conturi", icon: Users, canAccess: canAccessAccounts },
 ] satisfies Array<{
   label: string;

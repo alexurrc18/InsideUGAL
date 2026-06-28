@@ -1,8 +1,6 @@
 import type { NextConfig } from "next";
-import * as dotenv from 'dotenv';
-import path from 'path';
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
+// Next.js încarcă automat variabilele din .env, deci nu avem nevoie de dotenv manual aici.
 function originFromUrl(value: string | undefined): string | null {
   if (!value) return null;
   try {
@@ -13,6 +11,7 @@ function originFromUrl(value: string | undefined): string | null {
 }
 
 const backendOrigin = originFromUrl(process.env.NEXT_PUBLIC_BACKEND_URL);
+
 const connectSrc = [
   "'self'",
   "https://*.supabase.co",
@@ -39,6 +38,7 @@ const cspHeader = `
     connect-src ${connectSrc};
     worker-src blob:;
 `.replace(/\s{2,}/g, ' ').trim();
+
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
@@ -76,6 +76,8 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  // Dezactivează temporar turbopack root dacă suspectezi că blochează build-ul în workspace-uri
   turbopack: {
     root: __dirname,
   },

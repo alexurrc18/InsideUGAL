@@ -72,6 +72,63 @@ export function isFacilityOpen(name: string, date: Date = new Date()): boolean {
   return true;
 }
 
+export type FacilityStatus = 'open' | 'closed' | 'no_schedule';
+
+export function getFacilityStatus(name: string, date: Date = new Date()): FacilityStatus {
+  const lower = name.toLowerCase();
+  const day = date.getDay();
+  const hour = date.getHours();
+  const min = date.getMinutes();
+  const timeVal = hour * 100 + min;
+
+  if (lower.includes('cantina')) {
+    if (day >= 1 && day <= 5) {
+      if (lower.includes('cămine') || lower.includes('camine')) {
+        return timeVal >= 1200 && timeVal <= 1700 ? 'open' : 'closed';
+      }
+      if (lower.includes('corp j')) {
+        return timeVal >= 1200 && timeVal <= 1530 ? 'open' : 'closed';
+      }
+      if (lower.includes('universitate')) {
+        if (day >= 1 && day <= 4) {
+          return timeVal >= 1200 && timeVal <= 1530 ? 'open' : 'closed';
+        }
+        if (day === 5) {
+          return timeVal >= 1200 && timeVal <= 1400 ? 'open' : 'closed';
+        }
+      }
+      return timeVal >= 1200 && timeVal <= 1530 ? 'open' : 'closed';
+    }
+    return 'closed';
+  }
+
+  if (lower.includes('cabinet') || lower.includes('medic')) {
+    if (day >= 1 && day <= 5) {
+      return timeVal >= 700 && timeVal <= 1500 ? 'open' : 'closed';
+    }
+    return 'closed';
+  }
+
+  if (lower.includes('biblioteca')) {
+    if (day >= 1 && day <= 4) {
+      return timeVal >= 1230 && timeVal <= 1430 ? 'open' : 'closed';
+    }
+    if (day === 5) {
+      return timeVal >= 1230 && timeVal <= 1330 ? 'open' : 'closed';
+    }
+    return 'closed';
+  }
+
+  if (lower.includes('consiliere')) {
+    if (day >= 1 && day <= 5) {
+      return timeVal >= 800 && timeVal <= 1400 ? 'open' : 'closed';
+    }
+    return 'closed';
+  }
+
+  return 'no_schedule';
+}
+
 export function cleanMapStyle(style: any): any {
   if (!style) return style;
 

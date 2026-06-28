@@ -1,21 +1,23 @@
 import { router } from "expo-router";
 import React, { useEffect } from "react";
-import { useColorScheme, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { Colors } from "@/constants/theme";
 import api, { storage } from "@/services/api";
 
 export default function SplashScreen() {
-  const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
-  const theme = Colors[themeName];
   useEffect(() => {
     let isRedirected = false;
 
-    const redirect = () => {
+    const redirect = async () => {
       if (!isRedirected) {
         isRedirected = true;
-        router.replace("/(public)/acasa");
+        const hasSeenOnboarding = await storage.getItem("has_seen_onboarding");
+        if (hasSeenOnboarding === "true") {
+          router.replace("/(public)/acasa");
+        } else {
+          router.replace("/(onboarding)/notificari");
+        }
       }
     };
 
@@ -48,9 +50,9 @@ export default function SplashScreen() {
           })
         ]);
         console.log("[Splash] Successfully pre-fetched all public API data.");
+        redirect();
       } catch (err) {
         console.warn("[Splash] Error pre-fetching data:", err);
-      } finally {
         redirect();
       }
     };

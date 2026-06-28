@@ -1,5 +1,7 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, useColorScheme, RefreshControl, Platform, Pressable, Animated, Alert, StyleSheet } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Platform, Pressable, Alert, StyleSheet } from "react-native";
+import Animated, { useSharedValue, withTiming, useAnimatedStyle, useAnimatedProps, interpolateColor } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -50,32 +52,33 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [headerAnim] = useState(() => new Animated.Value(0));
+  const headerAnim = useSharedValue(0);
+  const scrollY = useSharedValue(0);
   const isPastThreshold = React.useRef(false);
 
-  const bellColor = headerAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [ColorScheme.white, theme.text],
-  });
+  const headerFadeStyle = useAnimatedStyle(() => ({
+    opacity: headerAnim.value,
+  }));
+  const bellAnimatedProps = useAnimatedProps(() => ({
+    color: interpolateColor(headerAnim.value, [0, 1], [ColorScheme.white, theme.text]),
+  }));
 
   const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
+    scrollY.set(offsetY);
     const headerHeight = insets.top + 56;
     const threshold = HERO_HEIGHT - headerHeight;
     const isPast = offsetY >= threshold;
 
     if (isPast !== isPastThreshold.current) {
       isPastThreshold.current = isPast;
-      Animated.timing(headerAnim, {
-        toValue: isPast ? 1 : 0,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
+      headerAnim.set(withTiming(isPast ? 1 : 0, { duration: 250 }));
     }
   };
 
   const fetchApiData = async () => {
     setHasError(false);
+    let success = true;
     try {
       try {
         const response = await api.get("/announcements/", {
@@ -88,7 +91,7 @@ export default function HomeScreen() {
         });
         if (response.data && response.data.items) {
           const apiItems = response.data.items;
-          
+
           await storage.setItem('cached_announcements', JSON.stringify(apiItems));
 
           const apiNoutati = apiItems
@@ -127,6 +130,7 @@ export default function HomeScreen() {
         }
       } catch (err) {
         console.error("[API] Could not load announcements:", err);
+        success = false;
         if (noutati.length === 0 && evenimente.length === 0) {
           setHasError(true);
         }
@@ -156,6 +160,7 @@ export default function HomeScreen() {
         }
       } catch (err) {
         console.error("[API] Could not load faculties:", err);
+        success = false;
         if (facultati.length === 0) {
           setHasError(true);
         }
@@ -172,25 +177,30 @@ export default function HomeScreen() {
           const apiItems = response.data.items;
           await storage.setItem('cached_facilities', JSON.stringify(apiItems));
 
-          const apiFacilities = apiItems.map((item: any) => ({
-            id: item.id.toString(),
-            title: item.name || "Titlu necunoscut",
-            image: item.image_url || undefined,
-            address: item.address || "Adresă necunoscută",
-            phone: item.phone || "",
-            website: item.website_url || "",
-            content: item.name || "Conținut necunoscut",
-            schedule: item.schedule || "",
-          }));
+          const apiFacilities = apiItems
+            .filter((item: any) => item.facility_id !== null && item.facility_id !== undefined)
+            .map((item: any) => ({
+              id: item.id.toString(),
+              title: item.name || "Titlu necunoscut",
+              image: item.image_url || undefined,
+              address: item.address || "Adresă necunoscută",
+              phone: item.phone || "",
+              website: item.website_url || "",
+              content: item.name || "Conținut necunoscut",
+              schedule: item.schedule || "",
+            }));
           setFacilitati(apiFacilities);
         }
       } catch (err) {
         console.error("[API] Could not load facilities/locations:", err);
+        success = false;
         if (facilitati.length === 0) {
           setHasError(true);
         }
       }
-    } finally {
+      setLoading(false);
+      return success;
+    } catch {
       setLoading(false);
     }
   };
@@ -198,7 +208,13 @@ export default function HomeScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     const start = Date.now();
-    await fetchApiData();
+    const success = await fetchApiData();
+
+    const isPageEmpty = noutati.length === 0 && evenimente.length === 0 && facultati.length === 0 && facilitati.length === 0;
+    if (!success && !isPageEmpty) {
+      Alert.alert("Eroare la actualizare", "Nu s-au putut reîmprospăta datele de pe ecranul principal. Te rugăm să verifici conexiunea la internet.");
+    }
+
     const elapsed = Date.now() - start;
     if (elapsed < 1000) {
       await new Promise(resolve => setTimeout(resolve, 1000 - elapsed));
@@ -275,16 +291,18 @@ export default function HomeScreen() {
         if (cachedFacilities) {
           const apiItems = JSON.parse(cachedFacilities);
           if (Array.isArray(apiItems) && apiItems.length > 0) {
-            const apiFacilities = apiItems.map((item: any) => ({
-              id: item.id.toString(),
-              title: item.name || "Titlu necunoscut",
-              image: item.image_url || undefined,
-              address: item.address || "Adresă necunoscută",
-              phone: item.phone || "",
-              website: item.website_url || "",
-              content: item.name || "Conținut necunoscut",
-              schedule: item.schedule || "",
-            }));
+            const apiFacilities = apiItems
+              .filter((item: any) => item.facility_id !== null && item.facility_id !== undefined)
+              .map((item: any) => ({
+                id: item.id.toString(),
+                title: item.name || "Titlu necunoscut",
+                image: item.image_url || undefined,
+                address: item.address || "Adresă necunoscută",
+                phone: item.phone || "",
+                website: item.website_url || "",
+                content: item.name || "Conținut necunoscut",
+                schedule: item.schedule || "",
+              }));
             setFacilitati(apiFacilities);
             hasData = true;
           }
@@ -303,6 +321,7 @@ export default function HomeScreen() {
       fetchApiData();
     };
     run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const announcementsForHero = [...noutati]
@@ -355,7 +374,7 @@ export default function HomeScreen() {
   };
 
   const handleNotificationsPress = () => {
-    Alert.alert("Notificări", "Nu aveți notificări noi.");
+    router.push("/(public)/acasa/notificari");
   };
 
   const activeNoutati = noutati;
@@ -365,8 +384,8 @@ export default function HomeScreen() {
 
   const isPageEmpty = noutati.length === 0 && evenimente.length === 0 && facultati.length === 0 && facilitati.length === 0;
 
-  if (hasError || (isPageEmpty && !loading)) {
-    return <ErrorState />;
+  if ((hasError || !loading) && isPageEmpty) {
+    return <ErrorState onRetry={fetchApiData} />;
   }
 
   if (loading && isPageEmpty) {
@@ -382,27 +401,25 @@ export default function HomeScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       {/* Fixed Header */}
-      <Animated.View 
-        style={{ 
-          position: "absolute", 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          paddingTop: insets.top + Spacing.sm, 
+      <Animated.View
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          paddingTop: insets.top + Spacing.sm,
           paddingBottom: Spacing.sm,
-          paddingHorizontal: Spacing.lg, 
-          flexDirection: "row", 
-          justifyContent: "flex-end", 
-          alignItems: "center", 
+          paddingHorizontal: Spacing.lg,
+          flexDirection: "row",
+          justifyContent: "flex-end",
+          alignItems: "center",
           zIndex: 100,
         }}
       >
         <Animated.View
           style={[
             StyleSheet.absoluteFill,
-            {
-              opacity: headerAnim,
-            }
+            headerFadeStyle,
           ]}
         >
           <LinearGradient
@@ -422,46 +439,46 @@ export default function HomeScreen() {
             style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
           >
             <InteractiveGlass size={45} style={{ shadowColor: theme.text, shadowOpacity: 0.2, shadowRadius: 5 }}>
-              <AnimatedBell width={25} height={25} color={bellColor} />
+              <AnimatedBell width={25} height={25} animatedProps={bellAnimatedProps} />
             </InteractiveGlass>
           </Pressable>
         ) : (
           <Pressable
             onPress={handleNotificationsPress}
             style={({ pressed }) => [
-              { 
+              {
                 opacity: pressed ? 0.85 : 1,
                 width: 45,
                 height: 45,
                 borderRadius: 22.5,
-                backgroundColor: "rgba(255, 255, 255, 0.15)",
+                backgroundColor: theme.primary,
                 alignItems: "center",
                 justifyContent: "center"
               }
             ]}
           >
-            <AnimatedBell width={26} height={26} color={bellColor} />
+            <AnimatedBell width={26} height={26} color="#FFFFFF" />
           </Pressable>
         )}
       </Animated.View>
 
-      <Animated.ScrollView 
-        style={{ flex: 1 }} 
+      <Animated.ScrollView
+        style={{ flex: 1 }}
         contentContainerStyle={{ flexGrow: 1 }}
         directionalLockEnabled={true}
         onScroll={handleScroll}
         scrollEventThrottle={16}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh} 
-            colors={[theme.primary]} 
-            tintColor={theme.primary} 
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.primary]}
+            tintColor={theme.primary}
             progressViewOffset={insets.top + 10}
           />
         }
       >
-        <HeroSlideshow slides={heroItems} onPressItem={handlePress} />
+        <HeroSlideshow slides={heroItems} onPressItem={handlePress} scrollY={scrollY} />
 
         <View style={{paddingTop: Spacing.lg, paddingBottom: insets.bottom + Spacing.sm, flex: 1, width: "100%", maxWidth: 1200, alignSelf: "center"}}>
           {refreshing ? (

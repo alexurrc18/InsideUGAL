@@ -14,6 +14,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 BACKEND_URL  = os.getenv("BACKEND_URL", "http://localhost:8000").rstrip("/")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "") or os.getenv("SUPABASE_KEY", "")
+
 TIMEOUT      = 5
 
 
@@ -285,7 +286,10 @@ _TABLE_MAP = {
     "announcements":    ("announcements",    "/announcements",       "created_at.desc", 10,  _fmt_announcements),
     "faculties":        ("faculties",        "/faculties",           "id.asc",          20,  _fmt_faculties),
     "locations":        ("locations",        "/locations",           "id.asc",          20,  _fmt_locations),
-    "daily_menus":      ("daily_menus",      "/daily_menus",         "id.asc",          7,   _fmt_menus),
+    "daily_menus":      ("daily_menus",      "/daily-menus",         "id.asc",          7,   _fmt_menus),
+    "cafeteria_menus":  ("cafeteria_menus",  "/cafeteria_menus",     "id.asc",          7,   _fmt_menus),
+    "facilities":       ("facilities",       "/facilities",          "id.asc",          20,  _fmt_locations),
+    "product_categories":("product_categories", "/product_categories", "id.asc",        20,  _fmt_categories),
     "complaints":       ("complaints",       "/complaints",          "created_at.desc", 5,   _fmt_complaints),
     "questions_history":("questions_history",None,                   "created_at.desc", 6,   _fmt_questions),
     "llm_calls":        ("llm_calls",        None,                   "created_at.desc", 50,  _fmt_llm_calls),

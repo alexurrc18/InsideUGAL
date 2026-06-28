@@ -1,5 +1,6 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React from "react";
-import { View, Text, useWindowDimensions, Pressable, Platform, useColorScheme } from "react-native";
+import { View, Text, useWindowDimensions, Pressable, Platform } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Typography } from "@/constants/typography";

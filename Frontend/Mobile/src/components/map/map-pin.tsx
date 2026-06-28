@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, Platform } from 'react-native';
+import { useTheme } from '@/hooks/use-theme';
 import { ColorScheme } from '@/constants/theme';
-import { getBuildingLetter, isFacilityOpen } from '@/utils/map-helper';
+import { getBuildingLetter, getFacilityStatus } from '@/utils/map-helper';
 
 import ForkKnifeIcon from '@/assets/icons/svg/fork-knife.svg';
 import BookIcon from '@/assets/icons/svg/book.svg';
@@ -15,9 +16,13 @@ interface MapPinProps {
 }
 
 export const MapPin = ({ name, isFacility }: MapPinProps) => {
+  const theme = useTheme();
   const letter = getBuildingLetter(name);
-  const open = isFacility ? isFacilityOpen(name) : true;
-  const pinColor = isFacility ? ColorScheme.red : ColorScheme.blue;
+  const status = isFacility ? getFacilityStatus(name) : 'open';
+  const open = status !== 'closed';
+  const pinColor = isFacility
+    ? (status === 'open' ? theme.thirdiary : status === 'no_schedule' ? theme.secondary : theme.textSecondary)
+    : theme.primary;
 
   const renderContent = () => {
     if (!isFacility) {
