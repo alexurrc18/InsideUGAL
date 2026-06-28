@@ -31,7 +31,6 @@ import {
 const menuItems = [
   { label: "Acasă", href: "/", icon: Home, canAccess: canAccessDashboard },
   { label: "Anunțuri", href: "/noutati", icon: Newspaper, canAccess: canAccessContent },
-  { label: "Evenimente", href: "/evenimente", icon: Calendar, canAccess: canAccessContent },
   { label: "Facultăți", href: "/facultati", icon: GraduationCap, canAccess: canAccessFaculties },
   { label: "Hărți", href: "/harti", icon: MapPin, canAccess: canAccessMaps },
   { label: "Sesizări", href: "/sesizari", icon: AlertTriangle, canAccess: canAccessComplaints },
