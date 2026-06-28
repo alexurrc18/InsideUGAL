@@ -3,8 +3,9 @@ import React, { useState, useEffect } from "react";
 import { View, Text, Pressable, ScrollView, Alert } from "react-native";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter, useNavigation } from "expo-router";
-import api, { getAuthToken, logout } from "@/services/api";
+import { useRouter } from "expo-router";
+import api from "@/services/api";
+import { useAuth } from "@/contexts/auth-context";
 import { Colors, Spacing } from "@/constants/theme";
 
 import { Typography } from "@/constants/typography";
@@ -25,32 +26,13 @@ export default function MoreScreen() {
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const navigation = useNavigation();
+  const { isAuthenticated, logout } = useAuth();
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
     api.get('/city-guide/categories').then(res => setCategories(res.data)).catch(() => {});
   }, []);
-
-  const checkAuth = async () => {
-    const token = await getAuthToken();
-    setIsAuthenticated(!!token);
-  };
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      checkAuth();
-    }, 0);
-    const unsubscribe = navigation.addListener("focus", () => {
-      checkAuth();
-    });
-    return () => {
-      clearTimeout(timer);
-      unsubscribe();
-    };
-  }, [navigation]);
 
   const renderIcon = (iconName: string, color: string) => {
     switch (iconName) {
@@ -101,12 +83,11 @@ export default function MoreScreen() {
                   "Ești deja conectat în cont. Vrei să te deconectezi?",
                   [
                     { text: "Anulează", style: "cancel" },
-                    { 
-                      text: "Deconectare", 
+                    {
+                      text: "Deconectare",
                       style: "destructive",
                       onPress: async () => {
                         await logout();
-                        setIsAuthenticated(false);
                       }
                     }
                   ]
