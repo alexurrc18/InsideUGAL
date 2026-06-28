@@ -143,6 +143,7 @@ class LocationUpdate(BaseModel):
 
 class LocationResponse(LocationBase):
     id: int
+    image_url: Optional[str] = None
     faculties: List[FacultyResponse] = []
     created_at: datetime
     updated_at: datetime
@@ -378,10 +379,10 @@ class AnnouncementUpdate(BaseModel):
 class AnnouncementResponse(AnnouncementBase):
     id: int
     created_by: UUID
-    author_name: Optional[str] = None
+    author: Optional[str] = Field(alias="author_name", default=None)
     created_at: datetime
     updated_at: datetime
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 # ==========================================

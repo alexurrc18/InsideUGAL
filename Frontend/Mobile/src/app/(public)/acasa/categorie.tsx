@@ -67,6 +67,7 @@ export default function CategoryScreen() {
     try {
       let response;
       let newItems: any[] = [];
+      let receivedItemsCount = 0;
       
       if (categoryTitle === "Noutăți" || categoryTitle === "Evenimente") {
         const type = categoryTitle === "Noutăți" ? "NOUTATE" : "EVENIMENT";
@@ -80,6 +81,7 @@ export default function CategoryScreen() {
         });
         
         if (response.data && response.data.items) {
+          receivedItemsCount = response.data.items.length;
           newItems = response.data.items.map((item: any) => ({
             id: item.id.toString(),
             title: item.title || "Titlu necunoscut",
@@ -105,10 +107,11 @@ export default function CategoryScreen() {
           }
         });
         if (response.data && response.data.items) {
+          receivedItemsCount = response.data.items.length;
           newItems = response.data.items.map((item: any) => ({
             id: item.id.toString(),
             title: item.name || "Titlu necunoscut",
-            image: item.image_url || undefined,
+            image: item.logo_url || item.image_url || undefined,
             address: item.address || "Adresă necunoscută",
             phone: item.phone || "",
             website: item.website_url || "",
@@ -123,7 +126,10 @@ export default function CategoryScreen() {
           }
         });
         if (response.data && response.data.items) {
-          newItems = response.data.items.map((item: any) => ({
+          receivedItemsCount = response.data.items.length;
+          newItems = response.data.items
+            .filter((item: any) => item.facility_id !== null && item.facility_id !== undefined)
+            .map((item: any) => ({
             id: item.id.toString(),
             title: item.name || "Titlu necunoscut",
             image: item.image_url || undefined,
@@ -136,7 +142,7 @@ export default function CategoryScreen() {
         }
       }
       
-      if (newItems.length < 20) {
+      if (receivedItemsCount < 20) {
         setHasMore(false);
       }
       

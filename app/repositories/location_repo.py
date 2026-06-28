@@ -48,6 +48,7 @@ class LocationRepository(CRUDRepository[Location]):
             "faculty_ids": [faculty.id for faculty in location.faculties],
             "faculties": list(location.faculties),
             "facility_id": location.facility_id,
+            "image_url": location.facility.image_url if location.facility else None,
             "marker": location.marker,
             "coordinates": coordinates,
             "created_at": location.created_at,
@@ -56,7 +57,11 @@ class LocationRepository(CRUDRepository[Location]):
 
     @staticmethod
     def _response_select():
-        return select(Location).options(selectinload(Location.faculties)).order_by(Location.name.asc())
+        return (
+            select(Location)
+            .options(selectinload(Location.faculties), selectinload(Location.facility))
+            .order_by(Location.name.asc())
+        )
 
     async def _load_faculties(self, session: AsyncSession, faculty_ids: list[int]) -> list[Faculty]:
         if not faculty_ids:

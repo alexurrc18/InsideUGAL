@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Table, { Column } from "../components/ui/Table";
 import Modal from "../components/ui/Modal";
@@ -17,6 +18,7 @@ type FacultyApiItem = {
   address?: string | null;
   phone?: string | null;
   website_url?: string | null;
+  logo_url?: string | null;
 };
 
 type LocationApiItem = {
@@ -34,6 +36,7 @@ export type FacultyItem = {
   address: string;
   phone: string;
   website: string;
+  logoUrl?: string;
 };
 
 export type BuildingItem = {
@@ -99,6 +102,7 @@ export default function Page() {
         address: item.address ?? "",
         phone: item.phone ?? "",
         website: item.website_url ?? "",
+        logoUrl: item.logo_url ?? undefined,
       }));
 
       const facultyNamesById = new Map(facultyItems.map((faculty) => [faculty.id, faculty.abbreviation || faculty.name]));
@@ -162,6 +166,7 @@ export default function Page() {
           address: facultyForm.address || null,
           phone: facultyForm.phone || null,
           website_url: facultyForm.website || null,
+          logo_url: facultyForm.logoUrl || null,
         };
         const url = activeModal === "edit" && selectedId
           ? `${apiBaseUrl}/faculties/${selectedId}`
@@ -231,6 +236,24 @@ export default function Page() {
   };
 
   const facultyColumns: Column<FacultyItem>[] = [
+    {
+      header: "Logo",
+      key: "logoUrl",
+      render: (item) => item.logoUrl ? (
+        <div className="relative h-12 w-12 overflow-hidden rounded-lg border border-border bg-background">
+          <Image
+            src={item.logoUrl}
+            alt={`Logo ${item.abbreviation || item.name}`}
+            fill
+            sizes="48px"
+            className="object-contain p-1"
+            unoptimized
+          />
+        </div>
+      ) : (
+        <span className="text-muted">-</span>
+      ),
+    },
     { header: "Nume facultate", key: "name", render: (item) => <span className="font-semibold text-foreground">{item.name}</span> },
     { header: "Descriere", key: "description", render: (item) => <span className="block max-w-xs truncate text-muted">{item.description || "-"}</span> },
     { header: "Adresa", key: "address", render: (item) => <span className="text-muted">{item.address || "-"}</span> },
@@ -329,6 +352,7 @@ export default function Page() {
               <input value={facultyForm.address || ""} onChange={(event) => setFacultyForm({ ...facultyForm, address: event.target.value })} placeholder="Adresa" className="w-full border border-border p-2 rounded-lg bg-background" />
               <input value={facultyForm.phone || ""} onChange={(event) => setFacultyForm({ ...facultyForm, phone: event.target.value })} placeholder="Telefon" className="w-full border border-border p-2 rounded-lg bg-background" />
               <input type="url" value={facultyForm.website || ""} onChange={(event) => setFacultyForm({ ...facultyForm, website: event.target.value })} placeholder="Website" className="w-full border border-border p-2 rounded-lg bg-background" />
+              <input type="url" value={facultyForm.logoUrl || ""} onChange={(event) => setFacultyForm({ ...facultyForm, logoUrl: event.target.value })} placeholder="URL logo" className="w-full border border-border p-2 rounded-lg bg-background" />
             </>
           ) : (
             <>

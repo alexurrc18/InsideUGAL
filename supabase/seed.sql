@@ -1,6 +1,7 @@
 -- Profiles are synchronized from Supabase Auth in post-init.
 -- This seed file contains only application data.
 
+ALTER TABLE public.faculties ADD COLUMN IF NOT EXISTS logo_url TEXT;
 ALTER TABLE public.facilities ADD COLUMN IF NOT EXISTS image_url TEXT;
 ALTER TABLE public.locations DROP COLUMN IF EXISTS faculty_id;
 
@@ -53,9 +54,23 @@ WHERE f.id <> canonical.id
   AND f.abbreviation = canonical.abbreviation
   AND canonical.id BETWEEN 1 AND 15;
 
-UPDATE public.faculties
-SET logo_url = '/storage/v1/object/public/faculty-logos/ugal-logo.png'
-WHERE logo_url IS NULL;
+UPDATE public.faculties SET logo_url = CASE id
+  WHEN 1 THEN 'https://www.ugal.ro/images/faculties/logo.png'
+  WHEN 2 THEN 'https://www.ugal.ro/images/faculties/an.jpg'
+  WHEN 3 THEN 'https://www.ugal.ro/images/faculties/efs.png'
+  WHEN 4 THEN 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTs3IcoYJ6WmdRkTbEtmZgmd1Kepkag93y_rGH2UJfukw&s=10'
+  WHEN 5 THEN 'https://www.ugal.ro/images/a_anunturi/2018/logo-litere.jpg'
+  WHEN 6 THEN 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNVkiaCUefFFfwobc3eJeVnE3i9eR1dj6N3GVLblOH_Q&s=10'
+  WHEN 7 THEN 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR8AOzrr41_eVeMTeBkAmjC_J1-yUc1VrsDHVfp34rDEmeAMO1Xnbuu2pg&s=10'
+  WHEN 8 THEN 'https://yt3.googleusercontent.com/ytc/AIdro_mUaaXL4tNg_HODQz4qhA4heXHtMkVuhFKIcZQZja3i9g=s900-c-k-c0x00ffffff-no-rj'
+  WHEN 9 THEN 'https://www.ugal.ro/images/faculties/logo-stiinte_si_mediu.jpg'
+  WHEN 10 THEN 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSGToBVGvXoqaKlpk4cD6VHmQ8tYi9f-yP3FQESQfbwLv1gIsFPzhNKJc0z&s=10'
+  WHEN 11 THEN 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSGbhC9j-HJsHsHroyV7bX1zELfGmywzWFTtbAPfEKdRp6cAXN-lqA_BMg&s=10'
+  WHEN 12 THEN 'https://www.ugal.ro/images/faculties/Logo_FIAB_mic.png'
+  WHEN 13 THEN 'https://www.ugal.ro/images/faculties/eaa.png'
+  WHEN 14 THEN 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQVMjn4bYlrJqquGHsvOv937pkzuoSWsDJ8oCUSaojfuNvErYb6VwSFzgwE&s=10'
+  WHEN 15 THEN 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQx0YZMXLxcm4ckS2HuVSzp4n5xIlhCHcLO71wJ0LAdkaM5lNYpuyg5zw&s=10'
+  ELSE logo_url END;
 
 -- 2. PROFILES
 INSERT INTO public.profiles (id, username, first_name, last_name, email, faculty_id, role, is_active) VALUES
@@ -96,15 +111,15 @@ ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
 -- 5. FACILITIES
 INSERT INTO public.facilities (id, name, description, image_url) VALUES
-(1, 'Cantina Studenteasca', 'Cantina studenteasca UGAL. Program: luni-vineri 12:00-17:00.', NULL),
-(2, 'Cantina Corp J', 'Cantina din Corp J. Program: luni-vineri 12:00-15:30.', NULL),
-(3, 'Cantina Universitate', 'Cantina Universitate. Program: luni-joi 12:00-15:30, vineri 12:00-14:00.', NULL),
-(4, 'Casa de Cultura a Studentilor', 'Facilitate pentru activitati studentesti si evenimente.', NULL),
-(5, 'Stadionul Portul Rosu', 'Stadion din Galati, Str. Domneasca, 145, in perimetrul complexului portuar.', NULL),
-(6, 'Departamentul de Calculatoare', 'Facilitate academica pentru activitati ale domeniului Calculatoare.', NULL),
-(7, 'Sala de sport Florin Balais', 'Sala de sport din Galati, Strada Mihai Bravu 44.', NULL),
-(8, 'Bazinul de Inot UGAL', 'Facilitate sportiva pentru inot.', NULL),
-(9, 'Biblioteca Universitara', 'Biblioteca universitara UGAL.', NULL)
+(1, 'Cantina Studenteasca', 'Cantina studenteasca UGAL. Program: luni-vineri 12:00-17:00.', 'https://www.mediafax.ro/wp-content/uploads/2026/05/cantina-galati-e1778658482660.jpg'),
+(2, 'Cantina Corp J', 'Cantina din Corp J. Program: luni-vineri 12:00-15:30.', 'https://www.viata-libera.ro/images/galerie/ReportajCamineStudentestiRVB/10.jpg'),
+(3, 'Cantina Universitate', 'Cantina Universitate. Program: luni-joi 12:00-15:30, vineri 12:00-14:00.', 'https://cdn.adh.reperio.news/image-3/3359d22b-382a-4c5e-8430-7e0b10e927d0/index.jpeg?p=a%3D1%26co%3D1.05%26w%3D700%26h%3D750%26r%3Dcontain%26f%3Dwebp'),
+(4, 'Casa de Cultura a Studentilor', 'Facilitate pentru activitati studentesti si evenimente.', 'https://i.ytimg.com/vi/wymfA4xMEmE/maxresdefault.jpg'),
+(5, 'Stadionul Portul Rosu', 'Stadion din Galati, Str. Domneasca, 145, in perimetrul complexului portuar.', 'https://www.viata-libera.ro/images/galerie/finantare-pentru-stadionul-portu-rosu-din-galati/stadionul-portu-rosu-galati-3.jpg'),
+(6, 'Departamentul de Calculatoare', 'Facilitate academica pentru activitati ale domeniului Calculatoare.', 'https://www.cti.ugal.ro/wp-content/uploads/2020/05/corp-g2.jpg'),
+(7, 'Sala de sport Florin Balais', 'Sala de sport din Galati, Strada Mihai Bravu 44.', 'https://lh5.googleusercontent.com/p/AF1QipP8kRmY97qlo2783wjtxBUlyYQ5cFB59m8dwC0I=w298-h298-k-no'),
+(8, 'Dispensar Studențesc', 'Cabinet medical: Cămin F, Str. Parcului 4. Oferă asistență medicală, stomatologie, consiliere psihologică. Luni-Vineri 08:00-15:00.', 'https://www.viata-libera.ro/images/galerie/ReportajCamineStudentestiRVB/11.jpg'),
+(9, 'Biblioteca Universitara', 'Biblioteca universitara UGAL.', 'https://biblioteca.ugal.ro/images/anunturi/intrare_BUDJG_m.jpeg')
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     description = EXCLUDED.description,
@@ -160,7 +175,7 @@ INSERT INTO public.locations (id, name, coordinates, facility_id, marker) VALUES
 (26, 'Stadionul Portul Rosu', ST_SetSRID(ST_MakePoint(28.0758, 45.4411), 4326), 5, 'S'),
 (27, 'Departamentul de Calculatoare', ST_SetSRID(ST_MakePoint(28.0520, 45.4462), 4326), 6, 'DC'),
 (28, 'Sala de sport Florin Balais', ST_SetSRID(ST_MakePoint(28.0500, 45.4500), 4326), 7, 'SB'),
-(29, 'Bazinul de Inot UGAL', ST_SetSRID(ST_MakePoint(28.0467, 45.4442), 4326), 8, 'B'),
+(29, 'Dispensar Studențesc', ST_SetSRID(ST_MakePoint(28.052240, 45.453429), 4326), 8, 'DS'),
 (30, 'Biblioteca Universitara', ST_SetSRID(ST_MakePoint(28.0510, 45.4434), 4326), 9, 'BU')
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,

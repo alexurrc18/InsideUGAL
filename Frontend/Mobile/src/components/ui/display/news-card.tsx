@@ -1,12 +1,11 @@
 import React from "react";
-import { View, Text, useWindowDimensions, Pressable, Platform } from "react-native";
+import { View, Text, useWindowDimensions, Pressable, Platform, useColorScheme } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Typography } from "@/constants/typography";
 import { Colors, Spacing, ColorScheme } from "@/constants/theme";
-import { useColorScheme } from "react-native";
 
-const DEFAULT_IMAGE = require("@/assets/images/placeholders/1920x1080.png");
+const FALLBACK_IMAGE = require("@/assets/images/logo-color.png");
 
 export interface NewsCardProps {
     title: string;
@@ -59,7 +58,9 @@ export function NewsCard({
     const defaultWidth = variant === "list" ? SCREEN_WIDTH - Spacing.xl3 : (variant === "square" ? 180 : (width || SCREEN_WIDTH * 0.85));
     const defaultHeight = variant === "list" ? 100 : (variant === "square" ? 180 : (height || (defaultWidth as number) / (16 / 10)));
     
-    const cardImage = image || DEFAULT_IMAGE;
+    const cardImage = typeof image === "string"
+        ? (image.trim() ? { uri: image.trim() } : FALLBACK_IMAGE)
+        : (image || FALLBACK_IMAGE);
 
     if (variant === "list") {
         return (
