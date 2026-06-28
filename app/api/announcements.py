@@ -6,6 +6,7 @@ from urllib.parse import quote
 import httpx
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_roles
@@ -26,9 +27,16 @@ manage_announcements = require_roles(
 
 
 async def validate_announcement_refs(payload: BaseModel, db: AsyncSession) -> None:
-    faculty_id = getattr(payload, "faculty_id", None)
-    if faculty_id:
-        await ensure_exists(db, models.Faculty, faculty_id, "Faculty not found.")
+    faculties = getattr(payload, "faculties", None)
+
+    if faculties:
+        for abbr in faculties:
+            result = await db.execute(select(models.Faculty).where(models.Faculty.abbreviation == abbr))
+            if not result.scalars().first():
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail=f"Faculty abbreviation '{abbr}' not found.",
+                )
 
 
 def validate_announcement_dates(payload: schemas.AnnouncementCreate) -> None:
@@ -60,7 +68,6 @@ def assert_can_manage_announcement(profile, announcement: models.Announcement | 
 @router.get("/", response_model=schemas.PaginatedResponse[schemas.AnnouncementResponse])
 async def read_announcements(
     announcement_type: schemas.PostType | None = None,
-    faculty_id: int | None = None,
     pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_db),
 ):
@@ -70,8 +77,6 @@ async def read_announcements(
         limit=pagination.size,
         offset=pagination.offset,
         announcement_type=type_value,
-        faculty_id=faculty_id,
-        current_profile=None,
     )
     return paginated_response(items, total, pagination)
 

@@ -14,7 +14,7 @@ from sqlalchemy import (
     Time,
     func,
 )
-from sqlalchemy.dialects.postgresql import UUID, ENUM
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID, ENUM
 from sqlalchemy.orm import relationship
 
 from app.db.database import Base
@@ -61,6 +61,7 @@ class Profile(Base, TimestampMixin):
     faculty = relationship("Faculty", back_populates="profiles")
     complaints = relationship("Complaint", back_populates="user")
     announcements = relationship("Announcement", back_populates="creator")
+    push_tokens = relationship("PushToken", back_populates="profile")
 
 
 class Faculty(Base, TimestampMixin):
@@ -78,7 +79,6 @@ class Faculty(Base, TimestampMixin):
     logo_url = Column(Text)
 
     locations = relationship("Location", secondary=location_faculties, back_populates="faculties")
-    announcements = relationship("Announcement", back_populates="faculty")
     profiles = relationship("Profile", back_populates="faculty")
 
 
@@ -222,20 +222,21 @@ class Announcement(Base, TimestampMixin):
     __table_args__ = {"schema": "public"}
 
     id = Column(Integer, primary_key=True)
-    
+
     type = Column(ENUM('NOUTATE', 'EVENIMENT', name='post_type', create_type=False), nullable=False, server_default="NOUTATE")
-    
+
     created_by = Column(UUID(as_uuid=False), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
     title = Column(String(255))
     content = Column(Text, nullable=False)
     image_url = Column(Text)
-    faculty_id = Column(Integer, ForeignKey("public.faculties.id", ondelete="SET NULL"))
+    event_link = Column(String(500))
+    files = Column(JSONB, nullable=False, server_default="[]")
+    faculties = Column(JSONB, nullable=False, server_default="[]")
     location_name = Column(String(255))
     start_date = Column(DateTime(timezone=True))
     end_date = Column(DateTime(timezone=True))
 
     creator = relationship("Profile", back_populates="announcements")
-    faculty = relationship("Faculty", back_populates="announcements")
 
 
 
@@ -267,3 +268,35 @@ class QuestionsHistory(Base):
     pdf_id = Column(Text, nullable=False)
     question = Column(Text, nullable=False)
     answer = Column(Text, nullable=False)
+
+
+class PushToken(Base, TimestampMixin):
+    __tablename__ = "push_tokens"
+    __table_args__ = {"schema": "public"}
+
+    id = Column(Integer, primary_key=True)
+    profile_id = Column(UUID(as_uuid=False), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
+    token = Column(Text, nullable=False)
+    device_type = Column(String(50))
+    is_valid = Column(Boolean, nullable=False, default=True)
+    last_used_at = Column(DateTime(timezone=True))
+
+    profile = relationship("Profile", back_populates="push_tokens")
+
+
+class Notification(Base, TimestampMixin):
+    __tablename__ = "notifications"
+    __table_args__ = {"schema": "public"}
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(255), nullable=False)
+    body = Column(Text, nullable=False)
+    action = Column(String(500))
+    faculty_id = Column(Integer, ForeignKey("public.faculties.id", ondelete="SET NULL"))
+    sent_by = Column(UUID(as_uuid=False), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
+    sent_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    recipient_count = Column(Integer, nullable=False, default=0)
+
+    sent_by_profile = relationship("Profile", foreign_keys=[sent_by])
+    faculty = relationship("Faculty")
+

@@ -2,7 +2,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from app.models.models import Announcement, Profile
+from app.models.models import Announcement
 from app.models.schemas import AnnouncementCreate, AnnouncementUpdate, UserRole
 from app.repositories.base import CRUDRepository, schema_to_data
 
@@ -10,9 +10,6 @@ from app.repositories.base import CRUDRepository, schema_to_data
 class AnnouncementRepository(CRUDRepository[Announcement]):
     model = Announcement
     admin_roles = {UserRole.HEAD_ADMIN.value, UserRole.HEAD_FACULTATI.value}
-
-    def _apply_visibility_filter(self, query, current_profile: Profile | None):
-        return query
 
     @staticmethod
     def _with_author_name(announcement: Announcement) -> Announcement:
@@ -31,15 +28,10 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         self,
         session: AsyncSession,
         announcement_type: str | None = None,
-        faculty_id: int | None = None,
-        current_profile: Profile | None = None,
     ) -> list[Announcement]:
         query = self._base_select().order_by(Announcement.created_at.desc())
         if announcement_type is not None:
             query = query.where(Announcement.type == announcement_type)
-        if faculty_id is not None:
-            query = query.where(Announcement.faculty_id == faculty_id)
-        query = self._apply_visibility_filter(query, current_profile)
 
         result = await session.execute(query)
         return [self._with_author_name(announcement) for announcement in result.scalars().all()]
@@ -51,21 +43,16 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         limit: int,
         offset: int,
         announcement_type: str | None = None,
-        faculty_id: int | None = None,
-        current_profile: Profile | None = None,
     ) -> tuple[list[Announcement], int]:
         query = self._base_select().order_by(Announcement.created_at.desc())
         if announcement_type is not None:
             query = query.where(Announcement.type == announcement_type)
-        if faculty_id is not None:
-            query = query.where(Announcement.faculty_id == faculty_id)
-        query = self._apply_visibility_filter(query, current_profile)
 
         total_result = await session.execute(select(func.count()).select_from(query.order_by(None).subquery()))
         total = total_result.scalar_one()
 
         result = await session.execute(query.limit(limit).offset(offset))
-        return [self._with_author_name(announcement) for announcement in result.scalars().all()], total
+        return [self._with_author_name(n) for n in result.scalars().all()], total
 
     async def get_by_id(self, session: AsyncSession, entity_id: int) -> Announcement | None:
         result = await session.execute(self._base_select().where(Announcement.id == entity_id))

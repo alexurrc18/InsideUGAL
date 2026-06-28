@@ -347,7 +347,9 @@ class AnnouncementBase(BaseModel):
     title: str
     content: str
     image_url: Optional[str] = None
-    faculty_id: Optional[int] = None
+    event_link: Optional[str] = None
+    files: Optional[List[Dict[str, Any]]] = []
+    faculties: Optional[List[str]] = []
     location_name: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
@@ -359,7 +361,9 @@ class AnnouncementCreate(AnnouncementBase):
             "title": "Hackathon UGAL 2024",
             "content": "Vă așteptăm la hackathon-ul ediția 2024! Cele mai bune proiecte vor fi premiate.",
             "image_url": "https://example.com/images/hackathon.jpg",
-            "faculty_id": 3,
+            "event_link": "https://example.com/register",
+            "files": [{"name": "regulament.pdf", "url": "https://example.com/regulament.pdf"}],
+            "faculties": ["AC", "FIE", "Drept"],
             "location_name": "Corpul C",
             "start_date": "2024-06-15T09:00:00",
             "end_date": "2024-06-15T18:00:00"
@@ -371,7 +375,9 @@ class AnnouncementUpdate(BaseModel):
     content: Optional[str] = None
     type: Optional[PostType] = None
     image_url: Optional[str] = None
-    faculty_id: Optional[int] = None
+    event_link: Optional[str] = None
+    files: Optional[List[Dict[str, Any]]] = None
+    faculties: Optional[List[str]] = None
     location_name: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
@@ -446,4 +452,36 @@ class DailyMenuResponse(DailyMenuBase):
 class DashboardStatsResponse(BaseModel):
     total_users: int
     complaints_stats: Dict[str, int]
-    recent_announcements: List[Dict[str, Any]]    
+    recent_announcements: List[Dict[str, Any]]
+
+
+# ==========================================
+# NOTIFICATIONS
+# ==========================================
+class NotificationBase(BaseModel):
+    title: str
+    body: str
+    action: Optional[str] = None
+    faculty_id: Optional[int] = None
+
+
+class NotificationCreate(NotificationBase):
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "title": "Anunț important",
+            "body": "Textul notificării...",
+            "action": "https://example.com",
+            "faculty_id": 1
+        }
+    })
+
+
+class NotificationResponse(NotificationBase):
+    id: int
+    sent_by: UUID
+    sent_at: datetime
+    recipient_count: int
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+    

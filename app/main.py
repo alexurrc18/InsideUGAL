@@ -13,6 +13,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
+import app.api.notifications as notifications
 import app.api.announcements as announcements
 import app.api.auth as auth
 import app.api.categories as categories
@@ -146,6 +147,7 @@ app.include_router(products.router)
 app.include_router(daily_menus.router)
 app.include_router(complaints.router)
 app.include_router(announcements.router)
+app.include_router(notifications.router)
 app.include_router(auth.router)
 app.include_router(llm.router)
 app.include_router(llm_stream.router)
