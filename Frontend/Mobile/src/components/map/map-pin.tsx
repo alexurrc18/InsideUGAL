@@ -20,8 +20,16 @@ export const MapPin = ({ name, isFacility }: MapPinProps) => {
   const letter = getBuildingLetter(name);
   const status = isFacility ? getFacilityStatus(name) : 'open';
   const open = status !== 'closed';
+  const lower = name.toLowerCase();
+  const isMedicalFacility =
+    lower.includes('dispensar') ||
+    lower.includes('medic') ||
+    lower.includes('cabinet') ||
+    lower.includes('sănătate') ||
+    lower.includes('sanatate') ||
+    lower.includes('doctor');
   const pinColor = isFacility
-    ? (status === 'open' ? theme.thirdiary : status === 'no_schedule' ? theme.secondary : theme.textSecondary)
+    ? (isMedicalFacility ? theme.secondary : status === 'open' ? theme.thirdiary : status === 'no_schedule' ? theme.secondary : theme.textSecondary)
     : theme.primary;
 
   const renderContent = () => {
@@ -33,7 +41,6 @@ export const MapPin = ({ name, isFacility }: MapPinProps) => {
       );
     }
 
-    const lower = name.toLowerCase();
     if (lower.includes('cantina')) {
       return <ForkKnifeIcon width={18} height={18} fill="#FFFFFF" />;
     }
@@ -46,7 +53,7 @@ export const MapPin = ({ name, isFacility }: MapPinProps) => {
     if (lower.includes('consiliere')) {
       return <HandshakeIcon width={18} height={18} fill="#FFFFFF" />;
     }
-    if (lower.includes('medic') || lower.includes('cabinet') || lower.includes('sănătate') || lower.includes('sanatate') || lower.includes('doctor')) {
+    if (isMedicalFacility) {
       return <PlusBigIcon width={18} height={18} fill="#FFFFFF" />;
     }
 

@@ -118,7 +118,7 @@ INSERT INTO public.facilities (id, name, description, image_url) VALUES
 (5, 'Stadionul Portul Rosu', 'Stadion din Galati, Str. Domneasca, 145, in perimetrul complexului portuar.', 'https://www.viata-libera.ro/images/galerie/finantare-pentru-stadionul-portu-rosu-din-galati/stadionul-portu-rosu-galati-3.jpg'),
 (6, 'Departamentul de Calculatoare', 'Facilitate academica pentru activitati ale domeniului Calculatoare.', 'https://www.cti.ugal.ro/wp-content/uploads/2020/05/corp-g2.jpg'),
 (7, 'Sala de sport Florin Balais', 'Sala de sport din Galati, Strada Mihai Bravu 44.', 'https://lh5.googleusercontent.com/p/AF1QipP8kRmY97qlo2783wjtxBUlyYQ5cFB59m8dwC0I=w298-h298-k-no'),
-(8, 'Dispensar Studențesc', 'Cabinet medical: Cămin F, Str. Parcului 4. Oferă asistență medicală, stomatologie, consiliere psihologică. Luni-Vineri 08:00-15:00.', 'https://www.viata-libera.ro/images/galerie/ReportajCamineStudentestiRVB/11.jpg'),
+(8, 'Dispensar studențesc', 'Cabinet medical: Cămin F, Str. Parcului 4. Oferă asistență medicală, stomatologie, consiliere psihologică. Luni-Vineri 08:00-15:00.', 'https://www.viata-libera.ro/images/galerie/ReportajCamineStudentestiRVB/11.jpg'),
 (9, 'Biblioteca Universitara', 'Biblioteca universitara UGAL.', 'https://biblioteca.ugal.ro/images/anunturi/intrare_BUDJG_m.jpeg')
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
@@ -175,7 +175,7 @@ INSERT INTO public.locations (id, name, coordinates, facility_id, marker) VALUES
 (26, 'Stadionul Portul Rosu', ST_SetSRID(ST_MakePoint(28.0758, 45.4411), 4326), 5, 'S'),
 (27, 'Departamentul de Calculatoare', ST_SetSRID(ST_MakePoint(28.0520, 45.4462), 4326), 6, 'DC'),
 (28, 'Sala de sport Florin Balais', ST_SetSRID(ST_MakePoint(28.0500, 45.4500), 4326), 7, 'SB'),
-(29, 'Dispensar Studențesc', ST_SetSRID(ST_MakePoint(28.052240, 45.453429), 4326), 8, 'DS'),
+(29, 'Dispensar studențesc', ST_SetSRID(ST_MakePoint(28.052122276928515, 45.45341789446759), 4326), 8, 'DS'),
 (30, 'Biblioteca Universitara', ST_SetSRID(ST_MakePoint(28.0510, 45.4434), 4326), 9, 'BU')
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
