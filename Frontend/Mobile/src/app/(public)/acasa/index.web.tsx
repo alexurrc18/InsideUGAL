@@ -110,7 +110,7 @@ export default function HomeScreen() {
           const apiFaculties = apiItems.map((item: any) => ({
             id: item.id.toString(),
             title: item.name || "Titlu necunoscut",
-            image: item.logo_url || item.image_url || undefined,
+            image: item.logo_url || undefined,
             address: item.address || "Adresă necunoscută",
             phone: item.phone || "",
             website: item.website_url || "",
@@ -136,18 +136,16 @@ export default function HomeScreen() {
           const apiItems = response.data.items;
           await storage.setItem('cached_facilities', JSON.stringify(apiItems));
 
-          const apiFacilities = apiItems
-            .filter((item: any) => item.facility_id !== null && item.facility_id !== undefined)
-            .map((item: any) => ({
-              id: item.id.toString(),
-              title: item.name || "Titlu necunoscut",
-              image: item.image_url || undefined,
-              address: item.address || "Adresă necunoscută",
-              phone: item.phone || "",
-              website: item.website_url || "",
-              content: item.name || "Conținut necunoscut",
-              schedule: item.schedule || "",
-            }));
+          const apiFacilities = apiItems.map((item: any) => ({
+            id: item.id.toString(),
+            title: item.name || "Titlu necunoscut",
+            image: item.image_url || undefined,
+            address: item.address || "Adresă necunoscută",
+            phone: item.phone || "",
+            website: item.website_url || "",
+            content: item.name || "Conținut necunoscut",
+            schedule: item.schedule || "",
+          }));
           setFacilitati(apiFacilities);
         }
       } catch (err) {
@@ -169,102 +167,8 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    const loadCache = async () => {
-      try {
-        const cachedAnnouncements = await storage.getItem('cached_announcements');
-        const cachedFaculties = await storage.getItem('cached_faculties');
-        const cachedFacilities = await storage.getItem('cached_facilities');
-
-        let hasData = false;
-
-        if (cachedAnnouncements) {
-          const apiItems = JSON.parse(cachedAnnouncements);
-          if (Array.isArray(apiItems) && apiItems.length > 0) {
-            const apiNoutati = apiItems
-              .filter((item: any) => item.type === "NOUTATE")
-              .map((item: any) => ({
-                id: item.id.toString(),
-                title: item.title || "Titlu necunoscut",
-                category: "Noutăți",
-                date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
-                author: item.author || "Autor necunoscut",
-                image: item.image_url || undefined,
-                content: item.content || "Conținut necunoscut",
-                created_at: item.created_at,
-              }));
-
-            const apiEvenimente = apiItems
-              .filter((item: any) => item.type === "EVENIMENT")
-              .map((item: any) => ({
-                id: item.id.toString(),
-                title: item.title || "Titlu necunoscut",
-                category: "Evenimente",
-                date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
-                date_start: isoToRomanianDateStr(item.start_date) || "",
-                date_end: isoToRomanianDateStr(item.end_date) || "",
-                time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-                time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-                author: item.author || "Autor necunoscut",
-                image: item.image_url || undefined,
-                content: item.content || "Conținut necunoscut",
-                location: item.location_name || "Locație necunoscută",
-                created_at: item.created_at,
-              }));
-
-            setNoutati(apiNoutati);
-            setEvenimente(apiEvenimente);
-            hasData = true;
-          }
-        }
-
-        if (cachedFaculties) {
-          const apiItems = JSON.parse(cachedFaculties);
-          if (Array.isArray(apiItems) && apiItems.length > 0) {
-            const apiFaculties = apiItems.map((item: any) => ({
-              id: item.id.toString(),
-              title: item.name || "Titlu necunoscut",
-              image: item.logo_url || item.image_url || undefined,
-              address: item.address || "Adresă necunoscută",
-              phone: item.phone || "",
-              website: item.website_url || "",
-              content: item.description || "Conținut necunoscut",
-            }));
-            setFacultati(apiFaculties);
-            hasData = true;
-          }
-        }
-
-        if (cachedFacilities) {
-          const apiItems = JSON.parse(cachedFacilities);
-          if (Array.isArray(apiItems) && apiItems.length > 0) {
-            const apiFacilities = apiItems
-              .filter((item: any) => item.facility_id !== null && item.facility_id !== undefined)
-              .map((item: any) => ({
-                id: item.id.toString(),
-                title: item.name || "Titlu necunoscut",
-                image: item.image_url || undefined,
-                address: item.address || "Adresă necunoscută",
-                phone: item.phone || "",
-                website: item.website_url || "",
-                content: item.name || "Conținut necunoscut",
-                schedule: item.schedule || "",
-              }));
-            setFacilitati(apiFacilities);
-            hasData = true;
-          }
-        }
-
-        if (hasData) {
-          setLoading(false);
-        }
-      } catch (e) {
-        console.warn("[Cache] Could not load cached items:", e);
-      }
-    };
-
     const run = async () => {
-      await loadCache();
-      fetchApiData();
+      await fetchApiData();
     };
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps

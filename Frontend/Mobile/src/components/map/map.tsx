@@ -60,7 +60,7 @@ const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect, buildings
     const sourceBuildings = buildings && buildings.length > 0 ? buildings : [];
     const list = !selectedFacultyId
       ? sourceBuildings
-      : sourceBuildings.filter(b => selectedFacultyId === 'f8' ? b.isFacility : b.facultyIds?.includes(selectedFacultyId));
+      : sourceBuildings.filter(b => b.facultyId === selectedFacultyId);
     return [...list].sort((a, b) => b.lat - a.lat);
   }, [buildings, selectedFacultyId]);
 
@@ -128,7 +128,7 @@ const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect, buildings
               }}
             >
               <View style={{ zIndex }}>
-                <MapPin name={b.name} isFacility={b.isFacility} />
+                <MapPin name={b.name} facultyId={b.facultyId} />
               </View>
             </Marker>
           );

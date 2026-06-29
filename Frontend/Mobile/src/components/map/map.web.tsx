@@ -109,7 +109,7 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
 
     const sourceBuildings = buildings && buildings.length > 0 ? buildings : [];
     const list = selectedFacultyId
-      ? sourceBuildings.filter(b => selectedFacultyId === 'f8' ? b.isFacility : b.facultyIds?.includes(selectedFacultyId))
+      ? sourceBuildings.filter(b => b.facultyId === selectedFacultyId)
       : sourceBuildings;
     const visibleBuildings = [...list].sort((a, b) => b.lat - a.lat);
 
@@ -119,7 +119,7 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
       el.style.zIndex = Math.round((90 - b.lat) * 1000000).toString();
 
       const root = createRoot(el);
-      root.render(<MapPin name={b.name} isFacility={b.isFacility} />);
+      root.render(<MapPin name={b.name} facultyId={b.facultyId} />);
       rootsRef.current.push(root);
 
       el.addEventListener('click', (ev) => {

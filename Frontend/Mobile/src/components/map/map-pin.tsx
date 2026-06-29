@@ -12,24 +12,17 @@ import HandshakeIcon from '@/assets/icons/svg/handshake.svg';
 
 interface MapPinProps {
   name: string;
-  isFacility: boolean;
+  facultyId: string;
 }
 
-export const MapPin = ({ name, isFacility }: MapPinProps) => {
+export const MapPin = ({ name, facultyId }: MapPinProps) => {
   const theme = useTheme();
   const letter = getBuildingLetter(name);
+  const isFacility = facultyId === 'f8';
   const status = isFacility ? getFacilityStatus(name) : 'open';
   const open = status !== 'closed';
-  const lower = name.toLowerCase();
-  const isMedicalFacility =
-    lower.includes('dispensar') ||
-    lower.includes('medic') ||
-    lower.includes('cabinet') ||
-    lower.includes('sănătate') ||
-    lower.includes('sanatate') ||
-    lower.includes('doctor');
   const pinColor = isFacility
-    ? (isMedicalFacility ? theme.secondary : status === 'open' ? theme.thirdiary : status === 'no_schedule' ? theme.secondary : theme.textSecondary)
+    ? (status === 'open' ? theme.thirdiary : status === 'no_schedule' ? theme.secondary : theme.textSecondary)
     : theme.primary;
 
   const renderContent = () => {
@@ -41,6 +34,7 @@ export const MapPin = ({ name, isFacility }: MapPinProps) => {
       );
     }
 
+    const lower = name.toLowerCase();
     if (lower.includes('cantina')) {
       return <ForkKnifeIcon width={18} height={18} fill="#FFFFFF" />;
     }
@@ -53,7 +47,7 @@ export const MapPin = ({ name, isFacility }: MapPinProps) => {
     if (lower.includes('consiliere')) {
       return <HandshakeIcon width={18} height={18} fill="#FFFFFF" />;
     }
-    if (isMedicalFacility) {
+    if (lower.includes('medic') || lower.includes('cabinet') || lower.includes('sănătate') || lower.includes('sanatate') || lower.includes('doctor')) {
       return <PlusBigIcon width={18} height={18} fill="#FFFFFF" />;
     }
 

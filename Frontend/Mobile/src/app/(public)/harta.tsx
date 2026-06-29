@@ -89,8 +89,7 @@ export default function HartaScreen() {
     return locations.map((item: any) => ({
       id: item.id.toString(),
       name: item.name,
-      facultyIds: Array.isArray(item.faculty_ids) ? item.faculty_ids.map((id: number) => id.toString()) : [],
-      isFacility: item.facility_id !== null && item.facility_id !== undefined,
+      facultyId: item.faculty_id !== null ? item.faculty_id.toString() : 'f8',
       lat: item.coordinates.latitude,
       lng: item.coordinates.longitude,
       description: item.name,

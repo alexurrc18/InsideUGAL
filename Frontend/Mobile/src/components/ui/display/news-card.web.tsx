@@ -6,7 +6,7 @@ import { Typography } from "@/constants/typography";
 import { Colors, Spacing, ColorScheme } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
-const FALLBACK_IMAGE = require("@/assets/images/logo-color.png");
+const DEFAULT_IMAGE = require("@/assets/images/campus-stiintei.png");
 
 export interface NewsCardProps {
     title: string;
@@ -59,9 +59,7 @@ export function NewsCard({
     const defaultWidth = variant === "list" ? SCREEN_WIDTH - Spacing.xl3 : (variant === "square" ? 180 : (width || SCREEN_WIDTH * 0.85));
     const defaultHeight = variant === "list" ? 100 : (variant === "square" ? 180 : (height || (defaultWidth as number) / (16 / 10)));
 
-    const cardImage = typeof image === "string"
-        ? (image.trim() ? { uri: image.trim() } : FALLBACK_IMAGE)
-        : (image || FALLBACK_IMAGE);
+    const cardImage = image || DEFAULT_IMAGE;
 
     if (variant === "list") {
         return (

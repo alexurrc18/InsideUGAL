@@ -91,7 +91,7 @@ export default function HomeScreen() {
         });
         if (response.data && response.data.items) {
           const apiItems = response.data.items;
-
+          
           await storage.setItem('cached_announcements', JSON.stringify(apiItems));
 
           const apiNoutati = apiItems
@@ -150,7 +150,7 @@ export default function HomeScreen() {
           const apiFaculties = apiItems.map((item: any) => ({
             id: item.id.toString(),
             title: item.name || "Titlu necunoscut",
-            image: item.logo_url || item.image_url || undefined,
+            image: item.logo_url || undefined,
             address: item.address || "Adresă necunoscută",
             phone: item.phone || "",
             website: item.website_url || "",
@@ -177,18 +177,16 @@ export default function HomeScreen() {
           const apiItems = response.data.items;
           await storage.setItem('cached_facilities', JSON.stringify(apiItems));
 
-          const apiFacilities = apiItems
-            .filter((item: any) => item.facility_id !== null && item.facility_id !== undefined)
-            .map((item: any) => ({
-              id: item.id.toString(),
-              title: item.name || "Titlu necunoscut",
-              image: item.image_url || undefined,
-              address: item.address || "Adresă necunoscută",
-              phone: item.phone || "",
-              website: item.website_url || "",
-              content: item.name || "Conținut necunoscut",
-              schedule: item.schedule || "",
-            }));
+          const apiFacilities = apiItems.map((item: any) => ({
+            id: item.id.toString(),
+            title: item.name || "Titlu necunoscut",
+            image: item.image_url || undefined,
+            address: item.address || "Adresă necunoscută",
+            phone: item.phone || "",
+            website: item.website_url || "",
+            content: item.name || "Conținut necunoscut",
+            schedule: item.schedule || "",
+          }));
           setFacilitati(apiFacilities);
         }
       } catch (err) {
@@ -209,12 +207,12 @@ export default function HomeScreen() {
     setRefreshing(true);
     const start = Date.now();
     const success = await fetchApiData();
-
+    
     const isPageEmpty = noutati.length === 0 && evenimente.length === 0 && facultati.length === 0 && facilitati.length === 0;
     if (!success && !isPageEmpty) {
       Alert.alert("Eroare la actualizare", "Nu s-au putut reîmprospăta datele de pe ecranul principal. Te rugăm să verifici conexiunea la internet.");
     }
-
+    
     const elapsed = Date.now() - start;
     if (elapsed < 1000) {
       await new Promise(resolve => setTimeout(resolve, 1000 - elapsed));
@@ -277,7 +275,7 @@ export default function HomeScreen() {
             const apiFaculties = apiItems.map((item: any) => ({
               id: item.id.toString(),
               title: item.name || "Titlu necunoscut",
-              image: item.logo_url || item.image_url || undefined,
+              image: item.image_url || undefined,
               address: item.address || "Adresă necunoscută",
               phone: item.phone || "",
               website: item.website_url || "",
@@ -291,18 +289,16 @@ export default function HomeScreen() {
         if (cachedFacilities) {
           const apiItems = JSON.parse(cachedFacilities);
           if (Array.isArray(apiItems) && apiItems.length > 0) {
-            const apiFacilities = apiItems
-              .filter((item: any) => item.facility_id !== null && item.facility_id !== undefined)
-              .map((item: any) => ({
-                id: item.id.toString(),
-                title: item.name || "Titlu necunoscut",
-                image: item.image_url || undefined,
-                address: item.address || "Adresă necunoscută",
-                phone: item.phone || "",
-                website: item.website_url || "",
-                content: item.name || "Conținut necunoscut",
-                schedule: item.schedule || "",
-              }));
+            const apiFacilities = apiItems.map((item: any) => ({
+              id: item.id.toString(),
+              title: item.name || "Titlu necunoscut",
+              image: item.image_url || undefined,
+              address: item.address || "Adresă necunoscută",
+              phone: item.phone || "",
+              website: item.website_url || "",
+              content: item.name || "Conținut necunoscut",
+              schedule: item.schedule || "",
+            }));
             setFacilitati(apiFacilities);
             hasData = true;
           }
@@ -401,18 +397,18 @@ export default function HomeScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       {/* Fixed Header */}
-      <Animated.View
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          paddingTop: insets.top + Spacing.sm,
+      <Animated.View 
+        style={{ 
+          position: "absolute", 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          paddingTop: insets.top + Spacing.sm, 
           paddingBottom: Spacing.sm,
-          paddingHorizontal: Spacing.lg,
-          flexDirection: "row",
-          justifyContent: "flex-end",
-          alignItems: "center",
+          paddingHorizontal: Spacing.lg, 
+          flexDirection: "row", 
+          justifyContent: "flex-end", 
+          alignItems: "center", 
           zIndex: 100,
         }}
       >
@@ -446,7 +442,7 @@ export default function HomeScreen() {
           <Pressable
             onPress={handleNotificationsPress}
             style={({ pressed }) => [
-              {
+              { 
                 opacity: pressed ? 0.85 : 1,
                 width: 45,
                 height: 45,
@@ -462,18 +458,18 @@ export default function HomeScreen() {
         )}
       </Animated.View>
 
-      <Animated.ScrollView
-        style={{ flex: 1 }}
+      <Animated.ScrollView 
+        style={{ flex: 1 }} 
         contentContainerStyle={{ flexGrow: 1 }}
         directionalLockEnabled={true}
         onScroll={handleScroll}
         scrollEventThrottle={16}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[theme.primary]}
-            tintColor={theme.primary}
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            colors={[theme.primary]} 
+            tintColor={theme.primary} 
             progressViewOffset={insets.top + 10}
           />
         }
