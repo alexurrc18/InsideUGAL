@@ -27,7 +27,20 @@ export default function MoreScreen() {
   const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
-    api.get('/city-guide/categories').then(res => setCategories(res.data)).catch(() => {});
+    api.get('/city-guide/categories')
+      .then(res => {
+        const data = res.data;
+        if (data && Array.isArray(data)) {
+          setCategories(data);
+        } else if (data && Array.isArray(data.items)) {
+          setCategories(data.items);
+        } else {
+          setCategories([]);
+        }
+      })
+      .catch(() => {
+        setCategories([]);
+      });
   }, []);
 
   const renderIcon = (iconName: string, color: string) => {
