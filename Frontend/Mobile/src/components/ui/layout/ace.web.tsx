@@ -24,7 +24,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { Spacing, ColorScheme } from '@/constants/theme';
 import { Typography } from '@/constants/typography';
 import { NewsCard } from '@/components/ui/display/news-card';
-import api from '@/services/api';
+import api, { ace } from '@/services/api';
 
 import CloseIcon from '@/assets/icons/svg/x.svg';
 import MessagePlusIcon from '@/assets/icons/svg/message-plus.svg';
@@ -145,18 +145,24 @@ export function Ace() {
     scrollToBottom();
 
     try {
-      const res = await api.post('/ace/chat', { message: textToSend });
+      console.log("[ACE Chat] Sending request via shared ace instance...");
+      const res = await ace.post(
+        '',
+        { question: textToSend }
+      );
       const data = res.data;
+      const responseText = typeof data === 'string' ? data : (data.answer || data.text || data.message || '');
       const aiMsg: ChatMessage = {
         id: generateMsgId(),
-        text: data.text || data.message || '',
+        text: responseText,
         imageUrl: data.image_url || undefined,
         event: data.event || undefined,
         sender: 'ai',
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMsg]);
-    } catch {
+    } catch (error) {
+      console.error("[ACE Chat Error]", error);
       const errorMsg: ChatMessage = {
         id: generateMsgId(),
         text: 'A apărut o eroare. Vă rugăm să încercați din nou.',
