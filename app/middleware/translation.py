@@ -54,10 +54,12 @@ class TranslationMiddleware(BaseHTTPMiddleware):
                     translated_body = json.dumps(translated_data).encode("utf-8")
                     
                     # Create a new response with the translated body
+                    new_headers = dict(response.headers)
+                    new_headers.pop("content-length", None)
                     return Response(
                         content=translated_body,
                         status_code=response.status_code,
-                        headers=dict(response.headers),
+                        headers=new_headers,
                         media_type="application/json"
                     )
                 else:
@@ -66,9 +68,13 @@ class TranslationMiddleware(BaseHTTPMiddleware):
             logger.error(f"Error during translation interception: {e}")
             
         # Fallback to original response if anything fails
+        # Ensure we don't break content-length for the original response either, 
+        # just let Response recalculate it since we've read the body.
+        fallback_headers = dict(response.headers)
+        fallback_headers.pop("content-length", None)
         return Response(
             content=body,
             status_code=response.status_code,
-            headers=dict(response.headers),
+            headers=fallback_headers,
             media_type="application/json"
         )

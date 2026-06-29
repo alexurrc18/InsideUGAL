@@ -30,13 +30,13 @@ class TranslateResponse(BaseModel):
 
 
 class BatchTranslateRequest(BaseModel):
-    translations: dict[str, Any] = Field(..., description="JSON object with Romanian text values.")
+    translations: Any = Field(..., description="JSON object or array with Romanian text values.")
     target_language: str = Field(..., min_length=2, max_length=10)
 
 
 class BatchTranslateResponse(BaseModel):
     target_language: str
-    translations: dict[str, Any]
+    translations: Any
     cached_items: int
     translated_items: int
     provider: str
@@ -104,11 +104,15 @@ class TranslationService:
             logger.warning("Translation cache write failed: %s", exc)
 
     def translate_text_uncached(self, text: str, target_language: str) -> str:
-        prompt = (
-            f"Translate the following Romanian text to {target_language}.\n"
-            "Return only the translated text, no explanations, no quotes.\n"
-            f"Text: {text}"
-        )
+        prompt = (                                                                                                                                    
+                f"Translate the following Romanian university administrative text to {target_language}.\n"                                                
+                "Rules:\n"                                                                                                                                
+                "- Maintain an official, academic tone.\n"                                                                                                
+                "- Use precise university terminology (e.g., 'student' should be translated to the equivalent of university student, not pupil).\n"       
+                "- Do NOT translate proper nouns or commercial names (e.g., 'PLUS NOMINALE').\n"                                                          
+                "Return only the translated text, no explanations, no quotes.\n"                                                                          
+                f"Text: {text}"                                                                                                                           
+            )  
         response = self.client.models.generate_content(
             model=GEMINI_MODEL,
             contents=prompt,
@@ -174,7 +178,7 @@ class TranslationService:
             provider=self.provider,
         )
 
-    def translate_batch(self, data: dict[str, Any], target_language: str) -> BatchTranslateResponse:
+    def translate_batch(self, data: Any, target_language: str) -> BatchTranslateResponse:
         normalized_language = self._normalize_language(target_language)
         string_paths = self._flatten_string_values(data)
         translated_by_path: dict[tuple[str, ...], str] = {}
