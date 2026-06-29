@@ -104,15 +104,24 @@ class TranslationService:
             logger.warning("Translation cache write failed: %s", exc)
 
     def translate_text_uncached(self, text: str, target_language: str) -> str:
-        prompt = (                                                                                                                                    
-                f"Translate the following Romanian university administrative text to {target_language}.\n"                                                
-                "Rules:\n"                                                                                                                                
-                "- Maintain an official, academic tone.\n"                                                                                                
-                "- Use precise university terminology (e.g., 'student' should be translated to the equivalent of university student, not pupil).\n"       
-                "- Do NOT translate proper nouns or commercial names (e.g., 'PLUS NOMINALE').\n"                                                          
-                "Return only the translated text, no explanations, no quotes.\n"                                                                          
-                f"Text: {text}"                                                                                                                           
-            )  
+        prompt = (
+            f"Translate the following Romanian university administrative text to {target_language}.\n"
+            "Rules:\n"
+            "- Maintain an official, formal, academic tone throughout.\n"
+            "- Use precise university/higher-education terminology:\n"
+            "  * 'student' → university student equivalent (NOT pupil/schoolboy)\n"
+            "  * 'carnet de student' → 'student ID' or 'student card' (NOT 'student pass')\n"
+            "  * 'legitimatie de transport' → 'transport discount card' (NOT 'transport pass')\n"
+            "  * 'secretariat facultate' → 'Faculty Office' or 'Faculty Administration Office'\n"
+            "  * 'transport naval' → 'water transport' or 'maritime transport' (NOT 'ferry transport')\n"
+            "  * 'conform cu originalul' → use the standard certified-copy phrase in the target language (e.g. in English: 'Certified true copy')\n"
+            "- Use consistent terminology throughout the text (do not alternate between synonyms for the same concept).\n"
+            "- Do NOT translate proper nouns, brand names or commercial names (e.g. 'PLUS NOMINALE').\n"
+            "- Do NOT produce word-for-word literal translations; prefer natural phrasing used in official documents of the target language.\n"
+            "- Preserve all numbers, percentages, dates, article references and legal citations exactly as they appear.\n"
+            "Return only the translated text, no explanations, no markdown, no quotes.\n"
+            f"Text: {text}"
+        )
         response = self.client.models.generate_content(
             model=GEMINI_MODEL,
             contents=prompt,
@@ -133,6 +142,12 @@ class TranslationService:
         payload = json.dumps(items, ensure_ascii=False)
         prompt = (
             f"Translate every Romanian string value in this JSON object to {target_language}.\n"
+            "Rules:\n"
+            "- Maintain an official, formal, academic tone.\n"
+            "- Use precise university terminology for the target language.\n"
+            "- Do NOT translate proper nouns, brand names or commercial names.\n"
+            "- Use consistent terminology throughout (do not alternate between synonyms).\n"
+            "- Preserve all numbers, percentages, dates and legal citations exactly.\n"
             "Return only a valid JSON object with the same keys and translated string values. "
             "No explanations, no markdown, no quotes around the whole response.\n"
             f"JSON: {payload}"
