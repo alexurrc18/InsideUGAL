@@ -250,7 +250,26 @@ class TranslationService:
 
     @staticmethod
     def _normalize_language(target_language: str) -> str:
-        return target_language.strip().lower()
+        lang = target_language.strip().lower()
+        # ISO 639-1 code mapping for common languages to help the LLM
+        iso_map = {
+            "ro": "Romanian",
+            "en": "English",
+            "fr": "French",
+            "es": "Spanish",
+            "de": "German",
+            "it": "Italian",
+            "hu": "Hungarian",
+            "tr": "Turkish",
+            "ru": "Russian",
+            "uk": "Ukrainian",
+            "zh": "Chinese",
+            "ja": "Japanese",
+            "ar": "Arabic",
+            "bg": "Bulgarian",
+            "el": "Greek"
+        }
+        return iso_map.get(lang, lang)
 
     @staticmethod
     def _strip_wrapping_quotes(text: str) -> str:
