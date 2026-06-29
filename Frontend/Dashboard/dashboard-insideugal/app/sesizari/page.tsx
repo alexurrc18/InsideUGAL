@@ -249,15 +249,18 @@ export default function SesizariPage() {
 
     try {
       const response = await fetch(
-        activeModal === "edit" && selectedId
-          ? `${apiBaseUrl}/complaints/${selectedId}`
-          : `${apiBaseUrl}/complaints/`,
-        {
-          method: activeModal === "edit" && selectedId ? "PATCH" : "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify(activeModal === "edit" ? updatePayload : createPayload),
-        },
-      );
+  activeModal === "edit" && selectedId
+    ? `${apiBaseUrl}/complaints/${selectedId}`
+    : `${apiBaseUrl}/complaints/`,
+  {
+    method: activeModal === "edit" && selectedId ? "PATCH" : "POST",
+    headers: {
+      ...Object.fromEntries(getAuthHeaders().entries()),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(activeModal === "edit" ? updatePayload : createPayload),
+  },
+);
       if (!response.ok) throw new Error(`Status ${response.status}`);
       setActiveModal(null);
       await fetchData();
