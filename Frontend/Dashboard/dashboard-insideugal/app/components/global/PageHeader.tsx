@@ -7,6 +7,7 @@ const pageTitles: Record<string, string> = {
   "/": "Acasă",
   "/noutati": "Anunțuri",
   "/facultati": "Facultăți",
+  "/notificari": "Notificări",
   "/harti": "Hărți",
   "/sesizari": "Sesizări",
   "/cantina": "Cantină",
