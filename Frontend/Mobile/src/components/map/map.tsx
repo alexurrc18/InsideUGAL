@@ -128,7 +128,7 @@ const MapComponent = ({ themeName, selectedFacultyId, onFacultySelect, buildings
               }}
             >
               <View style={{ zIndex }}>
-                <MapPin name={b.name} facultyId={b.facultyId} />
+                <MapPin name={b.name} marker={b.marker} facultyId={b.facultyId} />
               </View>
             </Marker>
           );
