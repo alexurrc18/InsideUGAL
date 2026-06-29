@@ -13,7 +13,7 @@ import { Breadcrumbs, type Crumb } from "@/components/ui/navigation/breadcrumbs"
 import { CompactCard } from "@/components/ui/display/home-highlights";
 import { NewsCard, CategoryTag } from "@/components/ui/display/news-card";
 import { Seo } from "@/components/seo";
-import api, { storage } from "@/services/api";
+import api from "@/services/api";
 import { ErrorState } from "@/components/ui/display/error-state";
 
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
@@ -100,29 +100,15 @@ function VizualizareScreen() {
         const loadRelated = async () => {
             if (initialTipPagina === "Facilitate") {
                 try {
-                    let cachedStr = await storage.getItem('cached_ugal_facilities');
-                    let items = [];
-                    if (cachedStr) {
-                        items = JSON.parse(cachedStr);
-                    } else {
-                        const res = await api.get('/facilities/', { params: { page: 1, size: 50 } });
-                        if (res.data?.items) items = res.data.items;
-                    }
-                    if (isMounted) setFacilityPool(items);
+                    const res = await api.get('/facilities/', { params: { page: 1, size: 50 } });
+                    if (res.data?.items && isMounted) setFacilityPool(res.data.items);
                 } catch (err) {
                     console.warn('[API] Error loading related facilities:', err);
                 }
             } else {
                 try {
-                    let cachedStr = await storage.getItem('cached_announcements');
-                    let items = [];
-                    if (cachedStr) {
-                        items = JSON.parse(cachedStr);
-                    } else {
-                        const res = await api.get('/announcements/', { params: { page: 1, size: 20 } });
-                        if (res.data?.items) items = res.data.items;
-                    }
-                    if (isMounted) setRelatedPool(items);
+                    const res = await api.get('/announcements/', { params: { page: 1, size: 20 } });
+                    if (res.data?.items && isMounted) setRelatedPool(res.data.items);
                 } catch (err) {
                     console.warn('[API] Error loading related announcements:', err);
                 }
@@ -138,83 +124,6 @@ function VizualizareScreen() {
 
             loadRelated();
 
-            // Try loading from cached announcements first for instant rendering!
-            try {
-                let cachedStr = null;
-                const isFaculty = initialTipPagina === "Facultate";
-                const isFacility = initialTipPagina === "Facilitate";
-
-                if (isFaculty) {
-                    cachedStr = await storage.getItem('cached_faculties');
-                } else if (isFacility) {
-                    cachedStr = await storage.getItem('cached_ugal_facilities');
-                } else {
-                    cachedStr = await storage.getItem('cached_announcements');
-                }
-
-                if (cachedStr) {
-                    const cachedItems = JSON.parse(cachedStr);
-                    if (Array.isArray(cachedItems)) {
-                        const numericId = parseInt(id);
-                        const match = cachedItems.find(item => item.id === numericId || item.id?.toString() === id);
-                        if (match) {
-                            let mappedItem = null;
-                            if (isFaculty) {
-                                mappedItem = {
-                                    id: match.id.toString(),
-                                    type: "Facultate",
-                                    title: match.name || "Titlu necunoscut",
-                                    image: match.image_url || "",
-                                    address: match.address || "Adresă necunoscută",
-                                    phone: match.phone || "",
-                                    website: match.website_url || "",
-                                    content: match.description || "Conținut necunoscut",
-                                };
-                            } else if (isFacility) {
-                                mappedItem = {
-                                    id: match.id.toString(),
-                                    type: "Facilitate",
-                                    title: match.name || "Titlu necunoscut",
-                                    image: match.image_url || "",
-                                    content: match.description || "",
-                                    schedules: match.schedules || [],
-                                };
-                            } else {
-                                mappedItem = {
-                                    id: match.id.toString(),
-                                    type: match.type === "NOUTATE" ? "Anunț" : "Eveniment",
-                                    title: match.title || "Titlu necunoscut",
-                                    category: match.type === "NOUTATE" ? "Noutăți" : "Evenimente",
-                                    content: match.content || "Conținut necunoscut",
-                                    image: match.image_url || "",
-                                    location: match.location_name || "Locație necunoscută",
-                                    date_start: isoToRomanianDateStr(match.start_date) || "",
-                                    date_end: isoToRomanianDateStr(match.end_date) || "",
-                                    time_start: match.start_date ? new Date(match.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-                                    time_end: match.end_date ? new Date(match.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-                                    posted_at: isoToRomanianDateStr(match.created_at) || "",
-                                    date: isoToRomanianDateStr(match.start_date) || "Dată necunoscută",
-                                    author: match.author_name || "",
-                                    created_at: match.created_at,
-                                    updated_at: match.updated_at,
-                                };
-                            }
-
-                            if (isMounted && mappedItem) {
-                                setItemData(mappedItem);
-                                setLoading(false);
-                            }
-                        }
-                    }
-                }
-            } catch (cacheErr) {
-                console.warn("[Cache] Error loading item from cache:", cacheErr);
-            }
-
-            // Fetch updates in the background to ensure details are correct
-            if (!fetchedItemRef()) {
-                setLoading(true);
-            }
             try {
                 let fetchedItem: any = null;
                 const numericId = parseInt(id);
@@ -281,26 +190,14 @@ function VizualizareScreen() {
 
                 if (isMounted) {
                     setItemData(fetchedItem);
-                    if (!fetchedItem && !fetchedItemRef()) {
-                        setHasError(true);
-                    }
-                }
-                if (isMounted) {
+                    if (!fetchedItem) setHasError(true);
                     setLoading(false);
                 }
             } catch (err) {
-                if (isMounted) {
-                    setLoading(false);
-                }
                 console.error("[Loader] Error loading detail page:", err);
-                if (isMounted && !fetchedItemRef()) {
-                    setHasError(true);
-                }
+                if (isMounted) { setHasError(true); setLoading(false); }
             }
         };
-
-        // Helper ref-like getter to read current value inside callback
-        const fetchedItemRef = () => itemData;
 
         loadData();
         return () => {
@@ -541,10 +438,10 @@ function VizualizareScreen() {
                                         <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                             <CalendarIcon width={24} height={24} color={theme.primary} />
                                             <View>
-                                                <Text style={[Typography.Paragraph2, { color: theme.text }]}>
+                                                <Text style={[Typography.Heading5, { color: theme.text }]}>
                                                     De pe {date_start || "Dată de început necunoscută"} {time_start || ""}
                                                 </Text>
-                                                <Text style={[Typography.Paragraph2, { color: theme.text }]}>
+                                                <Text style={[Typography.Heading5, { color: theme.text }]}>
                                                     Până la {date_end || "Dată de sfârșit necunoscută"} {time_end || ""}
                                                 </Text>
                                             </View>
@@ -552,7 +449,7 @@ function VizualizareScreen() {
                                         <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                             <LocationIcon width={24} height={24} color={theme.primary} />
                                             <View>
-                                                <Text style={[Typography.Paragraph2, { color: theme.text }]}>
+                                                <Text style={[Typography.Heading5, { color: theme.text }]}>
                                                     {location || "Locație necunoscută"}
                                                 </Text>
                                             </View>
@@ -569,7 +466,7 @@ function VizualizareScreen() {
                                             <LocationIcon width={24} height={24} color={theme.primary} />
                                             <View style={{ flex: 1 }}>
                                                 <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Adresă</Text>
-                                                <Text style={[Typography.Paragraph2, { color: theme.text }]}>
+                                                <Text style={[Typography.Heading5, { color: theme.text }]}>
                                                     {address || "Adresă necunoscută"}
                                                 </Text>
                                             </View>
@@ -581,7 +478,7 @@ function VizualizareScreen() {
                                                 <View style={{ flex: 1 }}>
                                                     <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Telefon</Text>
                                                     <TouchableOpacity onPress={handleCall}>
-                                                        <Text style={[Typography.Paragraph2, { color: theme.text }]}>{phone}</Text>
+                                                        <Text style={[Typography.Heading5, { color: theme.text }]}>{phone}</Text>
                                                     </TouchableOpacity>
                                                 </View>
                                             </View>
@@ -593,7 +490,7 @@ function VizualizareScreen() {
                                                 <View style={{ flex: 1 }}>
                                                     <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Website</Text>
                                                     <TouchableOpacity onPress={() => Linking.openURL(website as string)}>
-                                                        <Text style={[Typography.Paragraph2, { color: theme.secondary }]}>{website}</Text>
+                                                        <Text style={[Typography.Heading5, { color: theme.secondary }]}>{website}</Text>
                                                     </TouchableOpacity>
                                                 </View>
                                             </View>
@@ -612,7 +509,7 @@ function VizualizareScreen() {
                                             <CalendarIcon width={24} height={24} color={theme.primary} />
                                             <View>
                                                 {formatSchedules(itemData.schedules).map((line: string, i: number) => (
-                                                    <Text key={i} style={[Typography.Paragraph2, { color: theme.text }]}>{line}</Text>
+                                                    <Text key={i} style={[Typography.Heading5, { color: theme.text }]}>{line}</Text>
                                                 ))}
                                             </View>
                                         </View>

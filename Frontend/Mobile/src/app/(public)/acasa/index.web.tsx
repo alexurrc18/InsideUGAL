@@ -15,7 +15,7 @@ import { HomeHighlights } from "@/components/ui/display/home-highlights";
 import { NAVBAR_HEIGHT } from "@/components/ui/navigation/web-navbar";
 import { getFormattedDate, parseRomanianDate, isoToRomanianDateStr, getTodayRomanianDate } from "@/utils/date";
 import { useWebScrollAware } from "@/contexts/web-scroll-context";
-import api, { storage } from "@/services/api";
+import api from "@/services/api";
 import { ErrorState } from "@/components/ui/display/error-state";
 import { HomeSkeleton } from "@/components/ui/display/skeletons";
 import { Seo } from "@/components/seo";
@@ -53,8 +53,6 @@ export default function HomeScreen() {
         if (response.data && response.data.items) {
           const apiItems = response.data.items;
           
-          await storage.setItem('cached_announcements', JSON.stringify(apiItems));
-
           const apiNoutati = apiItems
             .filter((item: any) => item.type === "NOUTATE")
             .map((item: any) => ({
@@ -105,8 +103,6 @@ export default function HomeScreen() {
         });
         if (response.data && response.data.items) {
           const apiItems = response.data.items;
-          await storage.setItem('cached_faculties', JSON.stringify(apiItems));
-
           const apiFaculties = apiItems.map((item: any) => ({
             id: item.id.toString(),
             title: item.name || "Titlu necunoscut",
@@ -134,8 +130,6 @@ export default function HomeScreen() {
         });
         if (response.data && response.data.items) {
           const apiItems = response.data.items;
-          await storage.setItem('cached_ugal_facilities', JSON.stringify(apiItems));
-
           const apiFacilities = apiItems.map((item: any) => ({
             id: item.id.toString(),
             title: item.name || "Titlu necunoscut",

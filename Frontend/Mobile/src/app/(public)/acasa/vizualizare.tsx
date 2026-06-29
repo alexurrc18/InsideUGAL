@@ -1,6 +1,6 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useState, useEffect } from "react";
-import { View, Text, ScrollView, Linking, TouchableOpacity, Alert, StyleSheet, Platform, useWindowDimensions, InteractionManager } from "react-native";
+import { useState, useEffect, useRef } from "react";
+import { View, Text, ScrollView, Linking, TouchableOpacity, Alert, StyleSheet, Platform, useWindowDimensions, InteractionManager, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { Image } from "expo-image";
@@ -56,6 +56,8 @@ function VizualizareScreen() {
     const [loading, setLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
     const [retryKey, setRetryKey] = useState(0);
+    const [refreshing, setRefreshing] = useState(false);
+    const refreshStartRef = useRef(0);
 
     const initialItem = {
         title: (params.title as string) || "",
@@ -102,176 +104,105 @@ function VizualizareScreen() {
                 setLoading(false);
                 return;
             }
-            if (isMounted) setHasError(false);
-
-            // Try loading from cached announcements first for instant rendering!
-            try {
-                let cachedStr = null;
-                const isFaculty = initialTipPagina === "Facultate";
-                const isFacility = initialTipPagina === "Facilitate";
-
-                if (isFaculty) {
-                    cachedStr = await storage.getItem('cached_faculties');
-                } else if (isFacility) {
-                    cachedStr = await storage.getItem('cached_ugal_facilities');
-                } else {
-                    cachedStr = await storage.getItem('cached_announcements');
-                }
-
-                if (cachedStr) {
-                    const cachedItems = JSON.parse(cachedStr);
-                    if (Array.isArray(cachedItems)) {
-                        const numericId = parseInt(id);
-                        const match = cachedItems.find(item => item.id === numericId || item.id?.toString() === id);
-                        if (match) {
-                            let mappedItem = null;
-                            if (isFaculty) {
-                                mappedItem = {
-                                    id: match.id.toString(),
-                                    type: "Facultate",
-                                    title: match.name || "Titlu necunoscut",
-                                    image: match.image_url || "",
-                                    address: match.address || "Adresă necunoscută",
-                                    phone: match.phone || "",
-                                    website: match.website_url || "",
-                                    content: match.description || "Conținut necunoscut",
-                                };
-                            } else if (isFacility) {
-                                mappedItem = {
-                                    id: match.id.toString(),
-                                    type: "Facilitate",
-                                    title: match.name || "Titlu necunoscut",
-                                    image: match.image_url || "",
-                                    content: match.description || "",
-                                    schedules: match.schedules || [],
-                                };
-                            } else {
-                                mappedItem = {
-                                    id: match.id.toString(),
-                                    type: match.type === "NOUTATE" ? "Anunț" : "Eveniment",
-                                    title: match.title || "Titlu necunoscut",
-                                    category: match.type === "NOUTATE" ? "Noutăți" : "Evenimente",
-                                    content: match.content || "Conținut necunoscut",
-                                    image: match.image_url || "",
-                                    location: match.location_name || "Locație necunoscută",
-                                    date_start: isoToRomanianDateStr(match.start_date) || "",
-                                    date_end: isoToRomanianDateStr(match.end_date) || "",
-                                    time_start: match.start_date ? new Date(match.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-                                    time_end: match.end_date ? new Date(match.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-                                    posted_at: isoToRomanianDateStr(match.created_at) || "",
-                                    date: isoToRomanianDateStr(match.start_date) || "Dată necunoscută",
-                                    author: match.author_name || "",
-                                    created_at: match.created_at,
-                                    updated_at: match.updated_at,
-                                };
-                            }
-
-                            if (isMounted && mappedItem) {
-                                setItemData(mappedItem);
-                                setLoading(false);
-                            }
-                        }
-                    }
-                }
-            } catch (cacheErr) {
-                console.warn("[Cache] Error loading item from cache:", cacheErr);
-            }
+            if (isMounted) { setHasError(false); setLoading(true); }
 
             // Defer load until transition finishes so navigation is instant and lag-free
             interactionTask = InteractionManager.runAfterInteractions(async () => {
-                // If we don't have itemData yet, show the loader
-                if (!fetchedItemRef()) {
-                    setLoading(true);
-                }
                 try {
                     let fetchedItem: any = null;
                     const numericId = parseInt(id);
                     const isNumeric = !isNaN(numericId);
 
                     if (isNumeric) {
-                        try {
-                            if (initialTipPagina === "Eveniment" || initialTipPagina === "Anunț") {
-                                const res = await api.get(`/announcements/${numericId}`);
-                                if (res.data) {
-                                    const item = res.data;
-                                    fetchedItem = {
-                                        id: item.id.toString(),
-                                        type: item.type === "NOUTATE" ? "Anunț" : "Eveniment",
-                                        title: item.title || "Titlu necunoscut",
-                                        category: item.type === "NOUTATE" ? "Noutăți" : "Evenimente",
-                                        content: item.content || "Conținut necunoscut",
-                                        image: item.image_url || "",
-                                        location: item.location_name || "Locație necunoscută",
-                                        date_start: isoToRomanianDateStr(item.start_date) || "",
-                                        date_end: isoToRomanianDateStr(item.end_date) || "",
-                                        time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-                                        time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-                                        posted_at: isoToRomanianDateStr(item.created_at) || "",
-                                        date: isoToRomanianDateStr(item.start_date) || "Dată necunoscută",
-                                        author: item.author_name || "",
-                                        created_at: item.created_at,
-                                        updated_at: item.updated_at,
-                                    };
-                                }
-                            } else if (initialTipPagina === "Facultate") {
-                                const res = await api.get(`/faculties/${numericId}`);
-                                if (res.data) {
-                                    const item = res.data;
-                                    fetchedItem = {
-                                        id: item.id.toString(),
-                                        type: "Facultate",
-                                        title: item.name || "Titlu necunoscut",
-                                        image: item.image_url || "",
-                                        address: item.address || "Adresă necunoscută",
-                                        phone: item.phone || "",
-                                        website: item.website_url || "",
-                                        content: item.description || "Conținut necunoscut",
-                                    };
-                                }
-                            } else if (initialTipPagina === "Facilitate") {
-                                const res = await api.get(`/facilities/${numericId}`);
-                                if (res.data) {
-                                    const item = res.data;
-                                    fetchedItem = {
-                                        id: item.id.toString(),
-                                        type: "Facilitate",
-                                        title: item.name || "Titlu necunoscut",
-                                        image: item.image_url || "",
-                                        content: item.description || "",
-                                        schedules: item.schedules || [],
-                                    };
-                                }
+                        if (initialTipPagina === "Eveniment" || initialTipPagina === "Anunț") {
+                            const res = await api.get(`/announcements/${numericId}`);
+                            if (res.data) {
+                                const item = res.data;
+                                fetchedItem = {
+                                    id: item.id.toString(),
+                                    type: item.type === "NOUTATE" ? "Anunț" : "Eveniment",
+                                    title: item.title || "Titlu necunoscut",
+                                    category: item.type === "NOUTATE" ? "Noutăți" : "Evenimente",
+                                    content: item.content || "Conținut necunoscut",
+                                    image: item.image_url || "",
+                                    location: item.location_name || "Locație necunoscută",
+                                    date_start: isoToRomanianDateStr(item.start_date) || "",
+                                    date_end: isoToRomanianDateStr(item.end_date) || "",
+                                    time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
+                                    time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
+                                    posted_at: isoToRomanianDateStr(item.created_at) || "",
+                                    date: isoToRomanianDateStr(item.start_date) || "Dată necunoscută",
+                                    author: item.author_name || "",
+                                    created_at: item.created_at,
+                                    updated_at: item.updated_at,
+                                };
                             }
-                        } catch (apiErr) {
-                            console.warn("[API] Could not fetch details, falling back to mock:", apiErr);
+                        } else if (initialTipPagina === "Facultate") {
+                            const res = await api.get(`/faculties/${numericId}`);
+                            if (res.data) {
+                                const item = res.data;
+                                fetchedItem = {
+                                    id: item.id.toString(),
+                                    type: "Facultate",
+                                    title: item.name || "Titlu necunoscut",
+                                    image: item.image_url || "",
+                                    address: item.address || "Adresă necunoscută",
+                                    phone: item.phone || "",
+                                    website: item.website_url || "",
+                                    content: item.description || "Conținut necunoscut",
+                                };
+                            }
+                        } else if (initialTipPagina === "Facilitate") {
+                            const res = await api.get(`/facilities/${numericId}`);
+                            if (res.data) {
+                                const item = res.data;
+                                fetchedItem = {
+                                    id: item.id.toString(),
+                                    type: "Facilitate",
+                                    title: item.name || "Titlu necunoscut",
+                                    image: item.image_url || "",
+                                    content: item.description || "",
+                                    schedules: item.schedules || [],
+                                };
+                            }
                         }
                     }
-
-                    // No mock fallback
 
                     if (isMounted) {
                         setItemData(fetchedItem);
-                        if (!fetchedItem && !fetchedItemRef()) {
-                            setHasError(true);
-                        }
-                    }
-                    if (isMounted) {
+                        if (!fetchedItem) setHasError(true);
                         setLoading(false);
                     }
                 } catch (err) {
-                    if (isMounted) {
-                        setLoading(false);
-                    }
-                    console.error("[Loader] Error loading detail page:", err);
-                    if (isMounted && !fetchedItemRef()) {
-                        setHasError(true);
-                    }
+                    console.warn("[API] Could not fetch details:", err);
+                    try {
+                        const isFaculty = initialTipPagina === "Facultate";
+                        const isFacility = initialTipPagina === "Facilitate";
+                        const cacheKey = isFaculty ? 'cached_faculties' : isFacility ? 'cached_ugal_facilities' : 'cached_announcements';
+                        const cachedStr = await storage.getItem(cacheKey);
+                        if (cachedStr) {
+                            const cachedItems = JSON.parse(cachedStr);
+                            const numericId = parseInt(id);
+                            const match = cachedItems.find((item: any) => item.id === numericId || item.id?.toString() === id);
+                            if (match && isMounted) {
+                                let mappedItem: any = null;
+                                if (isFaculty) {
+                                    mappedItem = { id: match.id.toString(), type: "Facultate", title: match.name || "Titlu necunoscut", image: match.image_url || "", address: match.address || "Adresă necunoscută", phone: match.phone || "", website: match.website_url || "", content: match.description || "Conținut necunoscut" };
+                                } else if (isFacility) {
+                                    mappedItem = { id: match.id.toString(), type: "Facilitate", title: match.name || "Titlu necunoscut", image: match.image_url || "", content: match.description || "", schedules: match.schedules || [] };
+                                } else {
+                                    mappedItem = { id: match.id.toString(), type: match.type === "NOUTATE" ? "Anunț" : "Eveniment", title: match.title || "Titlu necunoscut", category: match.type === "NOUTATE" ? "Noutăți" : "Evenimente", content: match.content || "Conținut necunoscut", image: match.image_url || "", location: match.location_name || "Locație necunoscută", date_start: isoToRomanianDateStr(match.start_date) || "", date_end: isoToRomanianDateStr(match.end_date) || "", time_start: match.start_date ? new Date(match.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "", time_end: match.end_date ? new Date(match.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "", posted_at: isoToRomanianDateStr(match.created_at) || "", date: isoToRomanianDateStr(match.start_date) || "Dată necunoscută", author: match.author_name || "", created_at: match.created_at, updated_at: match.updated_at };
+                                }
+                                setItemData(mappedItem);
+                                setLoading(false);
+                                return;
+                            }
+                        }
+                    } catch {}
+                    if (isMounted) { setHasError(true); setLoading(false); }
                 }
             });
         };
-
-        // Helper ref-like getter to read current value inside callback
-        const fetchedItemRef = () => itemData;
 
         loadData();
         return () => {
@@ -282,6 +213,21 @@ function VizualizareScreen() {
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, initialTipPagina, retryKey]);
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        setItemData(null);
+        refreshStartRef.current = Date.now();
+        setRetryKey(prev => prev + 1);
+    };
+
+    useEffect(() => {
+        if (!refreshing || loading) return;
+        const elapsed = Date.now() - refreshStartRef.current;
+        const delay = Math.max(0, 1000 - elapsed);
+        const timer = setTimeout(() => setRefreshing(false), delay);
+        return () => clearTimeout(timer);
+    }, [loading, refreshing]);
 
     const title = itemData?.title || "";
     const category = itemData?.category || "";
@@ -390,11 +336,14 @@ function VizualizareScreen() {
                     ),
                 }}
             />
-            <ScrollView 
-                style={{ flex: 1 }} 
+            <ScrollView
+                style={{ flex: 1 }}
                 contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + Spacing.xl }}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} tintColor={theme.primary} />
+                }
             >
                 <View style={{ width: "100%", height: 320 }}>
                     <Image

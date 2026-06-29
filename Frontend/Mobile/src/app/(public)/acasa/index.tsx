@@ -154,9 +154,28 @@ export default function HomeScreen() {
       } catch (err) {
         console.error("[API] Could not load announcements:", err);
         success = false;
-        if (noutati.length === 0 && evenimente.length === 0) {
-          setHasError(true);
-        }
+        try {
+          const cached = await storage.getItem('cached_announcements');
+          if (cached) {
+            const apiItems = JSON.parse(cached);
+            setNoutati(apiItems.filter((i: any) => i.type === "NOUTATE").map((i: any) => ({
+              id: i.id.toString(), title: i.title || "Titlu necunoscut", category: "Noutăți",
+              date: isoToRomanianDateStr(i.created_at) || "Dată necunoscută", author: i.author_name || "",
+              image: i.image_url || undefined, content: i.content || "Conținut necunoscut", created_at: i.created_at,
+            })));
+            setEvenimente(apiItems.filter((i: any) => i.type === "EVENIMENT").map((i: any) => ({
+              id: i.id.toString(), title: i.title || "Titlu necunoscut", category: "Evenimente",
+              date: isoToRomanianDateStr(i.created_at) || "Dată necunoscută",
+              date_start: isoToRomanianDateStr(i.start_date) || "", date_end: isoToRomanianDateStr(i.end_date) || "",
+              time_start: i.start_date ? new Date(i.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
+              time_end: i.end_date ? new Date(i.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
+              author: i.author_name || "", image: i.image_url || undefined,
+              content: i.content || "Conținut necunoscut", location: i.location_name || "Locație necunoscută", created_at: i.created_at,
+            })));
+          } else if (noutati.length === 0 && evenimente.length === 0) {
+            setHasError(true);
+          }
+        } catch { if (noutati.length === 0 && evenimente.length === 0) setHasError(true); }
       }
 
       try {
@@ -184,9 +203,19 @@ export default function HomeScreen() {
       } catch (err) {
         console.error("[API] Could not load faculties:", err);
         success = false;
-        if (facultati.length === 0) {
-          setHasError(true);
-        }
+        try {
+          const cached = await storage.getItem('cached_faculties');
+          if (cached) {
+            const apiItems = JSON.parse(cached);
+            setFacultati(apiItems.map((i: any) => ({
+              id: i.id.toString(), title: i.name || "Titlu necunoscut", image: i.logo_url || undefined,
+              address: i.address || "Adresă necunoscută", phone: i.phone || "",
+              website: i.website_url || "", content: i.description || "Conținut necunoscut",
+            })));
+          } else if (facultati.length === 0) {
+            setHasError(true);
+          }
+        } catch { if (facultati.length === 0) setHasError(true); }
       }
 
       try {
@@ -212,9 +241,18 @@ export default function HomeScreen() {
       } catch (err) {
         console.error("[API] Could not load facilities:", err);
         success = false;
-        if (facilitati.length === 0) {
-          setHasError(true);
-        }
+        try {
+          const cached = await storage.getItem('cached_ugal_facilities');
+          if (cached) {
+            const apiItems = JSON.parse(cached);
+            setFacilitati(apiItems.map((i: any) => ({
+              id: i.id.toString(), title: i.name || "Titlu necunoscut",
+              image: i.image_url || undefined, content: i.description || "", schedules: i.schedules || [],
+            })));
+          } else if (facilitati.length === 0) {
+            setHasError(true);
+          }
+        } catch { if (facilitati.length === 0) setHasError(true); }
       }
       setLoading(false);
       return success;
@@ -241,99 +279,7 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    const loadCache = async () => {
-      try {
-        const cachedAnnouncements = await storage.getItem('cached_announcements');
-        const cachedFaculties = await storage.getItem('cached_faculties');
-        const cachedFacilities = await storage.getItem('cached_ugal_facilities');
-
-        let hasData = false;
-
-        if (cachedAnnouncements) {
-          const apiItems = JSON.parse(cachedAnnouncements);
-          if (Array.isArray(apiItems) && apiItems.length > 0) {
-            const apiNoutati = apiItems
-              .filter((item: any) => item.type === "NOUTATE")
-              .map((item: any) => ({
-                id: item.id.toString(),
-                title: item.title || "Titlu necunoscut",
-                category: "Noutăți",
-                date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
-                author: item.author_name || "",
-                image: item.image_url || undefined,
-                content: item.content || "Conținut necunoscut",
-                created_at: item.created_at,
-              }));
-
-            const apiEvenimente = apiItems
-              .filter((item: any) => item.type === "EVENIMENT")
-              .map((item: any) => ({
-                id: item.id.toString(),
-                title: item.title || "Titlu necunoscut",
-                category: "Evenimente",
-                date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
-                date_start: isoToRomanianDateStr(item.start_date) || "",
-                date_end: isoToRomanianDateStr(item.end_date) || "",
-                time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-                time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-                author: item.author_name || "",
-                image: item.image_url || undefined,
-                content: item.content || "Conținut necunoscut",
-                location: item.location_name || "Locație necunoscută",
-                created_at: item.created_at,
-              }));
-
-            setNoutati(apiNoutati);
-            setEvenimente(apiEvenimente);
-            hasData = true;
-          }
-        }
-
-        if (cachedFaculties) {
-          const apiItems = JSON.parse(cachedFaculties);
-          if (Array.isArray(apiItems) && apiItems.length > 0) {
-            const apiFaculties = apiItems.map((item: any) => ({
-              id: item.id.toString(),
-              title: item.name || "Titlu necunoscut",
-              image: item.image_url || undefined,
-              address: item.address || "Adresă necunoscută",
-              phone: item.phone || "",
-              website: item.website_url || "",
-              content: item.description || "Conținut necunoscut",
-            }));
-            setFacultati(apiFaculties);
-            hasData = true;
-          }
-        }
-
-        if (cachedFacilities) {
-          const apiItems = JSON.parse(cachedFacilities);
-          if (Array.isArray(apiItems) && apiItems.length > 0) {
-            const apiFacilities = apiItems.map((item: any) => ({
-              id: item.id.toString(),
-              title: item.name || "Titlu necunoscut",
-              image: item.image_url || undefined,
-              content: item.description || "",
-              schedules: item.schedules || [],
-            }));
-            setFacilitati(apiFacilities);
-            hasData = true;
-          }
-        }
-
-        if (hasData) {
-          setLoading(false);
-        }
-      } catch (e) {
-        console.warn("[Cache] Could not load cached items:", e);
-      }
-    };
-
-    const run = async () => {
-      await loadCache();
-      fetchApiData();
-    };
-    run();
+    fetchApiData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

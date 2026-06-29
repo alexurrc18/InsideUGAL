@@ -67,18 +67,9 @@ export default function CantinaScreen() {
   const [hasError, setHasError] = useState(false);
 
   const loadData = useCallback(async () => {
+    setLoading(true);
+    setHasError(false);
     try {
-      setLoading(true);
-      setHasError(false);
-
-      const [cachedMenus, cachedCats] = await Promise.all([
-        storage.getItem('cached_daily_menus_v3'),
-        storage.getItem('cached_product_categories_v3'),
-      ]);
-
-      if (cachedMenus) setMenuData(JSON.parse(cachedMenus));
-      if (cachedCats) setCategoriesList(JSON.parse(cachedCats));
-
       const [menusRes, catsRes] = await Promise.all([
         api.get('/daily-menus/', { params: { page: 1, size: 50 } }),
         api.get('/product_categories/', { params: { page: 1, size: 50 } }),
@@ -94,9 +85,19 @@ export default function CantinaScreen() {
       }
       setLoading(false);
     } catch (err) {
-      setLoading(false);
       console.warn('[API] Error loading daily menus data:', err);
-      setHasError(true);
+      try {
+        const [cachedMenus, cachedCats] = await Promise.all([
+          storage.getItem('cached_daily_menus_v3'),
+          storage.getItem('cached_product_categories_v3'),
+        ]);
+        if (cachedMenus) setMenuData(JSON.parse(cachedMenus));
+        if (cachedCats) setCategoriesList(JSON.parse(cachedCats));
+        if (!cachedMenus && !cachedCats) setHasError(true);
+      } catch {
+        setHasError(true);
+      }
+      setLoading(false);
     }
   }, []);
 
