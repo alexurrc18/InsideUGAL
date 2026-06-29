@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Table, { Column } from "../components/ui/Table";
 import Modal from "../components/ui/Modal";
 
@@ -58,25 +58,16 @@ const FILTER_DAYS = [
   "Vineri",
 ];
 
-const CATEGORIES = [
-  "Meniul Zilei",
-  "Supe/Ciorbe",
-  "Fel Principal",
-  "Garnituri",
-  "Salate",
-  "Desert",
-  "Băuturi"
-];
-
 export default function Page() {
   const access = useRequireDashboardAccess(canAccessCantina);
   const [activeDay, setActiveDay] = useState("Toate preparatele");
   const [activeModal, setActiveModal] = useState<"add" | "edit" | null>(null);
   const [selectedItem, setSelectedItem] = useState<Dish | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
   
   const [formState, setFormState] = useState<Partial<Dish>>({
     name: "",
-    category: CATEGORIES[0],
+    category: "",
     description: "",
     price: "",
     weight: "",
@@ -92,7 +83,18 @@ export default function Page() {
   const deleteProduct = useDeleteProduct();
   const updateMenu = useUpdateMenu();
 
-  // ✅ SOLUȚIA FINALĂ: Calculăm datele derivate direct cu useMemo (adio erori de useEffect și setState)
+  useEffect(() => {
+    fetch("/product_categories/")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.items) {
+          const catNames = data.items.map((c: any) => c.name);
+          setCategories(catNames);
+        }
+      })
+      .catch((err) => console.error(err));
+  }, []);
+
   const data = useMemo<Dish[]>(() => {
     if (!apiData || !menusData) return [];
 
@@ -123,14 +125,14 @@ export default function Page() {
     return items.map((p) => ({
       id: String(p.id),
       name: p.name ?? "",
-      category: p.category || "Meniul Zilei",
+      category: p.category || (categories[0] ?? "Meniul Zilei"),
       description: p.description ?? "",
       price: `${p.price ?? 0} RON`,
       nutritionalValues: p.nutritional_values ?? "",
       weight: p.quantity ?? "",
       availableDays: productDaysMap[p.id] ?? [],
     }));
-  }, [apiData, menusData]);
+  }, [apiData, menusData, categories]);
 
   const filteredData = useMemo(() => {
     return activeDay === "Toate preparatele" 
@@ -251,7 +253,7 @@ export default function Page() {
           onClick={() => {
             setFormState({
               name: "",
-              category: CATEGORIES[0],
+              category: categories[0] || "",
               description: "",
               price: "",
               weight: "",
@@ -285,7 +287,7 @@ export default function Page() {
 
             const productPayload = {
               name: String(formState.name || "").trim(),
-              category: String(formState.category || CATEGORIES[0]).trim(),
+              category: String(formState.category || categories[0]).trim(),
               description: String(formState.description || "").trim(),
               price: parsedPrice,
               quantity: String(formState.weight || "").trim(),
@@ -336,7 +338,7 @@ export default function Page() {
 
               setActiveModal(null);
             } catch (error) {
-              console.error("Eroare la salvare:", error);
+              console.error(error);
             }
           }}
         >
@@ -348,7 +350,6 @@ export default function Page() {
                 className="w-full bg-slate-50 border border-slate-200 placeholder-slate-400 text-slate-800 text-sm rounded-lg p-2.5 outline-none focus:border-blue-500 focus:bg-white transition-all"
                 value={formState.name || ""}
                 onChange={(e) => setFormState({ ...formState, name: e.target.value })}
-                placeholder="Ex: Ciorbă de văcuță"
                 required
               />
             </div>
@@ -357,10 +358,10 @@ export default function Page() {
               <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Categorie</label>
               <select 
                 className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg p-2.5 outline-none focus:border-blue-500 focus:bg-white transition-all"
-                value={formState.category || CATEGORIES[0]}
+                value={formState.category || ""}
                 onChange={(e) => setFormState({ ...formState, category: e.target.value })}
               >
-                {CATEGORIES.map((cat) => (
+                {categories.map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
@@ -374,19 +375,17 @@ export default function Page() {
                   className="w-full bg-slate-50 border border-slate-200 placeholder-slate-400 text-slate-800 text-sm rounded-lg p-2.5 outline-none focus:border-blue-500 focus:bg-white transition-all"
                   value={formState.price || ""}
                   onChange={(e) => setFormState({ ...formState, price: e.target.value })}
-                  placeholder="Ex: 18.5"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Gramaj / Cantitate</label>
+                <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Gramaj</label>
                 <input
                   type="text"
                   className="w-full bg-slate-50 border border-slate-200 placeholder-slate-400 text-slate-800 text-sm rounded-lg p-2.5 outline-none focus:border-blue-500 focus:bg-white transition-all"
                   value={formState.weight || ""}
                   onChange={(e) => setFormState({ ...formState, weight: e.target.value })}
-                  placeholder="Ex: 350g"
                   required
                 />
               </div>
@@ -416,13 +415,12 @@ export default function Page() {
             </div>
 
             <div className="w-full">
-              <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Descriere preparat</label>
+              <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Descriere</label>
               <textarea
                 rows={2}
                 className="w-full bg-slate-50 border border-slate-200 placeholder-slate-400 text-slate-800 text-sm rounded-lg p-2.5 outline-none focus:border-blue-500 focus:bg-white transition-all resize-none"
                 value={formState.description || ""}
                 onChange={(e) => setFormState({ ...formState, description: e.target.value })}
-                placeholder="Ingrediente, alergeni..."
               />
             </div>
           </div>
