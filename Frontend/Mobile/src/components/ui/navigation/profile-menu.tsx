@@ -6,7 +6,7 @@ import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import UserIcon from "@/assets/icons/svg/user.svg";
-import api, { getAuthToken, logout } from "@/services/api";
+import { useAuth } from "@/contexts/auth-context";
 import { Config } from "@/constants/config";
 
 export const DASHBOARD_URL = Config.DASHBOARD_URL || "";
@@ -23,13 +23,11 @@ export function ProfileMenu({
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const router = useRouter();
+  const { isAuthenticated, user, logout } = useAuth();
 
   const [localOpen, setLocalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : localOpen;
   const anim = useSharedValue(0);
-
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<{ name: string; email: string; role?: string } | null>(null);
 
   const toggle = () => {
     if (onToggle) {
@@ -46,39 +44,6 @@ export function ProfileMenu({
       setLocalOpen(false);
     }
   };
-
-  useEffect(() => {
-    let isMounted = true;
-    const checkUser = async () => {
-      try {
-        const token = await getAuthToken();
-        if (token) {
-          if (isMounted) setIsAuthenticated(true);
-          const res = await api.get("/profiles/me");
-          if (res.data && isMounted) {
-            setUser({
-              name: `${res.data.first_name || ""} ${res.data.last_name || ""}`.trim() || "Utilizator",
-              email: res.data.email || "",
-              role: res.data.role || "STUDENT"
-            });
-          }
-        } else {
-          if (isMounted) {
-            setIsAuthenticated(false);
-            setUser(null);
-          }
-        }
-      } catch (err) {
-        console.warn("[API] Error loading profile for profile-menu:", err);
-      }
-    };
-    if (open) {
-      checkUser();
-    }
-    return () => {
-      isMounted = false;
-    };
-  }, [open]);
 
   useEffect(() => {
     anim.set(withTiming(open ? 1 : 0, {
@@ -114,14 +79,11 @@ export function ProfileMenu({
   const handleLogout = async () => {
     close();
     await logout();
-    setIsAuthenticated(false);
-    setUser(null);
     router.push("/(public)/acasa");
   };
 
-  const handleProfilePress = async () => {
-    const token = await getAuthToken();
-    if (!token) {
+  const handleProfilePress = () => {
+    if (!isAuthenticated) {
       router.push("/(auth)");
       return;
     }

@@ -88,7 +88,7 @@ export default function HartaScreen() {
   const columnWidth = scaling ? WebContentMaxWidth * zoom : width;
   // Padding-ul lateral al WebContainer-ului e responsiv (mic pe ecran ingust), deci
   // il reproducem identic aici ca harta sa ramana aliniata cu titlul "Hartă".
-  const sidePadding = width < WEB_COMPACT_BREAKPOINT ? Math.min(Spacing.lg, WebSidePadding) : WebSidePadding;
+  const sidePadding = width < WEB_COMPACT_BREAKPOINT ? Spacing.lg : (WebSidePadding || Spacing.xxl);
   // Inset-ul orizontal pana la continutul navbarului (logo / "Hartă"):
   //   margine de centrare + (padding lateral + Spacing.lg) scalate cu zoom.
   const contentInset = (width - columnWidth) / 2 + (sidePadding + Spacing.lg) * zoom;

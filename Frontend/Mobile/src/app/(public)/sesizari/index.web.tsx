@@ -12,7 +12,8 @@ import { SesizariListSkeleton } from "@/components/ui/display/skeletons";
 import { Seo } from "@/components/seo";
 import { SesizareCard, Sesizare } from "@/components/ui/display/sesizare-card";
 import PlusIcon from "@/assets/icons/svg/plus.svg";
-import api, { storage, getAuthToken, resolveImageUrl } from "@/services/api";
+import api, { storage, resolveImageUrl } from "@/services/api";
+import { useAuth } from "@/contexts/auth-context";
 import { ErrorState } from "@/components/ui/display/error-state";
 
 type FilterType = "toate" | "mele" | "active" | "respinse" | "finalizate";
@@ -44,20 +45,17 @@ export default function SesizariScreen() {
   const contentTop = useWebContentTop();
   const router = useRouter();
 
+  const { isAuthenticated, user, isLoading: authLoading } = useAuth();
+
   const [reports, setReports] = useState<Sesizare[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterType>("toate");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAuthChecked, setIsAuthChecked] = useState(false);
   const loadData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const token = await getAuthToken();
-      setIsAuthenticated(!!token);
-      setIsAuthChecked(true);
-      if (!token) {
+      if (!isAuthenticated) {
         setReports([]);
         setLoading(false);
         return;
@@ -83,26 +81,8 @@ export default function SesizariScreen() {
         locationMap.set(loc.id, loc.name);
       });
 
-      // 2. Fetch logged-in user profile if token exists
-      let myProfileId: string | null = null;
-      if (token) {
-        try {
-          const profileRes = await api.get('/profiles/me');
-          if (profileRes.data?.id) {
-            myProfileId = profileRes.data.id;
-          }
-        } catch (profileError) {
-          console.warn('[API] Could not fetch user profile (maybe unauthenticated):', profileError);
-        }
-      }
-
-      // If the profile fetch cleared the token (e.g. due to expired session), abort loading complaints
-      if (!await getAuthToken()) {
-        setIsAuthenticated(false);
-        setReports([]);
-        setLoading(false);
-        return;
-      }
+      // 2. Id-ul utilizatorului vine din contextul de autentificare.
+      const myProfileId: string | null = user?.id || null;
 
       // 3. Fetch complaints based on activeFilter
       let apiItems: any[] = [];
@@ -167,11 +147,11 @@ export default function SesizariScreen() {
   );
 
   useEffect(() => {
-    if (isAuthChecked && !isAuthenticated) {
+    if (!authLoading && !isAuthenticated) {
       router.push("/(auth)");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, isAuthChecked]);
+  }, [isAuthenticated, authLoading]);
 
   const filteredData = reports.filter((item) => {
     if (activeFilter === "toate") return true;

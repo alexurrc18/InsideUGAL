@@ -6,7 +6,8 @@ import { useRouter, useNavigation, useLocalSearchParams } from "expo-router";
 import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { SesizareCard, Sesizare } from "@/components/ui/display/sesizare-card";
-import api, { storage, getAuthToken, resolveImageUrl } from "@/services/api";
+import api, { storage, resolveImageUrl } from "@/services/api";
+import { useAuth } from "@/contexts/auth-context";
 import { SesizariListSkeleton } from "@/components/ui/display/skeletons";
 import { ErrorState } from "@/components/ui/display/error-state";
 
@@ -32,12 +33,13 @@ export default function SesizariScreen() {
   const navigation = useNavigation();
   const params = useLocalSearchParams();
 
+  const { isAuthenticated, user, isLoading: authLoading } = useAuth();
+
   const [reports, setReports] = useState<Sesizare[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const activeFilter = (params.filter as FilterType) || "toate";
   const [refreshing, setRefreshing] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -51,9 +53,7 @@ export default function SesizariScreen() {
     setLoading(true);
     setError(null);
     try {
-      const token = await getAuthToken();
-      setIsAuthenticated(!!token);
-      if (!token) {
+      if (!isAuthenticated) {
         setReports([]);
         setLoading(false);
         return;
@@ -78,25 +78,7 @@ export default function SesizariScreen() {
         locationMap.set(loc.id, loc.name);
       });
 
-      let myProfileId: string | null = null;
-      if (token) {
-        try {
-          const profileRes = await api.get('/profiles/me');
-          if (profileRes.data?.id) {
-            myProfileId = profileRes.data.id;
-          }
-        } catch (profileError) {
-          console.warn('[API] Could not fetch user profile (maybe unauthenticated):', profileError);
-        }
-      }
-      
-      // If the profile fetch cleared the token (e.g. due to expired session), abort loading complaints
-      if (!await getAuthToken()) {
-        setIsAuthenticated(false);
-        setReports([]);
-        setLoading(false);
-        return;
-      }
+      const myProfileId: string | null = user?.id || null;
 
       // 3. Fetch complaints based on activeFilter
       let apiItems: any[] = [];
@@ -210,7 +192,7 @@ export default function SesizariScreen() {
     return <ErrorState message={error} onRetry={loadData} />;
   }
 
-  if (!isAuthenticated) {
+  if (!authLoading && !isAuthenticated) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: "center", alignItems: "center", padding: Spacing.xl }}>
         <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs, textAlign: "center", width: "100%" }]}>

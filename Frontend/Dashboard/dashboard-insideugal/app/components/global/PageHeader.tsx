@@ -6,7 +6,6 @@ import HeaderActions from "./HeaderActions";
 const pageTitles: Record<string, string> = {
   "/": "Acasă",
   "/noutati": "Anunțuri",
-  "/evenimente": "Evenimente",
   "/facultati": "Facultăți",
   "/harti": "Hărți",
   "/sesizari": "Sesizări",
@@ -16,7 +15,7 @@ const pageTitles: Record<string, string> = {
 
 export default function PageHeader() {
   const pathname = usePathname();
-  const title = pageTitles[pathname] ?? "Dashboard";
+  const title = pageTitles[pathname] ?? "Acasă";
 
   return (
     /* MODIFICAT: Adăugat sticky top-0 și z-40 pentru a rămâne fixat deasupra conținutului la scroll */
