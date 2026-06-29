@@ -44,6 +44,17 @@ class BatchTranslateResponse(BaseModel):
     provider: str
 
 
+class AnnouncementTranslateRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=1000)
+    content: str = Field(..., min_length=1, max_length=15000)
+    target_language: str = Field(..., min_length=2, max_length=10)
+
+
+class AnnouncementTranslateResponse(BaseModel):
+    translated_title: str
+    translated_content: str
+
+
 class TranslationService:
     def __init__(self) -> None:
         raw_key = os.getenv("GEMINI_API_KEY", "").strip().strip("'").strip('"')
@@ -179,6 +190,49 @@ class TranslationService:
             raise ValueError("Gemini batch translation did not return a JSON object.")
 
         return {key: str(translated[key]).strip() for key in items if key in translated}
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((ValueError, Exception)),
+        reraise=True,
+    )
+    def translate_announcement_uncached(self, title: str, content: str, target_language: str) -> dict[str, str]:
+        payload = json.dumps({"title": title, "content": content}, ensure_ascii=False)
+        prompt = (
+            f"Translate the title and content of this university announcement to {target_language}.\n"
+            "Rules:\n"
+            "- Maintain an official, formal, academic tone.\n"
+            "- Use precise university terminology.\n"
+            "- CRITICAL: Preserve the original formatting EXACTLY, including all paragraphs, markdown syntax, links, and newlines.\n"
+            "- Do NOT translate proper nouns or brand names.\n"
+            "Return only a valid JSON object with the keys 'translated_title' and 'translated_content' containing the translated strings. "
+            "No explanations, no markdown formatting block quotes around the response.\n"
+            f"JSON: {payload}"
+        )
+        response = self.client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=genai_types.GenerateContentConfig(
+                temperature=0.0,
+                max_output_tokens=8192,
+                response_mime_type="application/json",
+            ),
+        )
+        raw = (response.text or "").strip()
+        if not raw:
+            raise ValueError("Gemini returned an empty announcement translation.")
+        
+        translated = json.loads(raw)
+        return translated
+
+    def translate_announcement(self, title: str, content: str, target_language: str) -> AnnouncementTranslateResponse:
+        normalized_language = self._normalize_language(target_language)
+        translated = self.translate_announcement_uncached(title, content, normalized_language)
+        return AnnouncementTranslateResponse(
+            translated_title=str(translated.get("translated_title", "")).strip(),
+            translated_content=str(translated.get("translated_content", "")).strip()
+        )
 
     def translate(self, text: str, target_language: str) -> TranslateResponse:
         normalized_language = self._normalize_language(target_language)
@@ -322,3 +376,14 @@ def translate_batch(request: BatchTranslateRequest) -> BatchTranslateResponse:
     except Exception as exc:
         logger.error("Batch translation failed: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail="Batch translation failed.") from exc
+
+
+@router.post("/translate/announcement", response_model=AnnouncementTranslateResponse)
+def translate_announcement(request: AnnouncementTranslateRequest) -> AnnouncementTranslateResponse:
+    try:
+        return translation_service.translate_announcement(
+            request.title, request.content, request.target_language
+        )
+    except Exception as exc:
+        logger.error("Announcement translation failed: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail="Announcement translation failed.") from exc
