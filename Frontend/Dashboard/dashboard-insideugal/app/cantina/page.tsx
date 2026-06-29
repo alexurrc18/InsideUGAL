@@ -1,17 +1,9 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import Table, { Column } from "../components/ui/Table";
 import Modal from "../components/ui/Modal";
-
-import {
-  useProducts,
-  useMenus,
-  useCreateProduct,
-  useUpdateProduct,
-  useDeleteProduct,
-  useUpdateMenu,
-} from "@/hooks/useCantinaApi";
+import { apiBaseUrl, getAuthHeaders } from "@/lib/api-client";
 import { canAccessCantina, useRequireDashboardAccess } from "@/lib/dashboard-auth";
 
 interface Dish {
@@ -28,7 +20,7 @@ interface Dish {
 interface ApiProduct {
   id: number;
   name?: string;
-  category?: string;
+  category?: string | { id: number; name: string }; // Permite atât string (vechi) cât și obiect (nou)
   description?: string;
   price?: number;
   nutritional_values?: string;
@@ -58,25 +50,21 @@ const FILTER_DAYS = [
   "Vineri",
 ];
 
-const CATEGORIES = [
-  "Meniul Zilei",
-  "Supe/Ciorbe",
-  "Fel Principal",
-  "Garnituri",
-  "Salate",
-  "Desert",
-  "Băuturi"
-];
-
 export default function Page() {
   const access = useRequireDashboardAccess(canAccessCantina);
   const [activeDay, setActiveDay] = useState("Toate preparatele");
   const [activeModal, setActiveModal] = useState<"add" | "edit" | null>(null);
   const [selectedItem, setSelectedItem] = useState<Dish | null>(null);
+  const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
   
+  // State-uri locale pentru a ocoli validările Zod rigide din hooks
+  const [apiData, setApiData] = useState<ApiProduct[]>([]);
+  const [menusData, setMenusData] = useState<ApiMenu[]>([]);
+  const [isDataLoading, setIsDataLoading] = useState(false);
+
   const [formState, setFormState] = useState<Partial<Dish>>({
     name: "",
-    category: CATEGORIES[0],
+    category: "",
     description: "",
     price: "",
     weight: "",
@@ -84,29 +72,75 @@ export default function Page() {
     availableDays: [],
   });
 
-  const { data: apiData } = useProducts();
-  const { data: menusData } = useMenus();
-  
-  const createProduct = useCreateProduct();
-  const updateProduct = useUpdateProduct();
-  const deleteProduct = useDeleteProduct();
-  const updateMenu = useUpdateMenu();
+  // Încărcare produse
+  const fetchProducts = useCallback(async () => {
+    setIsDataLoading(true);
+    try {
+      const res = await fetch(`${apiBaseUrl}/products?limit=100`, {
+        headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        const payload = await res.json();
+        const items = Array.isArray(payload) ? payload : (payload.items ?? []);
+        setApiData(items);
+      }
+    } catch (err) {
+      console.error("Eroare la produse:", err);
+    } finally {
+      setIsDataLoading(false);
+    }
+  }, []);
 
-  // ✅ SOLUȚIA FINALĂ: Calculăm datele derivate direct cu useMemo (adio erori de useEffect și setState)
+  // Încărcare meniuri zilnice
+  const fetchMenus = useCallback(async () => {
+    try {
+      const res = await fetch(`${apiBaseUrl}/daily-menus`);
+      if (res.ok) {
+        const payload = await res.json();
+        const items = Array.isArray(payload) ? payload : (payload.items ?? []);
+        setMenusData(items);
+      }
+    } catch (err) {
+      console.error("Eroare la meniuri:", err);
+    }
+  }, []);
+
+  // Încărcare categorii
+  const fetchCategories = useCallback(async () => {
+    try {
+      const res = await fetch(`${apiBaseUrl}/product_categories/`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.items) {
+          setCategories(data.items);
+        }
+      }
+    } catch (err) {
+      console.error("Eroare la categorii:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    void Promise.resolve().then(async () => {
+      await fetchCategories();
+      await fetchProducts();
+      await fetchMenus();
+    });
+  }, [fetchCategories, fetchProducts, fetchMenus]);
+
+  // Mapare dinamică a categoriei (suportă string / obiect)
+  const getProductCategoryName = (p: ApiProduct): string => {
+    if (!p.category) return "Meniul Zilei";
+    if (typeof p.category === "string") return p.category;
+    return p.category.name || "Meniul Zilei";
+  };
+
   const data = useMemo<Dish[]>(() => {
     if (!apiData || !menusData) return [];
 
-    const items = (Array.isArray(apiData) 
-      ? apiData 
-      : ((apiData as { items?: ApiProduct[] }).items ?? [])) as ApiProduct[];
-    
-    const menus = (Array.isArray(menusData) 
-      ? menusData 
-      : ((menusData as { items?: ApiMenu[] })?.items ?? [])) as ApiMenu[];
-
     const productDaysMap: { [key: number]: string[] } = {};
     
-    menus.forEach((menu) => {
+    menusData.forEach((menu) => {
       const dayName = DAYS_MAPPING[menu.day_of_week];
       if (dayName && Array.isArray(menu.products)) {
         menu.products.forEach((prod) => {
@@ -120,10 +154,10 @@ export default function Page() {
       }
     });
 
-    return items.map((p) => ({
+    return apiData.map((p) => ({
       id: String(p.id),
       name: p.name ?? "",
-      category: p.category || "Meniul Zilei",
+      category: getProductCategoryName(p),
       description: p.description ?? "",
       price: `${p.price ?? 0} RON`,
       nutritionalValues: p.nutritional_values ?? "",
@@ -150,6 +184,21 @@ export default function Page() {
         ...formState,
         availableDays: [...currentDays, day],
       });
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Sigur dorești ștergerea acestui produs?")) return;
+    try {
+      const res = await fetch(`${apiBaseUrl}/products/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok && res.status !== 204) throw new Error("Failed to delete");
+      await fetchProducts();
+      await fetchMenus();
+    } catch (err) {
+      console.error("Eroare la ștergere:", err);
     }
   };
 
@@ -215,11 +264,7 @@ export default function Page() {
           <button
             type="button"
             className="text-red-500 font-medium hover:underline cursor-pointer transition-all"
-            onClick={() => {
-              if(confirm("Sigur dorești ștergerea acestui produs?")) {
-                deleteProduct.mutate(Number(item.id));
-              }
-            }}
+            onClick={() => handleDelete(Number(item.id))}
           >
             Ștergere
           </button>
@@ -251,7 +296,7 @@ export default function Page() {
           onClick={() => {
             setFormState({
               name: "",
-              category: CATEGORIES[0],
+              category: categories[0]?.name || "",
               description: "",
               price: "",
               weight: "",
@@ -267,7 +312,11 @@ export default function Page() {
       </div>
 
       <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
-        <Table data={filteredData} columns={columns} />
+        {isDataLoading ? (
+          <div className="p-12 text-center text-sm text-slate-500 font-medium">Se încarcă produsele...</div>
+        ) : (
+          <Table data={filteredData} columns={columns} />
+        )}
       </div>
 
       <Modal
@@ -283,9 +332,13 @@ export default function Page() {
             const rawPrice = String(formState.price || "").replace(/[^0-9.]/g, "");
             const parsedPrice = parseFloat(rawPrice) || 0;
 
+            const selectedCatName = formState.category || (categories[0]?.name || "");
+            const selectedCat = categories.find(c => c.name === selectedCatName);
+            const categoryId = selectedCat ? selectedCat.id : null;
+
             const productPayload = {
               name: String(formState.name || "").trim(),
-              category: String(formState.category || CATEGORIES[0]).trim(),
+              category_id: categoryId,
               description: String(formState.description || "").trim(),
               price: parsedPrice,
               quantity: String(formState.weight || "").trim(),
@@ -297,24 +350,28 @@ export default function Page() {
 
               if (activeModal === "edit") {
                 targetProductId = Number(selectedItem?.id);
-                await updateProduct.mutateAsync({
-                  id: targetProductId,
-                  data: productPayload,
+                const res = await fetch(`${apiBaseUrl}/products/${targetProductId}`, {
+                  method: "PATCH",
+                  headers: getAuthHeaders({ "Content-Type": "application/json" }),
+                  body: JSON.stringify(productPayload),
                 });
+                if (!res.ok) throw new Error("Failed to update product");
               } else {
-                const newProd = await createProduct.mutateAsync(productPayload);
-                targetProductId = Number((newProd as { id: number }).id);
+                const res = await fetch(`${apiBaseUrl}/products/`, {
+                  method: "POST",
+                  headers: getAuthHeaders({ "Content-Type": "application/json" }),
+                  body: JSON.stringify(productPayload),
+                });
+                if (!res.ok) throw new Error("Failed to create product");
+                const newProd = await res.json();
+                targetProductId = newProd.id;
               }
 
-              const menus = (Array.isArray(menusData) 
-                ? menusData 
-                : ((menusData as { items?: ApiMenu[] })?.items ?? [])) as ApiMenu[];
-                
               const selectedDays = formState.availableDays ?? [];
 
               for (let dayNum = 1; dayNum <= 5; dayNum++) {
                 const dayName = DAYS_MAPPING[dayNum];
-                const currentMenuForDay = menus.find((m) => m.day_of_week === dayNum);
+                const currentMenuForDay = menusData.find((m) => m.day_of_week === dayNum);
 
                 if (currentMenuForDay) {
                   let existingProductIds: number[] = currentMenuForDay.products?.map((p) => p.id) ?? [];
@@ -327,16 +384,20 @@ export default function Page() {
                     existingProductIds = existingProductIds.filter(id => id !== targetProductId);
                   }
 
-                  await updateMenu.mutateAsync({
-                    id: currentMenuForDay.id,
-                    productIds: existingProductIds,
+                  const menuRes = await fetch(`${apiBaseUrl}/daily-menus/${currentMenuForDay.id}`, {
+                    method: "PATCH",
+                    headers: getAuthHeaders({ "Content-Type": "application/json" }),
+                    body: JSON.stringify({ product_ids: existingProductIds }),
                   });
+                  if (!menuRes.ok) throw new Error("Failed to update menu");
                 }
               }
 
+              await fetchProducts();
+              await fetchMenus();
               setActiveModal(null);
             } catch (error) {
-              console.error("Eroare la salvare:", error);
+              console.error(error);
             }
           }}
         >
@@ -348,7 +409,6 @@ export default function Page() {
                 className="w-full bg-slate-50 border border-slate-200 placeholder-slate-400 text-slate-800 text-sm rounded-lg p-2.5 outline-none focus:border-blue-500 focus:bg-white transition-all"
                 value={formState.name || ""}
                 onChange={(e) => setFormState({ ...formState, name: e.target.value })}
-                placeholder="Ex: Ciorbă de văcuță"
                 required
               />
             </div>
@@ -357,11 +417,11 @@ export default function Page() {
               <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Categorie</label>
               <select 
                 className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg p-2.5 outline-none focus:border-blue-500 focus:bg-white transition-all"
-                value={formState.category || CATEGORIES[0]}
+                value={formState.category || ""}
                 onChange={(e) => setFormState({ ...formState, category: e.target.value })}
               >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.name}>{cat.name}</option>
                 ))}
               </select>
             </div>
@@ -374,19 +434,17 @@ export default function Page() {
                   className="w-full bg-slate-50 border border-slate-200 placeholder-slate-400 text-slate-800 text-sm rounded-lg p-2.5 outline-none focus:border-blue-500 focus:bg-white transition-all"
                   value={formState.price || ""}
                   onChange={(e) => setFormState({ ...formState, price: e.target.value })}
-                  placeholder="Ex: 18.5"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Gramaj / Cantitate</label>
+                <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Gramaj</label>
                 <input
                   type="text"
                   className="w-full bg-slate-50 border border-slate-200 placeholder-slate-400 text-slate-800 text-sm rounded-lg p-2.5 outline-none focus:border-blue-500 focus:bg-white transition-all"
                   value={formState.weight || ""}
                   onChange={(e) => setFormState({ ...formState, weight: e.target.value })}
-                  placeholder="Ex: 350g"
                   required
                 />
               </div>
@@ -416,13 +474,12 @@ export default function Page() {
             </div>
 
             <div className="w-full">
-              <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Descriere preparat</label>
+              <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Descriere</label>
               <textarea
                 rows={2}
                 className="w-full bg-slate-50 border border-slate-200 placeholder-slate-400 text-slate-800 text-sm rounded-lg p-2.5 outline-none focus:border-blue-500 focus:bg-white transition-all resize-none"
                 value={formState.description || ""}
                 onChange={(e) => setFormState({ ...formState, description: e.target.value })}
-                placeholder="Ingrediente, alergeni..."
               />
             </div>
           </div>
