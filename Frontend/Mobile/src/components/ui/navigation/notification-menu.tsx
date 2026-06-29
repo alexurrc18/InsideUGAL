@@ -17,65 +17,19 @@
 // acasa/notificari.tsx). Nu importam din fisierul de mobil ca sa nu-l atingem; cand
 // va exista un endpoint, se inlocuieste doar `MOCK_NOTIFICARI` cu un fetch.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Pressable, View, Text, ScrollView, useWindowDimensions } from "react-native";
+import { Pressable, View, Text, ScrollView, useWindowDimensions, Linking } from "react-native";
 import Animated, { useSharedValue, withTiming, useAnimatedStyle, interpolate, Extrapolation, Easing } from "react-native-reanimated";
 import { ColorScheme, Spacing, Colors } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { WEB_COMPACT_BREAKPOINT } from "@/components/ui/layout/web-container";
 import BellIcon from "@/assets/icons/svg/bell.svg";
+import { useRouter } from "expo-router";
+import { NotificareCard, Notificare } from "@/components/ui/display/notificare-card";
+import { storage } from "@/services/api";
+import { MOCK_NOTIFICARI } from "@/app/(public)/acasa/notificari";
 
-interface Notificare {
-  id: string;
-  data: string;
-  titlu: string;
-  continut: string;
-}
-
-const MOCK_NOTIFICARI: Notificare[] = [
-  {
-    id: "1",
-    data: "27 iunie 2026",
-    titlu: "Rezultate sesiune de vară",
-    continut: "Rezultatele pentru sesiunea de examene de vară au fost publicate în Registrul Matricol. Vă rugăm să verificați situația academică.",
-  },
-  {
-    id: "2",
-    data: "25 iunie 2026",
-    titlu: "Eveniment: Ziua Porților Deschise",
-    continut: "Universitatea Dunărea de Jos organizează Ziua Porților Deschise pe 30 iunie 2026, începând cu ora 10:00, în Campusul Științei.",
-  },
-  {
-    id: "3",
-    data: "20 iunie 2026",
-    titlu: "Întrerupere servicii IT",
-    continut: "Pe data de 22 iunie 2026, între orele 22:00 și 02:00, platforma academică va fi indisponibilă pentru lucrări de mentenanță.",
-  },
-  {
-    id: "4",
-    data: "15 iunie 2026",
-    titlu: "Bursele pentru semestrul II",
-    continut: "Au fost aprobate listele de burse pentru semestrul al II-lea al anului universitar 2025-2026. Verificați lista afișată la secretariat.",
-  },
-  {
-    id: "5",
-    data: "12 iunie 2026",
-    titlu: "Înscrieri la cazare",
-    continut: "Perioada de înscriere pentru cazarea în căminele studențești a început. Depuneți cererea online până pe 30 iunie 2026.",
-  },
-  {
-    id: "6",
-    data: "8 iunie 2026",
-    titlu: "Concurs de proiecte studențești",
-    continut: "Te invităm să participi la concursul anual de proiecte studențești. Premii și mentorat pentru cele mai bune idei.",
-  },
-  {
-    id: "7",
-    data: "3 iunie 2026",
-    titlu: "Program bibliotecă în sesiune",
-    continut: "Pe perioada sesiunii, biblioteca universitară are program prelungit, de luni până sâmbătă, între orele 8:00 și 22:00.",
-  },
-];
+// MOCK_NOTIFICARI is imported from notificari.tsx
 
 export function NotificationMenu({
   open: controlledOpen,
@@ -86,17 +40,18 @@ export function NotificationMenu({
   onToggle?: () => void;
   onClose?: () => void;
 }) {
+  const router = useRouter();
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const isDark = themeName === "dark";
   const { width } = useWindowDimensions();
   const isCompact = width < WEB_COMPACT_BREAKPOINT;
 
-  // Culori derivate din tema, ca panoul sa arate corect si pe dark.
-  const dividerColor = isDark ? "rgba(255,255,255,0.12)" : "#E5E7EB";
-  const rowBorder = isDark ? "rgba(255,255,255,0.08)" : "#F1F1F1";
-  const hoverBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
-  const unreadBg = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,48,92,0.05)";
+  // Culori luate direct din tema (conform specificatiilor).
+  const dividerColor = theme.border;
+  const rowBorder = theme.border;
+  const hoverBg = theme.background;
+  const unreadBg = theme.background;
 
   const [localOpen, setLocalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : localOpen;
@@ -123,6 +78,21 @@ export function NotificationMenu({
   // Citite/necitite tinute local (id-urile celor citite). La inceput toate sunt necitite.
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const unreadCount = MOCK_NOTIFICARI.filter((n) => !readIds.has(n.id)).length;
+
+  useEffect(() => {
+    storage.getItem('read_notification_ids').then((val) => {
+      if (val) {
+        try {
+          const ids = JSON.parse(val);
+          if (Array.isArray(ids)) {
+            setReadIds(new Set(ids));
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    });
+  }, [open]);
 
   const toggle = () => {
     if (onToggle) onToggle();
@@ -172,7 +142,11 @@ export function NotificationMenu({
     ? ({ position: "fixed", top: sheetTop, left: Spacing.lg, right: Spacing.lg } as any)
     : ({ position: "absolute", top: "100%", right: 0, width: panelWidth } as const);
 
-  const markAllRead = () => setReadIds(new Set(MOCK_NOTIFICARI.map((n) => n.id)));
+  const markAllRead = () => {
+    const allIds = new Set(MOCK_NOTIFICARI.map((n) => n.id));
+    setReadIds(allIds);
+    storage.setItem('read_notification_ids', JSON.stringify(Array.from(allIds)));
+  };
 
   return (
     <View ref={triggerRef} style={{ position: "relative", height: "100%", justifyContent: "center" }}>
@@ -200,20 +174,18 @@ export function NotificationMenu({
             <View
               style={{
                 position: "absolute",
-                top: 2,
-                right: 2,
-                minWidth: 16,
-                height: 16,
+                top: 0,
+                right: 0,
+                minWidth: 18,
+                height: 18,
                 paddingHorizontal: 3,
-                borderRadius: 8,
-                backgroundColor: ColorScheme.red,
-                borderWidth: 1.5,
-                borderColor: theme.primary,
+                borderRadius: 9,
+                backgroundColor: theme.secondary,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Text style={{ color: ColorScheme.white, fontSize: 9, fontFamily: "InstrumentSans-SemiBold", lineHeight: 11 }}>
+              <Text style={{ color: ColorScheme.white, fontSize: 10, fontFamily: "InstrumentSans-SemiBold", lineHeight: 12 }}>
                 {unreadCount > 9 ? "9+" : unreadCount}
               </Text>
             </View>
@@ -231,8 +203,7 @@ export function NotificationMenu({
           style={{
             backgroundColor: theme.card,
             borderRadius: 0,
-            borderWidth: isDark ? 1 : 0,
-            borderColor: dividerColor,
+            borderWidth: 0,
             overflow: "hidden",
             shadowColor: ColorScheme.pureBlack,
             shadowOffset: { width: 0, height: 6 },
@@ -262,7 +233,7 @@ export function NotificationMenu({
             )}
           </View>
 
-          <View style={{ height: 1, backgroundColor: dividerColor }} />
+          <View style={{ height: 1, backgroundColor: dividerColor, opacity: 0.3 }} />
 
           {/* Lista scrollabila (limitam inaltimea ca panoul sa nu depaseasca ecranul).
               overscrollBehavior: contain -> scroll-ul listei nu "scapa" la pagina cand
@@ -279,40 +250,30 @@ export function NotificationMenu({
               {MOCK_NOTIFICARI.map((item, idx) => {
                 const isUnread = !readIds.has(item.id);
                 return (
-                  <Pressable
+                  <NotificareCard
                     key={item.id}
-                    onPress={() => setReadIds((prev) => new Set(prev).add(item.id))}
-                    accessibilityRole="button"
-                    style={({ pressed, hovered }: any) => [
-                      {
-                        paddingHorizontal: Spacing.lg,
-                        paddingVertical: Spacing.md,
-                        gap: 4,
-                        borderTopWidth: idx === 0 ? 0 : 1,
-                        borderTopColor: rowBorder,
-                      },
-                      isUnread && { backgroundColor: unreadBg },
-                      (pressed || hovered) && { backgroundColor: hoverBg },
-                    ]}
-                  >
-                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: Spacing.sm }}>
-                      <Text style={[Typography.Small2, { color: theme.textSecondary }]}>{item.data}</Text>
-                      {isUnread && (
-                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.primary }} />
-                      )}
-                    </View>
-                    <Text
-                      style={[
-                        Typography.Heading5,
-                        { color: theme.text, fontFamily: isUnread ? "InstrumentSans-SemiBold" : "InstrumentSans-Medium" },
-                      ]}
-                    >
-                      {item.titlu}
-                    </Text>
-                    <Text style={[Typography.Paragraph2, { color: theme.textSecondary, lineHeight: 20 }]} numberOfLines={3}>
-                      {item.continut}
-                    </Text>
-                  </Pressable>
+                    item={item}
+                    theme={theme}
+                    isUnread={isUnread}
+                    onPress={() => {
+                      const updated = new Set(readIds).add(item.id);
+                      setReadIds(updated);
+                      storage.setItem('read_notification_ids', JSON.stringify(Array.from(updated)));
+                      if (item.actiune) {
+                        const isWeb = item.actiune.startsWith("http://") || item.actiune.startsWith("https://");
+                        const isInternalDomain = item.actiune.includes("inside.ugal.ro");
+                        if (isWeb && !isInternalDomain) {
+                          Linking.openURL(item.actiune).catch((err) => console.error("Couldn't open URL", err));
+                        } else {
+                          router.push(item.actiune as any);
+                        }
+                        close();
+                      }
+                    }}
+                    showDivider={idx > 0}
+                    hoverBg={hoverBg}
+                    unreadBg={unreadBg}
+                  />
                 );
               })}
             </ScrollView>
