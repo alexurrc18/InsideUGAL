@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -10,6 +11,7 @@ from google import genai
 from google.genai import types as genai_types
 from pydantic import BaseModel, Field
 from supabase import Client, create_client
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 logger = logging.getLogger("translation-service")
 
@@ -103,6 +105,12 @@ class TranslationService:
         except Exception as exc:
             logger.warning("Translation cache write failed: %s", exc)
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((ValueError, Exception)),
+        reraise=True,
+    )
     def translate_text_uncached(self, text: str, target_language: str) -> str:
         prompt = (
             f"Translate the following Romanian university administrative text to {target_language}.\n"
@@ -128,7 +136,7 @@ class TranslationService:
             contents=prompt,
             config=genai_types.GenerateContentConfig(
                 temperature=0.0,
-                max_output_tokens=4096,
+                max_output_tokens=8192,
             ),
         )
         translated = (response.text or "").strip()
