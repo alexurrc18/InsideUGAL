@@ -5,7 +5,7 @@ from typing import Generic, Optional, List, TypeVar
 from uuid import UUID
 from datetime import datetime, time
 from decimal import Decimal
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 from typing import Dict, Any
 
 # Importuri adăugate pentru conversia coordonatelor PostGIS
@@ -126,7 +126,7 @@ class FacultyResponse(FacultyBase):
 
 class LocationBase(BaseModel):
     name: str
-    faculty_id: Optional[int] = None
+    faculty_ids: List[int] = []
     facility_id: Optional[int] = None
     marker: Optional[str] = None
     coordinates: Optional[Coordinates] = None
@@ -136,13 +136,15 @@ class LocationCreate(LocationBase):
 
 class LocationUpdate(BaseModel):
     name: Optional[str] = None
-    faculty_id: Optional[int] = None
+    faculty_ids: Optional[List[int]] = None
     facility_id: Optional[int] = None
     marker: Optional[str] = None
     coordinates: Optional[Coordinates] = None
 
 class LocationResponse(LocationBase):
     id: int
+    image_url: Optional[str] = None
+    faculties: List[FacultyResponse] = []
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
@@ -189,6 +191,7 @@ class FacilityScheduleResponse(FacilityScheduleBase):
 class FacilityBase(BaseModel):
     name: str
     description: Optional[str] = None
+    image_url: Optional[str] = None
 
 
 class FacilityCreate(FacilityBase):
@@ -198,6 +201,7 @@ class FacilityCreate(FacilityBase):
 class FacilityUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    image_url: Optional[str] = None
 
 
 class FacilityResponse(FacilityBase):
@@ -224,6 +228,64 @@ class CategoryUpdate(BaseModel):
 class CategoryResponse(CategoryBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
+
+
+class CityGuideCategoryBase(BaseModel):
+    title: str
+    description: str
+    icon_name: str
+
+
+class CityGuideCategoryCreate(CityGuideCategoryBase):
+    id: str
+
+
+class CityGuideCategoryUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    icon_name: Optional[str] = None
+
+
+class CityGuideCategoryResponse(CityGuideCategoryBase):
+    id: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CityGuideItemBase(BaseModel):
+    title: str
+    category_id: str = Field(
+        validation_alias=AliasChoices("categoryId", "category_id"),
+        serialization_alias="categoryId",
+    )
+    image_url: Optional[str] = None
+    address: Optional[str] = None
+    website: Optional[str] = None
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class CityGuideItemCreate(CityGuideItemBase):
+    pass
+
+
+class CityGuideItemUpdate(BaseModel):
+    title: Optional[str] = None
+    category_id: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("categoryId", "category_id"),
+        serialization_alias="categoryId",
+    )
+    image_url: Optional[str] = None
+    address: Optional[str] = None
+    website: Optional[str] = None
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class CityGuideItemResponse(CityGuideItemBase):
+    id: int
+    category: Optional[CityGuideCategoryResponse] = None
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class ProductCategoryBase(BaseModel):
@@ -270,6 +332,7 @@ class ComplaintUpdate(BaseModel):
 class ComplaintResponse(ComplaintBase):
     id: int
     user_id: UUID
+    author_name: Optional[str] = None
     status: ComplaintStatus
     created_at: datetime
     updated_at: datetime
@@ -284,7 +347,9 @@ class AnnouncementBase(BaseModel):
     title: str
     content: str
     image_url: Optional[str] = None
-    faculty_id: Optional[int] = None
+    event_link: Optional[str] = None
+    files: Optional[List[Dict[str, Any]]] = []
+    faculties: Optional[List[str]] = []
     location_name: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
@@ -296,7 +361,9 @@ class AnnouncementCreate(AnnouncementBase):
             "title": "Hackathon UGAL 2024",
             "content": "Vă așteptăm la hackathon-ul ediția 2024! Cele mai bune proiecte vor fi premiate.",
             "image_url": "https://example.com/images/hackathon.jpg",
-            "faculty_id": 3,
+            "event_link": "https://example.com/register",
+            "files": [{"name": "regulament.pdf", "url": "https://example.com/regulament.pdf"}],
+            "faculties": ["AC", "FIE", "Drept"],
             "location_name": "Corpul C",
             "start_date": "2024-06-15T09:00:00",
             "end_date": "2024-06-15T18:00:00"
@@ -308,7 +375,9 @@ class AnnouncementUpdate(BaseModel):
     content: Optional[str] = None
     type: Optional[PostType] = None
     image_url: Optional[str] = None
-    faculty_id: Optional[int] = None
+    event_link: Optional[str] = None
+    files: Optional[List[Dict[str, Any]]] = None
+    faculties: Optional[List[str]] = None
     location_name: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
@@ -316,9 +385,11 @@ class AnnouncementUpdate(BaseModel):
 class AnnouncementResponse(AnnouncementBase):
     id: int
     created_by: UUID
+    author: Optional[str] = Field(alias="author_name", default=None)
+    is_translated: bool = False
     created_at: datetime
     updated_at: datetime
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 # ==========================================
@@ -355,6 +426,7 @@ class ProductResponse(ProductBase):
 class DailyMenuBase(BaseModel):
     day_of_week: int
 
+
 class DailyMenuCreate(DailyMenuBase):
     product_ids: List[int] = []
     model_config = ConfigDict(json_schema_extra={
@@ -362,11 +434,13 @@ class DailyMenuCreate(DailyMenuBase):
             "day_of_week": 1,
             "product_ids": [1, 2, 3]
         }
-    }) 
+    })
+
 
 class DailyMenuUpdate(BaseModel):
     day_of_week: Optional[int] = None
     product_ids: Optional[List[int]] = None
+
 
 class DailyMenuResponse(DailyMenuBase):
     id: int
@@ -375,7 +449,40 @@ class DailyMenuResponse(DailyMenuBase):
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
+
 class DashboardStatsResponse(BaseModel):
     total_users: int
     complaints_stats: Dict[str, int]
-    recent_announcements: List[Dict[str, Any]]    
+    recent_announcements: List[Dict[str, Any]]
+
+
+# ==========================================
+# NOTIFICATIONS
+# ==========================================
+class NotificationBase(BaseModel):
+    title: str
+    body: str
+    action: Optional[str] = None
+    faculty_id: Optional[int] = None
+
+
+class NotificationCreate(NotificationBase):
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "title": "Anunț important",
+            "body": "Textul notificării...",
+            "action": "https://example.com",
+            "faculty_id": 1
+        }
+    })
+
+
+class NotificationResponse(NotificationBase):
+    id: int
+    sent_by: UUID
+    sent_at: datetime
+    recipient_count: int
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+    

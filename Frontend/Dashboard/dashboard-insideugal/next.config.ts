@@ -29,7 +29,7 @@ const cspHeader = `
     default-src 'self';
     script-src 'self' 'unsafe-eval' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com https://*.maptiler.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.maptiler.com;
-    img-src 'self' blob: data: https://*.supabase.co https://maps.googleapis.com https://maps.gstatic.com https://*.maptiler.com https:;
+    img-src 'self' blob: data: https: http:;
     font-src 'self' data: https://fonts.gstatic.com https://*.maptiler.com;
     object-src 'none';
     base-uri 'self';
@@ -45,21 +45,12 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
   },
-  
-  // Regula pentru imagini externe (care nu mai crapă serverul)
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**', 
-      },
-      {
-        protocol: 'http',
-        hostname: '**', 
-      },
+      { protocol: 'https', hostname: '**' },
+      { protocol: 'http', hostname: '**' },
     ],
   },
-
   async headers() {
     return [
       {
@@ -85,7 +76,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  
+
   // Dezactivează temporar turbopack root dacă suspectezi că blochează build-ul în workspace-uri
   turbopack: {
     root: __dirname,

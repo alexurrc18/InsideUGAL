@@ -128,6 +128,7 @@ async def create_profile(
 async def create_faculty(db_session: AsyncSession, *, name: str = "QA Faculty") -> models.Faculty:
     faculty = models.Faculty(
         name=f"{name} {uuid4().hex[:8]}",
+        abbreviation=f"QA{uuid4().hex[:4].upper()}",
         address="Testing Street 1",
         phone="+40000000000",
         website_url="https://example.com",
@@ -142,8 +143,12 @@ async def create_location(db_session: AsyncSession, *, faculty_id: int | None = 
     location = models.Location(
         name=f"QA Location {uuid4().hex[:8]}",
         coordinates=None,
-        faculty_id=faculty_id,
     )
+    if faculty_id is not None:
+        result = await db_session.execute(select(models.Faculty).where(models.Faculty.id == faculty_id))
+        faculty = result.scalars().first()
+        if faculty is not None:
+            location.faculties.append(faculty)
     db_session.add(location)
     await db_session.flush()
     await db_session.refresh(location)

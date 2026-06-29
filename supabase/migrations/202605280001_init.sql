@@ -168,6 +168,36 @@ CREATE TABLE IF NOT EXISTS public.questions_history (
     answer text NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.push_tokens (
+    id SERIAL PRIMARY KEY,
+    profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    token TEXT NOT NULL,
+    device_type VARCHAR(50),
+    is_valid BOOLEAN DEFAULT TRUE NOT NULL,
+    last_used_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    UNIQUE (profile_id, token)
+);
+
+CREATE TABLE IF NOT EXISTS public.notifications (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    body TEXT NOT NULL,
+    action VARCHAR(500),
+    faculty_id INTEGER REFERENCES public.faculties(id) ON DELETE SET NULL,
+    sent_by UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    sent_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    recipient_count INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_push_tokens_profile_id ON public.push_tokens(profile_id);
+CREATE INDEX IF NOT EXISTS idx_push_tokens_is_valid ON public.push_tokens(is_valid);
+CREATE INDEX IF NOT EXISTS idx_notifications_faculty_id ON public.notifications(faculty_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_sent_at ON public.notifications(sent_at DESC);
+
 -- ATENȚIE: quiz_scores a fost ștearsă intenționat aici.
 
 -- ==========================================================
@@ -413,6 +443,18 @@ CREATE POLICY "announcements_public_read" ON public.announcements FOR SELECT USI
 
 DROP POLICY IF EXISTS "announcements_authorized_manage" ON public.announcements;
 CREATE POLICY "announcements_authorized_manage" ON public.announcements FOR ALL USING (public.current_user_role() IN ('HEAD_ADMIN', 'PROFESOR', 'STUDENT_RESPONSABIL') AND (public.current_user_role() <> 'STUDENT_RESPONSABIL' OR created_by = public.current_auth_uid())) WITH CHECK (public.current_user_role() IN ('HEAD_ADMIN', 'PROFESOR', 'STUDENT_RESPONSABIL') AND (public.current_user_role() <> 'STUDENT_RESPONSABIL' OR created_by = public.current_auth_uid()));
+
+DROP POLICY IF EXISTS "notifications_admin_read" ON public.notifications;
+CREATE POLICY "notifications_admin_read" ON public.notifications FOR SELECT USING (public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_FACULTATI'));
+
+DROP POLICY IF EXISTS "notifications_user_read" ON public.notifications;
+CREATE POLICY "notifications_user_read" ON public.notifications FOR SELECT USING (faculty_id IS NULL OR faculty_id = (SELECT faculty_id FROM public.profiles WHERE id = public.current_auth_uid()));
+
+DROP POLICY IF EXISTS "notifications_send" ON public.notifications;
+CREATE POLICY "notifications_send" ON public.notifications FOR INSERT WITH CHECK (public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_FACULTATI'));
+
+DROP POLICY IF EXISTS "push_tokens_owner_manage" ON public.push_tokens;
+CREATE POLICY "push_tokens_owner_manage" ON public.push_tokens FOR ALL USING (profile_id = public.current_auth_uid()) WITH CHECK (profile_id = public.current_auth_uid());
 
 -- ==========================================================
 -- 7. INDECȘI PENTRU PERFORMANȚĂ
