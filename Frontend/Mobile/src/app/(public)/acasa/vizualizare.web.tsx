@@ -312,12 +312,17 @@ function VizualizareScreen() {
             created_at: item.created_at,
             updated_at: item.updated_at,
         }));
+    // Dreapta (Articole similare): doar articole din aceeași categorie ca cel curent
     const sameCategory = pool.filter((e) => e.category === (category as string));
-    const otherCategory = pool.filter((e) => e.category !== (category as string));
-    const ordered = [...sameCategory, ...otherCategory];
+    const sidebarItems = sameCategory.slice(0, 3);
 
-    const sidebarItems = ordered.slice(0, 3);
-    const relatedItems = ordered.slice(3, 6);
+    // Jos (Mai multe): ultimele trei articole (anunțuri/evenimente) postate
+    const sortedByDate = [...pool].sort((a, b) => {
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return timeB - timeA;
+    });
+    const relatedItems = sortedByDate.slice(0, 3);
 
     // Latimea masurata a randului de jos, impartita egal la numarul de carduri.
     const [rowWidth, setRowWidth] = useState(0);
@@ -468,7 +473,7 @@ function VizualizareScreen() {
 
                     {/* Rand principal: continut (stanga) + sidebar Noutăți (dreapta).
                         gap putin mai mare ca sa "respire" intre coloana de text si carduri. */}
-                    <View style={{ flexDirection: twoCol ? "row" : "column", gap: 64, alignItems: "flex-start" }}>
+                    <View style={{ flexDirection: twoCol ? "row" : "column", gap: 64, alignItems: twoCol ? "flex-start" : "stretch" }}>
                         {/* Stanga: continutul anuntului. */}
                         <View style={{ flex: 1, gap: Spacing.xxl, width: "100%" }}>
                             {tipPagina !== "Facultate" && (
@@ -587,6 +592,7 @@ function VizualizareScreen() {
                                             date={getFormattedDate(item.date_start || item.date)}
                                             author={item.author}
                                             image={item.image}
+                                            category={item.category}
                                             onPress={() => openItem(item)}
                                         />
                                     ))}

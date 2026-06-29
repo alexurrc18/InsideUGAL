@@ -6,6 +6,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { View } from 'react-native';
+import { AuthProvider } from '@/contexts/auth-context';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -35,15 +36,16 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <View style={{ flex: 1 }}>
-
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(onboarding)" options={{ animation: 'none' }} />
-          <Stack.Screen name="(public)" options={{ animation: 'none' }} />
-          <Stack.Screen name="(auth)" options={{ presentation: 'formSheet' }} />
-          <Stack.Screen name="ace" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
-        </Stack>
-      </View>
+      <AuthProvider>
+        <View style={{ flex: 1 }}>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(onboarding)" options={{ animation: 'none' }} />
+            <Stack.Screen name="(public)" options={{ animation: 'none' }} />
+            <Stack.Screen name="(auth)" options={{ presentation: 'formSheet' }} />
+            <Stack.Screen name="ace" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+          </Stack>
+        </View>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

@@ -157,8 +157,8 @@ services:
       GOTRUE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       # 15 minute exprimate în secunde
       GOTRUE_JWT_EXP: 900
-      # Sesiunea totală setată la 16 minute
-      GOTRUE_SESSIONS_TIMEBOX: "16m"
+      # Sesiunea totală setată la 31 de zile (744 de ore)
+      GOTRUE_SESSIONS_TIMEBOX: "744h"
       GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
       GOTRUE_JWT_ADMIN_ROLES: service_role
       GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:3000}

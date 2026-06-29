@@ -119,8 +119,15 @@ export const storage = {
   }
 };
 
-// Global variable to keep the token in memory for fast synchronous access
+// Callback apelat de interceptorul de 401 când refresh-ul eșuează și sesiunea e invalidată.
+let _onSessionExpired: (() => void) | null = null;
+export function setSessionExpiredCallback(cb: () => void): void {
+  _onSessionExpired = cb;
+}
+
+// Global variables to keep token state in memory for fast access
 let authToken: string | null = null;
+let tokenExpiresAt: number | null = null; // Unix timestamp in seconds
 
 // Create Axios instance
 // eslint-disable-next-line import/no-named-as-default-member
@@ -135,10 +142,19 @@ const api = axios.create({
 
 /**
  * Sets the auth token both in memory and persists it to AsyncStorage / localStorage.
- * Call this with the access token after a successful login, or with null on logout.
+ * Call this with the access token after a successful login or refresh, or with null on logout.
  */
-export async function setAuthToken(token: string | null, refreshToken: string | null = null): Promise<void> {
+export async function setAuthToken(
+  token: string | null,
+  refreshToken: string | null = null,
+  expiresAt: number | null = null,
+): Promise<void> {
   authToken = token;
+  if (token === null) {
+    tokenExpiresAt = null;
+  } else if (expiresAt) {
+    tokenExpiresAt = expiresAt;
+  }
   try {
     if (token) {
       await storage.setItem('access_token', token);
@@ -149,6 +165,11 @@ export async function setAuthToken(token: string | null, refreshToken: string | 
       await storage.setItem('refresh_token', refreshToken);
     } else if (token === null) {
       await storage.removeItem('refresh_token');
+    }
+    if (expiresAt) {
+      await storage.setItem('token_expires_at', String(expiresAt));
+    } else if (token === null) {
+      await storage.removeItem('token_expires_at');
     }
   } catch (error) {
     console.error('[API] Error saving token to storage:', error);
@@ -186,6 +207,60 @@ export async function getAuthToken(): Promise<string | null> {
   }
 }
 
+async function getTokenExpiresAt(): Promise<number | null> {
+  if (tokenExpiresAt !== null) return tokenExpiresAt;
+  const stored = await storage.getItem('token_expires_at');
+  if (stored) {
+    tokenExpiresAt = Number(stored);
+    return tokenExpiresAt;
+  }
+  return null;
+}
+
+// Shared promise so concurrent requests don't each trigger their own proactive refresh
+let proactiveRefreshPromise: Promise<string | null> | null = null;
+
+async function proactiveRefreshIfNeeded(): Promise<string | null> {
+  const expiresAt = await getTokenExpiresAt();
+  if (!expiresAt) return null;
+  const secondsLeft = expiresAt - Math.floor(Date.now() / 1000);
+  // Only refresh when within 60s of expiry and the token isn't already way past expiry
+  if (secondsLeft > 60 || secondsLeft < -30) return null;
+
+  if (proactiveRefreshPromise) return proactiveRefreshPromise;
+
+  proactiveRefreshPromise = (async () => {
+    try {
+      const storedRefreshToken = await storage.getItem('refresh_token');
+      if (!storedRefreshToken) return null;
+
+      const response = await axios.post(
+        `${Config.API_BASE_URL}/auth/refresh`,
+        { refresh_token: storedRefreshToken },
+        { headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' } },
+      );
+
+      const data = response.data;
+      const newAccessToken = data?.access_token;
+      const newRefreshToken = data?.refresh_token ?? null;
+      const newExpiresAt = data?.expires_at ?? null;
+
+      if (newAccessToken) {
+        await setAuthToken(newAccessToken, newRefreshToken, newExpiresAt);
+        return newAccessToken;
+      }
+      return null;
+    } catch {
+      // Don't log out here — let the reactive 401 handler decide
+      return null;
+    } finally {
+      proactiveRefreshPromise = null;
+    }
+  })();
+
+  return proactiveRefreshPromise;
+}
+
 /**
  * Logs out the user by calling /auth/logout API to invalidate the session on the backend
  * and then clearing local authentication tokens.
@@ -203,12 +278,32 @@ export async function logout(): Promise<void> {
 }
 
 
-// Request Interceptor: Attach bearer token to outgoing requests
+function setAuthorizationHeader(config: InternalAxiosRequestConfig, token: string) {
+  if (!config.headers) return;
+  const value = `Bearer ${token}`;
+  if (typeof (config.headers as any).set === 'function') {
+    (config.headers as any).set('Authorization', value);
+  } else {
+    config.headers.Authorization = value;
+  }
+}
+
+// Request Interceptor: Attach bearer token to outgoing requests, proactively refreshing if needed
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    const token = await getAuthToken();
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Don't inject tokens or trigger refresh for auth endpoints
+    const url = config.url ?? '';
+    if (
+      url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/logout') ||
+      url.includes('/login') || url.includes('/refresh') || url.includes('/logout')
+    ) {
+      return config;
+    }
+
+    const refreshed = await proactiveRefreshIfNeeded();
+    const token = refreshed ?? await getAuthToken();
+    if (token) {
+      setAuthorizationHeader(config, token);
     }
     return config;
   },
@@ -320,15 +415,18 @@ api.interceptors.response.use(
     const errorDetail = (error.response?.data as any)?.detail;
     const status = error.response?.status;
     
+    const url = originalRequest?.url ?? '';
+    const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/logout') ||
+                           url.includes('/login') || url.includes('/refresh') || url.includes('/logout');
+
     // Check for 401 Unauthorized
-    if (status === 401 && originalRequest && !(originalRequest as any)._retry) {
+    if (status === 401 && originalRequest && !isAuthEndpoint && !(originalRequest as any)._retry) {
+      console.log('[API Interceptor] 401 error caught for:', originalRequest.url);
       if (isRefreshing) {
-        return new Promise(function(resolve, reject) {
+        return new Promise<string>(function(resolve, reject) {
           failedQueue.push({ resolve, reject });
         }).then(token => {
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = 'Bearer ' + token;
-          }
+          setAuthorizationHeader(originalRequest, token);
           return api(originalRequest);
         }).catch(err => {
           return Promise.reject(err);
@@ -340,6 +438,7 @@ api.interceptors.response.use(
 
       try {
         const storedRefreshToken = await storage.getItem('refresh_token');
+        console.log('[API Interceptor] Stored refresh token:', storedRefreshToken ? '(present)' : '(missing)');
         if (!storedRefreshToken) {
           throw new Error('No refresh token found');
         }
@@ -362,15 +461,16 @@ api.interceptors.response.use(
           }
         }
 
+        console.log('[API Interceptor] Refresh response:', response.status, responseData);
+
         const newAccessToken = typeof responseData === 'string' ? responseData : responseData?.access_token;
-        const newRefreshToken = responseData?.refresh_token;
+        const newRefreshToken = responseData?.refresh_token ?? null;
+        const newExpiresAt = responseData?.expires_at ?? null;
 
         if (newAccessToken) {
-          await setAuthToken(newAccessToken, newRefreshToken);
+          await setAuthToken(newAccessToken, newRefreshToken, newExpiresAt);
           processQueue(null, newAccessToken);
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = 'Bearer ' + newAccessToken;
-          }
+          setAuthorizationHeader(originalRequest, newAccessToken);
           return api(originalRequest);
         } else {
           throw new Error('No access token returned from refresh');
@@ -379,7 +479,8 @@ api.interceptors.response.use(
         processQueue(refreshError, null);
         console.warn('[API] Refresh token failed - clearing credentials.');
         await setAuthToken(null);
-        
+        _onSessionExpired?.();
+
         // Formatted error message to be returned
         const apiError = {
           message: "Sesiunea a expirat. Vă rugăm să vă reconectați.",

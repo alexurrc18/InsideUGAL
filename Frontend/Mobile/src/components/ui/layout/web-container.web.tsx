@@ -42,7 +42,7 @@ export function WebContainer({
   const scaling = width > WebContentMaxWidth;
 
   // Margine laterala responsiva: mica pe telefon, generoasa pe ecran lat.
-  const sidePadding = width < WEB_COMPACT_BREAKPOINT ? Math.min(Spacing.lg, WebSidePadding) : WebSidePadding;
+  const sidePadding = width < WEB_COMPACT_BREAKPOINT ? Spacing.lg : (WebSidePadding || Spacing.xxl);
 
   return (
     <View

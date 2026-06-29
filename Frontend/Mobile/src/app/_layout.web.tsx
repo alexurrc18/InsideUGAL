@@ -9,6 +9,7 @@ import 'react-native-reanimated';
 
 import { ThemeProvider } from "@/contexts/theme-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { AuthProvider } from "@/contexts/auth-context";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -37,7 +38,9 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <RootLayoutNav />
+      <AuthProvider>
+        <RootLayoutNav />
+      </AuthProvider>
     </ThemeProvider>
   );
 }
