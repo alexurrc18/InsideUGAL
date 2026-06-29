@@ -26,8 +26,19 @@ export default function MoreCategoryScreen() {
   useEffect(() => {
     if (!categoryId) return;
     api.get('/city-guide', { params: { category_id: categoryId } })
-      .then(res => setItems(res.data))
-      .catch(() => {});
+      .then(res => {
+        const data = res.data;
+        if (data && Array.isArray(data)) {
+          setItems(data);
+        } else if (data && Array.isArray(data.items)) {
+          setItems(data.items);
+        } else {
+          setItems([]);
+        }
+      })
+      .catch(() => {
+        setItems([]);
+      });
   }, [categoryId]);
 
   const handlePress = (item: any) => {
@@ -120,7 +131,7 @@ export default function MoreCategoryScreen() {
                 variant="list"
                 title={item.title}
                 author={item.address}
-                image={item.image}
+                image={item.image_url || item.image}
                 onPress={() => handlePress(item)}
               />
             ))}
