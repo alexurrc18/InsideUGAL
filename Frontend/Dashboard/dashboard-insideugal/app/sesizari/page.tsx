@@ -142,7 +142,6 @@ export default function SesizariPage() {
       const locationItems = itemsFromResponse(locationsPayload);
       const locationsById = new Map(locationItems.map((l) => [l.id, l.name]));
 
-      // Construim map de useri dacă endpoint-ul există
       const usersById = new Map<string, string>();
       if (usersResponse?.ok) {
         const usersPayload = (await usersResponse.json()) as PaginatedResponse<UserApiItem> | UserApiItem[];
@@ -245,6 +244,7 @@ export default function SesizariPage() {
       title: ticketForm.title,
       description: ticketForm.description,
       status: ticketForm.status,
+      image_url: ticketForm.image || null,
     };
 
     try {
@@ -268,7 +268,6 @@ export default function SesizariPage() {
   };
 
   const columns: Column<TicketItem>[] = [
-    // 1. Coloana imagine (nouă)
     {
       header: "Imagine",
       key: "image",
@@ -304,7 +303,6 @@ export default function SesizariPage() {
       key: "building",
       render: (item) => <span className="text-foreground font-medium">{item.building}</span>,
     },
-    // 2. "Depus de" arată acum numele utilizatorului
     {
       header: "Depus de",
       key: "authorName",
@@ -392,6 +390,7 @@ export default function SesizariPage() {
       >
         <form onSubmit={handleSave} className="space-y-4 text-sm max-h-[80vh] flex flex-col justify-between">
           <div className="space-y-4 overflow-y-auto pr-1 pb-4">
+
             <div>
               <label className="block text-xs font-semibold text-foreground mb-1">Titlu</label>
               <input
@@ -448,58 +447,57 @@ export default function SesizariPage() {
               />
             </div>
 
-            {/* 3. Secțiunea imagine simplificată */}
-            {activeModal === "add" && (
-              <div>
-                <label className="block text-xs font-semibold text-foreground mb-2">Imagine (opțional)</label>
-                <div className="flex flex-col gap-3 p-3 border border-dashed border-border rounded-lg bg-background/50">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const reader = new FileReader();
-                      reader.onloadend = () =>
-                        setTicketForm((prev) => ({ ...prev, image: reader.result as string }));
-                      reader.readAsDataURL(file);
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center justify-center gap-2 border border-border px-4 py-2 rounded-md text-xs font-semibold text-foreground bg-card hover:bg-slate-50 transition-all cursor-pointer w-full"
-                  >
-                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
-                    {ticketForm.image ? "Schimbă imaginea" : "Adaugă imagine"}
-                  </button>
+            {/* Secțiunea imagine — apare în ambele modaluri */}
+            <div>
+              <label className="block text-xs font-semibold text-foreground mb-2">Imagine (opțional)</label>
+              <div className="flex flex-col gap-3 p-3 border border-dashed border-border rounded-lg bg-background/50">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onloadend = () =>
+                      setTicketForm((prev) => ({ ...prev, image: reader.result as string }));
+                    reader.readAsDataURL(file);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center justify-center gap-2 border border-border px-4 py-2 rounded-md text-xs font-semibold text-foreground bg-card hover:bg-slate-50 transition-all cursor-pointer w-full"
+                >
+                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  {ticketForm.image ? "Schimbă imaginea" : "Adaugă imagine"}
+                </button>
 
-                  {ticketForm.image && (
-                    <div className="relative w-32 h-20 rounded-md overflow-hidden border border-border mx-auto">
-                      <Image
-                        src={ticketForm.image}
-                        alt="Preview"
-                        fill
-                        sizes="128px"
-                        className="object-cover"
-                        unoptimized
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setTicketForm((prev) => ({ ...prev, image: undefined }))}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] hover:bg-red-600"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  )}
-                </div>
+                {ticketForm.image && (
+                  <div className="relative w-32 h-20 rounded-md overflow-hidden border border-border mx-auto">
+                    <Image
+                      src={ticketForm.image}
+                      alt="Preview"
+                      fill
+                      sizes="128px"
+                      className="object-cover"
+                      unoptimized
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setTicketForm((prev) => ({ ...prev, image: undefined }))}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] hover:bg-red-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+
           </div>
 
           <div className="sticky bottom-0 bg-background pt-4 border-t border-border z-10 flex justify-end space-x-2">
