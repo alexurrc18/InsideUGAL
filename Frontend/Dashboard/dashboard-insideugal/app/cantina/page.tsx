@@ -20,7 +20,7 @@ interface Dish {
 interface ApiProduct {
   id: number;
   name?: string;
-  category?: any; // Permite atât string (vechi) cât și obiect (nou)
+  category?: string | { id: number; name: string }; // Permite atât string (vechi) cât și obiect (nou)
   description?: string;
   price?: number;
   nutritional_values?: string;
@@ -121,9 +121,11 @@ export default function Page() {
   }, []);
 
   useEffect(() => {
-    fetchCategories();
-    fetchProducts();
-    fetchMenus();
+    void Promise.resolve().then(async () => {
+      await fetchCategories();
+      await fetchProducts();
+      await fetchMenus();
+    });
   }, [fetchCategories, fetchProducts, fetchMenus]);
 
   // Mapare dinamică a categoriei (suportă string / obiect)
@@ -162,7 +164,7 @@ export default function Page() {
       weight: p.quantity ?? "",
       availableDays: productDaysMap[p.id] ?? [],
     }));
-  }, [apiData, menusData, categories]);
+  }, [apiData, menusData]);
 
   const filteredData = useMemo(() => {
     return activeDay === "Toate preparatele" 
