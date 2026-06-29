@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import Table, { Column } from "../components/ui/Table";
 import Modal from "../components/ui/Modal";
 import { apiBaseUrl, getAuthHeaders } from "@/lib/api-client";
@@ -29,6 +30,13 @@ type ComplaintApiItem = {
 type LocationApiItem = {
   id: number;
   name: string;
+};
+
+type UserApiItem = {
+  id: string;
+  full_name?: string;
+  name?: string;
+  email?: string;
 };
 
 type TicketItem = {
@@ -113,12 +121,16 @@ export default function SesizariPage() {
     setErrorMessage(null);
 
     try {
-      const [complaintsResponse, locationsResponse] = await Promise.all([
-        fetch(`${apiBaseUrl}/complaints/?size=200`, {
+      const [complaintsResponse, locationsResponse, usersResponse] = await Promise.all([
+        fetch(`${apiBaseUrl}/complaints/?size=50`, {
           headers: getAuthHeaders(),
           cache: "no-store",
         }),
-        fetch(`${apiBaseUrl}/locations/?size=200`, { cache: "no-store" }),
+        fetch(`${apiBaseUrl}/locations/?size=50`, { cache: "no-store" }),
+        fetch(`${apiBaseUrl}/users/?size=50`, {
+          headers: getAuthHeaders(),
+          cache: "no-store",
+        }).catch(() => null),
       ]);
 
       if (!complaintsResponse.ok) throw new Error(`Complaints status ${complaintsResponse.status}`);
@@ -126,8 +138,19 @@ export default function SesizariPage() {
 
       const complaintsPayload = (await complaintsResponse.json()) as PaginatedResponse<ComplaintApiItem> | ComplaintApiItem[];
       const locationsPayload = (await locationsResponse.json()) as PaginatedResponse<LocationApiItem> | LocationApiItem[];
+
       const locationItems = itemsFromResponse(locationsPayload);
-      const locationsById = new Map(locationItems.map((location) => [location.id, location.name]));
+      const locationsById = new Map(locationItems.map((l) => [l.id, l.name]));
+
+      // Construim map de useri dacă endpoint-ul există
+      const usersById = new Map<string, string>();
+      if (usersResponse?.ok) {
+        const usersPayload = (await usersResponse.json()) as PaginatedResponse<UserApiItem> | UserApiItem[];
+        itemsFromResponse(usersPayload).forEach((u) => {
+          const displayName = u.full_name ?? u.name ?? u.email ?? null;
+          if (displayName) usersById.set(u.id, displayName);
+        });
+      }
 
       setLocations(locationItems);
       setTickets(
@@ -140,7 +163,7 @@ export default function SesizariPage() {
           status: statusToLabel(item.status),
           backendStatus: item.status,
           createdBy: item.user_id,
-          authorName: item.user_id,
+          authorName: usersById.get(item.user_id) ?? `Utilizator ${item.user_id.slice(0, 8)}...`,
           image: item.image_url ?? undefined,
           date: formatDate(item.created_at),
         })),
@@ -163,10 +186,9 @@ export default function SesizariPage() {
   const filteredTickets = useMemo(() => {
     switch (activeTab) {
       case "active":
-        return tickets.filter((ticket) => ticket.status === "In asteptare" || ticket.status === "In lucru");
+        return tickets.filter((t) => t.status === "In asteptare" || t.status === "In lucru");
       case "closed":
-        return tickets.filter((ticket) => ticket.status === "Inchis" || ticket.status === "Respins");
-      case "all":
+        return tickets.filter((t) => t.status === "Inchis" || t.status === "Respins");
       default:
         return tickets;
     }
@@ -195,7 +217,6 @@ export default function SesizariPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Sigur vrei sa stergi aceasta sesizare?")) return;
-
     try {
       const response = await fetch(`${apiBaseUrl}/complaints/${id}`, {
         method: "DELETE",
@@ -228,14 +249,15 @@ export default function SesizariPage() {
 
     try {
       const response = await fetch(
-        activeModal === "edit" && selectedId ? `${apiBaseUrl}/complaints/${selectedId}` : `${apiBaseUrl}/complaints/`,
+        activeModal === "edit" && selectedId
+          ? `${apiBaseUrl}/complaints/${selectedId}`
+          : `${apiBaseUrl}/complaints/`,
         {
           method: activeModal === "edit" && selectedId ? "PATCH" : "POST",
           headers: getAuthHeaders(),
           body: JSON.stringify(activeModal === "edit" ? updatePayload : createPayload),
         },
       );
-
       if (!response.ok) throw new Error(`Status ${response.status}`);
       setActiveModal(null);
       await fetchData();
@@ -246,6 +268,24 @@ export default function SesizariPage() {
   };
 
   const columns: Column<TicketItem>[] = [
+    // 1. Coloana imagine (nouă)
+    {
+      header: "Imagine",
+      key: "image",
+      render: (item) =>
+        item.image ? (
+          <Image
+            src={item.image}
+            alt="img"
+            width={44}
+            height={44}
+            className="rounded-md object-cover border border-border"
+            unoptimized={item.image.startsWith("data:") || item.image.startsWith("http")}
+          />
+        ) : (
+          <div className="w-11 h-11 bg-slate-100 rounded-md border border-slate-200" />
+        ),
+    },
     {
       header: "Titlu",
       key: "title",
@@ -264,6 +304,7 @@ export default function SesizariPage() {
       key: "building",
       render: (item) => <span className="text-foreground font-medium">{item.building}</span>,
     },
+    // 2. "Depus de" arată acum numele utilizatorului
     {
       header: "Depus de",
       key: "authorName",
@@ -287,7 +328,7 @@ export default function SesizariPage() {
       header: "Actiuni",
       key: "actions",
       render: (item) => (
-        <div className="flex space-x-3 text-xs" onClick={(event) => event.stopPropagation()}>
+        <div className="flex space-x-3 text-xs" onClick={(e) => e.stopPropagation()}>
           <button type="button" className="text-blue-600 hover:text-blue-800 font-medium hover:underline" onClick={() => handleOpenEditModal(item)}>
             Editare
           </button>
@@ -356,7 +397,7 @@ export default function SesizariPage() {
               <input
                 type="text"
                 value={ticketForm.title}
-                onChange={(event) => setTicketForm({ ...ticketForm, title: event.target.value })}
+                onChange={(e) => setTicketForm({ ...ticketForm, title: e.target.value })}
                 className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand"
                 required
               />
@@ -367,12 +408,12 @@ export default function SesizariPage() {
                 <label className="block text-xs font-semibold text-foreground mb-1">Modifica Status</label>
                 <select
                   value={ticketForm.status}
-                  onChange={(event) => setTicketForm({ ...ticketForm, status: event.target.value as ComplaintStatus })}
+                  onChange={(e) => setTicketForm({ ...ticketForm, status: e.target.value as ComplaintStatus })}
                   className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm font-semibold text-foreground"
                 >
-                  {statusOptions.map((option) => (
-                    <option key={`${option.value}-${option.label}`} value={option.value}>
-                      {option.label}
+                  {statusOptions.map((opt) => (
+                    <option key={`${opt.value}-${opt.label}`} value={opt.value}>
+                      {opt.label}
                     </option>
                   ))}
                 </select>
@@ -383,14 +424,14 @@ export default function SesizariPage() {
               <label className="block text-xs font-semibold text-foreground mb-1">Selecteaza Cladirea / Corpul</label>
               <select
                 value={ticketForm.locationId}
-                onChange={(event) => setTicketForm({ ...ticketForm, locationId: event.target.value })}
+                onChange={(e) => setTicketForm({ ...ticketForm, locationId: e.target.value })}
                 className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm font-medium text-foreground"
                 disabled={activeModal === "edit"}
               >
                 <option value="">Fara locatie</option>
-                {locations.map((location) => (
-                  <option key={location.id} value={location.id}>
-                    {location.name}
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name}
                   </option>
                 ))}
               </select>
@@ -400,46 +441,65 @@ export default function SesizariPage() {
               <label className="block text-xs font-semibold text-foreground mb-1">Descriere detaliata</label>
               <textarea
                 value={ticketForm.description}
-                onChange={(event) => setTicketForm({ ...ticketForm, description: event.target.value })}
+                onChange={(e) => setTicketForm({ ...ticketForm, description: e.target.value })}
                 rows={4}
                 className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand resize-none"
                 required
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-foreground mb-1">Imagine URL optional</label>
-              <input
-                type="url"
-                value={ticketForm.image || ""}
-                onChange={(event) => setTicketForm({ ...ticketForm, image: event.target.value })}
-                placeholder="https://exemplu.ro/imagine.jpg"
-                className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand"
-                disabled={activeModal === "edit"}
-              />
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/*"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (!file) return;
-                  const reader = new FileReader();
-                  reader.onloadend = () => setTicketForm((current) => ({ ...current, image: reader.result as string }));
-                  reader.readAsDataURL(file);
-                }}
-                className="hidden"
-              />
-              {activeModal === "add" && (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="mt-2 px-4 py-2 rounded-lg text-xs font-semibold border bg-card border-border text-foreground hover:bg-slate-50"
-                >
-                  Alege fisier
-                </button>
-              )}
-            </div>
+            {/* 3. Secțiunea imagine simplificată */}
+            {activeModal === "add" && (
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-2">Imagine (opțional)</label>
+                <div className="flex flex-col gap-3 p-3 border border-dashed border-border rounded-lg bg-background/50">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onloadend = () =>
+                        setTicketForm((prev) => ({ ...prev, image: reader.result as string }));
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center justify-center gap-2 border border-border px-4 py-2 rounded-md text-xs font-semibold text-foreground bg-card hover:bg-slate-50 transition-all cursor-pointer w-full"
+                  >
+                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    {ticketForm.image ? "Schimbă imaginea" : "Adaugă imagine"}
+                  </button>
+
+                  {ticketForm.image && (
+                    <div className="relative w-32 h-20 rounded-md overflow-hidden border border-border mx-auto">
+                      <Image
+                        src={ticketForm.image}
+                        alt="Preview"
+                        fill
+                        sizes="128px"
+                        className="object-cover"
+                        unoptimized
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setTicketForm((prev) => ({ ...prev, image: undefined }))}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] hover:bg-red-600"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="sticky bottom-0 bg-background pt-4 border-t border-border z-10 flex justify-end space-x-2">
