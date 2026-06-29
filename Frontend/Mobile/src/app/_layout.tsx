@@ -11,8 +11,8 @@ import { AuthProvider } from '@/contexts/auth-context';
 SplashScreen.preventAutoHideAsync();
 
 SplashScreen.setOptions({
-  duration: 250,
-  fade: true
+  duration: 500,
+  fade: true,
 });
 
 export default function RootLayout() {

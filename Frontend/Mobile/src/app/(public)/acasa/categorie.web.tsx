@@ -96,7 +96,7 @@ export default function CategoryScreen() {
             date_end: isoToRomanianDateStr(item.end_date) || "",
             time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
             time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-            author: item.author || "Autor necunoscut",
+            author: item.author_name || "",
             image: item.image_url || undefined,
             content: item.content || "Conținut necunoscut",
             location: item.location_name || "Locație necunoscută",
@@ -123,7 +123,7 @@ export default function CategoryScreen() {
           }));
         }
       } else if (categoryTitle === "Facilități") {
-        response = await api.get("/locations/", {
+        response = await api.get("/facilities/", {
           params: {
             page: pageToFetch,
             size: 20
@@ -134,11 +134,7 @@ export default function CategoryScreen() {
             id: item.id.toString(),
             title: item.name || "Titlu necunoscut",
             image: item.image_url || undefined,
-            address: item.address || "Adresă necunoscută",
-            phone: item.phone || "",
-            website: item.website_url || "",
-            content: item.name || "Conținut necunoscut",
-            schedule: item.schedule || "",
+            content: item.description || "",
           }));
         }
       }

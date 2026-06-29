@@ -29,7 +29,14 @@ export default function TabLayout() {
                     tabPress: (e) => {
                         const state = navigation.getState();
                         if (state) {
+                            const current = state.routes[state.index];
                             const route = state.routes.find((r: any) => r.key === e.target);
+                            if (current?.name === 'acasa' && route?.name !== 'acasa') {
+                                navigation.navigate('acasa', { screen: 'index' });
+                            }
+                            if (current?.name === 'sesizari' && route?.name !== 'sesizari') {
+                                navigation.navigate('sesizari', { screen: 'index' });
+                            }
                             if (route) {
                                 navigation.navigate(route.name, { screen: 'index' });
                             }

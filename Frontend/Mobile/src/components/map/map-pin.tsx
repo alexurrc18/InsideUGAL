@@ -12,12 +12,12 @@ import HandshakeIcon from '@/assets/icons/svg/handshake.svg';
 
 interface MapPinProps {
   name: string;
+  marker: string;
   facultyId: string;
 }
 
-export const MapPin = ({ name, facultyId }: MapPinProps) => {
+export const MapPin = ({ name, marker, facultyId }: MapPinProps) => {
   const theme = useTheme();
-  const letter = getBuildingLetter(name);
   const isFacility = facultyId === 'f8';
   const status = isFacility ? getFacilityStatus(name) : 'open';
   const open = status !== 'closed';
@@ -29,7 +29,7 @@ export const MapPin = ({ name, facultyId }: MapPinProps) => {
     if (!isFacility) {
       return (
         <Text style={{ color: ColorScheme.white, fontSize: 13, fontWeight: 'bold', textAlign: 'center' }}>
-          {letter}
+          {marker}
         </Text>
       );
     }
@@ -53,7 +53,7 @@ export const MapPin = ({ name, facultyId }: MapPinProps) => {
 
     return (
       <Text style={{ color: ColorScheme.white, fontSize: 13, fontWeight: 'bold', textAlign: 'center' }}>
-        {letter}
+        {marker}
       </Text>
     );
   };
