@@ -54,10 +54,9 @@ export default function LoginPage() {
         throw new Error("Raspunsul de autentificare nu contine un access_token valid.");
       }
 
-      const tokenType =
-        data && typeof data === "object" && typeof (data as Record<string, unknown>).token_type === "string"
-          ? ((data as Record<string, unknown>).token_type as string)
-          : "bearer";
+      const tokenType = data && typeof data === "object" && typeof (data as Record<string, unknown>).token_type === "string"
+        ? (data as Record<string, string>).token_type
+        : "bearer";
 
       localStorage.setItem("access_token", accessToken);
       localStorage.setItem("token_type", tokenType);

@@ -1,10 +1,11 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, ScrollView, RefreshControl, Platform, Pressable, Alert, StyleSheet } from "react-native";
 import Animated, { useSharedValue, withTiming, useAnimatedStyle, useAnimatedProps, interpolateColor } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import { MOCK_NOTIFICARI } from "./notificari";
 
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
@@ -44,6 +45,28 @@ export default function HomeScreen() {
   const headerBgColor = themeName === "light" ? ColorScheme.pureBlack : ColorScheme.pureWhite;
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      storage.getItem('read_notification_ids').then((val) => {
+        let readSet = new Set<string>();
+        if (val) {
+          try {
+            const ids = JSON.parse(val);
+            if (Array.isArray(ids)) {
+              readSet = new Set(ids);
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        const count = MOCK_NOTIFICARI.filter(n => !readSet.has(n.id)).length;
+        setUnreadCount(count);
+      });
+    }, [])
+  );
 
   const [noutati, setNoutati] = useState<any[]>([]);
   const [evenimente, setEvenimente] = useState<any[]>([]);
@@ -437,6 +460,26 @@ export default function HomeScreen() {
             <InteractiveGlass size={45} style={{ shadowColor: theme.text, shadowOpacity: 0.2, shadowRadius: 5 }}>
               <AnimatedBell width={25} height={25} animatedProps={bellAnimatedProps} />
             </InteractiveGlass>
+            {unreadCount > 0 && (
+              <View
+                style={{
+                  position: "absolute",
+                  top: -4,
+                  right: -4,
+                  minWidth: 20,
+                  height: 20,
+                  borderRadius: 10,
+                  backgroundColor: theme.secondary,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingHorizontal: 3,
+                }}
+              >
+                <Text style={{ color: ColorScheme.white, fontSize: 11, fontFamily: "InstrumentSans-SemiBold", lineHeight: 13 }}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </Text>
+              </View>
+            )}
           </Pressable>
         ) : (
           <Pressable
@@ -454,6 +497,28 @@ export default function HomeScreen() {
             ]}
           >
             <AnimatedBell width={26} height={26} color="#FFFFFF" />
+            {unreadCount > 0 && (
+              <View
+                style={{
+                  position: "absolute",
+                  top: -4,
+                  right: -4,
+                  minWidth: 20,
+                  height: 20,
+                  borderRadius: 10,
+                  backgroundColor: theme.secondary,
+                  borderWidth: 1.5,
+                  borderColor: theme.primary,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingHorizontal: 2,
+                }}
+              >
+                <Text style={{ color: ColorScheme.white, fontSize: 11, fontFamily: "InstrumentSans-SemiBold", lineHeight: 13 }}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </Text>
+              </View>
+            )}
           </Pressable>
         )}
       </Animated.View>

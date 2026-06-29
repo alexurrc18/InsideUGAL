@@ -64,9 +64,8 @@ Paginated endpoints include:
 - `GET /faculties`
 - `GET /categories`
 - `GET /products`
-- `GET /profiles`
 - `GET /daily-menus`
-- `GET /cafeteria_menus`
+- `GET /profiles`
 
 ## Prerequisites
 

@@ -26,6 +26,7 @@ import { WebContainer, WEB_COMPACT_BREAKPOINT } from "@/components/ui/layout/web
 import { ThemeMenu } from "@/components/ui/navigation/theme-menu";
 import { ThemeToggle } from "@/components/ui/navigation/theme-toggle";
 import { ProfileMenu, DASHBOARD_URL } from "@/components/ui/navigation/profile-menu";
+import { NotificationMenu } from "@/components/ui/navigation/notification-menu";
 import ChevronIcon from "@/assets/icons/svg/chevron-left.svg";
 import api, { getAuthToken, logout } from "@/services/api";
 
@@ -94,7 +95,7 @@ export function WebNavbar() {
   const zoom = width > WebContentMaxWidth ? Math.min(width / WebContentMaxWidth, WebMaxScale) : 1;
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [activeMenu, setActiveMenu] = useState<"theme" | "profile" | null>(null);
+  const [activeMenu, setActiveMenu] = useState<"theme" | "profile" | "notifications" | null>(null);
   // Hide-on-scroll: bara ascunsa la scroll in jos, vizibila la scroll in sus.
   const [hidden, setHidden] = useState(false);
   // Pozitia de scroll de la ultimul event (ref, ca sa o putem reseta la navigare).
@@ -198,6 +199,10 @@ export function WebNavbar() {
     const onScroll = (e: Event) => {
       const el = e.target as HTMLElement | null;
       if (!el || typeof el.scrollTop !== "number") return;
+      // Ignora scroll-ul care vine din interiorul navbar-ului (ex: lista din panoul
+      // de notificari). Altfel scroll-ul dintr-un dropdown ar ascunde bara ca un
+      // scroll de pagina.
+      if (typeof el.closest === "function" && el.closest("#web-navbar")) return;
       const y = el.scrollTop;
       if (y <= NAVBAR_HEIGHT) {
         setHidden(false); // langa varf ramane mereu vizibila
@@ -231,7 +236,7 @@ export function WebNavbar() {
   }));
 
   return (
-    <Animated.View style={[styles.bar, hideStyle]} pointerEvents="box-none">
+    <Animated.View nativeID="web-navbar" style={[styles.bar, hideStyle]} pointerEvents="box-none">
       {/* Cand navbarul e transparent (peste hero), un gradient negru sus->transparent
           jos da contrast textului alb. Sta SUB fundalul albastru: cand bara devine
           solida, albastrul (opacity 1) il acopera complet. Extins in sus cu insets.top. */}
@@ -278,16 +283,29 @@ export function WebNavbar() {
           </Pressable>
 
           {isCompact ? (
-            /* Ecran ingust: doar butonul hamburger. */
-            <Pressable
-              onPress={() => setMenuOpen((v) => !v)}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={menuOpen ? "Închide meniul" : "Deschide meniul"}
-              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, padding: Spacing.xs })}
-            >
-              <HamburgerIcon open={menuOpen} />
-            </Pressable>
+            /* Ecran ingust: clopotel de notificari + buton hamburger. */
+            <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.xs, height: NAVBAR_HEIGHT }}>
+              <NotificationMenu
+                open={activeMenu === "notifications"}
+                onToggle={() => {
+                  setMenuOpen(false); // nu tinem ambele panouri deschise simultan
+                  setActiveMenu(activeMenu === "notifications" ? null : "notifications");
+                }}
+                onClose={() => activeMenu === "notifications" && setActiveMenu(null)}
+              />
+              <Pressable
+                onPress={() => {
+                  setActiveMenu(null); // inchide panoul de notificari la deschiderea meniului
+                  setMenuOpen((v) => !v);
+                }}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={menuOpen ? "Închide meniul" : "Deschide meniul"}
+                style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, padding: Spacing.xs })}
+              >
+                <HamburgerIcon open={menuOpen} />
+              </Pressable>
+            </View>
           ) : (
             /* Ecran lat: link-uri + meniu tema */
             <View style={styles.right}>
@@ -366,6 +384,11 @@ export function WebNavbar() {
               })}
 
               <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.xs, marginLeft: Spacing.xl3, height: NAVBAR_HEIGHT }}>
+                <NotificationMenu
+                  open={activeMenu === "notifications"}
+                  onToggle={() => setActiveMenu(activeMenu === "notifications" ? null : "notifications")}
+                  onClose={() => activeMenu === "notifications" && setActiveMenu(null)}
+                />
                 <ThemeMenu
                   solid={solid}
                   open={activeMenu === "theme"}

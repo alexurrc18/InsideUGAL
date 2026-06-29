@@ -7,6 +7,7 @@ import pytest_asyncio
 from dotenv import load_dotenv
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.pool import NullPool
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 load_dotenv()
@@ -55,6 +56,41 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
     async with test_engine.connect() as connection:
         await connection.begin()
+        await connection.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS public.daily_menus (
+                    id SERIAL PRIMARY KEY,
+                    day_of_week INTEGER NOT NULL,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                )
+                """
+            )
+        )
+        await connection.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS public.menu_products (
+                    menu_id INTEGER NOT NULL REFERENCES public.daily_menus(id) ON DELETE CASCADE,
+                    product_id INTEGER NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+                    PRIMARY KEY (menu_id, product_id)
+                )
+                """
+            )
+        )
+        await connection.execute(text("ALTER TABLE public.facilities ADD COLUMN IF NOT EXISTS image_url TEXT"))
+        await connection.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS public.location_faculties (
+                    location_id INTEGER NOT NULL REFERENCES public.locations(id) ON DELETE CASCADE,
+                    faculty_id INTEGER NOT NULL REFERENCES public.faculties(id) ON DELETE CASCADE,
+                    PRIMARY KEY (location_id, faculty_id)
+                )
+                """
+            )
+        )
         TestingSessionLocal = async_sessionmaker(
             bind=connection,
             class_=AsyncSession,

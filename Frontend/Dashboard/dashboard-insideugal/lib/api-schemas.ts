@@ -17,6 +17,7 @@ export const facultySchema = z.object({
   name: z.string(),
   abbreviation: z.string(),
   description: z.string().nullable(),
+  logo_url: z.string().nullable().optional(),
   created_at: isoDateSchema,
   updated_at: isoDateSchema,
 });

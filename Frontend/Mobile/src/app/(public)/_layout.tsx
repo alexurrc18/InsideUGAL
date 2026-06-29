@@ -4,7 +4,7 @@ import React from 'react';
 import { View } from "react-native";
 import { Colors } from '@/constants/theme';
 import { useNavigation } from 'expo-router';
-// import { Ace } from '@/components/ui/layout/ace';
+import { Ace } from '@/components/ui/layout/ace';
 import { Typography } from '@/constants/typography';
 
 export default function TabLayout() {
@@ -92,7 +92,7 @@ export default function TabLayout() {
                     <NativeTabs.Trigger.Label>Mai multe</NativeTabs.Trigger.Label>
                 </NativeTabs.Trigger>
             </NativeTabs>
-            {/* <Ace /> */}
+            <Ace />
         </View>
     );
 }

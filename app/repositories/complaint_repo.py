@@ -1,5 +1,6 @@
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.models.models import Complaint
 from app.models.schemas import ComplaintCreate
@@ -9,6 +10,19 @@ from app.repositories.base import CRUDRepository
 class ComplaintRepository(CRUDRepository[Complaint]):
     model = Complaint
 
+    @staticmethod
+    def _with_author_name(complaint: Complaint) -> Complaint:
+        user = complaint.user
+        if user is not None:
+            complaint.author_name = f"{user.first_name} {user.last_name}".strip()
+        else:
+            complaint.author_name = None
+        return complaint
+
+    @staticmethod
+    def _base_select():
+        return select(Complaint).options(joinedload(Complaint.user))
+
     async def get_all(
         self,
         session: AsyncSession,
@@ -16,7 +30,7 @@ class ComplaintRepository(CRUDRepository[Complaint]):
         location_id: int | None = None,
         user_id: str | None = None,
     ) -> list[Complaint]:
-        query = select(Complaint).order_by(Complaint.created_at.desc())
+        query = self._base_select().order_by(Complaint.created_at.desc())
 
         if status is not None:
             query = query.where(Complaint.status == status)
@@ -26,7 +40,7 @@ class ComplaintRepository(CRUDRepository[Complaint]):
             query = query.where(Complaint.user_id == user_id)
 
         result = await session.execute(query)
-        return list(result.scalars().all())
+        return [self._with_author_name(complaint) for complaint in result.scalars().all()]
 
     async def get_page(
         self,
@@ -38,7 +52,7 @@ class ComplaintRepository(CRUDRepository[Complaint]):
         location_id: int | None = None,
         user_id: str | None = None,
     ) -> tuple[list[Complaint], int]:
-        query = select(Complaint).order_by(Complaint.created_at.desc())
+        query = self._base_select().order_by(Complaint.created_at.desc())
 
         if status is not None:
             query = query.where(Complaint.status == status)
@@ -51,7 +65,12 @@ class ComplaintRepository(CRUDRepository[Complaint]):
         total = total_result.scalar_one()
 
         result = await session.execute(query.limit(limit).offset(offset))
-        return list(result.scalars().all()), total
+        return [self._with_author_name(complaint) for complaint in result.scalars().all()], total
+
+    async def get_by_id(self, session: AsyncSession, entity_id: int) -> Complaint | None:
+        result = await session.execute(self._base_select().where(Complaint.id == entity_id))
+        complaint = result.scalars().first()
+        return self._with_author_name(complaint) if complaint else None
 
     async def create_for_user(self, session: AsyncSession, complaint_in: ComplaintCreate, user_id: str) -> Complaint:
         return await self.create(session, complaint_in, user_id=user_id)

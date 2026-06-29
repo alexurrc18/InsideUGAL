@@ -26,6 +26,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { Spacing, ColorScheme } from '@/constants/theme';
 import { Typography } from '@/constants/typography';
 import { NewsCard } from '@/components/ui/display/news-card';
+import api from '@/services/api';
 import { streamAce } from '@/services/ace-stream';
 
 import CloseIcon from '@/assets/icons/svg/x.svg';

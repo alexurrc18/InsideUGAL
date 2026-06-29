@@ -50,7 +50,7 @@ export const announcementsService = {
     }),
 
   generateBanner: (data: GenerateBannerPayload) =>
-    apiRequest("/llm/generate-banner", generateBannerSchema, {
+    apiRequest("/api/v1/llm/generate-banner", generateBannerSchema, {
       method: "POST",
       body: data,
     }),
