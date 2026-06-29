@@ -279,6 +279,7 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchApiData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

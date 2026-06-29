@@ -203,7 +203,6 @@ function VizualizareScreen() {
         return () => {
             isMounted = false;
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, initialTipPagina, retryKey]);
 
     const title = itemData?.title || "";

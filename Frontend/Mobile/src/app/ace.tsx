@@ -22,7 +22,7 @@ import { InteractiveGlass } from '@/components/ui/layout/interactive-glass';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { NewsCard } from '@/components/ui/display/news-card';
-import api, { ace } from '@/services/api';
+import { ace } from '@/services/api';
 
 import CloseIcon from '@/assets/icons/svg/x.svg';
 import MessagePlusIcon from '@/assets/icons/svg/message-plus.svg';

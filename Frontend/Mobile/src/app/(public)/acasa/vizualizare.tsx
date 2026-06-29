@@ -211,7 +211,6 @@ function VizualizareScreen() {
                 interactionTask.cancel();
             }
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, initialTipPagina, retryKey]);
 
     const onRefresh = () => {
@@ -242,7 +241,6 @@ function VizualizareScreen() {
     const address = itemData?.address || "";
     const phone = itemData?.phone || "";
     const website = itemData?.website || "";
-    const schedule = itemData?.schedule || "";
     const date = itemData?.date || "";
 
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
