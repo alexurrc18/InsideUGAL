@@ -12,9 +12,10 @@ from sqlalchemy import (
     Table,
     Text,
     Time,
+    UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import UUID, ENUM
+from sqlalchemy.dialects.postgresql import JSONB, UUID, ENUM
 from sqlalchemy.orm import relationship
 
 from app.db.database import Base
@@ -25,12 +26,20 @@ class TimestampMixin:
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
-# Tabelul de legatura pentru meniul zilei (Multe-la-Multe)
 menu_products = Table(
     "menu_products",
     Base.metadata,
     Column("menu_id", Integer, ForeignKey("public.daily_menus.id", ondelete="CASCADE"), primary_key=True),
     Column("product_id", Integer, ForeignKey("public.products.id", ondelete="CASCADE"), primary_key=True),
+    schema="public",
+)
+
+
+location_faculties = Table(
+    "location_faculties",
+    Base.metadata,
+    Column("location_id", Integer, ForeignKey("public.locations.id", ondelete="CASCADE"), primary_key=True),
+    Column("faculty_id", Integer, ForeignKey("public.faculties.id", ondelete="CASCADE"), primary_key=True),
     schema="public",
 )
 
@@ -53,6 +62,7 @@ class Profile(Base, TimestampMixin):
     faculty = relationship("Faculty", back_populates="profiles")
     complaints = relationship("Complaint", back_populates="user")
     announcements = relationship("Announcement", back_populates="creator")
+    push_tokens = relationship("PushToken", back_populates="profile")
 
 
 class Faculty(Base, TimestampMixin):
@@ -69,8 +79,7 @@ class Faculty(Base, TimestampMixin):
     dormitory_url = Column(Text)
     logo_url = Column(Text)
 
-    locations = relationship("Location", back_populates="faculty")
-    announcements = relationship("Announcement", back_populates="faculty")
+    locations = relationship("Location", secondary=location_faculties, back_populates="faculties")
     profiles = relationship("Profile", back_populates="faculty")
 
 
@@ -80,6 +89,32 @@ class Category(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(100), unique=True, nullable=False)
+
+
+class CityGuideCategory(Base):
+    __tablename__ = "city_guide_categories"
+    __table_args__ = {"schema": "public"}
+
+    id = Column(String(100), primary_key=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+    icon_name = Column(String(100), nullable=False)
+
+    items = relationship("CityGuideItem", back_populates="category", cascade="all, delete-orphan")
+
+
+class CityGuideItem(Base, TimestampMixin):
+    __tablename__ = "city_guide_items"
+    __table_args__ = {"schema": "public"}
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(255), nullable=False)
+    category_id = Column(String(100), ForeignKey("public.city_guide_categories.id", ondelete="CASCADE"), nullable=False)
+    image_url = Column(Text)
+    address = Column(Text)
+    website = Column(Text)
+
+    category = relationship("CityGuideCategory", back_populates="items")
 
 
 class ProductCategory(Base):
@@ -99,11 +134,10 @@ class Location(Base, TimestampMixin):
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False)
     coordinates = Column(Geometry(geometry_type="POINT", srid=4326))
-    faculty_id = Column(Integer, ForeignKey("public.faculties.id", ondelete="SET NULL"))
     facility_id = Column(Integer, ForeignKey("public.facilities.id", ondelete="SET NULL"))
     marker = Column(String(10))
 
-    faculty = relationship("Faculty", back_populates="locations")
+    faculties = relationship("Faculty", secondary=location_faculties, back_populates="locations")
     facility = relationship("Facility", back_populates="locations")
     complaints = relationship("Complaint", back_populates="location")
 
@@ -115,6 +149,7 @@ class Facility(Base, TimestampMixin):
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False)
     description = Column(Text)
+    image_url = Column(Text)
 
     locations = relationship("Location", back_populates="facility")
     schedules = relationship(
@@ -188,21 +223,42 @@ class Announcement(Base, TimestampMixin):
     __table_args__ = {"schema": "public"}
 
     id = Column(Integer, primary_key=True)
-    
+
     type = Column(ENUM('NOUTATE', 'EVENIMENT', name='post_type', create_type=False), nullable=False, server_default="NOUTATE")
-    
+
     created_by = Column(UUID(as_uuid=False), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
     title = Column(String(255))
     content = Column(Text, nullable=False)
     image_url = Column(Text)
-    faculty_id = Column(Integer, ForeignKey("public.faculties.id", ondelete="SET NULL"))
+    event_link = Column(String(500))
+    files = Column(JSONB, nullable=False, server_default="[]")
+    faculties = Column(JSONB, nullable=False, server_default="[]")
     location_name = Column(String(255))
     start_date = Column(DateTime(timezone=True))
     end_date = Column(DateTime(timezone=True))
 
     creator = relationship("Profile", back_populates="announcements")
-    faculty = relationship("Faculty", back_populates="announcements")
+    translations = relationship(
+        "AnnouncementTranslation",
+        back_populates="announcement",
+        cascade="all, delete-orphan",
+    )
 
+
+class AnnouncementTranslation(Base, TimestampMixin):
+    __tablename__ = "announcement_translations"
+    __table_args__ = (
+        UniqueConstraint("announcement_id", "language_code", name="uq_announcement_language"),
+        {"schema": "public"},
+    )
+
+    id = Column(Integer, primary_key=True)
+    announcement_id = Column(Integer, ForeignKey("public.announcements.id", ondelete="CASCADE"), nullable=False)
+    language_code = Column(String(10), nullable=False)
+    translated_title = Column(String(255), nullable=False)
+    translated_content = Column(Text, nullable=False)
+
+    announcement = relationship("Announcement", back_populates="translations")
 
 
 class LLMCall(Base):
@@ -233,3 +289,35 @@ class QuestionsHistory(Base):
     pdf_id = Column(Text, nullable=False)
     question = Column(Text, nullable=False)
     answer = Column(Text, nullable=False)
+
+
+class PushToken(Base, TimestampMixin):
+    __tablename__ = "push_tokens"
+    __table_args__ = {"schema": "public"}
+
+    id = Column(Integer, primary_key=True)
+    profile_id = Column(UUID(as_uuid=False), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
+    token = Column(Text, nullable=False)
+    device_type = Column(String(50))
+    is_valid = Column(Boolean, nullable=False, default=True)
+    last_used_at = Column(DateTime(timezone=True))
+
+    profile = relationship("Profile", back_populates="push_tokens")
+
+
+class Notification(Base, TimestampMixin):
+    __tablename__ = "notifications"
+    __table_args__ = {"schema": "public"}
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(255), nullable=False)
+    body = Column(Text, nullable=False)
+    action = Column(String(500))
+    faculty_id = Column(Integer, ForeignKey("public.faculties.id", ondelete="SET NULL"))
+    sent_by = Column(UUID(as_uuid=False), ForeignKey("public.profiles.id", ondelete="CASCADE"), nullable=False)
+    sent_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    recipient_count = Column(Integer, nullable=False, default=0)
+
+    sent_by_profile = relationship("Profile", foreign_keys=[sent_by])
+    faculty = relationship("Faculty")
+

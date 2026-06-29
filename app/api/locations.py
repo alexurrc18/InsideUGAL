@@ -14,9 +14,9 @@ repo = LocationRepository()
 manage_locations = require_roles(schemas.UserRole.HEAD_ADMIN, schemas.UserRole.HEAD_FACULTATI)
 
 
-async def validate_faculty(payload: BaseModel, db: AsyncSession) -> None:
-    faculty_id = getattr(payload, "faculty_id", None)
-    if faculty_id is not None:
+async def validate_faculties(payload: BaseModel, db: AsyncSession) -> None:
+    faculty_ids = getattr(payload, "faculty_ids", None) or []
+    for faculty_id in faculty_ids:
         await ensure_exists(db, models.Faculty, faculty_id, "Faculty not found.")
 
 
@@ -49,7 +49,7 @@ async def create_location(
     session: AsyncSession = Depends(get_db),
     current_profile=Depends(manage_locations),
 ):
-    await validate_faculty(location_in, session)
+    await validate_faculties(location_in, session)
     await validate_facility(location_in, session)
     location = await repo.create(session, location_in)
     return await repo.get_response_by_id(session, location.id)
@@ -65,7 +65,7 @@ async def update_location(
     location = await repo.get_by_id(session, location_id)
     if not location:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Location not found.")
-    await validate_faculty(location_in, session)
+    await validate_faculties(location_in, session)
     await validate_facility(location_in, session)
     updated_location = await repo.update(session, location, location_in)
     return await repo.get_response_by_id(session, updated_location.id)

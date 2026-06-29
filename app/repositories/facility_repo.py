@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.models import Facility
+from app.models.models import Facility, Location
 from app.repositories.base import CRUDRepository
 
 
@@ -15,7 +15,7 @@ class FacilityRepository(CRUDRepository[Facility]):
     def _load_options():
         return (
             selectinload(Facility.schedules),
-            selectinload(Facility.locations),
+            selectinload(Facility.locations).selectinload(Location.faculties),
         )
 
     async def get_page(self, session: AsyncSession, *, limit: int, offset: int) -> tuple[list[Facility], int]:

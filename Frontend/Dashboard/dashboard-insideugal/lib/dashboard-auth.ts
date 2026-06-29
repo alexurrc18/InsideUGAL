@@ -76,8 +76,9 @@ export async function fetchCurrentDashboardRole(): Promise<DashboardRole | null>
   if (!token) return null;
 
   const response = await fetch(`${apiBaseUrl}/profiles/me`, {
-    headers: getAuthHeaders(),
     cache: "no-store",
+    credentials: "include",
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) return null;

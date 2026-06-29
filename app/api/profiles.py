@@ -1,4 +1,5 @@
 import os
+import secrets
 from functools import lru_cache
 from uuid import UUID
 
@@ -150,11 +151,12 @@ async def create_profile(
     try:
         if auth_user_id is None:
             supabase = get_supabase_admin_client()
+            temporary_password = secrets.token_urlsafe(16)
             auth_response = await run_in_threadpool(
                 supabase.auth.admin.create_user,
                 {
                     "email": profile_in.email,
-                    "password": "ParolaTemporara123!",
+                    "password": temporary_password,
                     "email_confirm": True,
                     "user_metadata": {
                         "username": profile_in.username,

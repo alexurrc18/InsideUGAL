@@ -1,6 +1,29 @@
 -- Profiles are synchronized from Supabase Auth in post-init.
 -- This seed file contains only application data.
 
+ALTER TABLE public.faculties ADD COLUMN IF NOT EXISTS logo_url TEXT;
+ALTER TABLE public.facilities ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE public.locations DROP COLUMN IF EXISTS faculty_id;
+
+CREATE TABLE IF NOT EXISTS public.daily_menus (
+    id SERIAL PRIMARY KEY,
+    day_of_week INTEGER NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.menu_products (
+    menu_id INTEGER NOT NULL REFERENCES public.daily_menus(id) ON DELETE CASCADE,
+    product_id INTEGER NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+    PRIMARY KEY (menu_id, product_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.location_faculties (
+    location_id INTEGER NOT NULL REFERENCES public.locations(id) ON DELETE CASCADE,
+    faculty_id INTEGER NOT NULL REFERENCES public.faculties(id) ON DELETE CASCADE,
+    PRIMARY KEY (location_id, faculty_id)
+);
+
 -- 1. FACULTIES (Actualizate cu toate facultatile din lista ta)
 INSERT INTO public.faculties (id, name, abbreviation, address, phone, website_url) VALUES
 (1, 'Facultatea de Automatica, Calculatoare, Inginerie Electrica si Electronica', 'ACIEE', 'Str. Stiintei nr. 2', '0236412345', 'https://aciee.ugal.ro'),
@@ -31,9 +54,23 @@ WHERE f.id <> canonical.id
   AND f.abbreviation = canonical.abbreviation
   AND canonical.id BETWEEN 1 AND 15;
 
-UPDATE public.faculties
-SET logo_url = '/storage/v1/object/public/faculty-logos/ugal-logo.png'
-WHERE logo_url IS NULL;
+UPDATE public.faculties SET logo_url = CASE id
+  WHEN 1 THEN 'https://www.ugal.ro/images/faculties/logo.png'
+  WHEN 2 THEN 'https://www.ugal.ro/images/faculties/an.jpg'
+  WHEN 3 THEN 'https://www.ugal.ro/images/faculties/efs.png'
+  WHEN 4 THEN 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTs3IcoYJ6WmdRkTbEtmZgmd1Kepkag93y_rGH2UJfukw&s=10'
+  WHEN 5 THEN 'https://www.ugal.ro/images/a_anunturi/2018/logo-litere.jpg'
+  WHEN 6 THEN 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNVkiaCUefFFfwobc3eJeVnE3i9eR1dj6N3GVLblOH_Q&s=10'
+  WHEN 7 THEN 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR8AOzrr41_eVeMTeBkAmjC_J1-yUc1VrsDHVfp34rDEmeAMO1Xnbuu2pg&s=10'
+  WHEN 8 THEN 'https://yt3.googleusercontent.com/ytc/AIdro_mUaaXL4tNg_HODQz4qhA4heXHtMkVuhFKIcZQZja3i9g=s900-c-k-c0x00ffffff-no-rj'
+  WHEN 9 THEN 'https://www.ugal.ro/images/faculties/logo-stiinte_si_mediu.jpg'
+  WHEN 10 THEN 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSGToBVGvXoqaKlpk4cD6VHmQ8tYi9f-yP3FQESQfbwLv1gIsFPzhNKJc0z&s=10'
+  WHEN 11 THEN 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSGbhC9j-HJsHsHroyV7bX1zELfGmywzWFTtbAPfEKdRp6cAXN-lqA_BMg&s=10'
+  WHEN 12 THEN 'https://www.ugal.ro/images/faculties/Logo_FIAB_mic.png'
+  WHEN 13 THEN 'https://www.ugal.ro/images/faculties/eaa.png'
+  WHEN 14 THEN 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQVMjn4bYlrJqquGHsvOv937pkzuoSWsDJ8oCUSaojfuNvErYb6VwSFzgwE&s=10'
+  WHEN 15 THEN 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQx0YZMXLxcm4ckS2HuVSzp4n5xIlhCHcLO71wJ0LAdkaM5lNYpuyg5zw&s=10'
+  ELSE logo_url END;
 
 -- 2. PROFILES
 INSERT INTO public.profiles (id, username, first_name, last_name, email, faculty_id, role, is_active) VALUES
@@ -73,19 +110,20 @@ INSERT INTO public.product_categories (id, name) VALUES
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
 -- 5. FACILITIES
-INSERT INTO public.facilities (id, name, description) VALUES
-(1, 'Cantina Studenteasca', 'Cantina studenteasca UGAL. Program: luni-vineri 12:00-17:00.'),
-(2, 'Cantina Corp J', 'Cantina din Corp J. Program: luni-vineri 12:00-15:30.'),
-(3, 'Cantina Universitate', 'Cantina Universitate. Program: luni-joi 12:00-15:30, vineri 12:00-14:00.'),
-(4, 'Casa de Cultura a Studentilor', 'Facilitate pentru activitati studentesti si evenimente.'),
-(5, 'Stadionul Portul Rosu', 'Stadion din Galati, Str. Domneasca, 145, in perimetrul complexului portuar.'),
-(6, 'Departamentul de Calculatoare', 'Facilitate academica pentru activitati ale domeniului Calculatoare.'),
-(7, 'Sala de sport Florin Balais', 'Sala de sport din Galati, Strada Mihai Bravu 44.'),
-(8, 'Bazinul de Inot UGAL', 'Facilitate sportiva pentru inot.'),
-(9, 'Biblioteca Universitara', 'Biblioteca universitara UGAL.')
+INSERT INTO public.facilities (id, name, description, image_url) VALUES
+(1, 'Cantina Studenteasca', 'Cantina studenteasca UGAL. Program: luni-vineri 12:00-17:00.', 'https://www.mediafax.ro/wp-content/uploads/2026/05/cantina-galati-e1778658482660.jpg'),
+(2, 'Cantina Corp J', 'Cantina din Corp J. Program: luni-vineri 12:00-15:30.', 'https://www.viata-libera.ro/images/galerie/ReportajCamineStudentestiRVB/10.jpg'),
+(3, 'Cantina Universitate', 'Cantina Universitate. Program: luni-joi 12:00-15:30, vineri 12:00-14:00.', 'https://cdn.adh.reperio.news/image-3/3359d22b-382a-4c5e-8430-7e0b10e927d0/index.jpeg?p=a%3D1%26co%3D1.05%26w%3D700%26h%3D750%26r%3Dcontain%26f%3Dwebp'),
+(4, 'Casa de Cultura a Studentilor', 'Facilitate pentru activitati studentesti si evenimente.', 'https://i.ytimg.com/vi/wymfA4xMEmE/maxresdefault.jpg'),
+(5, 'Stadionul Portul Rosu', 'Stadion din Galati, Str. Domneasca, 145, in perimetrul complexului portuar.', 'https://www.viata-libera.ro/images/galerie/finantare-pentru-stadionul-portu-rosu-din-galati/stadionul-portu-rosu-galati-3.jpg'),
+(6, 'Departamentul de Calculatoare', 'Facilitate academica pentru activitati ale domeniului Calculatoare.', 'https://www.cti.ugal.ro/wp-content/uploads/2020/05/corp-g2.jpg'),
+(7, 'Sala de sport Florin Balais', 'Sala de sport din Galati, Strada Mihai Bravu 44.', 'https://lh5.googleusercontent.com/p/AF1QipP8kRmY97qlo2783wjtxBUlyYQ5cFB59m8dwC0I=w298-h298-k-no'),
+(8, 'Dispensar studențesc', 'Cabinet medical: Cămin F, Str. Parcului 4. Oferă asistență medicală, stomatologie, consiliere psihologică. Luni-Vineri 08:00-15:00.', 'https://www.viata-libera.ro/images/galerie/ReportajCamineStudentestiRVB/11.jpg'),
+(9, 'Biblioteca Universitara', 'Biblioteca universitara UGAL.', 'https://biblioteca.ugal.ro/images/anunturi/intrare_BUDJG_m.jpeg')
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
-    description = EXCLUDED.description;
+    description = EXCLUDED.description,
+    image_url = EXCLUDED.image_url;
 
 INSERT INTO public.facility_schedules (facility_id, day_of_week, open_time, close_time)
 SELECT 1, day_of_week, TIME '12:00', TIME '17:00'
@@ -108,37 +146,77 @@ ON CONFLICT (facility_id, day_of_week) DO UPDATE SET open_time = EXCLUDED.open_t
 
 -- 6. LOCATIONS (Corpurile reale din campus)
 -- ATENTIE: ST_MakePoint foloseste formatul (Longitudine, Latitudine).
-INSERT INTO public.locations (id, name, coordinates, faculty_id, facility_id, marker) VALUES
-(1, 'Corp A', ST_SetSRID(ST_MakePoint(28.0501, 45.4401), 4326), NULL, NULL, 'A'),
-(2, 'Corp AE', ST_SetSRID(ST_MakePoint(28.0502, 45.4402), 4326), NULL, NULL, 'AE'),
-(3, 'Corp AN', ST_SetSRID(ST_MakePoint(28.0503, 45.4403), 4326), NULL, NULL, 'AN'),
-(4, 'Corp AR', ST_SetSRID(ST_MakePoint(28.0504, 45.4404), 4326), NULL, NULL, 'AR'),
-(5, 'Corp AS', ST_SetSRID(ST_MakePoint(28.0505, 45.4405), 4326), NULL, NULL, 'AS'),
-(6, 'Corp Bazin Nave', ST_SetSRID(ST_MakePoint(28.0506, 45.4406), 4326), NULL, NULL, 'BN'),
-(7, 'Corp CN', ST_SetSRID(ST_MakePoint(28.0507, 45.4407), 4326), NULL, NULL, 'CN'),
-(8, 'Corp D', ST_SetSRID(ST_MakePoint(28.0508, 45.4408), 4326), NULL, NULL, 'D'),
-(9, 'Corp F', ST_SetSRID(ST_MakePoint(28.0509, 45.4409), 4326), NULL, NULL, 'F'),
-(10, 'Corp G', ST_SetSRID(ST_MakePoint(28.0510, 45.4410), 4326), NULL, NULL, 'G'),
-(11, 'Corp I', ST_SetSRID(ST_MakePoint(28.0511, 45.4411), 4326), NULL, NULL, 'I'),
-(12, 'Corp K', ST_SetSRID(ST_MakePoint(28.0512, 45.4412), 4326), NULL, NULL, 'K'),
-(13, 'Corp Medicină 1', ST_SetSRID(ST_MakePoint(28.0513, 45.4413), 4326), NULL, NULL, 'M1'),
-(14, 'Corp Medicină 2', ST_SetSRID(ST_MakePoint(28.0514, 45.4414), 4326), NULL, NULL, 'M2'),
-(15, 'Corp P', ST_SetSRID(ST_MakePoint(28.0515, 45.4415), 4326), NULL, NULL, 'P'),
-(16, 'Corp Q', ST_SetSRID(ST_MakePoint(28.0516, 45.4416), 4326), NULL, NULL, 'Q'),
-(17, 'Corp SB', ST_SetSRID(ST_MakePoint(28.0517, 45.4417), 4326), NULL, NULL, 'SB'),
-(18, 'Corp SC', ST_SetSRID(ST_MakePoint(28.0518, 45.4418), 4326), NULL, NULL, 'SC'),
-(19, 'Corp SD', ST_SetSRID(ST_MakePoint(28.0519, 45.4419), 4326), NULL, NULL, 'SD'),
-(20, 'Corp U', ST_SetSRID(ST_MakePoint(28.0520, 45.4420), 4326), NULL, NULL, 'U'),
-(21, 'Corp Y', ST_SetSRID(ST_MakePoint(28.0521, 45.4421), 4326), NULL, NULL, 'Y')
+INSERT INTO public.locations (id, name, coordinates, facility_id, marker) VALUES
+(1, 'Corp A - FEFS', ST_SetSRID(ST_MakePoint(28.049555, 45.443519), 4326), NULL, 'A'),
+(2, 'Corp AE - FDSA', ST_SetSRID(ST_MakePoint(28.053573, 45.447731), 4326), NULL, 'AE'),
+(3, 'Corp AN - Metalurgie', ST_SetSRID(ST_MakePoint(28.052621, 45.447651), 4326), NULL, 'AN'),
+(4, 'Corp AR - FIFT', ST_SetSRID(ST_MakePoint(28.053415, 45.447285), 4326), NULL, 'AR'),
+(5, 'Corp AS - Litere', ST_SetSRID(ST_MakePoint(28.053394, 45.447493), 4326), NULL, 'AS'),
+(6, 'Corp Bazin Nave', ST_SetSRID(ST_MakePoint(28.053692, 45.446881), 4326), NULL, 'BN'),
+(7, 'Corp CN', ST_SetSRID(ST_MakePoint(28.053729, 45.447090), 4326), NULL, 'CN'),
+(8, 'Corp D', ST_SetSRID(ST_MakePoint(28.053662, 45.446799), 4326), NULL, 'D'),
+(9, 'Corp F - SIA', ST_SetSRID(ST_MakePoint(28.053501, 45.446900), 4326), NULL, 'F'),
+(10, 'Corp G - Calculatoare', ST_SetSRID(ST_MakePoint(28.052098, 45.446181), 4326), NULL, 'G'),
+(11, 'Corp I - FEAA', ST_SetSRID(ST_MakePoint(28.052024, 45.443620), 4326), NULL, 'I'),
+(12, 'Corp K - Transfrontaliera', ST_SetSRID(ST_MakePoint(28.052400, 45.446745), 4326), NULL, 'K'),
+(13, 'Corp Medicina 1 (MG/CDT)', ST_SetSRID(ST_MakePoint(28.054945, 45.440957), 4326), NULL, 'M1'),
+(14, 'Corp Medicina 2 (MP)', ST_SetSRID(ST_MakePoint(28.062325, 45.432654), 4326), NULL, 'M2'),
+(15, 'Facultatea de Mecanica', ST_SetSRID(ST_MakePoint(28.05409174994273, 45.44680723917279), 4326), NULL, 'MEC'),
+(16, 'FIAB (Braila)', ST_SetSRID(ST_MakePoint(27.972905, 45.267556), 4326), NULL, 'FIAB'),
+(17, 'Facultatea de Arte (Pictura)', ST_SetSRID(ST_MakePoint(28.035285, 45.467124), 4326), NULL, 'ARTE'),
+(18, 'Corp SC - Str. Stiintei', ST_SetSRID(ST_MakePoint(28.051808343363952, 45.447433180071684), 4326), NULL, 'SC'),
+(19, 'Corp SD - Str. Stiintei', ST_SetSRID(ST_MakePoint(28.051767688677998, 45.44692548907188), 4326), NULL, 'SD'),
+(20, 'Corp U (Rectorat) - Str. Domneasca nr. 47', ST_SetSRID(ST_MakePoint(28.056588255152334, 45.43874410154594), 4326), NULL, 'U'),
+(21, 'Corp Y - Str. Stiintei nr. 2', ST_SetSRID(ST_MakePoint(28.05226797552572, 45.44583832380714), 4326), NULL, 'Y'),
+(22, 'Cantina Studenteasca (Campus)', ST_SetSRID(ST_MakePoint(28.052809641677193, 45.44633792931047), 4326), 1, 'C'),
+(23, 'Cantina Corp J', ST_SetSRID(ST_MakePoint(28.04957766427543, 45.4542766165111), 4326), 2, 'C'),
+(24, 'Cantina Universitate', ST_SetSRID(ST_MakePoint(28.05578358910995, 45.43862738668417), 4326), 3, 'C'),
+(25, 'Casa de Cultura a Studentilor', ST_SetSRID(ST_MakePoint(28.047519704014945, 45.45486044203301), 4326), 4, 'CCS'),
+(26, 'Stadionul Portul Rosu', ST_SetSRID(ST_MakePoint(28.049863263705713, 45.45207235816997), 4326), 5, 'S'),
+(27, 'Departamentul de Calculatoare', ST_SetSRID(ST_MakePoint(28.0520, 45.4462), 4326), 6, 'DC'),
+(28, 'Sala de sport Florin Balais', ST_SetSRID(ST_MakePoint(28.05672479597226, 45.44961803779378), 4326), 7, 'SB'),
+(29, 'Dispensar studențesc', ST_SetSRID(ST_MakePoint(28.052122276928515, 45.45341789446759), 4326), 8, 'DS'),
+(30, 'Biblioteca Universitara', ST_SetSRID(ST_MakePoint(28.0510, 45.4434), 4326), 9, 'BU'),
+(31, 'Corp P - Str. Domneasca nr. 111', ST_SetSRID(ST_MakePoint(28.053061933059915, 45.447027850913734), 4326), NULL, 'P'),
+(32, 'Corp Q - Str. Basarabiei', ST_SetSRID(ST_MakePoint(28.047657120278704, 45.44452418294696), 4326), NULL, 'Q'),
+(33, 'Camine Studentesti', ST_SetSRID(ST_MakePoint(28.049234340818312, 45.453463566441165), 4326), NULL, 'CS')
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     coordinates = EXCLUDED.coordinates,
-    faculty_id = EXCLUDED.faculty_id,
     facility_id = EXCLUDED.facility_id,
     marker = EXCLUDED.marker;
 
 DELETE FROM public.locations
-WHERE id > 21;
+WHERE id > 33;
+
+DELETE FROM public.location_faculties;
+
+INSERT INTO public.location_faculties (location_id, faculty_id) VALUES
+(1, 3),
+(2, 11),
+(3, 4),
+(4, 10),
+(5, 5),
+(6, 2),
+(7, 2),
+(8, 4),
+(9, 7),
+(10, 1),
+(10, 14),
+(11, 13),
+(12, 8),
+(13, 6),
+(14, 6),
+(15, 4),
+(16, 12),
+(17, 15),
+(18, 9),
+(19, 9),
+(21, 1),
+(27, 1),
+(31, 4),
+(32, 7)
+ON CONFLICT (location_id, faculty_id) DO NOTHING;
 
 -- 7. PRODUCTS
 INSERT INTO public.products (id, name, description, quantity, price, category_id) VALUES
@@ -159,12 +237,16 @@ ON CONFLICT (id) DO UPDATE SET
     price = EXCLUDED.price,
     category_id = EXCLUDED.category_id;
 
--- 8. DAILY MENUS
+-- 8. DAILY MENUS (Luni-Vineri)
 INSERT INTO public.daily_menus (id, day_of_week) VALUES
-(1, 1), (2, 2), (3, 3), (4, 4), (5, 5)
-ON CONFLICT (id) DO NOTHING;
+(1, 1),
+(2, 2),
+(3, 3),
+(4, 4),
+(5, 5)
+ON CONFLICT (id) DO UPDATE SET
+    day_of_week = EXCLUDED.day_of_week;
 
--- 9. MENU PRODUCTS
 INSERT INTO public.menu_products (menu_id, product_id) VALUES
 (1, 1), (1, 2), (1, 3), (1, 4), (1, 5),
 (2, 6), (2, 7), (2, 8), (2, 9), (2, 10),
@@ -173,16 +255,16 @@ INSERT INTO public.menu_products (menu_id, product_id) VALUES
 (5, 1), (5, 6), (5, 7), (5, 3), (5, 5)
 ON CONFLICT (menu_id, product_id) DO NOTHING;
 
--- 10. ANNOUNCEMENTS
-INSERT INTO public.announcements (id, type, title, content, image_url, faculty_id, location_name, start_date, end_date, created_by) VALUES
-(1, 'EVENIMENT', 'Festivitatea de deschidere a anului universitar', 'Va invitam sa participati la festivitatea de deschidere a noului an universitar. Evenimentul va avea loc in holul central al universitatii.', 'https://ing.ugal.ro/Resurse/2024/WhatsApp_Image_2024-09-17_at_11.48.08.jpeg', NULL, 'Hol Central, Corp A', '2026-09-21T09:00:00Z', '2026-09-21T12:00:00Z', '00000000-0000-0000-0000-000000000001'),
-(2, 'EVENIMENT', 'Hackathon de 24 ore: Inovatie in Galati', 'Esti gata sa schimbi lumea in 24 de ore? Vino la cel mai mare hackathon din regiune.', 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=1000', 1, 'Laborator Multimedia, Corp B', '2026-11-15T10:00:00Z', '2026-11-16T10:00:00Z', '00000000-0000-0000-0000-000000000001'),
-(3, 'NOUTATE', 'Noi oportunitati de burse Erasmus+', 'A fost lansat noul apel pentru mobilitati studentesti. Verifica lista universitatilor partenere si depune dosarul pana la sfarsitul lunii.', 'https://unibuc.ro/wp-content/uploads/2020/01/despre-erasmus.jpg', NULL, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000001'),
-(4, 'NOUTATE', 'Workshop de design grafic in weekend', 'Invata bazele designului grafic folosind instrumente moderne. Workshop-ul este gratuit pentru toti studentii UGAL.', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRrvLpegvQvOniv6QIbBLAB50za2oHinfK75g&s', 5, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000001'),
-(5, 'EVENIMENT', 'Conferinta de Inginerie Sustenabila', 'O conferinta dedicata ultimelor inovatii in domeniul ingineriei sustenabile si energiilor regenerabile.', 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1000', 4, 'Aula Magna, Corp D', '2026-10-10T09:30:00Z', '2026-10-10T17:00:00Z', '00000000-0000-0000-0000-000000000001'),
-(6, 'NOUTATE', 'Rezultate partiale burse de merit', 'Au fost afisate listele partiale pentru bursele de merit aferente semestrului al doilea. Contestatiile se depun online.', 'https://feaa.ugal.ro/wp-content/uploads/feaa-amalia-paharnicu.jpg', 3, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000001'),
-(7, 'EVENIMENT', 'Concurs de retele Cisco CCNA', 'Competitie anuala pentru pasionatii de retelistica. Probe practice pe echipamente Cisco si configurari in Packet Tracer.', 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Cisco_logo_blue_2016.svg/1200px-Cisco_logo_blue_2016.svg.png', 1, 'Corpul D, Sala D12', '2026-10-25T09:00:00Z', '2026-10-25T16:00:00Z', '00000000-0000-0000-0000-000000000003'),
-(8, 'NOUTATE', 'Stagii de practica la companii IT', 'Peste 50 de locuri de practica deschise in domeniul dezvoltarii software pentru studentii anilor 2 si 3.', 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97', 1, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000003')
+-- 9. ANNOUNCEMENTS
+INSERT INTO public.announcements (id, type, title, content, image_url, event_link, files, faculties, location_name, start_date, end_date, created_by) VALUES
+(1, 'EVENIMENT', 'Festivitatea de deschidere a anului universitar', 'Va invitam sa participati la festivitatea de deschidere a noului an universitar. Evenimentul va avea loc in holul central al universitatii.', 'https://ing.ugal.ro/Resurse/2024/WhatsApp_Image_2024-09-17_at_11.48.08.jpeg', NULL, '[]'::jsonb, '[]'::jsonb, 'Hol Central, Corp A', '2026-09-21T09:00:00Z', '2026-09-21T12:00:00Z', '00000000-0000-0000-0000-000000000001'),
+(2, 'EVENIMENT', 'Hackathon de 24 ore: Inovatie in Galati', 'Esti gata sa schimbi lumea in 24 de ore? Vino la cel mai mare hackathon din regiune.', 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=1000', NULL, '[]'::jsonb, '["ACIEE"]'::jsonb, 'Laborator Multimedia, Corp B', '2026-11-15T10:00:00Z', '2026-11-16T10:00:00Z', '00000000-0000-0000-0000-000000000001'),
+(3, 'NOUTATE', 'Noi oportunitati de burse Erasmus+', 'A fost lansat noul apel pentru mobilitati studentesti. Verifica lista universitatilor partenere si depune dosarul pana la sfarsitul lunii.', 'https://unibuc.ro/wp-content/uploads/2020/01/despre-erasmus.jpg', NULL, '[]'::jsonb, '[]'::jsonb, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000001'),
+(4, 'NOUTATE', 'Workshop de design grafic in weekend', 'Invata bazele designului grafic folosind instrumente moderne. Workshop-ul este gratuit pentru toti studentii UGAL.', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRrvLpegvQvOniv6QIbBLAB50za2oHinfK75g&s', NULL, '[]'::jsonb, '["LIT"]'::jsonb, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000001'),
+(5, 'EVENIMENT', 'Conferinta de Inginerie Sustenabila', 'O conferinta dedicata ultimelor inovatii in domeniul ingineriei sustenabile si energiilor regenerabile.', 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1000', NULL, '[]'::jsonb, '["ING"]'::jsonb, 'Aula Magna, Corp D', '2026-10-10T09:30:00Z', '2026-10-10T17:00:00Z', '00000000-0000-0000-0000-000000000001'),
+(6, 'NOUTATE', 'Rezultate partiale burse de merit', 'Au fost afisate listele partiale pentru bursele de merit aferente semestrului al doilea. Contestatiile se depun online.', 'https://feaa.ugal.ro/wp-content/uploads/feaa-amalia-paharnicu.jpg', NULL, '[]'::jsonb, '["FEFS"]'::jsonb, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000001'),
+(7, 'EVENIMENT', 'Concurs de retele Cisco CCNA', 'Competitie anuala pentru pasionatii de retelistica. Probe practice pe echipamente Cisco si configurari in Packet Tracer.', 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Cisco_logo_blue_2016.svg/1200px-Cisco_logo_blue_2016.svg.png', NULL, '[]'::jsonb, '["ACIEE"]'::jsonb, 'Corpul D, Sala D12', '2026-10-25T09:00:00Z', '2026-10-25T16:00:00Z', '00000000-0000-0000-0000-000000000003'),
+(8, 'NOUTATE', 'Stagii de practica la companii IT', 'Peste 50 de locuri de practica deschise in domeniul dezvoltarii software pentru studentii anilor 2 si 3.', 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97', NULL, '[]'::jsonb, '["ACIEE"]'::jsonb, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000003')
 ON CONFLICT (id) DO NOTHING;
 
 -- 11. COMPLAINTS
@@ -204,3 +286,46 @@ SELECT setval('public.products_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public
 SELECT setval('public.daily_menus_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.daily_menus));
 SELECT setval('public.announcements_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.announcements));
 SELECT setval('public.complaints_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.complaints));
+SELECT setval('public.notifications_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.notifications));
+SELECT setval('public.push_tokens_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.push_tokens));
+
+CREATE TABLE IF NOT EXISTS public.city_guide_categories (
+    id VARCHAR PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    icon_name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.city_guide_items (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    category_id VARCHAR NOT NULL REFERENCES public.city_guide_categories(id) ON DELETE CASCADE,
+    image_url TEXT,
+    address TEXT,
+    website TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+INSERT INTO public.city_guide_categories (id, title, description, icon_name) VALUES
+('transport', 'Transport', 'Autobuze, troleibuze, tramvaie și trenuri', 'bus'),
+('muzee', 'Muzee', 'Muzee de istorie, artă vizuală și științe', 'museum'),
+('divertisment', 'Divertisment', 'Teatre, cinema și cumpărături', 'theater'),
+('parcuri', 'Parcuri', 'Faleza Dunării și spații verzi', 'park')
+ON CONFLICT (id) DO UPDATE SET
+    title = EXCLUDED.title,
+    description = EXCLUDED.description,
+    icon_name = EXCLUDED.icon_name;
+
+INSERT INTO public.city_guide_items (id, title, category_id, image_url, address, website) VALUES
+(1, 'Transurb Galați', 'transport', 'https://example.com/bus.jpg', 'Strada 1', 'https://transurbgalati.ro'),
+(2, 'Muzeul de Artă Vizuală', 'muzee', 'https://example.com/art.jpg', 'Strada 2', 'https://mavgl.ro')
+ON CONFLICT (id) DO UPDATE SET
+    title = EXCLUDED.title,
+    category_id = EXCLUDED.category_id,
+    image_url = EXCLUDED.image_url,
+    address = EXCLUDED.address,
+    website = EXCLUDED.website,
+    updated_at = NOW();
+
+SELECT setval('public.city_guide_items_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.city_guide_items));

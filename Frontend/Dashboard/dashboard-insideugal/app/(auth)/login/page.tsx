@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/Card";
 import { Input } from "@/app/components/ui/Input";
 import { Button } from "@/app/components/ui/Button";
@@ -19,6 +20,7 @@ function extractAccessToken(payload: unknown): string | null {
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -44,7 +46,7 @@ export default function LoginPage() {
 
       if (!response.ok) {
         const detail = data && typeof data === "object" ? (data as Record<string, unknown>).detail : null;
-        throw new Error(typeof detail === "string" ? detail : "Autentificare e\u0219uat\u0103");
+        throw new Error(typeof detail === "string" ? detail : "Autentificare eșuată");
       }
 
       const accessToken = extractAccessToken(data);
@@ -52,16 +54,15 @@ export default function LoginPage() {
         throw new Error("Raspunsul de autentificare nu contine un access_token valid.");
       }
 
-      const tokenType =
-        data && typeof data === "object" && typeof (data as Record<string, unknown>).token_type === "string"
-          ? ((data as Record<string, unknown>).token_type as string)
-          : "bearer";
+      const tokenType = data && typeof data === "object" && typeof (data as Record<string, unknown>).token_type === "string"
+        ? (data as Record<string, string>).token_type
+        : "bearer";
 
       localStorage.setItem("access_token", accessToken);
       localStorage.setItem("token_type", tokenType);
 
       window.location.href = "/";
-      
+
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -89,7 +90,7 @@ export default function LoginPage() {
                 {error}
               </div>
             )}
-            
+
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium text-foreground">
                 Email
@@ -109,15 +110,27 @@ export default function LoginPage() {
               <label htmlFor="password" className="text-sm font-medium text-foreground">
                 Parolă
               </label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  disabled={loading}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-muted hover:text-foreground transition-colors"
+                  aria-label={showPassword ? "Ascunde parola" : "Arată parola"}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
             <Button type="submit" className="mt-2" disabled={loading}>
@@ -129,4 +142,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

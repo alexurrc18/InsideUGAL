@@ -30,11 +30,9 @@ export function getStoredAccessToken(): string | null {
 
 export function getAuthHeaders(headers?: HeadersInit): Headers {
   const requestHeaders = new Headers(headers);
-  if (!requestHeaders.has("Authorization")) {
-    const token = getStoredAccessToken();
-    if (token) {
-      requestHeaders.set("Authorization", `Bearer ${token}`);
-    }
+  const token = getStoredAccessToken();
+  if (token) {
+    requestHeaders.set("Authorization", `Bearer ${token}`);
   }
   return requestHeaders;
 }
@@ -124,13 +122,11 @@ export async function apiRequest<TResponse>(
   options: ApiRequestOptions = {},
 ): Promise<TResponse> {
   const body = toBody(options.body);
-  const headers = toHeaders(options.headers, body !== undefined);
-
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...options,
     body,
     credentials: options.credentials ?? "include",
-    headers,
+    headers: toHeaders(options.headers, body !== undefined),
   });
 
   const payload = await readJson(response);

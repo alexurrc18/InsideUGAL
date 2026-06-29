@@ -6,6 +6,8 @@
 // click, deschide un panou de chat ancorat in colt. Panoul e montat in
 // `_layout.web.tsx`, deci ramane montat la navigarea intre paginile (public) =>
 // conversatia persista ("sticky").
+//
+// Raspunsurile vin in streaming (token cu token) de la backend prin `@/services/ace-stream`.
 import { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -24,26 +26,29 @@ import { useTheme } from '@/hooks/use-theme';
 import { Spacing, ColorScheme } from '@/constants/theme';
 import { Typography } from '@/constants/typography';
 import { NewsCard } from '@/components/ui/display/news-card';
-import api, { ace } from '@/services/api';
+import api from '@/services/api';
+import { streamAce } from '@/services/ace-stream';
 
 import CloseIcon from '@/assets/icons/svg/x.svg';
 import MessagePlusIcon from '@/assets/icons/svg/message-plus.svg';
 import SendIcon from '@/assets/icons/svg/send.svg';
 import SparkleIcon from '@/assets/icons/svg/message-circle-star.svg';
 
+// Tipul unui mesaj din chat + generator de id. Definite local: widget-ul nu mai
+// depinde de `ace-responses` (modul eliminat din proiect).
 interface ChatMessage {
   id: string;
   text: string;
+  sender: 'user' | 'ai';
+  timestamp: Date;
   imageUrl?: string;
   event?: {
     title: string;
     date: string;
     location: string;
-    link?: string;
     description?: string;
+    link?: string;
   };
-  sender: 'user' | 'ai';
-  timestamp: Date;
 }
 
 function generateMsgId(): string {
@@ -108,6 +113,13 @@ export function Ace() {
   const [inputText, setInputText] = useState('');
 
   const scrollRef = useRef<ScrollView>(null);
+  // Functia de oprire a stream-ului curent (pentru cleanup / anulare).
+  const streamStopRef = useRef<null | (() => void)>(null);
+
+  // La demontarea componentei, inchidem orice stream activ (evitam scurgeri).
+  useEffect(() => {
+    return () => streamStopRef.current?.();
+  }, []);
 
   // Dimensiuni responsive: pe ecrane inguste panoul aproape umple latimea.
   const panelWidth = Math.min(PANEL_MAX_WIDTH, width - Spacing.xl3);
@@ -129,9 +141,12 @@ export function Ace() {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
   };
 
-  const handleSend = async () => {
+  const handleSend = () => {
     const textToSend = inputText.trim();
     if (!textToSend) return;
+
+    // Daca un raspuns inca curge, il oprim inainte de a porni altul.
+    streamStopRef.current?.();
 
     const userMsg: ChatMessage = {
       id: generateMsgId(),
@@ -139,44 +154,71 @@ export function Ace() {
       sender: 'user',
       timestamp: new Date(),
     };
-    setMessages((prev) => [...prev, userMsg]);
+
+    // Istoricul trimis backend-ului = mesajele de pana acum (rol + text).
+    const history = messages.map((m) => ({
+      role: (m.sender === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+      content: m.text,
+    }));
+
+    // Adaugam mesajul userului + un mesaj AI GOL, care se umple progresiv din tokeni.
+    const aiMsgId = generateMsgId();
+    setMessages((prev) => [
+      ...prev,
+      userMsg,
+      { id: aiMsgId, text: '', sender: 'ai', timestamp: new Date() },
+    ]);
     setInputText('');
     setIsTyping(true);
     scrollToBottom();
 
-    try {
-      console.log("[ACE Chat] Sending request via shared ace instance...");
-      const res = await ace.post(
-        '',
-        { question: textToSend }
+    const appendToAi = (chunk: string) =>
+      setMessages((prev) =>
+        prev.map((m) => (m.id === aiMsgId ? { ...m, text: m.text + chunk } : m))
       );
-      const data = res.data;
-      const responseText = typeof data === 'string' ? data : (data.answer || data.text || data.message || '');
-      const aiMsg: ChatMessage = {
-        id: generateMsgId(),
-        text: responseText,
-        imageUrl: data.image_url || undefined,
-        event: data.event || undefined,
-        sender: 'ai',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiMsg]);
-    } catch (error) {
-      console.error("[ACE Chat Error]", error);
-      const errorMsg: ChatMessage = {
-        id: generateMsgId(),
-        text: 'A apărut o eroare. Vă rugăm să încercați din nou.',
-        sender: 'ai',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMsg]);
-    } finally {
-      setIsTyping(false);
-      scrollToBottom();
-    }
+
+    streamStopRef.current = streamAce(textToSend, history, {
+      onToken: (chunk) => {
+        setIsTyping(false);
+        appendToAi(chunk);
+        scrollToBottom();
+      },
+      onDone: () => {
+        setIsTyping(false);
+        streamStopRef.current = null;
+        // Daca stream-ul s-a terminat fara niciun token, raspunsul a venit gol de la
+        // server (LLM jos / fara output) — aratam un mesaj in loc de o bula goala.
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === aiMsgId && !m.text
+              ? { ...m, text: '⚠️ Asistentul nu a returnat niciun răspuns. Încearcă din nou mai târziu.' }
+              : m
+          )
+        );
+        scrollToBottom();
+      },
+      onError: (msg) => {
+        setIsTyping(false);
+        streamStopRef.current = null;
+        // Daca a venit deja text partial, atasam eroarea la final; altfel doar eroarea.
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === aiMsgId
+              ? { ...m, text: m.text ? `${m.text}\n\n⚠️ ${msg}` : `⚠️ ${msg}` }
+              : m
+          )
+        );
+        scrollToBottom();
+      },
+    });
   };
 
-  const handleClearChat = () => setMessages([]);
+  const handleClearChat = () => {
+    streamStopRef.current?.();
+    streamStopRef.current = null;
+    setIsTyping(false);
+    setMessages([]);
+  };
 
   // Navigheaza la destinatia unui card de eveniment/anunt din raspuns, apoi inchide
   // widget-ul ca utilizatorul sa vada pagina.
