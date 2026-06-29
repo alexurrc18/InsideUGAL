@@ -4,16 +4,17 @@ from pathlib import Path
 from urllib.parse import quote
 
 import httpx
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Request, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth_deps import get_current_profile, get_current_user, is_role
+from app.api.auth_deps import get_current_user_with_token, get_current_profile, is_role, get_current_user
 from app.api.crud import ensure_exists
 from app.api.pagination import PaginationParams, paginated_response
 from app.db.database import get_db
 from app.models import models, schemas
 from app.repositories.complaint_repo import ComplaintRepository
+from app.rate_limit import limiter, AUTH_RATE_LIMIT
 
 router = APIRouter(prefix="/complaints", tags=["Complaints"])
 repo = ComplaintRepository()
@@ -75,26 +76,28 @@ async def create_complaint(
 
 
 @router.post("/upload-image/")
+@limiter.limit(AUTH_RATE_LIMIT)
 async def upload_complaint_image(
+    request: Request,
     file: UploadFile = File(...),
-    current_user: str = Depends(get_current_user),
+    user_data: tuple[str, str] = Depends(get_current_user_with_token),
 ):
+    user_id, access_token = user_data
     supabase_url = os.environ.get("SUPABASE_URL")
-    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
-    if not supabase_url or not supabase_key:
+    supabase_anon_key = os.environ.get("SUPABASE_ANON_KEY")
+    if not supabase_url or not supabase_anon_key:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Supabase Storage is not configured.")
 
     safe_filename = Path(file.filename or "upload").name
     unique_filename = f"{uuid.uuid4()}-{safe_filename}"
     encoded_filename = quote(unique_filename)
     
-    # MODIFICARE AICI: Am adăugat bucket-ul corect "images"
     upload_url = f"{supabase_url.rstrip('/')}/storage/v1/object/images/complaints/{encoded_filename}"
     public_url = f"{supabase_url.rstrip('/')}/storage/v1/object/public/images/complaints/{encoded_filename}"
     
     headers = {
-        "apikey": supabase_key,
-        "Authorization": f"Bearer {supabase_key}",
+        "apikey": supabase_anon_key,
+        "Authorization": f"Bearer {access_token}",
         "Content-Type": file.content_type or "application/octet-stream",
     }
 
