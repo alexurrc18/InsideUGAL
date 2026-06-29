@@ -56,7 +56,7 @@ async def send_notification(
                 await _send_push(token.token, payload.title, payload.body, payload.action)
                 sent_count += 1
             except Exception:
-                logger.warning("Push token invalid for profile %s", p.id)
+                logger.warning("Push delivery failed for profile %s", p.id)
                 invalid_token_ids.append(token.id)
 
     if invalid_token_ids:
