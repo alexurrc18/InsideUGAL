@@ -190,7 +190,7 @@ export default function HomeScreen() {
       }
 
       try {
-        const response = await api.get("/locations/", {
+        const response = await api.get("/facilities/", {
           params: {
             page: 1,
             size: 50
@@ -198,22 +198,19 @@ export default function HomeScreen() {
         });
         if (response.data && response.data.items) {
           const apiItems = response.data.items;
-          await storage.setItem('cached_facilities', JSON.stringify(apiItems));
+          await storage.setItem('cached_ugal_facilities', JSON.stringify(apiItems));
 
           const apiFacilities = apiItems.map((item: any) => ({
             id: item.id.toString(),
             title: item.name || "Titlu necunoscut",
             image: item.image_url || undefined,
-            address: item.address || "Adresă necunoscută",
-            phone: item.phone || "",
-            website: item.website_url || "",
-            content: item.name || "Conținut necunoscut",
-            schedule: item.schedule || "",
+            content: item.description || "",
+            schedules: item.schedules || [],
           }));
           setFacilitati(apiFacilities);
         }
       } catch (err) {
-        console.error("[API] Could not load facilities/locations:", err);
+        console.error("[API] Could not load facilities:", err);
         success = false;
         if (facilitati.length === 0) {
           setHasError(true);
@@ -248,7 +245,7 @@ export default function HomeScreen() {
       try {
         const cachedAnnouncements = await storage.getItem('cached_announcements');
         const cachedFaculties = await storage.getItem('cached_faculties');
-        const cachedFacilities = await storage.getItem('cached_facilities');
+        const cachedFacilities = await storage.getItem('cached_ugal_facilities');
 
         let hasData = false;
 
@@ -316,11 +313,8 @@ export default function HomeScreen() {
               id: item.id.toString(),
               title: item.name || "Titlu necunoscut",
               image: item.image_url || undefined,
-              address: item.address || "Adresă necunoscută",
-              phone: item.phone || "",
-              website: item.website_url || "",
-              content: item.name || "Conținut necunoscut",
-              schedule: item.schedule || "",
+              content: item.description || "",
+              schedules: item.schedules || [],
             }));
             setFacilitati(apiFacilities);
             hasData = true;

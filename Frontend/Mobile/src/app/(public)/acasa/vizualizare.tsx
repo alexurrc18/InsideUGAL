@@ -19,6 +19,34 @@ import WebsiteIcon from "@/assets/icons/svg/globe-europe.svg";
 import { CategoryTag } from "@/components/ui/display/news-card";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 
+const DAY_NAMES = ["", "Luni", "Marți", "Miercuri", "Joi", "Vineri", "Sâmbătă", "Duminică"];
+
+function formatSchedules(schedules: any[]): string[] {
+    if (!schedules || schedules.length === 0) return [];
+    const sorted = [...schedules].sort((a, b) => a.day_of_week - b.day_of_week);
+    const groups: string[] = [];
+    let i = 0;
+    while (i < sorted.length) {
+        const start = sorted[i];
+        let j = i + 1;
+        while (
+            j < sorted.length &&
+            sorted[j].day_of_week === sorted[j - 1].day_of_week + 1 &&
+            sorted[j].open_time === start.open_time &&
+            sorted[j].close_time === start.close_time
+        ) { j++; }
+        const end = sorted[j - 1];
+        const timeRange = `${start.open_time.slice(0, 5)} - ${start.close_time.slice(0, 5)}`;
+        groups.push(
+            j - i === 1
+                ? `${DAY_NAMES[start.day_of_week]}: ${timeRange}`
+                : `${DAY_NAMES[start.day_of_week]} - ${DAY_NAMES[end.day_of_week]}: ${timeRange}`
+        );
+        i = j;
+    }
+    return groups;
+}
+
 function VizualizareScreen() {
     const params = useLocalSearchParams();
     const id = params.id as string;
@@ -85,7 +113,7 @@ function VizualizareScreen() {
                 if (isFaculty) {
                     cachedStr = await storage.getItem('cached_faculties');
                 } else if (isFacility) {
-                    cachedStr = await storage.getItem('cached_facilities');
+                    cachedStr = await storage.getItem('cached_ugal_facilities');
                 } else {
                     cachedStr = await storage.getItem('cached_announcements');
                 }
@@ -114,11 +142,8 @@ function VizualizareScreen() {
                                     type: "Facilitate",
                                     title: match.name || "Titlu necunoscut",
                                     image: match.image_url || "",
-                                    address: match.address || "Adresă necunoscută",
-                                    phone: match.phone || "",
-                                    website: match.website_url || "",
-                                    content: match.name || "Conținut necunoscut",
-                                    schedule: match.schedule || "",
+                                    content: match.description || "",
+                                    schedules: match.schedules || [],
                                 };
                             } else {
                                 mappedItem = {
@@ -204,7 +229,7 @@ function VizualizareScreen() {
                                     };
                                 }
                             } else if (initialTipPagina === "Facilitate") {
-                                const res = await api.get(`/locations/${numericId}`);
+                                const res = await api.get(`/facilities/${numericId}`);
                                 if (res.data) {
                                     const item = res.data;
                                     fetchedItem = {
@@ -212,11 +237,8 @@ function VizualizareScreen() {
                                         type: "Facilitate",
                                         title: item.name || "Titlu necunoscut",
                                         image: item.image_url || "",
-                                        address: item.address || "Adresă necunoscută",
-                                        phone: item.phone || "",
-                                        website: item.website_url || "",
-                                        content: item.name || "Conținut necunoscut",
-                                        schedule: item.schedule || "",
+                                        content: item.description || "",
+                                        schedules: item.schedules || [],
                                     };
                                 }
                             }
@@ -444,7 +466,7 @@ function VizualizareScreen() {
                         </View>
                     )}
 
-                    {(tipPagina === "Facultate" || tipPagina === "Facilitate") && (
+                    {tipPagina === "Facultate" && (
                         <View style={{ gap: Spacing.md }}>
                             <Text style={[Typography.Heading4, { color: theme.text }]}>
                                 Contact și Locație
@@ -460,7 +482,7 @@ function VizualizareScreen() {
                                         </Text>
                                     </View>
                                 </View>
-                                
+
                                 {phone && (
                                     <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                         <PhoneIcon width={24} height={24} color={theme.primary} />
@@ -488,25 +510,31 @@ function VizualizareScreen() {
                                         </View>
                                     </View>
                                 )}
+                            </View>
+                        </View>
+                    )}
 
-                                {schedule && (
-                                    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: Spacing.md }}>
-                                        <CalendarIcon width={24} height={24} color={theme.primary} style={{ marginTop: 2 }} />
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Program</Text>
-                                            <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                                {schedule}
-                                            </Text>
-                                        </View>
+                    {tipPagina === "Facilitate" && formatSchedules(itemData?.schedules || []).length > 0 && (
+                        <View style={{ gap: Spacing.md }}>
+                            <Text style={[Typography.Heading4, { color: theme.text }]}>
+                                Informații facilitate
+                            </Text>
+                            <View style={{ gap: Spacing.md }}>
+                                <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
+                                    <CalendarIcon width={24} height={24} color={theme.primary} />
+                                    <View>
+                                        {formatSchedules(itemData.schedules).map((line: string, i: number) => (
+                                            <Text key={i} style={[Typography.Heading5, { color: theme.text }]}>{line}</Text>
+                                        ))}
                                     </View>
-                                )}
+                                </View>
                             </View>
                         </View>
                     )}
 
                     <View style={{ gap: Spacing.md }}>
                         <Text style={[Typography.Heading4, { color: theme.text }]}>
-                            {tipPagina === "Eveniment" ? "Despre eveniment" : tipPagina === "Facultate" ? "Despre facultate" : tipPagina === "Facilitate" ? "Despre facilitate" : "Detalii anunț"}
+                            {tipPagina === "Eveniment" ? "Despre eveniment" : tipPagina === "Facultate" ? "Despre facultate" : tipPagina === "Facilitate" ? "Despre facilitate" : "Detalii"}
                         </Text>
                         <Text style={[Typography.Paragraph2, { color: theme.text, lineHeight: 25 }]}>
                             {content || "Conținut necunoscut"}
