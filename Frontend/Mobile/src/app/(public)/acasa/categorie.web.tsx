@@ -96,7 +96,7 @@ export default function CategoryScreen() {
             date_end: isoToRomanianDateStr(item.end_date) || "",
             time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
             time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-            author: item.author || "Autor necunoscut",
+            author: item.author_name || "",
             image: item.image_url || undefined,
             content: item.content || "Conținut necunoscut",
             location: item.location_name || "Locație necunoscută",

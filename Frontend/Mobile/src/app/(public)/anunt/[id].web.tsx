@@ -71,6 +71,7 @@ export default function AnuntScreen() {
     const content = item.content || "";
     const image = item.image_url || "";
     const date = isoToRomanianDateStr(item.created_at) || "";
+    const author = item.author_name || "";
     const seoDescription = content.slice(0, 160) || `${title} — InsideUGAL`;
 
     const jsonLd = {
@@ -94,6 +95,7 @@ export default function AnuntScreen() {
                 image={image}
                 date={date}
                 posted_at={date}
+                author={author}
             />
         </>
     );

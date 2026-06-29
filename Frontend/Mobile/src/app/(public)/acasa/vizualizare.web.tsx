@@ -156,7 +156,7 @@ function VizualizareScreen() {
                                     time_end: match.end_date ? new Date(match.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
                                     posted_at: isoToRomanianDateStr(match.created_at) || "",
                                     date: isoToRomanianDateStr(match.start_date) || "Dată necunoscută",
-                                    author: match.author || "Autor necunoscut",
+                                    author: match.author_name || "",
                                     created_at: match.created_at,
                                     updated_at: match.updated_at,
                                 };
@@ -202,7 +202,7 @@ function VizualizareScreen() {
                                     time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
                                     posted_at: isoToRomanianDateStr(item.created_at) || "",
                                     date: isoToRomanianDateStr(item.start_date) || "Dată necunoscută",
-                                    author: item.author || "Autor necunoscut",
+                                    author: item.author_name || "",
                                     created_at: item.created_at,
                                     updated_at: item.updated_at,
                                 };
@@ -308,7 +308,7 @@ function VizualizareScreen() {
             time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
             posted_at: isoToRomanianDateStr(item.created_at) || "",
             date: isoToRomanianDateStr(item.start_date) || "Dată necunoscută",
-            author: item.author || "Autor necunoscut",
+            author: item.author_name || "",
             created_at: item.created_at,
             updated_at: item.updated_at,
         }));
@@ -479,7 +479,7 @@ function VizualizareScreen() {
                             {tipPagina !== "Facultate" && (
                                 <View style={{ gap: Spacing.xs }}>
                                     <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>
-                                        {dateDisplay}
+                                        {[dateDisplay, itemData?.author].filter(Boolean).join("  ·  ")}
                                     </Text>
                                     {isUpdated && formattedUpdateDate ? (
                                         <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>
