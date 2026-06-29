@@ -10,7 +10,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_roles
-from app.api.crud import ensure_exists
 from app.api.pagination import PaginationParams, paginated_response
 from app.db.database import get_db
 from app.models import models, schemas

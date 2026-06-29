@@ -1,6 +1,5 @@
 import logging
 from typing import List
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy import select, update
@@ -10,7 +9,7 @@ from sqlalchemy.orm import joinedload
 from app.api.auth_deps import require_roles, get_current_profile
 from app.api.pagination import PaginationParams, paginated_response
 from app.db.database import get_db
-from app.models.models import Notification, Profile, PushToken
+from app.models.models import Profile, PushToken
 from app.models.schemas import NotificationCreate, NotificationResponse, PaginatedResponse, UserRole
 from app.repositories.notification_repo import NotificationRepository
 
@@ -25,7 +24,7 @@ send_notifications = require_roles(
 
 
 async def _get_target_profiles(db: AsyncSession, faculty_id: int | None) -> List[Profile]:
-    query = select(Profile).options(joinedload(Profile.push_tokens)).where(Profile.is_active == True)
+    query = select(Profile).options(joinedload(Profile.push_tokens)).where(Profile.is_active)
 
     if faculty_id is not None:
         query = query.where(Profile.faculty_id == faculty_id)
@@ -56,8 +55,8 @@ async def send_notification(
             try:
                 await _send_push(token.token, payload.title, payload.body, payload.action)
                 sent_count += 1
-            except Exception as exc:
-                logger.warning("Push token invalid for profile %s: %s", p.id, exc)
+            except Exception:
+                logger.warning("Push token invalid for profile %s", p.id)
                 invalid_token_ids.append(token.id)
 
     if invalid_token_ids:

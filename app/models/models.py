@@ -15,7 +15,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID, ENUM
+from sqlalchemy.dialects.postgresql import JSONB, UUID, ENUM
 from sqlalchemy.orm import relationship
 
 from app.db.database import Base
