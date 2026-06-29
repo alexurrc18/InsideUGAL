@@ -12,6 +12,7 @@ from sqlalchemy import (
     Table,
     Text,
     Time,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID, ENUM
@@ -237,7 +238,27 @@ class Announcement(Base, TimestampMixin):
     end_date = Column(DateTime(timezone=True))
 
     creator = relationship("Profile", back_populates="announcements")
+    translations = relationship(
+        "AnnouncementTranslation",
+        back_populates="announcement",
+        cascade="all, delete-orphan",
+    )
 
+
+class AnnouncementTranslation(Base, TimestampMixin):
+    __tablename__ = "announcement_translations"
+    __table_args__ = (
+        UniqueConstraint("announcement_id", "language_code", name="uq_announcement_language"),
+        {"schema": "public"},
+    )
+
+    id = Column(Integer, primary_key=True)
+    announcement_id = Column(Integer, ForeignKey("public.announcements.id", ondelete="CASCADE"), nullable=False)
+    language_code = Column(String(10), nullable=False)
+    translated_title = Column(String(255), nullable=False)
+    translated_content = Column(Text, nullable=False)
+
+    announcement = relationship("Announcement", back_populates="translations")
 
 
 class LLMCall(Base):

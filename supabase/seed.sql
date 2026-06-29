@@ -161,24 +161,25 @@ INSERT INTO public.locations (id, name, coordinates, facility_id, marker) VALUES
 (12, 'Corp K - Transfrontaliera', ST_SetSRID(ST_MakePoint(28.052400, 45.446745), 4326), NULL, 'K'),
 (13, 'Corp Medicina 1 (MG/CDT)', ST_SetSRID(ST_MakePoint(28.054945, 45.440957), 4326), NULL, 'M1'),
 (14, 'Corp Medicina 2 (MP)', ST_SetSRID(ST_MakePoint(28.062325, 45.432654), 4326), NULL, 'M2'),
-(15, 'Facultatea de Mecanica', ST_SetSRID(ST_MakePoint(28.052996, 45.446945), 4326), NULL, 'MEC'),
+(15, 'Facultatea de Mecanica', ST_SetSRID(ST_MakePoint(28.05409174994273, 45.44680723917279), 4326), NULL, 'MEC'),
 (16, 'FIAB (Braila)', ST_SetSRID(ST_MakePoint(27.972905, 45.267556), 4326), NULL, 'FIAB'),
 (17, 'Facultatea de Arte (Pictura)', ST_SetSRID(ST_MakePoint(28.035285, 45.467124), 4326), NULL, 'ARTE'),
-(18, 'Corp SC - Str. Stiintei', ST_SetSRID(ST_MakePoint(28.0514, 45.4454), 4326), NULL, 'SC'),
-(19, 'Corp SD - Str. Stiintei', ST_SetSRID(ST_MakePoint(28.0517, 45.4455), 4326), NULL, 'SD'),
-(20, 'Corp U (Rectorat) - Str. Domneasca nr. 47', ST_SetSRID(ST_MakePoint(28.0566, 45.4385), 4326), NULL, 'U'),
-(21, 'Corp Y - Str. Stiintei nr. 2', ST_SetSRID(ST_MakePoint(28.0515, 45.4457), 4326), NULL, 'Y'),
-(22, 'Cantina Studenteasca (Campus)', ST_SetSRID(ST_MakePoint(28.0487, 45.4540), 4326), 1, 'C'),
-(23, 'Cantina Corp J', ST_SetSRID(ST_MakePoint(28.0527, 45.4459), 4326), 2, 'C'),
-(24, 'Cantina Universitate', ST_SetSRID(ST_MakePoint(28.0557, 45.4387), 4326), 3, 'C'),
-(25, 'Casa de Cultura a Studentilor', ST_SetSRID(ST_MakePoint(28.0472, 45.4546), 4326), 4, 'CCS'),
-(26, 'Stadionul Portul Rosu', ST_SetSRID(ST_MakePoint(28.0758, 45.4411), 4326), 5, 'S'),
+(18, 'Corp SC - Str. Stiintei', ST_SetSRID(ST_MakePoint(28.051808343363952, 45.447433180071684), 4326), NULL, 'SC'),
+(19, 'Corp SD - Str. Stiintei', ST_SetSRID(ST_MakePoint(28.051767688677998, 45.44692548907188), 4326), NULL, 'SD'),
+(20, 'Corp U (Rectorat) - Str. Domneasca nr. 47', ST_SetSRID(ST_MakePoint(28.056588255152334, 45.43874410154594), 4326), NULL, 'U'),
+(21, 'Corp Y - Str. Stiintei nr. 2', ST_SetSRID(ST_MakePoint(28.05226797552572, 45.44583832380714), 4326), NULL, 'Y'),
+(22, 'Cantina Studenteasca (Campus)', ST_SetSRID(ST_MakePoint(28.052809641677193, 45.44633792931047), 4326), 1, 'C'),
+(23, 'Cantina Corp J', ST_SetSRID(ST_MakePoint(28.04957766427543, 45.4542766165111), 4326), 2, 'C'),
+(24, 'Cantina Universitate', ST_SetSRID(ST_MakePoint(28.05578358910995, 45.43862738668417), 4326), 3, 'C'),
+(25, 'Casa de Cultura a Studentilor', ST_SetSRID(ST_MakePoint(28.047519704014945, 45.45486044203301), 4326), 4, 'CCS'),
+(26, 'Stadionul Portul Rosu', ST_SetSRID(ST_MakePoint(28.049863263705713, 45.45207235816997), 4326), 5, 'S'),
 (27, 'Departamentul de Calculatoare', ST_SetSRID(ST_MakePoint(28.0520, 45.4462), 4326), 6, 'DC'),
-(28, 'Sala de sport Florin Balais', ST_SetSRID(ST_MakePoint(28.0500, 45.4500), 4326), 7, 'SB'),
+(28, 'Sala de sport Florin Balais', ST_SetSRID(ST_MakePoint(28.05672479597226, 45.44961803779378), 4326), 7, 'SB'),
 (29, 'Dispensar studențesc', ST_SetSRID(ST_MakePoint(28.052122276928515, 45.45341789446759), 4326), 8, 'DS'),
 (30, 'Biblioteca Universitara', ST_SetSRID(ST_MakePoint(28.0510, 45.4434), 4326), 9, 'BU'),
 (31, 'Corp P - Str. Domneasca nr. 111', ST_SetSRID(ST_MakePoint(28.053061933059915, 45.447027850913734), 4326), NULL, 'P'),
-(32, 'Corp Q - Str. Basarabiei', ST_SetSRID(ST_MakePoint(28.047657120278704, 45.44452418294696), 4326), NULL, 'Q')
+(32, 'Corp Q - Str. Basarabiei', ST_SetSRID(ST_MakePoint(28.047657120278704, 45.44452418294696), 4326), NULL, 'Q'),
+(33, 'Camine Studentesti', ST_SetSRID(ST_MakePoint(28.049234340818312, 45.453463566441165), 4326), NULL, 'CS')
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     coordinates = EXCLUDED.coordinates,
@@ -186,10 +187,9 @@ ON CONFLICT (id) DO UPDATE SET
     marker = EXCLUDED.marker;
 
 DELETE FROM public.locations
-WHERE id > 32;
+WHERE id > 33;
 
-DELETE FROM public.location_faculties
-WHERE location_id BETWEEN 1 AND 22;
+DELETE FROM public.location_faculties;
 
 INSERT INTO public.location_faculties (location_id, faculty_id) VALUES
 (1, 3),
@@ -199,11 +199,10 @@ INSERT INTO public.location_faculties (location_id, faculty_id) VALUES
 (5, 5),
 (6, 2),
 (7, 2),
-(8, 1),
 (8, 4),
-(8, 10),
 (9, 7),
 (10, 1),
+(10, 14),
 (11, 13),
 (12, 8),
 (13, 6),
@@ -211,9 +210,10 @@ INSERT INTO public.location_faculties (location_id, faculty_id) VALUES
 (15, 4),
 (16, 12),
 (17, 15),
-(19, 3),
-(20, 5),
+(18, 9),
+(19, 9),
 (21, 1),
+(27, 1),
 (31, 4),
 (32, 7)
 ON CONFLICT (location_id, faculty_id) DO NOTHING;
