@@ -9,7 +9,7 @@ import {
   canAccessContent,
   canSendNotifications,
 } from '@/lib/dashboard-auth';
-import { apiBaseUrl, getAuthHeaders } from '@/lib/api-client';
+import { apiBaseUrl, getAuthHeaders, apiClient } from '@/lib/api-client';
 
 type NotificationItem = {
   id: number;
@@ -32,11 +32,19 @@ type PaginatedNotifications = {
   total_pages: number;
 };
 
+type FacultyOption = {
+  id: number;
+  name: string;
+};
+
 type NotificationRow = {
   id: string;
   title: string;
   description: string;
   time: string;
+  faculty: string;
+  action: string | null;
+  sentBy: string;
 };
 
 function NotificariContent() {
@@ -51,7 +59,14 @@ function NotificariContent() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const [newNotification, setNewNotification] = useState({ title: '', body: '' });
+  const [faculties, setFaculties] = useState<FacultyOption[]>([]);
+
+  const [newNotification, setNewNotification] = useState({
+    title: '',
+    body: '',
+    action: '',
+    faculty_id: '' as string | number,
+  });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -65,49 +80,82 @@ function NotificariContent() {
     }
   }, [searchParams, router]);
 
-  const loadNotifications = useCallback(async (pageToLoad: number) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(
-        `${apiBaseUrl}/notifications/me?page=${pageToLoad}&size=20`,
-        {
-          cache: 'no-store',
-          credentials: 'include',
-          headers: getAuthHeaders(),
-        }
-      );
-
-      if (!res.ok) {
-        throw new Error(`Eroare ${res.status} la încărcarea notificărilor.`);
-      }
-
-      const data: PaginatedNotifications = await res.json();
-
-      setRows(
-        data.items.map((n) => ({
-          id: String(n.id),
-          title: n.title,
-          description: n.body,
-          time: new Date(n.created_at).toLocaleTimeString('ro-RO', {
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
-        }))
-      );
-      setTotalPages(data.total_pages || 1);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Eroare necunoscută.');
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    let cancelled = false;
+    apiClient
+      .getFaculties()
+      .then((data) => {
+        if (cancelled) return;
+        const list = Array.isArray(data) ? data : [];
+        setFaculties(list.map((f: any) => ({ id: f.id, name: f.name })));
+      })
+      .catch(() => {
+        if (!cancelled) setFaculties([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  const facultyNameById = useCallback(
+    (id: number | null) => {
+      if (id === null) return 'Toate facultățile';
+      const found = faculties.find((f) => f.id === id);
+      return found ? found.name : `Facultate #${id}`;
+    },
+    [faculties]
+  );
+
+  const loadNotifications = useCallback(
+    async (pageToLoad: number) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(
+          `${apiBaseUrl}/notifications/me?page=${pageToLoad}&size=20`,
+          {
+            cache: 'no-store',
+            credentials: 'include',
+            headers: getAuthHeaders(),
+          }
+        );
+
+        if (!res.ok) {
+          throw new Error(`Eroare ${res.status} la încărcarea notificărilor.`);
+        }
+
+        const data: PaginatedNotifications = await res.json();
+
+        setRows(
+          data.items.map((n) => ({
+            id: String(n.id),
+            title: n.title,
+            description: n.body,
+            time: new Date(n.created_at).toLocaleTimeString('ro-RO', {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+            faculty: facultyNameById(n.faculty_id),
+            action: n.action,
+            sentBy: n.sent_by,
+          }))
+        );
+        setTotalPages(data.total_pages || 1);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Eroare necunoscută.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [facultyNameById]
+  );
 
   useEffect(() => {
     if (access.loading || !access.allowed) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadNotifications(page);
   }, [access.loading, access.allowed, page, loadNotifications]);
+
   const handleCreate = async () => {
     if (!newNotification.title || !newNotification.body) return;
 
@@ -115,21 +163,25 @@ function NotificariContent() {
     setSubmitError(null);
     try {
       const res = await fetch(`${apiBaseUrl}/notifications/send`, {
-  method: 'POST',
-  credentials: 'include',
-  headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-  body: JSON.stringify({
-    title: newNotification.title,
-    body: newNotification.body,
-  }),
-});
+        method: 'POST',
+        credentials: 'include',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          title: newNotification.title,
+          body: newNotification.body,
+          action: newNotification.action || null,
+          faculty_id: newNotification.faculty_id
+            ? Number(newNotification.faculty_id)
+            : null,
+        }),
+      });
 
       if (!res.ok) {
         throw new Error(`Eroare ${res.status} la trimiterea notificării.`);
       }
 
       setIsModalOpen(false);
-      setNewNotification({ title: '', body: '' });
+      setNewNotification({ title: '', body: '', action: '', faculty_id: '' });
       setPage(1);
       await loadNotifications(1);
     } catch (err) {
@@ -142,6 +194,25 @@ function NotificariContent() {
   const columns: Column<NotificationRow>[] = [
     { header: 'Titlu', key: 'title' },
     { header: 'Descriere', key: 'description' },
+    { header: 'Facultate', key: 'faculty' },
+    {
+      header: 'Acțiune',
+      key: 'action',
+      render: (row: NotificationRow) =>
+        row.action ? (
+          <a
+            href={row.action}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand underline break-all"
+          >
+            {row.action}
+          </a>
+        ) : (
+          <span className="text-muted">—</span>
+        ),
+    },
+    { header: 'Trimis de', key: 'sentBy' },
     { header: 'Ora', key: 'time' },
   ];
 
@@ -229,6 +300,32 @@ function NotificariContent() {
                 rows={4}
                 value={newNotification.body}
                 onChange={e => setNewNotification(prev => ({ ...prev, body: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-foreground mb-1">Facultate</label>
+              <select
+                className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm"
+                value={newNotification.faculty_id}
+                onChange={e => setNewNotification(prev => ({ ...prev, faculty_id: e.target.value }))}
+              >
+                <option value="">Toate facultățile</option>
+                {faculties.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-foreground mb-1">
+                Acțiune (link, opțional)
+              </label>
+              <input
+                className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm"
+                placeholder="https://exemplu.ro/pagina"
+                value={newNotification.action}
+                onChange={e => setNewNotification(prev => ({ ...prev, action: e.target.value }))}
               />
             </div>
             <button
