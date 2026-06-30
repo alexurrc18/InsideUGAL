@@ -1,13 +1,14 @@
 import logging
 from typing import List
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from app.api.auth_deps import require_roles, get_current_profile
 from app.api.pagination import PaginationParams, paginated_response
+from app.api.websocket_manager import notification_manager
 from app.db.database import get_db
 from app.models.models import Profile, PushToken
 from app.models.schemas import NotificationCreate, NotificationResponse, PaginatedResponse, UserRole
@@ -37,6 +38,24 @@ async def _send_push(token: str, title: str, body: str, action: str | None) -> N
     pass
 
 
+def _notification_payload(notification) -> dict:
+    return NotificationResponse.model_validate(notification).model_dump(mode="json")
+
+
+@router.websocket("/ws/{profile_id}")
+async def notifications_websocket(websocket: WebSocket, profile_id: str):
+    await notification_manager.connect(profile_id, websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        notification_manager.disconnect(profile_id, websocket)
+    except Exception:
+        logger.warning("WebSocket connection closed unexpectedly for profile %s", profile_id)
+        notification_manager.disconnect(profile_id, websocket)
+
+
+@router.post("/", response_model=NotificationResponse, status_code=status.HTTP_201_CREATED)
 @router.post("/send", response_model=NotificationResponse, status_code=status.HTTP_201_CREATED)
 async def send_notification(
     payload: NotificationCreate,
@@ -69,6 +88,9 @@ async def send_notification(
         db, payload, user_id=str(profile.id), recipient_count=sent_count
     )
     await db.refresh(notification, attribute_names=["sent_by_profile", "faculty"])
+    websocket_payload = _notification_payload(notification)
+    for target_profile in target_profiles:
+        await notification_manager.send_notification_to_user(str(target_profile.id), websocket_payload)
     return notification
 
 
