@@ -22,6 +22,8 @@ const connectSrc = [
   "https://api.insideugal.ro",
   "http://127.0.0.1:8002",
   "http://localhost:8002",
+  "ws://127.0.0.1:8002",
+  "ws://localhost:8002",
   backendOrigin,
 ].filter(Boolean).join(" ");
 

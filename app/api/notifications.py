@@ -1,13 +1,16 @@
 import logging
+import os
 from typing import List
 
-from fastapi import APIRouter, Depends, status
+import httpx
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from app.api.auth_deps import require_roles, get_current_profile
 from app.api.pagination import PaginationParams, paginated_response
+from app.api.websocket_manager import notification_manager
 from app.db.database import get_db
 from app.models.models import Profile, PushToken
 from app.models.schemas import NotificationCreate, NotificationResponse, PaginatedResponse, UserRole
@@ -15,6 +18,7 @@ from app.repositories.notification_repo import NotificationRepository
 
 logger = logging.getLogger(__name__)
 
+PUSH_SERVICE_URL = os.getenv("PUSH_SERVICE_URL")
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 repo = NotificationRepository()
 send_notifications = require_roles(
@@ -34,9 +38,44 @@ async def _get_target_profiles(db: AsyncSession, faculty_id: int | None) -> List
 
 
 async def _send_push(token: str, title: str, body: str, action: str | None) -> None:
-    pass
+    if not PUSH_SERVICE_URL:
+        logger.warning("PUSH_SERVICE_URL not configured; skipping push notification.")
+        raise RuntimeError("Push notification service is not configured.")
+        
+    payload = {"token": token, "title": title, "body": body}
+    if action:
+        payload["action"] = action
+        
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(PUSH_SERVICE_URL, json=payload)
+            response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        logger.error("Push notification failed with status %s: %s", exc.response.status_code, exc.response.text)
+        raise RuntimeError(f"Push notification failed: {exc.response.status_code}") from exc
+    except httpx.RequestError as exc:
+        logger.error("Push notification request error: %s", exc)
+        raise RuntimeError(f"Push notification request failed: {exc}") from exc
 
 
+def _notification_payload(notification) -> dict:
+    return NotificationResponse.model_validate(notification).model_dump(mode="json")
+
+
+@router.websocket("/ws/{profile_id}")
+async def notifications_websocket(websocket: WebSocket, profile_id: str):
+    await notification_manager.connect(profile_id, websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        notification_manager.disconnect(profile_id, websocket)
+    except Exception:
+        logger.warning("WebSocket connection closed unexpectedly for profile %s", profile_id)
+        notification_manager.disconnect(profile_id, websocket)
+
+
+@router.post("/", response_model=NotificationResponse, status_code=status.HTTP_201_CREATED)
 @router.post("/send", response_model=NotificationResponse, status_code=status.HTTP_201_CREATED)
 async def send_notification(
     payload: NotificationCreate,
@@ -47,6 +86,8 @@ async def send_notification(
 
     sent_count = 0
     invalid_token_ids: List[int] = []
+    
+    # Trimite push notification către toți utilizatorii vizați
     for p in target_profiles:
         for token in p.push_tokens:
             if not token.is_valid:
@@ -69,6 +110,12 @@ async def send_notification(
         db, payload, user_id=str(profile.id), recipient_count=sent_count
     )
     await db.refresh(notification, attribute_names=["sent_by_profile", "faculty"])
+    
+    # Trimite prin WebSocket către toți utilizatorii vizați
+    websocket_payload = _notification_payload(notification)
+    for target_profile in target_profiles:
+        await notification_manager.send_notification_to_user(str(target_profile.id), websocket_payload)
+        
     return notification
 
 

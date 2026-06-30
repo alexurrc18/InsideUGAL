@@ -16,7 +16,7 @@
 // Datele sunt mock-uite local (aceeasi forma `Notificare` ca ecranul de mobil
 // acasa/notificari.tsx). Nu importam din fisierul de mobil ca sa nu-l atingem; cand
 // va exista un endpoint, se inlocuieste doar `MOCK_NOTIFICARI` cu un fetch.
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Pressable, View, Text, ScrollView, useWindowDimensions, Linking } from "react-native";
 import Animated, { useSharedValue, withTiming, useAnimatedStyle, interpolate, Extrapolation, Easing } from "react-native-reanimated";
 import { ColorScheme, Spacing, Colors } from "@/constants/theme";
@@ -26,10 +26,104 @@ import { WEB_COMPACT_BREAKPOINT } from "@/components/ui/layout/web-container";
 import BellIcon from "@/assets/icons/svg/bell.svg";
 import { useRouter } from "expo-router";
 import { NotificareCard, Notificare } from "@/components/ui/display/notificare-card";
-import { storage } from "@/services/api";
-import { MOCK_NOTIFICARI } from "@/app/(public)/acasa/notificari";
+import { getAuthToken, storage } from "@/services/api";
+import { Config } from "@/constants/config";
+import { useAuth } from "@/contexts/auth-context";
+import { anuntHref, eventHref } from "@/utils/article-url";
 
-// MOCK_NOTIFICARI is imported from notificari.tsx
+type BackendNotification = {
+  id: string | number;
+  title?: string;
+  body?: string;
+  action?: string | null;
+  is_read?: boolean;
+  sent_at?: string;
+  created_at?: string;
+};
+
+type BackendAnnouncement = {
+  id: string | number;
+  title?: string;
+  content?: string;
+  type?: "NOUTATE" | "EVENIMENT" | string;
+  created_at?: string;
+};
+
+type NotificationsResponse =
+  | BackendNotification[]
+  | {
+      items?: BackendNotification[];
+    };
+
+type AnnouncementsResponse =
+  | BackendAnnouncement[]
+  | {
+      items?: BackendAnnouncement[];
+    };
+
+function formatNotificationDate(value?: string): string {
+  if (!value) return "Acum";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Acum";
+
+  return date.toLocaleDateString("ro-RO", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function mapBackendNotification(notification: BackendNotification): Notificare {
+  return {
+    id: String(notification.id),
+    data: formatNotificationDate(notification.sent_at ?? notification.created_at),
+    titlu: notification.title ?? "Notificare noua",
+    continut: notification.body ?? "",
+    actiune: notification.action ?? undefined,
+  };
+}
+
+function extractNotificationItems(data: NotificationsResponse): BackendNotification[] {
+  if (Array.isArray(data)) return data;
+  return Array.isArray(data.items) ? data.items : [];
+}
+
+function extractAnnouncementItems(data: AnnouncementsResponse): BackendAnnouncement[] {
+  if (Array.isArray(data)) return data;
+  return Array.isArray(data.items) ? data.items : [];
+}
+
+function mapBackendAnnouncement(announcement: BackendAnnouncement): Notificare {
+  const id = String(announcement.id);
+  const title = announcement.title ?? "Anunt nou";
+  const href =
+    announcement.type === "EVENIMENT"
+      ? eventHref({ id, title })
+      : anuntHref({ id, title });
+
+  return {
+    id: `announcement-${id}`,
+    data: formatNotificationDate(announcement.created_at),
+    titlu: title,
+    continut: announcement.content ?? "",
+    actiune: href,
+  };
+}
+
+function buildNotificationsWsUrl(profileId: string): string {
+  const baseUrl = Config.API_BASE_URL || "http://localhost:8002";
+
+  try {
+    const url = new URL(baseUrl);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    url.pathname = `/notifications/ws/${encodeURIComponent(profileId)}`;
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return `ws://localhost:8002/notifications/ws/${encodeURIComponent(profileId)}`;
+  }
+}
 
 export function NotificationMenu({
   open: controlledOpen,
@@ -41,6 +135,7 @@ export function NotificationMenu({
   onClose?: () => void;
 }) {
   const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const isDark = themeName === "dark";
@@ -49,7 +144,6 @@ export function NotificationMenu({
 
   // Culori luate direct din tema (conform specificatiilor).
   const dividerColor = theme.border;
-  const rowBorder = theme.border;
   const hoverBg = theme.background;
   const unreadBg = theme.background;
 
@@ -76,8 +170,10 @@ export function NotificationMenu({
   }, [open, isCompact, width]);
 
   // Citite/necitite tinute local (id-urile celor citite). La inceput toate sunt necitite.
+  const [notifications, setNotifications] = useState<Notificare[]>([]);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
-  const unreadCount = MOCK_NOTIFICARI.filter((n) => !readIds.has(n.id)).length;
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [resolvedProfileId, setResolvedProfileId] = useState<string | null>(null);
 
   useEffect(() => {
     storage.getItem('read_notification_ids').then((val) => {
@@ -93,6 +189,159 @@ export function NotificationMenu({
       }
     });
   }, [open]);
+
+  const handleWebSocketMessage = useCallback((event: MessageEvent) => {
+    try {
+      const data = JSON.parse(event.data) as BackendNotification;
+      console.log(' Notificare primită în Mobile/UI:', data);
+      const newNotif = mapBackendNotification(data);
+
+      setNotifications((prev) => {
+        if (prev.find((notification) => notification.id === newNotif.id)) {
+          return prev;
+        }
+
+        setUnreadCount((count) => count + 1);
+        return [newNotif, ...prev];
+      });
+    } catch (err) {
+      console.error("WS Parse Error", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    const profileId = user?.id ?? (typeof window !== "undefined" ? window.localStorage.getItem("profile_id") : null);
+    console.log("DEBUG: Attempting connection, user:", user, "profileId:", profileId);
+    console.log("DEBUG: ProfileID resolution:", profileId, "Auth:", Boolean(user?.id));
+
+    if (profileId) {
+      queueMicrotask(() => {
+        setResolvedProfileId(profileId);
+      });
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("profile_id", profileId);
+      }
+      return;
+    }
+
+    let cancelled = false;
+
+    const resolveProfileIdFromToken = async () => {
+      const token = await getAuthToken();
+      if (!token) {
+        console.warn("DEBUG: No profileId found, skipping WebSocket");
+        queueMicrotask(() => {
+          setResolvedProfileId(null);
+        });
+        return;
+      }
+
+      try {
+        const response = await fetch(`${Config.API_BASE_URL}/profiles/me`, {
+          cache: "no-store",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`GET profile failed with ${response.status}`);
+        }
+
+        const profile = await response.json();
+        const fetchedProfileId = profile?.id ? String(profile.id) : null;
+
+        console.log("DEBUG: ProfileID fetched from /profiles/me:", fetchedProfileId);
+
+        if (!cancelled) {
+          setResolvedProfileId(fetchedProfileId);
+          if (fetchedProfileId && typeof window !== "undefined") {
+            window.localStorage.setItem("profile_id", fetchedProfileId);
+          }
+        }
+      } catch (error) {
+        console.error("DEBUG: Failed to resolve profileId from token", error);
+        if (!cancelled) setResolvedProfileId(null);
+      }
+    };
+
+    resolveProfileIdFromToken();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, user]);
+
+  useEffect(() => {
+    const profileId = resolvedProfileId;
+
+    const loadInitialNotifications = async () => {
+      const token = await getAuthToken();
+
+      try {
+        if (profileId && token) {
+          const response = await fetch(`${Config.API_BASE_URL}/notifications/me`, {
+            cache: "no-store",
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            const data = (await response.json()) as NotificationsResponse;
+            const items = extractNotificationItems(data);
+
+            setNotifications(items.map(mapBackendNotification));
+            setUnreadCount(items.filter((notification) => !notification.is_read).length);
+            return;
+          }
+
+          console.warn(`DEBUG: GET notifications/me failed with ${response.status}; loading public announcements`);
+        }
+
+        const response = await fetch(`${Config.API_BASE_URL}/announcements/?page=1&size=5`, {
+          cache: "no-store",
+          headers: { Accept: "application/json" },
+        });
+
+        if (!response.ok) {
+          throw new Error(`GET announcements failed with ${response.status}`);
+        }
+
+        const data = (await response.json()) as AnnouncementsResponse;
+        const items = extractAnnouncementItems(data);
+
+        setNotifications(items.map(mapBackendAnnouncement));
+        setUnreadCount(items.length);
+      } catch (e) {
+        console.error("Initial load failed", e);
+      }
+    };
+
+    loadInitialNotifications();
+
+    if (!profileId) {
+      console.warn("DEBUG: No profileId found, skipping WebSocket");
+      return;
+    }
+
+    const ws = new WebSocket(buildNotificationsWsUrl(profileId));
+    const logWebSocketConnected = () => console.log("WebSocket connected on Mobile/UI");
+    ws.addEventListener("open", logWebSocketConnected);
+
+    ws.onopen = null;
+    ws.onerror = (e) => console.error("WebSocket error on Mobile/UI:", e);
+    ws.onmessage = handleWebSocketMessage;
+
+    return () => {
+      ws.removeEventListener("open", logWebSocketConnected);
+      ws.close();
+    };
+  }, [handleWebSocketMessage, resolvedProfileId]);
 
   const toggle = () => {
     if (onToggle) onToggle();
@@ -143,8 +392,9 @@ export function NotificationMenu({
     : ({ position: "absolute", top: "100%", right: 0, width: panelWidth } as const);
 
   const markAllRead = () => {
-    const allIds = new Set(MOCK_NOTIFICARI.map((n) => n.id));
+    const allIds = new Set(notifications.map((n) => n.id));
     setReadIds(allIds);
+    setUnreadCount(0);
     storage.setItem('read_notification_ids', JSON.stringify(Array.from(allIds)));
   };
 
@@ -238,7 +488,7 @@ export function NotificationMenu({
           {/* Lista scrollabila (limitam inaltimea ca panoul sa nu depaseasca ecranul).
               overscrollBehavior: contain -> scroll-ul listei nu "scapa" la pagina cand
               ajunge la capat. */}
-          {MOCK_NOTIFICARI.length === 0 ? (
+          {notifications.length === 0 ? (
             <View style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.xl, alignItems: "center" }}>
               <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>Nu ai notificări.</Text>
             </View>
@@ -247,7 +497,7 @@ export function NotificationMenu({
               style={{ maxHeight: 360, ...({ overscrollBehavior: "contain" } as any) }}
               showsVerticalScrollIndicator={false}
             >
-              {MOCK_NOTIFICARI.map((item, idx) => {
+              {notifications.map((item, idx) => {
                 const isUnread = !readIds.has(item.id);
                 return (
                   <NotificareCard

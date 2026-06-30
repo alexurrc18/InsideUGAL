@@ -5,13 +5,23 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation"; 
 import Link from "next/link";
 import { announcementsService } from "@/lib/announcements-service";
+import { apiBaseUrl, getAuthHeaders } from "@/lib/api-client";
 import { useTheme } from "../../providers";
 
 interface Announcement {
-  id: number;
+  id: number | string;
   title: string;
   content: string;
   created_at: string;
+}
+
+interface NotificationMessage {
+  id: number | string;
+  title?: string;
+  body?: string;
+  content?: string;
+  sent_at?: string;
+  created_at?: string;
 }
 
 const STORAGE_KEY = "last_seen_announcement_id";
@@ -22,8 +32,9 @@ export default function HeaderActions() {
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [, setUnreadCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [profileId, setProfileId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -66,6 +77,47 @@ export default function HeaderActions() {
 }, []); // Already has empty dependency array - this is actually fine
 
   useEffect(() => {
+    let isMounted = true;
+
+    const loadProfileId = async () => {
+      const storedProfileId = localStorage.getItem("profile_id");
+      if (storedProfileId) {
+        setProfileId(storedProfileId);
+        return;
+      }
+
+      const token = localStorage.getItem("access_token");
+      if (!token) return;
+
+      try {
+        const response = await fetch(`${apiBaseUrl}/profiles/me`, {
+          cache: "no-store",
+          credentials: "include",
+          headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) return;
+
+        const profile = await response.json();
+        const resolvedProfileId = profile?.id ? String(profile.id) : null;
+
+        if (resolvedProfileId) {
+          localStorage.setItem("profile_id", resolvedProfileId);
+          if (isMounted) setProfileId(resolvedProfileId);
+        }
+      } catch (error) {
+        console.error("Eroare la preluarea profilului pentru WebSocket:", error);
+      }
+    };
+
+    loadProfileId();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
         const data = await announcementsService.list();
@@ -84,7 +136,7 @@ export default function HeaderActions() {
           setAnnouncements(latest);
 
           const lastSeen = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
-          const unseen = latest.filter((a) => a.id > lastSeen).length;
+          const unseen = latest.filter((a) => Number(a.id) > lastSeen).length;
           setUnreadCount(unseen);
         }
 
@@ -97,13 +149,44 @@ export default function HeaderActions() {
     fetchAnnouncements();
   }, []);
 
+  useEffect(() => {
+    if (!profileId) return;
+
+    const ws = new WebSocket(`ws://localhost:8002/notifications/ws/${profileId}`);
+
+    ws.onopen = () => console.log('✅ WebSockets Connected!');
+
+    ws.onmessage = (event) => {
+      const newNotification = JSON.parse(event.data) as NotificationMessage;
+      console.log(' Notificare primită:', newNotification);
+
+      setAnnouncements((prev) => [
+        {
+          id: newNotification.id,
+          title: newNotification.title ?? "Notificare nouă",
+          content: newNotification.body ?? newNotification.content ?? "",
+          created_at: newNotification.sent_at ?? newNotification.created_at ?? new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+      setUnreadCount((prev) => prev + 1);
+    };
+
+    ws.onerror = (event) => {
+      console.error("❌ WebSockets Error:", event);
+    };
+
+    return () => ws.close();
+  }, [profileId]);
+
   const handleToggleNotifications = () => {
     const willOpen = !open;
     setOpen(willOpen);
     setProfileOpen(false);
 
     if (willOpen && announcements.length > 0) {
-      const maxId = Math.max(...announcements.map((a) => a.id));
+      const numericIds = announcements.map((a) => Number(a.id)).filter(Number.isFinite);
+      const maxId = numericIds.length > 0 ? Math.max(...numericIds) : 0;
       localStorage.setItem(STORAGE_KEY, String(maxId));
       setUnreadCount(0);
     }
@@ -112,6 +195,7 @@ export default function HeaderActions() {
   const handleLogout = () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("token_type");
+    localStorage.removeItem("profile_id");
     router.replace("/login");
   };
 
@@ -160,8 +244,10 @@ export default function HeaderActions() {
           className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
         >
           <Bell className="h-5 w-5 text-foreground" />
-          {announcements.length > 0 && (
-            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full" />
+          {unreadCount > 0 && (
+            <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
           )}
         </button>
 
