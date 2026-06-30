@@ -155,6 +155,12 @@ class TranslationService:
             raise ValueError("Gemini returned an empty translation.")
         return self._strip_wrapping_quotes(translated)
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((ValueError, Exception)),
+        reraise=True,
+    )
     def translate_many_uncached(self, items: dict[str, str], target_language: str) -> dict[str, str]:
         if not items:
             return {}
@@ -283,12 +289,17 @@ class TranslationService:
 
         translated_items = 0
         if misses:
-            translated_misses = self.translate_many_uncached(misses, normalized_language)
+            try:
+                translated_misses = self.translate_many_uncached(misses, normalized_language)
+            except Exception as exc:
+                logger.warning("Batch LLM call failed, falling back to per-item: %s", exc)
+                translated_misses = {}
+
             for path_key, original in misses.items():
                 translated = translated_misses.get(path_key)
                 if translated is None:
                     translated = self.translate_text_uncached(original, normalized_language)
-                path = tuple(json.loads(path_key))
+                path = tuple(path_key.split("__"))
                 translated_by_path[path] = translated
                 self.save_translation(original, normalized_language, translated)
                 translated_items += 1
@@ -334,7 +345,7 @@ class TranslationService:
 
     @staticmethod
     def _path_key(path: tuple[str, ...]) -> str:
-        return json.dumps(path, ensure_ascii=False)
+        return "__".join(path)
 
     @staticmethod
     def _normalize_language(target_language: str) -> str:
