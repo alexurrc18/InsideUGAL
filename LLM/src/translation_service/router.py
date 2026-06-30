@@ -298,10 +298,16 @@ class TranslationService:
             for path_key, original in misses.items():
                 translated = translated_misses.get(path_key)
                 if translated is None:
-                    translated = self.translate_text_uncached(original, normalized_language)
+                    try:
+                        translated = self.translate_text_uncached(original, normalized_language)
+                    except Exception as exc:
+                        logger.warning("Per-item LLM call failed for '%s': %s", original, exc)
+                        translated = original  # Fallback to original string so the batch doesn't crash completely
+
                 path = tuple(path_key.split("__"))
                 translated_by_path[path] = translated
-                self.save_translation(original, normalized_language, translated)
+                if translated != original:
+                    self.save_translation(original, normalized_language, translated)
                 translated_items += 1
 
         result = self._apply_translations(data, translated_by_path)
