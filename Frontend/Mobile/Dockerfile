@@ -9,4 +9,4 @@ COPY . .
 
 EXPOSE 8081
 
-CMD ["npm", "run", "web", "--", "--host", "lan"]
+CMD ["npm", "run", "web", "--", "--host", "lan", "--clear"]
