@@ -1,5 +1,6 @@
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import schemas
@@ -154,6 +155,59 @@ async def test_student_representative_cannot_manage_another_author_announcement(
     assert patch_response.json()["detail"] == "Student representatives can manage only their own announcements."
     assert delete_response.status_code == 403
     assert delete_response.json()["detail"] == "Student representatives can manage only their own announcements."
+
+
+@pytest.mark.asyncio
+async def test_delete_announcement_removes_saved_translations(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    await db_session.execute(
+        text(
+            """
+            CREATE TABLE IF NOT EXISTS public.announcement_translations (
+                id SERIAL PRIMARY KEY,
+                announcement_id INTEGER NOT NULL REFERENCES public.announcements(id),
+                language_code VARCHAR(10) NOT NULL,
+                translated_title VARCHAR(255) NOT NULL,
+                translated_content TEXT NOT NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                CONSTRAINT uq_announcement_language UNIQUE (announcement_id, language_code)
+            )
+            """
+        )
+    )
+
+    author = await create_profile(db_session, role=schemas.UserRole.HEAD_ADMIN)
+
+    create_response = await client.post(
+        "/announcements/",
+        json={
+            "type": schemas.PostType.NOUTATE.value,
+            "title": "Romanian news",
+            "content": "Content that has a cached translation.",
+        },
+        headers=author.headers,
+    )
+    assert create_response.status_code == 201
+    announcement_id = create_response.json()["id"]
+
+    from app.repositories.announcement_repo import AnnouncementRepository
+
+    repo = AnnouncementRepository()
+    await repo.save_translation(
+        db_session,
+        announcement_id,
+        "en",
+        "English news",
+        "Translated cached content.",
+    )
+
+    delete_response = await client.delete(f"/announcements/{announcement_id}", headers=author.headers)
+
+    assert delete_response.status_code == 204
+    assert await repo.get_translation(db_session, announcement_id, "en") is None
 
 
 @pytest.mark.asyncio

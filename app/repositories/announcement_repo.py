@@ -1,5 +1,5 @@
 from sqlalchemy import delete as sqlalchemy_delete
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -99,6 +99,15 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         return await self.create(session, announcement_in, created_by=user_id)
 
     async def delete(self, session: AsyncSession, db_announcement: Announcement) -> None:
+        translations_table_exists = await session.scalar(
+            text("SELECT to_regclass('public.announcement_translations') IS NOT NULL")
+        )
+        if translations_table_exists:
+            await session.execute(
+                sqlalchemy_delete(AnnouncementTranslation)
+                .where(AnnouncementTranslation.announcement_id == db_announcement.id)
+                .execution_options(synchronize_session=False)
+            )
         await session.execute(
             sqlalchemy_delete(Announcement)
             .where(Announcement.id == db_announcement.id)
