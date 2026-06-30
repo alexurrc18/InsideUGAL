@@ -52,10 +52,13 @@ export default function MoreScreen() {
       case "bus":
         return <BusIcon width={44} height={44} color={color} />;
       case "dino":
+      case "museum":
         return <DinoIcon width={44} height={44} color={color} />;
       case "film-roll-alt":
+      case "theater":
         return <FilmIcon width={44} height={44} color={color} />;
       case "tree-alt":
+      case "park":
         return <TreeIcon width={44} height={44} color={color} />;
       case "phone":
         return <PhoneIcon width={44} height={44} color={color} />;
@@ -229,7 +232,7 @@ export default function MoreScreen() {
                     marginBottom: 2
                   }}
                 >
-                  {renderIcon(cat.iconName, theme.secondary)}
+                  {renderIcon(cat.icon_name || cat.iconName || "", theme.secondary)}
                 </View>
 
                 <Text 

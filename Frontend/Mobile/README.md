@@ -1,56 +1,75 @@
-# Welcome to your Expo app 👋
+<a name="readme-top"></a>
+<div align="center">
+  <h3 align="center">InsideUGAL — Aplicație Mobilă</h3>
+  <p align="center">
+    Aplicație React Native + Expo pentru studenții Universității "Dunărea de Jos" din Galați.<br>
+    Suport nativ (iOS / Android) și web.
+  </p>
+</div>
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+<br />
 
-## Get started
+---
 
-1. Install dependencies
+## Ecrane implementate
 
-   ```bash
-   npm install
-   ```
+| Ecran | Descriere |
+|-------|-----------|
+| **Acasă** | Feed anunțuri pe categorii, cu detaliu anunț și eveniment |
+| **Cantină** | Meniu zilnic al cantinei universitare |
+| **Hartă** | Hartă interactivă a campusului (MapLibre + MapTiler) |
+| **Sesizări** | Lista sesizărilor proprii, adăugare și vizualizare detalii |
+| **ACE** | Chatbot AI pentru asistență studenți |
+| **Notificări** | Feed notificări cu stare citit/necitit persistată local |
+| **Setări** | Temă (light/dark), limbă, preferințe cont |
+| **Onboarding** | Solicitare permisiuni notificări și locație la primul acces |
 
-2. Start the app
+---
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Pornire
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Scanează codul QR cu **Expo Go** sau rulează pe:
+- Emulator Android: `a`
+- Simulator iOS: `i`
+- Browser: `w`
 
-### Other setup steps
+---
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Variabile de mediu
 
-## Learn more
+```bash
+cp .env.example .env
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+| Variabilă | Descriere |
+|-----------|-----------|
+| `EXPO_PUBLIC_API_BASE_URL` | URL-ul backend-ului FastAPI (ex: `http://<ip>:8002`) |
+| `EXPO_PUBLIC_LLM_BASE_URL` | URL-ul serviciului LLM / chatbot (ex: `http://<ip>:8001`) |
+| `EXPO_PUBLIC_MAPTILER_STYLE_URL` | URL stil hartă MapTiler (include API key) |
+| `EXPO_PUBLIC_DASHBOARD_URL` | URL-ul dashboard-ului de administrare |
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+> Variabilele `EXPO_PUBLIC_*` sunt citite la pornirea serverului Expo. Orice modificare necesită restart.
 
-## Join the community
+---
 
-Join our community of developers creating universal apps.
+## Stack tehnic
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+| Librărie | Rol |
+|----------|-----|
+| `expo-router` | Navigare file-based |
+| `expo-notifications` | Permisiuni și push notifications |
+| `expo-location` | Permisiuni locație |
+| `expo-image-picker` | Upload imagini sesizări |
+| `@maplibre/maplibre-react-native` + `maplibre-gl` | Hartă interactivă nativă și web |
+| `expo-linear-gradient` | Gradienti UI |
+| `react-native-reanimated` | Animații |
+| `expo-image` | Încărcare optimizată imagini |
+| `react-native-svg` | Iconițe SVG |
+| `@react-native-async-storage/async-storage` | Persistență locală (notificări citite etc.) |
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>

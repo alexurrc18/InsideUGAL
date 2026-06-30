@@ -107,8 +107,9 @@ export function streamAce(
               onError(typeof data.error === 'string' ? data.error : 'Eroare la asistent.');
               return;
             }
-            if (typeof data.content === 'string' && data.content.length > 0) {
-              onToken(data.content);
+            const tok = data.token ?? data.content ?? '';
+            if (typeof tok === 'string' && tok.length > 0) {
+              onToken(tok);
             }
           } catch {
             // Linie care nu e JSON valid (ex. comentariu SSE) — o ignoram.

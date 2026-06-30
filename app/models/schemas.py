@@ -387,6 +387,8 @@ class AnnouncementResponse(AnnouncementBase):
     created_by: UUID
     author: Optional[str] = Field(alias="author_name", default=None)
     is_translated: bool = False
+    translated_title: Optional[str] = None
+    translated_content: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
@@ -485,4 +487,3 @@ class NotificationResponse(NotificationBase):
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
-    
