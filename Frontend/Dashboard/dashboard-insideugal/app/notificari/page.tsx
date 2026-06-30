@@ -40,7 +40,11 @@ function NotificariContent() {
     const profileData = await apiClient.getCurrentProfile();
     const facultiesData = await apiClient.getFaculties();
 
-    const isManager = profileData.role === 'HEAD_ADMIN' || profileData.role === 'HEAD_FACULTATI';
+    const isManager =
+      profileData.role === 'HEAD_ADMIN' ||
+      profileData.role === 'HEAD_FACULTATI' ||
+      profileData.role === 'PROFESOR' ||
+      profileData.role === 'STUDENT_RESPONSABIL';
     const notificationsResponse = isManager
       ? await apiClient.getNotifications()
       : await apiClient.getMyNotifications();
@@ -104,16 +108,18 @@ function NotificariContent() {
     if (!newNotification.title || !newNotification.description) return;
 
     try {
-      const isManager = currentProfile?.role === 'HEAD_ADMIN' || currentProfile?.role === 'HEAD_FACULTATI';
+      const isManager =
+        currentProfile?.role === 'HEAD_ADMIN' ||
+        currentProfile?.role === 'HEAD_FACULTATI' ||
+        currentProfile?.role === 'PROFESOR' ||
+        currentProfile?.role === 'STUDENT_RESPONSABIL';
       if (!isManager) {
-        setError("Nu ai permisiuni de administrator pentru a trimite notificări.");
+        setError("Nu ai permisiuni pentru a trimite notificări.");
         return;
       }
 
-      // Stabilește faculty_id în funcție de rol
-      const facultyId = currentProfile?.role === 'HEAD_FACULTATI'
-        ? currentProfile.faculty_id
-        : (targetFacultyId ? parseInt(targetFacultyId, 10) : null);
+      // Stabilește faculty_id
+      const facultyId = targetFacultyId ? parseInt(targetFacultyId, 10) : null;
 
       await apiClient.sendNotification({
         title: newNotification.title,
@@ -189,7 +195,11 @@ function NotificariContent() {
 
   if (access.loading || !access.allowed) return null;
 
-  const isManager = currentProfile?.role === 'HEAD_ADMIN' || currentProfile?.role === 'HEAD_FACULTATI';
+  const isManager =
+    currentProfile?.role === 'HEAD_ADMIN' ||
+    currentProfile?.role === 'HEAD_FACULTATI' ||
+    currentProfile?.role === 'PROFESOR' ||
+    currentProfile?.role === 'STUDENT_RESPONSABIL';
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -256,32 +266,19 @@ function NotificariContent() {
             />
           </div>
 
-          {currentProfile?.role === 'HEAD_ADMIN' && (
-            <div>
-              <label className="block text-xs font-semibold text-foreground mb-1">Facultate Destinatară</label>
-              <select
-                className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm"
-                value={targetFacultyId}
-                onChange={e => setTargetFacultyId(e.target.value)}
-              >
-                <option value="">Toate facultățile</option>
-                {faculties.map(f => (
-                  <option key={f.id} value={f.id}>{f.name} ({f.abbreviation})</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {currentProfile?.role === 'HEAD_FACULTATI' && (
-            <div>
-              <label className="block text-xs font-semibold text-foreground mb-1">Facultate Destinatară</label>
-              <input
-                className="w-full border border-border p-2 rounded-lg bg-background text-sm opacity-70"
-                value={getFacultyAbbreviation(currentProfile.faculty_id)}
-                disabled
-              />
-            </div>
-          )}
+          <div>
+            <label className="block text-xs font-semibold text-foreground mb-1">Facultate Destinatară</label>
+            <select
+              className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm"
+              value={targetFacultyId}
+              onChange={e => setTargetFacultyId(e.target.value)}
+            >
+              <option value="">Toate facultățile</option>
+              {faculties.map(f => (
+                <option key={f.id} value={f.id}>{f.name} ({f.abbreviation})</option>
+              ))}
+            </select>
+          </div>
 
           <button 
             type="button" 
