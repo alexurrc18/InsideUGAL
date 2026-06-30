@@ -81,21 +81,26 @@ function NotificariContent() {
   }, [searchParams, router]);
 
   useEffect(() => {
-    let cancelled = false;
-    apiClient
-      .getFaculties()
-      .then((data) => {
-        if (cancelled) return;
-        const list = Array.isArray(data) ? data : [];
-        setFaculties(list.map((f: any) => ({ id: f.id, name: f.name })));
-      })
-      .catch(() => {
-        if (!cancelled) setFaculties([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  let cancelled = false;
+  apiClient
+    .getFaculties()
+    .then((data) => {
+      if (cancelled) return;
+      const list = Array.isArray(data) ? data : [];
+      setFaculties(
+        list.map((f: { id: number; name: string }) => ({
+          id: f.id,
+          name: f.name,
+        }))
+      );
+    })
+    .catch(() => {
+      if (!cancelled) setFaculties([]);
+    });
+  return () => {
+    cancelled = true;
+  };
+}, []);
 
   const facultyNameById = useCallback(
     (id: number | null) => {
