@@ -53,6 +53,7 @@ const FILTER_DAYS = [
 export default function Page() {
   const access = useRequireDashboardAccess(canAccessCantina);
   const [activeDay, setActiveDay] = useState("Toate preparatele");
+  const [activeCategory, setActiveCategory] = useState("Toate categoriile");
   const [activeModal, setActiveModal] = useState<"add" | "edit" | null>(null);
   const [selectedItem, setSelectedItem] = useState<Dish | null>(null);
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
@@ -166,11 +167,20 @@ export default function Page() {
     }));
   }, [apiData, menusData]);
 
+  const categoryFilters = useMemo(() => {
+    return ["Toate categoriile", ...categories.map(c => c.name)];
+  }, [categories]);
+
   const filteredData = useMemo(() => {
-    return activeDay === "Toate preparatele" 
-      ? data 
-      : data.filter(item => item.availableDays.includes(activeDay));
-  }, [data, activeDay]);
+    let result = data;
+    if (activeDay !== "Toate preparatele") {
+      result = result.filter(item => item.availableDays.includes(activeDay));
+    }
+    if (activeCategory !== "Toate categoriile") {
+      result = result.filter(item => item.category === activeCategory);
+    }
+    return result;
+  }, [data, activeDay, activeCategory]);
 
   const handleDayTagToggle = (day: string) => {
     const currentDays = formState.availableDays ?? [];
@@ -277,19 +287,37 @@ export default function Page() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex flex-wrap gap-2 p-1 bg-background/50 border border-border rounded-2xl w-fit">
-          {FILTER_DAYS.map((day) => (
-            <button
-              key={day}
-              onClick={() => setActiveDay(day)}
-              className={`px-4 py-1.5 rounded-xl text-xs font-medium transition-all ${
-                activeDay === day ? "bg-card text-blue-600 shadow-sm" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {day}
-            </button>
-          ))}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div className="flex flex-col gap-2">
+          {/* Filtru Zile */}
+          <div className="flex flex-wrap gap-2 p-1 bg-background/50 border border-border rounded-2xl w-fit">
+            {FILTER_DAYS.map((day) => (
+              <button
+                key={day}
+                onClick={() => setActiveDay(day)}
+                className={`px-4 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                  activeDay === day ? "bg-card text-blue-600 shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {day}
+              </button>
+            ))}
+          </div>
+
+          {/* Filtru Categorii */}
+          <div className="flex flex-wrap gap-2 p-1 bg-background/50 border border-border rounded-2xl w-fit">
+            {categoryFilters.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`px-4 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                  activeCategory === cat ? "bg-card text-blue-600 shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
 
         <button
