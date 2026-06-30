@@ -1,6 +1,8 @@
 import logging
+import os
 from typing import List
 
+import httpx
 from fastapi import APIRouter, Depends, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +16,8 @@ from app.models.schemas import NotificationCreate, NotificationResponse, Paginat
 from app.repositories.notification_repo import NotificationRepository
 
 logger = logging.getLogger(__name__)
+
+PUSH_SERVICE_URL = os.getenv("PUSH_SERVICE_URL")
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 repo = NotificationRepository()
@@ -34,7 +38,24 @@ async def _get_target_profiles(db: AsyncSession, faculty_id: int | None) -> List
 
 
 async def _send_push(token: str, title: str, body: str, action: str | None) -> None:
-    pass
+    if not PUSH_SERVICE_URL:
+        logger.warning("PUSH_SERVICE_URL not configured; skipping push notification.")
+        raise RuntimeError("Push notification service is not configured.")
+
+    payload = {"token": token, "title": title, "body": body}
+    if action:
+        payload["action"] = action
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(PUSH_SERVICE_URL, json=payload)
+            response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        logger.error("Push notification failed with status %s: %s", exc.response.status_code, exc.response.text)
+        raise RuntimeError(f"Push notification failed: {exc.response.status_code}") from exc
+    except httpx.RequestError as exc:
+        logger.error("Push notification request error: %s", exc)
+        raise RuntimeError(f"Push notification request failed: {exc}") from exc
 
 
 @router.post("/send", response_model=NotificationResponse, status_code=status.HTTP_201_CREATED)
