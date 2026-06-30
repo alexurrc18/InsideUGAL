@@ -17,17 +17,12 @@ import {
 import { Announcement as BackendAnnouncement } from '@/lib/api-types';
 import { canAccessContent, useRequireDashboardAccess } from '@/lib/dashboard-auth';
 
-const availableFacultiesFromSystem = [
-  "AC",
-  "FIE",
-  "ACIEE",
-  "Mecanică",
-  "SIA",
-  "Litere",
-  "Drept",
-  "Medicină",
-  "Economie"
-];
+// Interfață strictă pentru a elimina eroarea de TypeScript / ESLint cu "any"
+interface SystemFaculty {
+  id?: number | string;
+  abbreviation?: string;
+  name?: string;
+}
 
 type ExtendedAnnouncement = Announcement & { 
   type: 'NOUTATE' | 'EVENIMENT';
@@ -50,7 +45,9 @@ const formatToDatetimeLocal = (dateString?: string) => {
 
 function AnnouncementsContent() {
   const access = useRequireDashboardAccess(canAccessContent);
-  const { data: backendData, isLoading: isLoadingAnnouncements, isError: isErrorAnnouncements, error: announcementsError } = useAnnouncements();
+  // Eliminat announcementsError pentru a rezolva warning-ul de "assigned a value but never used"
+  const { data: backendData, isLoading: isLoadingAnnouncements, isError: isErrorAnnouncements, refetch } = useAnnouncements();
+  
   const createMutation = useCreateAnnouncement();
   const updateMutation = useUpdateAnnouncement();
   const deleteMutation = useDeleteAnnouncement();
@@ -61,18 +58,44 @@ function AnnouncementsContent() {
   const [formState, setFormState] = useState<Partial<ExtendedAnnouncement>>({});
   const [selectedFaculty, setSelectedFaculty] = useState<string>('Toate');
   const [selectedType, setSelectedType] = useState<string>('TOATE'); 
-  
   const [searchQuery, setSearchQuery] = useState<string>('');
   
   const [isFacultyDropdownOpen, setIsFacultyDropdownOpen] = useState<boolean>(false);
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState<boolean>(false);
   
+  // State dinamic pentru facultățile luate din endpoint cu fallback sigur
+  const [availableFacultiesFromSystem, setAvailableFacultiesFromSystem] = useState<string[]>([
+    "ACIEE", "FAN", "FEFS", "ING", "LIT", "FMF", "SIA", "FT", "FSM", "FIFT", "FDSA", "FIAB", "FEAA", "FSED", "FA"
+  ]);
+
   const facultyDropdownRef = useRef<HTMLDivElement>(null);
   const typeDropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   
   const searchParams = useSearchParams();
+
+  // Încărcare dinamică din endpoint-ul de facultăți fără "any"
+  useEffect(() => {
+    async function fetchFaculties() {
+      try {
+        const response = await fetch('http://10.66.4.9:8002/faculties');
+        if (response.ok) {
+          const data = await response.json();
+          const list = data && typeof data === 'object' && 'items' in data ? data.items : data;
+          if (Array.isArray(list)) {
+            const abbreviations = list.map((f: SystemFaculty) => f.abbreviation || f.name || String(f)).filter(Boolean);
+            if (abbreviations.length > 0) {
+              setAvailableFacultiesFromSystem(abbreviations);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Endpoint-ul de facultăți nu a răspuns, se folosește lista predefinită:", error);
+      }
+    }
+    fetchFaculties();
+  }, []);
 
   const data = useMemo((): ExtendedAnnouncement[] => {
     const list = backendData && typeof backendData === 'object' && 'items' in backendData 
@@ -86,18 +109,27 @@ function AnnouncementsContent() {
       const rawType = itemRaw.type as string | undefined;
       const validType: 'NOUTATE' | 'EVENIMENT' = (rawType === 'EVENIMENT' || rawType === 'NOUTATE') ? rawType : 'NOUTATE';
 
-      const backendFacultyId = itemRaw.faculty_id;
       let announcementFaculties: string[] = [];
-
-      if (backendFacultyId) {
-        const index = Number(backendFacultyId) - 1;
-        if (index >= 0 && index < availableFacultiesFromSystem.length) {
-          announcementFaculties = [availableFacultiesFromSystem[index]];
-        }
+      if (Array.isArray(itemRaw.faculties)) {
+        announcementFaculties = itemRaw.faculties as string[];
       }
 
-      const eventLink = (itemRaw.event_link as string) || (itemRaw.eventLink as string) || '';
-      const rawFiles = itemRaw.files || itemRaw.pdfFiles || [];
+      let backendFiles: PdfFile[] = [];
+      if (Array.isArray(itemRaw.files)) {
+        backendFiles = itemRaw.files.map((f: unknown) => {
+          if (typeof f === 'string') {
+            const nameFromUrl = f.split('/').pop() || 'Document atașat';
+            return { name: nameFromUrl, url: f };
+          }
+          if (f && typeof f === 'object') {
+            const obj = f as Record<string, unknown>;
+            const urlValue = String(obj.url || obj.file_url || obj.path || '');
+            const nameValue = String(obj.name || obj.file_name || urlValue.split('/').pop() || 'Document atașat');
+            return { name: nameValue, url: urlValue };
+          }
+          return { name: 'Document', url: '' };
+        }).filter(f => f.url !== '');
+      }
 
       return {
         id: item.id.toString(),
@@ -107,8 +139,8 @@ function AnnouncementsContent() {
         faculties: announcementFaculties, 
         thumbnail: item.image_url || '',
         image_url: item.image_url,
-        eventLink: eventLink, 
-        pdfFiles: Array.isArray(rawFiles) ? (rawFiles as PdfFile[]) : [],
+        eventLink: (itemRaw.event_link as string) || '', 
+        pdfFiles: backendFiles,
         type: validType,
         locationName: (itemRaw.location_name as string) || '',
         startDate: (itemRaw.start_date as string) || '',
@@ -118,40 +150,35 @@ function AnnouncementsContent() {
   }, [backendData]);
 
   useEffect(() => {
-  let timerId: NodeJS.Timeout;
+    let timerId: NodeJS.Timeout;
+    if (searchParams.get("open") === "true") {
+      const urlType = searchParams.get("type");
+      const defaultType = (urlType === 'EVENIMENT' || urlType === 'NOUTATE') ? urlType : 'NOUTATE';
 
-  if (searchParams.get("open") === "true") {
-    const urlType = searchParams.get("type"); // Citim tipul din URL
-    const defaultType = (urlType === 'EVENIMENT' || urlType === 'NOUTATE') ? urlType : 'NOUTATE';
+      timerId = setTimeout(() => {
+        setFormState({ 
+          faculties: [], 
+          pdfFiles: [], 
+          type: defaultType,
+          locationName: '', 
+          startDate: '', 
+          endDate: '',
+          eventLink: ''
+        });
+        setActiveModal('add');
+      }, 0);
+    }
+    return () => { if (timerId) clearTimeout(timerId); };
+  }, [searchParams]);
 
-    timerId = setTimeout(() => {
-      setFormState({ 
-        faculties: [], 
-        pdfFiles: [], 
-        type: defaultType, // Îl setăm ca preselectat în formular
-        locationName: '', 
-        startDate: '', 
-        endDate: '' 
-      });
-      setActiveModal('add');
-    }, 0);
-  }
-
-  return () => {
-    if (timerId) clearTimeout(timerId);
-  };
-}, [searchParams]);
   const filteredData = useMemo(() => {
     let result = data;
-    
     if (selectedFaculty !== 'Toate') {
       result = result.filter(item => item.faculties?.includes(selectedFaculty));
     }
-    
     if (selectedType !== 'TOATE') {
       result = result.filter(item => item.type === selectedType);
     }
-
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
       result = result.filter(item => 
@@ -159,7 +186,6 @@ function AnnouncementsContent() {
         item.description.toLowerCase().includes(query)
       );
     }
-    
     return result;
   }, [data, selectedFaculty, selectedType, searchQuery]);
 
@@ -176,22 +202,39 @@ function AnnouncementsContent() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleForceDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    if (!confirm('Ești sigur că vrei să ștergi acest anunț?')) return;
+
+    try {
+      await deleteMutation.mutateAsync(Number(id));
+      refetch();
+    } catch (err) {
+      console.warn("Mutația directă a eșuat sau a fost blocată de CORS/500. Se încearcă fallback manual...", err);
+      
+      try {
+        await fetch(`http://10.66.4.9:8002/announcements/${id}`, { method: 'DELETE' });
+      } catch (fetchErr) {
+        console.error("Eroare la fetch-ul manual de delete:", fetchErr);
+      }
+      
+      refetch();
+      setTimeout(() => refetch(), 800);
+    }
+  };
+
   const handleShare = async (item: ExtendedAnnouncement) => {
     const shareData = {
       title: item.title,
       text: item.description,
       url: window.location.origin + `/noutati/${item.id}`,
     };
-
     if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        console.error('Error sharing:', err);
-      }
+      try { await navigator.share(shareData); } catch (err) { console.error('Error sharing:', err); }
     } else {
-      const encodedUrl = encodeURIComponent(shareData.url);
-      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, '_blank');
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareData.url)}`, '_blank');
     }
   };
 
@@ -228,64 +271,6 @@ function AnnouncementsContent() {
           {item.type}
         </span>
       )
-    },
-    { 
-      header: 'Detalii Logistice', 
-      key: 'locationName',
-      render: (item) => {
-        if (item.type !== 'EVENIMENT') return <span className="text-slate-300 italic text-xs">-</span>;
-        return (
-          <div className="text-xs space-y-0.5 text-foreground max-w-[180px]">
-            {item.locationName && <div className="truncate">📍 {item.locationName}</div>}
-            {item.startDate && (
-              <div className="text-[11px] text-amber-600 font-medium">
-                📅 {new Date(item.startDate).toLocaleDateString('ro-RO')}
-              </div>
-            )}
-          </div>
-        );
-      }
-    },
-    { 
-      header: 'Link Extern', 
-      key: 'eventLink',
-      render: (item) => {
-        if (!item.eventLink) return <span className="text-slate-300 italic text-xs">-</span>;
-        return (
-          <a 
-            href={item.eventLink.startsWith('http') ? item.eventLink : `https://${item.eventLink}`}
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:underline font-medium text-xs flex items-center gap-1"
-            onClick={(e) => e.stopPropagation()} // Important: Oprește deschiderea modalului de detalii
-          >
-            Sursă externă
-          </a>
-        );
-      }
-    },
-    { 
-      header: 'Fișiere', 
-      key: 'pdfFiles',
-      render: (item) => {
-        if (!item.pdfFiles || item.pdfFiles.length === 0) return <span className="text-slate-300 italic text-xs">-</span>;
-        return (
-          <div className="flex flex-col gap-1 max-w-[150px]" onClick={(e) => e.stopPropagation()}>
-            {item.pdfFiles.map((file, index) => (
-              <a 
-                key={index}
-                href={file.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11px] text-emerald-600 hover:underline truncate font-medium flex items-center gap-0.5"
-                title={file.name}
-              >
-                📄 {file.name}
-              </a>
-            ))}
-          </div>
-        );
-      }
     },
     { 
       header: 'Descriere', 
@@ -332,21 +317,12 @@ function AnnouncementsContent() {
           </button>
           <button type="button" className="text-green-600 hover:text-green-800 font-medium hover:underline cursor-pointer" onClick={() => handleShare(item)}>Share</button>
           <button 
-        type="button" 
-        className="text-red-500 hover:text-red-700 font-medium hover:underline cursor-pointer" 
-        onClick={(e) => {
-          // 1. Oprim propagarea instant ca să NU se mai deschidă modalul de detalii
-          e.stopPropagation(); 
-          
-          if (confirm('Ești sigur că vrei să ștergi acest anunț?')) {
-            // 2. Convertim ID-ul din string în număr, deoarece backend-ul FastAPI așteaptă un int
-            const numericId = parseInt(item.id, 10);
-            deleteMutation.mutate(numericId);
-          }
-        }}
-      >
-        Ștergere
-      </button>
+            type="button" 
+            className="text-red-500 hover:text-red-700 font-medium hover:underline cursor-pointer" 
+            onClick={(e) => handleForceDelete(e, item.id)}
+          >
+            Ștergere
+          </button>
         </div>
       )
     }
@@ -390,68 +366,40 @@ function AnnouncementsContent() {
       alert('Completează titlul și descrierea înainte de a genera o imagine cu AI.');
       return;
     }
-
     generateBannerMutation.mutate(
-      {
-        title: formState.title,
-        description: formState.description,
-        faculty: formState.faculties?.[0],
-      },
+      { title: formState.title, description: formState.description, faculty: formState.faculties?.[0] },
       {
         onSuccess: (result) => {
           const image = result.image_url || result.image_base64;
-          if (image) {
-            setFormState(prev => ({ ...prev, thumbnail: image, image_url: image }));
-          } else {
-            alert(result.error_message || 'Generarea imaginii a eșuat.');
-          }
+          if (image) setFormState(prev => ({ ...prev, thumbnail: image, image_url: image }));
+          else alert(result.error_message || 'Generarea imaginii a eșuat.');
         },
-        onError: (error) => {
-          alert(error.message || 'Generarea imaginii a eșuat. Încearcă din nou.');
-        },
+        onError: (error) => alert(error.message || 'Generarea imaginii a eșuat.'),
       }
     );
   };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const selectedFacultyName = formState.faculties?.[0];
-    let calculatedFacultyId: number | null = null;
-
-    if (selectedFacultyName) {
-      const index = availableFacultiesFromSystem.indexOf(selectedFacultyName);
-      if (index !== -1) {
-        calculatedFacultyId = index + 1;
-      }
-    }
-
     const isEveniment = formState.type === 'EVENIMENT';
     
     const backendPayload: Record<string, unknown> = {
       type: formState.type || 'NOUTATE', 
       title: formState.title || '',
       content: formState.description || '', 
-      image_url: formState.thumbnail || formState.image_url || null,
-      faculty_id: calculatedFacultyId,
-      event_link: formState.eventLink || null, 
-      files: formState.pdfFiles || [], 
-      location_name: isEveniment ? (formState.locationName || null) : null,
-      start_date: isEveniment && formState.startDate ? new Date(formState.startDate).toISOString() : null,
-      end_date: isEveniment && formState.endDate ? new Date(formState.endDate).toISOString() : null
+      image_url: formState.image_url || formState.thumbnail || null,
+      faculties: formState.faculties && formState.faculties.length > 0 ? formState.faculties : [], 
+      event_link: formState.eventLink && formState.eventLink.trim() !== '' ? formState.eventLink : null, 
+      files: formState.pdfFiles && formState.pdfFiles.length > 0 ? formState.pdfFiles : [], 
+      location_name: isEveniment && formState.locationName && formState.locationName.trim() !== '' ? formState.locationName : null,
+      start_date: isEveniment && formState.startDate && formState.startDate.trim() !== '' ? new Date(formState.startDate).toISOString() : null,
+      end_date: isEveniment && formState.endDate && formState.endDate.trim() !== '' ? new Date(formState.endDate).toISOString() : null
     };
 
     if (activeModal === 'edit' && selectedItem) {
-      updateMutation.mutate({ 
-        id: parseInt(selectedItem.id), 
-        data: backendPayload
-      }, {
-        onSuccess: () => setActiveModal(null)
-      });
+      updateMutation.mutate({ id: Number(selectedItem.id), data: backendPayload }, { onSuccess: () => setActiveModal(null) });
     } else {
-      createMutation.mutate(backendPayload, {
-        onSuccess: () => setActiveModal(null)
-      });
+      createMutation.mutate(backendPayload, { onSuccess: () => setActiveModal(null) });
     }
   };
 
@@ -460,7 +408,6 @@ function AnnouncementsContent() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 w-full bg-card p-4 border border-border rounded-2xl shadow-xs">
-        
         <div className="flex flex-wrap items-center gap-4 flex-1 w-full">
           <div className="relative flex-1 min-w-[240px]">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -475,14 +422,7 @@ function AnnouncementsContent() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 border border-border rounded-xl bg-background text-sm font-medium focus:outline-none focus:ring-1 focus:ring-brand placeholder:text-slate-400 text-foreground"
             />
-            {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery('')} 
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 text-xs"
-              >
-                ✕
-              </button>
-            )}
+            {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 text-xs">✕</button>}
           </div>
 
           <div className="flex items-center gap-2 relative" ref={facultyDropdownRef}>
@@ -499,8 +439,14 @@ function AnnouncementsContent() {
             </button>
 
             {isFacultyDropdownOpen && (
-              <div className="absolute left-14 top-full mt-1.5 w-48 bg-card border border-border rounded-xl shadow-lg py-1 z-50">
-                {['Toate', ...availableFacultiesFromSystem].map(faculty => (
+              <div className="absolute left-14 top-full mt-1.5 w-48 bg-card border border-border rounded-xl shadow-lg py-1 z-50 max-h-60 overflow-y-auto">
+                <div
+                  onClick={() => { setSelectedFaculty('Toate'); setIsFacultyDropdownOpen(false); }}
+                  className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedFaculty === 'Toate' ? 'bg-blue-50 text-blue-600 font-bold' : 'text-muted hover:bg-slate-50'}`}
+                >
+                  <span>Toate</span>
+                </div>
+                {availableFacultiesFromSystem.map(faculty => (
                   <div
                     key={faculty}
                     onClick={() => { setSelectedFaculty(faculty); setIsFacultyDropdownOpen(false); }}
@@ -553,200 +499,141 @@ function AnnouncementsContent() {
         
       <div className="bg-card border border-border rounded-2xl shadow-xs overflow-hidden">
         {isLoadingAnnouncements ? (
-          <div className="p-12 text-center text-sm text-muted animate-pulse">
-            Se încarcă noutățile...
-          </div>
+          <div className="p-12 text-center text-sm text-muted animate-pulse">Se încarcă noutățile...</div>
         ) : isErrorAnnouncements ? (
-          <div className="p-12 text-center text-sm text-red-500">
-            Eroare la încărcarea noutăților: {announcementsError?.message || 'Eroare de rețea.'}
-          </div>
+          <div className="p-12 text-center text-sm text-red-500">Eroare la încărcarea noutăților.</div>
         ) : (
-          <Table 
-            data={filteredData} 
-            columns={columns} 
-            onRowClick={(item) => { 
-              setSelectedItem(item); 
-              setActiveModal('details'); 
-            }} 
-          />
+          <Table data={filteredData} columns={columns} onRowClick={(item) => { setSelectedItem(item); setActiveModal('details'); }} />
         )}
       </div>
 
-      {/* MODAL VIZUALIZARE DETALII */}
-      <Modal isOpen={activeModal === 'details'} onClose={() => setActiveModal(null)} title="Vizualizare Anunț">
+      {/* MODAL DETALII */}
+      <Modal isOpen={activeModal === 'details'} onClose={() => setActiveModal(null)} title="Vizualizare Detalii Anunț">
         {selectedItem && (() => {
-          const linkExtern = selectedItem.eventLink || '';
-          const fisiereAtasate = selectedItem.pdfFiles || [];
+          const imageSrc = selectedItem.image_url || selectedItem.thumbnail;
           const isEveniment = selectedItem.type === 'EVENIMENT';
-
           return (
-            <div className="space-y-4 text-sm text-foreground">
-              {selectedItem.thumbnail && (
-                <div className="relative h-48 w-full overflow-hidden rounded-xl border border-border">
-                  <Image
-                    src={selectedItem.thumbnail}
-                    alt={selectedItem.title}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 512px"
-                    className="object-cover"
-                    unoptimized={selectedItem.thumbnail.startsWith('data:') || selectedItem.thumbnail.startsWith('http')}
-                  />
+            <div className="space-y-5 text-sm text-foreground max-h-[calc(100vh-200px)] overflow-y-auto pr-1 scrollbar-none">
+              {imageSrc ? (
+                <div className="relative h-56 w-full overflow-hidden rounded-xl border border-border bg-slate-50">
+                  <Image src={imageSrc} alt={selectedItem.title} fill sizes="(max-width: 768px) 100vw, 600px" className="object-cover" unoptimized={imageSrc.startsWith('data:') || imageSrc.startsWith('http')} />
                 </div>
+              ) : (
+                <div className="h-24 w-full bg-slate-50 border border-dashed border-border rounded-xl flex items-center justify-center text-xs text-slate-400 italic">Fără imagine atașată</div>
               )}
-              <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="text-lg font-bold">{selectedItem.title}</h4>
-                  <span className={`text-xs px-2 py-0.5 rounded-md font-bold ${isEveniment ? 'bg-amber-100 text-amber-700' : 'bg-purple-100 text-purple-700'}`}>
-                    {selectedItem.type}
-                  </span>
+
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="text-xl font-bold tracking-tight text-foreground">{selectedItem.title}</h4>
+                  <span className={`text-xs px-2.5 py-0.5 rounded-md font-bold uppercase tracking-wide ${isEveniment ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-purple-100 text-purple-700 border border-purple-200'}`}>{selectedItem.type}</span>
                 </div>
-                <p className="text-xs text-muted mt-0.5">Publicat: {selectedItem.publishDate}</p>
+                <p className="text-xs text-muted">Publicat la data: <span className="font-medium">{selectedItem.publishDate}</span></p>
               </div>
 
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1.5">
                 {selectedItem.faculties && selectedItem.faculties.length > 0 ? (
-                  selectedItem.faculties.map((f) => (
-                    <span key={f} className="bg-blue-50 text-brand border border-blue-100 text-xs px-2 py-0.5 rounded-md font-semibold">
-                      {f}
-                    </span>
-                  ))
+                  selectedItem.faculties.map((f) => <span key={f} className="bg-blue-50 text-brand border border-blue-100/70 text-xs px-2.5 py-0.5 rounded-lg font-bold">Facultatea {f}</span>)
                 ) : (
-                  <span className="bg-slate-50 text-slate-500 border border-slate-200 text-xs px-2 py-0.5 rounded-md font-medium">General / Toate</span>
+                  <span className="bg-slate-50 text-slate-500 border border-slate-200 text-xs px-2.5 py-0.5 rounded-lg font-medium">Anunț General / Toate facultățile</span>
                 )}
               </div>
 
               {isEveniment && (selectedItem.locationName || selectedItem.startDate) && (
-                <div className="p-3.5 bg-amber-50/60 border border-amber-100/70 rounded-xl space-y-1.5 text-xs text-slate-700">
+                <div className="p-4 bg-amber-50/50 border border-amber-100 rounded-xl space-y-2 text-xs text-slate-700 shadow-2xs">
+                  <span className="block font-bold text-amber-800 uppercase tracking-wider text-[10px]">Detalii desfășurare eveniment</span>
                   {selectedItem.locationName && (
-                    <div className="flex items-center gap-1">
-                      <span>📍 <b>Locație:</b> {selectedItem.locationName}</span>
+                    <div className="flex items-start gap-1.5">
+                      <span className="shrink-0 text-sm">📍</span>
+                      <div>
+                        <span className="font-bold block text-slate-600">Locație:</span>
+                        <span className="font-medium text-slate-800">{selectedItem.locationName}</span>
+                      </div>
                     </div>
                   )}
                   {selectedItem.startDate && (
-                    <div className="flex items-center gap-1">
-                      <span>📅 <b>Perioadă:</b> {new Date(selectedItem.startDate).toLocaleString('ro-RO')} {selectedItem.endDate ? ` - ${new Date(selectedItem.endDate).toLocaleString('ro-RO')}` : ''}</span>
+                    <div className="flex items-start gap-1.5 pt-1">
+                      <span className="shrink-0 text-sm">📅</span>
+                      <div>
+                        <span className="font-bold block text-slate-600">Perioadă programată:</span>
+                        <span className="font-medium text-slate-800">
+                          {new Date(selectedItem.startDate).toLocaleString('ro-RO', { dateStyle: 'long', timeStyle: 'short' })}
+                          {selectedItem.endDate ? ` — ${new Date(selectedItem.endDate).toLocaleString('ro-RO', { dateStyle: 'long', timeStyle: 'short' })}` : ''}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
               )}
 
-              <p className="text-muted leading-relaxed whitespace-pre-wrap">{selectedItem.description}</p>
+              <div className="space-y-1">
+                <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Descriere:</span>
+                <p className="text-muted leading-relaxed whitespace-pre-wrap font-medium bg-slate-50/40 p-3 rounded-xl border border-border/60">{selectedItem.description}</p>
+              </div>
 
-              {Array.isArray(fisiereAtasate) && fisiereAtasate.length > 0 ? (
-                <div className="space-y-2 pt-3 border-t border-border">
-                  <span className="block text-xs font-bold text-foreground">Fișiere atașate:</span>
-                  <div className="flex flex-col gap-2">
-                    {fisiereAtasate.map((file: PdfFile, idx: number) => {
-                      const fileName = file?.name || `Fisier_${idx + 1}`;
-                      const fileUrl = file?.url || '';
-                      
-                      return (
-                        <div key={idx}>
-                          <a 
-                            href={fileUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold transition-all max-w-full truncate"
-                          >
-                            <svg className="w-4 h-4 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <span className="truncate">{fileName}</span>
-                          </a>
+              {selectedItem.pdfFiles && selectedItem.pdfFiles.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-border">
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Documente atașate ({selectedItem.pdfFiles.length}):</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {selectedItem.pdfFiles.map((file, idx) => (
+                      <a key={idx} href={file.url || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 bg-card hover:bg-slate-50 text-slate-700 border border-border p-2.5 rounded-xl text-xs font-semibold transition-all group truncate">
+                        <div className="p-1.5 bg-red-50 text-red-600 rounded-md group-hover:bg-red-100 transition-colors">
+                          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                         </div>
-                      );
-                    })}
+                        <span className="truncate flex-1 pr-1">{file.name || `Document_${idx + 1}`}</span>
+                      </a>
+                    ))}
                   </div>
                 </div>
-              ) : null}
+              )}
 
-              {linkExtern ? (
-                <div className="pt-3 border-t border-border">
-                  <span className="block text-xs font-bold text-foreground mb-1">Link asociat:</span>
-                  <a 
-                    href={linkExtern.startsWith('http') ? linkExtern : `https://${linkExtern}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="text-blue-600 hover:underline inline-flex items-center gap-1 font-semibold text-xs bg-blue-50/50 border border-blue-100 px-3 py-2 rounded-xl transition-colors"
-                  >
-                    <span>Accesează link-ul atașat</span>
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
+              {selectedItem.eventLink && (
+                <div className="pt-2 border-t border-border">
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Link Sursă / Înregistrare:</span>
+                  <a href={selectedItem.eventLink.startsWith('http') ? selectedItem.eventLink : `https://${selectedItem.eventLink}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 inline-flex items-center gap-2 font-bold text-xs bg-blue-50/50 hover:bg-blue-50 border border-blue-100 px-4 py-2.5 rounded-xl transition-colors w-full sm:w-auto justify-center sm:justify-start shadow-2xs">
+                    <span>Deschide link extern atașat</span>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                   </a>
                 </div>
-              ) : null}
+              )}
             </div>
           );
         })()}
       </Modal>
 
-      {/* Modal Adăugare / Editare */}
+      {/* MODAL ADĂUGARE / EDITARE */}
       <Modal isOpen={activeModal === 'add' || activeModal === 'edit'} onClose={() => setActiveModal(null)} title={activeModal === 'edit' ? "Editare Anunț" : "Adăugare Anunț Nou"}>
         <form onSubmit={handleSave} className="flex flex-col max-h-[calc(100vh-200px)] text-sm">
-          
           <div className="flex-1 overflow-y-auto space-y-4 pr-1 pb-4 scrollbar-none">
-            <style dangerouslySetInnerHTML={{__html: `
-              .scrollbar-none::-webkit-scrollbar { display: none; }
-            `}} />
+            <style dangerouslySetInnerHTML={{__html: `.scrollbar-none::-webkit-scrollbar { display: none; }`}} />
 
             <div>
               <label htmlFor="ann-title" className="block text-xs font-semibold text-foreground mb-1">Titlu Anunț</label>
-              <input id="ann-title" type="text" value={formState.title || ''} onChange={e => setFormState({...formState, title: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand" required />
+              <input id="ann-title" type="text" value={formState.title || ''} onChange={e => setFormState({...formState, title: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background" required />
             </div>
 
             <div>
               <label htmlFor="ann-type" className="block text-xs font-semibold text-foreground mb-1">Tipul Anunțului</label>
-              <select
-                id="ann-type"
-                value={formState.type || 'NOUTATE'}
-                onChange={e => setFormState({ ...formState, type: e.target.value as 'NOUTATE' | 'EVENIMENT' })}
-                className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm cursor-pointer font-medium"
-              >
+              <select id="ann-type" value={formState.type || 'NOUTATE'} onChange={e => setFormState({ ...formState, type: e.target.value as 'NOUTATE' | 'EVENIMENT' })} className="w-full border border-border p-2 rounded-lg bg-background text-sm cursor-pointer font-medium">
                 <option value="NOUTATE">NOUTATE</option>
                 <option value="EVENIMENT">EVENIMENT</option>
               </select>
             </div>
 
             {formState.type === 'EVENIMENT' && (
-              <div className="p-4 bg-slate-50/60 border border-border rounded-xl space-y-3 transition-all duration-300">
+              <div className="p-4 bg-slate-50/60 border border-border rounded-xl space-y-3">
                 <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Detalii Logistice Eveniment</span>
-                
                 <div>
                   <label htmlFor="ann-location" className="block text-xs font-semibold text-slate-700 mb-1">Locație</label>
-                  <input 
-                    id="ann-location" 
-                    type="text" 
-                    placeholder="ex: Hol Central, Corp A" 
-                    value={formState.locationName || ''} 
-                    onChange={e => setFormState({...formState, locationName: e.target.value})} 
-                    className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand" 
-                    required 
-                  />
+                  <input id="ann-location" type="text" placeholder="ex: Hol Central, Corp A" value={formState.locationName || ''} onChange={e => setFormState({...formState, locationName: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background" required />
                 </div>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label htmlFor="ann-start-date" className="block text-xs font-semibold text-slate-700 mb-1">Dată & Oră Început</label>
-                    <input 
-                      id="ann-start-date" 
-                      type="datetime-local" 
-                      value={formatToDatetimeLocal(formState.startDate)} 
-                      onChange={e => setFormState({...formState, startDate: e.target.value})} 
-                      className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand" 
-                      required 
-                    />
+                    <input id="ann-start-date" type="datetime-local" value={formatToDatetimeLocal(formState.startDate)} onChange={e => setFormState({...formState, startDate: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background" required />
                   </div>
                   <div>
                     <label htmlFor="ann-end-date" className="block text-xs font-semibold text-slate-700 mb-1">Dată & Oră Sfârșit</label>
-                    <input 
-                      id="ann-end-date" 
-                      type="datetime-local" 
-                      value={formatToDatetimeLocal(formState.endDate)} 
-                      onChange={e => setFormState({...formState, endDate: e.target.value})} 
-                      className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand" 
-                      required 
-                    />
+                    <input id="ann-end-date" type="datetime-local" value={formatToDatetimeLocal(formState.endDate)} onChange={e => setFormState({...formState, endDate: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background" required />
                   </div>
                 </div>
               </div>
@@ -758,7 +645,7 @@ function AnnouncementsContent() {
                 id="ann-faculty-select"
                 value={formState.faculties?.[0] || ""}
                 onChange={e => setFormState({ ...formState, faculties: e.target.value ? [e.target.value] : [] })}
-                className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm cursor-pointer font-medium"
+                className="w-full border border-border p-2 rounded-lg bg-background text-sm cursor-pointer font-medium"
               >
                 <option value="">General / Toate facultățile</option>
                 {availableFacultiesFromSystem.map(fac => (
@@ -770,101 +657,41 @@ function AnnouncementsContent() {
             <div>
               <span className="block text-xs font-semibold text-foreground mb-1">Thumbnail imagine</span>
               <div className="flex flex-col gap-3 p-3 border border-dashed border-border rounded-lg bg-background/50">
-                <input
-                  type="url"
-                  value={formState.image_url || formState.thumbnail || ''}
-                  onChange={(event) => setFormState({ ...formState, image_url: event.target.value, thumbnail: event.target.value })}
-                  placeholder="https://exemplu.ro/imagine.jpg"
-                  className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm"
-                />
+                <input type="url" value={formState.image_url || formState.thumbnail || ''} onChange={(event) => setFormState({ ...formState, image_url: event.target.value, thumbnail: event.target.value })} placeholder="https://exemplu.ro/imagine.jpg" className="w-full border border-border p-2 rounded-lg bg-background text-sm" />
                 <div className="flex flex-col sm:flex-row gap-2 items-center">
-                  <input 
-                    type="file" 
-                    ref={fileInputRef}
-                    accept="image/*" 
-                    onChange={handleFileChange} 
-                    className="hidden" 
-                  />
-                  
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 flex items-center justify-center gap-2 border border-border px-4 py-2 rounded-md text-xs font-semibold text-foreground bg-card hover:bg-slate-50 transition-all cursor-pointer w-full"
-                  >
-                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
+                  <input type="file" ref={fileInputRef} accept="image/*" onChange={handleFileChange} className="hidden" />
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="flex-1 flex items-center justify-center gap-2 border border-border px-4 py-2 rounded-md text-xs font-semibold text-foreground bg-card hover:bg-slate-50 transition-all cursor-pointer w-full">
+                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                     {formState.thumbnail ? "Schimbă imaginea" : "Încarcă imagine din PC"}
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={handleAiGenerate}
-                    disabled={generateBannerMutation.isPending}
-                    className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-md text-xs font-bold cursor-pointer hover:opacity-90 transition-all shadow-xs w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <svg className={`w-3.5 h-3.5 ${generateBannerMutation.isPending ? 'animate-spin' : 'animate-pulse'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
+                  <button type="button" onClick={handleAiGenerate} disabled={generateBannerMutation.isPending} className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-md text-xs font-bold cursor-pointer hover:opacity-90 shadow-xs w-full sm:w-auto disabled:opacity-50">
+                    <svg className={`w-3.5 h-3.5 ${generateBannerMutation.isPending ? 'animate-spin' : 'animate-pulse'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                     {generateBannerMutation.isPending ? 'Se generează...' : 'Generează cu AI'}
                   </button>
                 </div>
-
                 {formState.thumbnail && (
                   <div className="mt-1 relative w-32 h-20 rounded-md overflow-hidden border border-border mx-auto sm:mx-0">
-                    <Image
-                      src={formState.thumbnail}
-                      alt="Preview"
-                      fill
-                      sizes="128px"
-                      className="object-cover"
-                      unoptimized={formState.thumbnail.startsWith('data:') || formState.thumbnail.startsWith('http')}
-                    />
-                    <button 
-                      type="button" 
-                      onClick={() => setFormState(prev => ({ ...prev, thumbnail: '', image_url: '' }))} 
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] hover:bg-red-600"
-                    >
-                      ✕
-                    </button>
+                    <Image src={formState.thumbnail} alt="Preview" fill sizes="128px" className="object-cover" unoptimized={formState.thumbnail.startsWith('data:') || formState.thumbnail.startsWith('http')} />
+                    <button type="button" onClick={() => setFormState(prev => ({ ...prev, thumbnail: '', image_url: '' }))} className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]">✕</button>
                   </div>
                 )}
               </div>
             </div>
 
             <div>
-              <span className="block text-xs font-semibold text-foreground mb-1">Documente și fișiere atașate (Orice format)</span>
+              <span className="block text-xs font-semibold text-foreground mb-1">Documente și fișiere atașate</span>
               <div className="p-3 border border-dashed border-border rounded-lg bg-background/50 flex flex-col gap-2">
-                <input 
-                  type="file" 
-                  ref={pdfInputRef}
-                  onChange={handleAnyFileChange}
-                  multiple
-                  className="hidden" 
-                />
-                <button
-                  type="button"
-                  onClick={() => pdfInputRef.current?.click()}
-                  className="flex items-center justify-center gap-2 border border-border px-4 py-2 rounded-md text-xs font-semibold text-foreground bg-card hover:bg-slate-50 transition-all cursor-pointer w-full"
-                >
-                  <svg className="w-4 h-4 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Încarcă fișiere (PDF, Word, Excel, etc.)
+                <input type="file" ref={pdfInputRef} onChange={handleAnyFileChange} multiple className="hidden" />
+                <button type="button" onClick={() => pdfInputRef.current?.click()} className="flex items-center justify-center gap-2 border border-border px-4 py-2 rounded-md text-xs font-semibold text-foreground bg-card hover:bg-slate-50 transition-all cursor-pointer w-full">
+                  <svg className="w-4 h-4 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  Încarcă fișiere (PDF, Word, etc.)
                 </button>
-
                 {formState.pdfFiles && formState.pdfFiles.length > 0 && (
                   <div className="flex flex-col gap-1.5 mt-1">
                     {formState.pdfFiles.map((file, idx) => (
                       <div key={idx} className="flex items-center justify-between bg-slate-50 border border-border rounded-lg p-2 text-xs text-muted">
                         <span className="truncate max-w-[250px] font-medium text-slate-600">{file.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveFile(idx)}
-                          className="text-red-500 hover:text-red-700 font-bold px-1"
-                        >
-                          ✕
-                        </button>
+                        <button type="button" onClick={() => handleRemoveFile(idx)} className="text-red-500 font-bold px-1">✕</button>
                       </div>
                     ))}
                   </div>
@@ -874,22 +701,18 @@ function AnnouncementsContent() {
 
             <div>
               <label htmlFor="ann-desc" className="block text-xs font-semibold text-foreground mb-1">Descriere detaliată</label>
-              <textarea id="ann-desc" value={formState.description || ''} onChange={e => setFormState({...formState, description: e.target.value})} className="w-full border border-border p-2 rounded-lg h-24 bg-background resize-none focus:outline-none focus:ring-1 focus:ring-brand" required />
+              <textarea id="ann-desc" value={formState.description || ''} onChange={e => setFormState({...formState, description: e.target.value})} className="w-full border border-border p-2 rounded-lg h-24 bg-background resize-none" required />
             </div>
 
             <div>
-              <label htmlFor="ann-link" className="block text-xs font-semibold text-foreground mb-1">Link către noutate / sursă externă (opțional)</label>
-              <input id="ann-link" type="text" value={formState.eventLink || ''} onChange={e => setFormState({...formState, eventLink: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand" placeholder="https://..." />
+              <label htmlFor="ann-link" className="block text-xs font-semibold text-foreground mb-1">Link către noutate (opțional)</label>
+              <input id="ann-link" type="text" value={formState.eventLink || ''} onChange={e => setFormState({...formState, eventLink: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background" placeholder="https://..." />
             </div>
           </div>
 
           <div className="sticky bottom-0 bg-card pt-4 border-t border-border z-10 flex justify-end space-x-2">
-            <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-border rounded-lg text-muted text-xs cursor-pointer hover:bg-slate-50 transition-colors">Anulează</button>
-            <button 
-              type="submit" 
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
+            <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-border rounded-lg text-muted text-xs cursor-pointer hover:bg-slate-50">Anulează</button>
+            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold cursor-pointer hover:opacity-90 disabled:opacity-50">
               {createMutation.isPending || updateMutation.isPending ? "Se salvează..." : "Salvează"}
             </button>
           </div>
