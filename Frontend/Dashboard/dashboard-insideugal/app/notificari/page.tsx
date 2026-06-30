@@ -187,7 +187,7 @@ function NotificariContent() {
         setLoading(false);
       }
     },
-    [facultyNameById]
+    [facultyNameById, resolveProfileNames]
   );
 
   useEffect(() => {
