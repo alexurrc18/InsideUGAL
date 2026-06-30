@@ -15,12 +15,10 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from llm_optimizer import LLMOptimizer
 
-# Importuri noi pentru RAG și Scraping
 import threading
 import time
 from src.ChatBot.rag_engine import RAGEngine
 from src.ChatBot.scraper import scrape_all
-from src.ChatBot.chatbot_shared import SYSTEM_PROMPT
 
 RESCRAPE_INTERVAL_HOURS = 24
 
@@ -124,8 +122,6 @@ else:
     )
 llm_optimizer_service = LLMOptimizer(api_key=API_KEY, supabase_client=mod_marius_functions.supabase_client)
 
-# ... (codul existent până la app = FastAPI(...))
-
 app = FastAPI(
     title="InsideUGAL LLM Integrated Service",
     description="Serviciu FastAPI care combină extragerea de task-uri UGAL, funcționalitățile PDF/RAG și asistentul virtual campus.",
@@ -136,6 +132,7 @@ app = FastAPI(
 logger.info("Se încarcă indexul RAG...")
 rag = RAGEngine()
 logger.info("RAG gata — %d chunk-uri indexate.", rag.collection.count())
+campus_chat_service.configure(rag)
 
 _rag_lock = threading.Lock()
 _scraping_in_progress = threading.Event()
