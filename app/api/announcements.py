@@ -34,6 +34,21 @@ manage_announcements_with_token = require_roles_with_token(
 LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://llm:8000")
 
 
+async def fetch_translation_from_llm(title: str, content: str, target_lang: str) -> tuple[str, str]:
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.post(
+            f"{LLM_SERVICE_URL}/api/v1/translate-announcement",
+            json={
+                "title": title,
+                "content": content,
+                "target_lang": target_lang,
+            },
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return data["translated_title"], data["translated_content"]
+
+
 async def validate_announcement_refs(payload: BaseModel, db: AsyncSession) -> None:
     faculties = getattr(payload, "faculties", None)
 
@@ -73,58 +88,6 @@ def assert_can_manage_announcement(profile, announcement: models.Announcement | 
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Nu ai permisiuni suficiente.")
 
 
-async def get_or_translate_announcement(
-    announcement: models.Announcement,
-    lang: str,
-    session: AsyncSession,
-) -> models.Announcement:
-    if not lang or lang == "ro":
-        return announcement
-    
-    translation = await repo.get_translation(session, announcement.id, lang)
-    if translation:
-        announcement.title = translation.translated_title
-        announcement.content = translation.translated_content
-        announcement.is_translated = True
-        return announcement
-    
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(
-                f"{LLM_SERVICE_URL}/api/v1/translate-announcement",
-                json={
-                    "title": announcement.title or "",
-                    "content": announcement.content,
-                    "target_lang": lang,
-                },
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            
-            await repo.save_translation(
-                session,
-                announcement.id,
-                lang,
-                data["translated_title"],
-                data["translated_content"],
-            )
-            
-            announcement.title = data["translated_title"]
-            announcement.content = data["translated_content"]
-            announcement.is_translated = True
-            return announcement
-    except httpx.HTTPStatusError as exc:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Traducere eșuată: {exc.response.text if exc.response else str(exc)}",
-        )
-    except httpx.RequestError:
-        raise HTTPException(
-            status_code=503,
-            detail="Serviciul LLM nu este disponibil pentru traducere.",
-        )
-
-
 @router.get("/", response_model=schemas.PaginatedResponse[schemas.AnnouncementResponse])
 async def read_announcements(
     announcement_type: schemas.PostType | None = None,
@@ -133,16 +96,35 @@ async def read_announcements(
     session: AsyncSession = Depends(get_db),
 ):
     type_value = announcement_type.value if announcement_type else None
-    items, total = await repo.get_page(
-        session,
-        limit=pagination.size,
-        offset=pagination.offset,
-        announcement_type=type_value,
-        lang=lang if lang != "ro" else None,
-    )
+    items, total = await repo.get_page(session, limit=pagination.size, offset=pagination.offset, announcement_type=type_value)
+    
     if lang and lang != "ro":
         for item in items:
-            await get_or_translate_announcement(item, lang, session)
+            translation = await repo.get_translation(session, item.id, lang)
+            if translation:
+                item.title = translation.translated_title
+                item.content = translation.translated_content
+                item.is_translated = True
+            else:
+                try:
+                    translated_title, translated_content = await fetch_translation_from_llm(
+                        item.title or "", item.content, lang
+                    )
+                    await repo.save_translation(session, item.id, lang, translated_title, translated_content)
+                    item.title = translated_title
+                    item.content = translated_content
+                    item.is_translated = True
+                except httpx.HTTPStatusError as exc:
+                    raise HTTPException(
+                        status_code=503,
+                        detail=f"Traducere eșuată: {exc.response.text if exc.response else str(exc)}",
+                    )
+                except httpx.RequestError:
+                    raise HTTPException(
+                        status_code=503,
+                        detail="Serviciul LLM nu este disponibil pentru traducere.",
+                    )
+    
     return paginated_response(items, total, pagination)
 
 
@@ -157,7 +139,30 @@ async def read_announcement(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Announcement not found.")
     
     if lang and lang != "ro":
-        announcement = await get_or_translate_announcement(announcement, lang, session)
+        translation = await repo.get_translation(session, announcement.id, lang)
+        if translation:
+            announcement.title = translation.translated_title
+            announcement.content = translation.translated_content
+            announcement.is_translated = True
+        else:
+            try:
+                translated_title, translated_content = await fetch_translation_from_llm(
+                    announcement.title or "", announcement.content, lang
+                )
+                await repo.save_translation(session, announcement.id, lang, translated_title, translated_content)
+                announcement.title = translated_title
+                announcement.content = translated_content
+                announcement.is_translated = True
+            except httpx.HTTPStatusError as exc:
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Traducere eșuată: {exc.response.text if exc.response else str(exc)}",
+                )
+            except httpx.RequestError:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Serviciul LLM nu este disponibil pentru traducere.",
+                )
     
     return announcement
 

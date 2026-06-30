@@ -28,23 +28,13 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         self,
         session: AsyncSession,
         announcement_type: str | None = None,
-        lang: str | None = None,
     ) -> list[Announcement]:
         query = self._base_select().order_by(Announcement.created_at.desc())
         if announcement_type is not None:
             query = query.where(Announcement.type == announcement_type)
 
         result = await session.execute(query)
-        announcements = [self._with_author_name(announcement) for announcement in result.scalars().all()]
-        
-        if lang and lang != "ro":
-            for announcement in announcements:
-                translation = await self.get_translation(session, announcement.id, lang)
-                if translation:
-                    announcement.title = translation.translated_title
-                    announcement.content = translation.translated_content
-                    announcement.is_translated = True
-        return announcements
+        return [self._with_author_name(announcement) for announcement in result.scalars().all()]
 
     async def get_page(
         self,
@@ -53,7 +43,6 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         limit: int,
         offset: int,
         announcement_type: str | None = None,
-        lang: str | None = None,
     ) -> tuple[list[Announcement], int]:
         query = self._base_select().order_by(Announcement.created_at.desc())
         if announcement_type is not None:
@@ -63,36 +52,16 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         total = total_result.scalar_one()
 
         result = await session.execute(query.limit(limit).offset(offset))
-        announcements = [self._with_author_name(n) for n in result.scalars().all()]
-        
-        if lang and lang != "ro":
-            for announcement in announcements:
-                translation = await self.get_translation(session, announcement.id, lang)
-                if translation:
-                    announcement.title = translation.translated_title
-                    announcement.content = translation.translated_content
-                    announcement.is_translated = True
-        return announcements, total
+        return [self._with_author_name(n) for n in result.scalars().all()], total
 
     async def get_by_id(
         self,
         session: AsyncSession,
         entity_id: int,
-        lang: str | None = None,
     ) -> Announcement | None:
         result = await session.execute(self._base_select().where(Announcement.id == entity_id))
         announcement = result.scalars().first()
-        if not announcement:
-            return None
-        announcement = self._with_author_name(announcement)
-        
-        if lang and lang != "ro":
-            translation = await self.get_translation(session, announcement.id, lang)
-            if translation:
-                announcement.title = translation.translated_title
-                announcement.content = translation.translated_content
-                announcement.is_translated = True
-        return announcement
+        return self._with_author_name(announcement) if announcement else None
 
     async def create_for_user(self, session: AsyncSession, announcement_in: AnnouncementCreate, user_id: str) -> Announcement:
         return await self.create(session, announcement_in, created_by=user_id)
