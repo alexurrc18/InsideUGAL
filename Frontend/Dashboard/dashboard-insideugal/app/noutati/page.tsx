@@ -230,6 +230,64 @@ function AnnouncementsContent() {
       )
     },
     { 
+      header: 'Detalii Logistice', 
+      key: 'locationName',
+      render: (item) => {
+        if (item.type !== 'EVENIMENT') return <span className="text-slate-300 italic text-xs">-</span>;
+        return (
+          <div className="text-xs space-y-0.5 text-foreground max-w-[180px]">
+            {item.locationName && <div className="truncate">📍 {item.locationName}</div>}
+            {item.startDate && (
+              <div className="text-[11px] text-amber-600 font-medium">
+                📅 {new Date(item.startDate).toLocaleDateString('ro-RO')}
+              </div>
+            )}
+          </div>
+        );
+      }
+    },
+    { 
+      header: 'Link Extern', 
+      key: 'eventLink',
+      render: (item) => {
+        if (!item.eventLink) return <span className="text-slate-300 italic text-xs">-</span>;
+        return (
+          <a 
+            href={item.eventLink.startsWith('http') ? item.eventLink : `https://${item.eventLink}`}
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline font-medium text-xs flex items-center gap-1"
+            onClick={(e) => e.stopPropagation()} // Important: Oprește deschiderea modalului de detalii
+          >
+            🔗 Sursă externă
+          </a>
+        );
+      }
+    },
+    { 
+      header: 'Fișiere', 
+      key: 'pdfFiles',
+      render: (item) => {
+        if (!item.pdfFiles || item.pdfFiles.length === 0) return <span className="text-slate-300 italic text-xs">-</span>;
+        return (
+          <div className="flex flex-col gap-1 max-w-[150px]" onClick={(e) => e.stopPropagation()}>
+            {item.pdfFiles.map((file, index) => (
+              <a 
+                key={index}
+                href={file.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] text-emerald-600 hover:underline truncate font-medium flex items-center gap-0.5"
+                title={file.name}
+              >
+                📄 {file.name}
+              </a>
+            ))}
+          </div>
+        );
+      }
+    },
+    { 
       header: 'Descriere', 
       key: 'description', 
       render: (item) => <span className="block max-w-xs truncate text-muted">{item.description}</span> 
@@ -274,16 +332,21 @@ function AnnouncementsContent() {
           </button>
           <button type="button" className="text-green-600 hover:text-green-800 font-medium hover:underline cursor-pointer" onClick={() => handleShare(item)}>Share</button>
           <button 
-            type="button" 
-            className="text-red-500 hover:text-red-700 font-medium hover:underline cursor-pointer" 
-            onClick={() => {
-              if (confirm('Ești sigur că vrei să ștergi acest anunț?')) {
-                deleteMutation.mutate(parseInt(item.id));
-              }
-            }}
-          >
-            Ștergere
-          </button>
+        type="button" 
+        className="text-red-500 hover:text-red-700 font-medium hover:underline cursor-pointer" 
+        onClick={(e) => {
+          // 1. Oprim propagarea instant ca să NU se mai deschidă modalul de detalii
+          e.stopPropagation(); 
+          
+          if (confirm('Ești sigur că vrei să ștergi acest anunț?')) {
+            // 2. Convertim ID-ul din string în număr, deoarece backend-ul FastAPI așteaptă un int
+            const numericId = parseInt(item.id, 10);
+            deleteMutation.mutate(numericId);
+          }
+        }}
+      >
+        Ștergere
+      </button>
         </div>
       )
     }
