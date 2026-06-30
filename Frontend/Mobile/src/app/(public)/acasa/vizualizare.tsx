@@ -18,6 +18,7 @@ import PhoneIcon from "@/assets/icons/svg/phone.svg";
 import WebsiteIcon from "@/assets/icons/svg/globe-europe.svg";
 import { CategoryTag } from "@/components/ui/display/news-card";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
+import { FileAttachments } from "@/components/ui/display/file-attachment";
 
 const DAY_NAMES = ["", "Luni", "Marți", "Miercuri", "Joi", "Vineri", "Sâmbătă", "Duminică"];
 
@@ -135,6 +136,7 @@ function VizualizareScreen() {
                                     author: item.author_name || "",
                                     created_at: item.created_at,
                                     updated_at: item.updated_at,
+                                    files: item.files || [],
                                 };
                             }
                         } else if (initialTipPagina === "Facultate") {
@@ -145,7 +147,7 @@ function VizualizareScreen() {
                                     id: item.id.toString(),
                                     type: "Facultate",
                                     title: item.name || "Titlu necunoscut",
-                                    image: item.image_url || "",
+                                    image: item.logo_url || "",
                                     address: item.address || "Adresă necunoscută",
                                     phone: item.phone || "",
                                     website: item.website_url || "",
@@ -187,7 +189,7 @@ function VizualizareScreen() {
                             if (match && isMounted) {
                                 let mappedItem: any = null;
                                 if (isFaculty) {
-                                    mappedItem = { id: match.id.toString(), type: "Facultate", title: match.name || "Titlu necunoscut", image: match.image_url || "", address: match.address || "Adresă necunoscută", phone: match.phone || "", website: match.website_url || "", content: match.description || "Conținut necunoscut" };
+                                    mappedItem = { id: match.id.toString(), type: "Facultate", title: match.name || "Titlu necunoscut", image: match.logo_url || "", address: match.address || "Adresă necunoscută", phone: match.phone || "", website: match.website_url || "", content: match.description || "Conținut necunoscut" };
                                 } else if (isFacility) {
                                     mappedItem = { id: match.id.toString(), type: "Facilitate", title: match.name || "Titlu necunoscut", image: match.image_url || "", content: match.description || "", schedules: match.schedules || [] };
                                 } else {
@@ -487,6 +489,10 @@ function VizualizareScreen() {
                             {content || "Conținut necunoscut"}
                         </Text>
                     </View>
+
+                    {(tipPagina === "Anunț" || tipPagina === "Eveniment") && (
+                        <FileAttachments files={itemData?.files} />
+                    )}
                 </View>
             </ScrollView>
         </View>

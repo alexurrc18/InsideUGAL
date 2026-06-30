@@ -27,6 +27,7 @@ import CalendarIcon from "@/assets/icons/svg/calendar.svg";
 import LocationIcon from "@/assets/icons/svg/location.svg";
 import PhoneIcon from "@/assets/icons/svg/phone.svg";
 import WebsiteIcon from "@/assets/icons/svg/globe-europe.svg";
+import { FileAttachments, type FileItem } from "@/components/ui/display/file-attachment";
 
 // Latimea coloanei din dreapta (sidebar) cand layout-ul e pe doua coloane.
 const SIDEBAR_WIDTH = 340;
@@ -50,6 +51,7 @@ export interface ArticleDetailProps {
     website?: string;
     date?: string;
     author?: string;
+    files?: FileItem[];
 }
 
 export function ArticleDetail({
@@ -69,6 +71,7 @@ export function ArticleDetail({
     website = "",
     date = "",
     author = "",
+    files,
 }: ArticleDetailProps) {
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
     const theme = Colors[themeName];
@@ -337,6 +340,10 @@ export function ArticleDetail({
                                     {content || "Conținutul nu este disponibil."}
                                 </Text>
                             </View>
+
+                            {(tipPagina === "Anunț" || tipPagina === "Eveniment") && (
+                                <FileAttachments files={files} />
+                            )}
                         </View>
 
                         {/* Dreapta: 3 carduri Noutăți, una sub alta. */}

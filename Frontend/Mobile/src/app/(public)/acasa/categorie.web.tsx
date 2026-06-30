@@ -115,7 +115,7 @@ export default function CategoryScreen() {
           newItems = response.data.items.map((item: any) => ({
             id: item.id.toString(),
             title: item.name || "Titlu necunoscut",
-            image: item.image_url || undefined,
+            image: item.logo_url || undefined,
             address: item.address || "Adresă necunoscută",
             phone: item.phone || "",
             website: item.website_url || "",

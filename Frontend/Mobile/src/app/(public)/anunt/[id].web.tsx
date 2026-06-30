@@ -96,6 +96,7 @@ export default function AnuntScreen() {
                 date={date}
                 posted_at={date}
                 author={author}
+                files={item.files || []}
             />
         </>
     );

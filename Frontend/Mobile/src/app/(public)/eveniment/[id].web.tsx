@@ -107,6 +107,7 @@ export default function EvenimentScreen() {
                 time_start={time_start}
                 time_end={time_end}
                 date={date}
+                files={ev.files || []}
             />
         </>
     );
