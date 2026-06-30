@@ -15,6 +15,14 @@ import { CalendarPlus, Bell, Megaphone, X } from "lucide-react";
 import { useAnnouncements, useComplaints } from "@/hooks/useDashboardApi";
 import type { Announcement } from "@/lib/api-types";
 
+// Definim o interfață locală flexibilă pentru a înlocui tipul "any" la filtrare
+interface GenericItem {
+  type?: string;
+  start_date?: string;
+  end_date?: string;
+  status?: string;
+}
+
 export default function Page() {
   const router = useRouter();
   
@@ -34,34 +42,34 @@ export default function Page() {
   const stats = useMemo(() => {
     // 1. Extragere Anunțuri / Evenimente
     const rawAnnouncements = announcementsData && typeof announcementsData === 'object' && 'items' in announcementsData 
-      ? (announcementsData as Record<string, any>).items
+      ? (announcementsData as Record<string, unknown>).items
       : announcementsData;
 
     const listAnnouncements: Announcement[] = Array.isArray(rawAnnouncements) ? rawAnnouncements : [];
     const acum = new Date();
     
-    // Numărăm evenimentele viitoare
-    const evenimenteCount = listAnnouncements.filter((item: any) => {
+    // Numărăm evenimentele viitoare (folosim tipul GenericItem în loc de any)
+    const evenimenteCount = (listAnnouncements as unknown as GenericItem[]).filter((item: GenericItem) => {
       const isEveniment = item.type === "EVENIMENT";
       const limitaData = item.end_date || item.start_date;
       const esteInViitor = limitaData ? new Date(limitaData) >= acum : true;
       return isEveniment && esteInViitor;
     }).length;
 
-    // Numărăm anunțurile (noutățile)
-    const anunturiCount = listAnnouncements.filter((item: any) => {
+    // Numărăm anunțurile (noutățile) (folosim tipul GenericItem în loc de any)
+    const anunturiCount = (listAnnouncements as unknown as GenericItem[]).filter((item: GenericItem) => {
       return item.type === "NOUTATE" || !item.type;
     }).length;
 
     // 2. Extragere Sesizări
     const rawComplaints = complaintsData && typeof complaintsData === 'object' && 'items' in complaintsData
-      ? (complaintsData as Record<string, any>).items
+      ? (complaintsData as Record<string, unknown>).items
       : complaintsData;
 
     const listComplaints = Array.isArray(rawComplaints) ? rawComplaints : [];
 
-    // Filtrare STRICTĂ: Doar cele în lucru sau în așteptare
-    const sesizariActiveCount = listComplaints.filter((item: any) => {
+    // Filtrare STRICTĂ: Doar cele în lucru sau în așteptare (folosim tipul GenericItem în loc de any)
+    const sesizariActiveCount = (listComplaints as unknown as GenericItem[]).filter((item: GenericItem) => {
       const statusUpper = String(item.status || "").toUpperCase().trim();
       return (
         statusUpper === "PENDING" || 
@@ -155,7 +163,6 @@ export default function Page() {
       {/* Secțiunea de jos: Acțiuni Rapide și Calendar */}
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-7 items-start">
         <div className="lg:col-span-4">
-          {/* Cardul s-a micșorat prin eliminarea h-full: se mulează strict pe butoane */}
           <Card>
             <CardHeader>
               <CardTitle>Acțiuni Rapide</CardTitle>
@@ -169,13 +176,13 @@ export default function Page() {
                 <span className="font-medium text-sm">Creează Eveniment</span>
               </button>
 
-  <button
-  onClick={() => router.push("/notificari?open=true")}
-  className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card p-6 text-center shadow-sm transition-all hover:bg-accent hover:text-accent-foreground cursor-pointer"
->
-  <Bell className="h-8 w-8 text-primary" />
-  <span className="font-medium text-sm">Creează Notificare</span>
-</button>
+              <button
+                onClick={() => router.push("/notificari?open=true")}
+                className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card p-6 text-center shadow-sm transition-all hover:bg-accent hover:text-accent-foreground cursor-pointer"
+              >
+                <Bell className="h-8 w-8 text-primary" />
+                <span className="font-medium text-sm">Creează Notificare</span>
+              </button>
 
               <button
                 onClick={() => router.push("/noutati?open=true&type=NOUTATE")}

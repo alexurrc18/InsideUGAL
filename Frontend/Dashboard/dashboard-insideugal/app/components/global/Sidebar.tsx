@@ -7,7 +7,6 @@ import { usePathname } from "next/navigation";
 import {
   AlertTriangle,
   Bell,
-  Calendar,
   GraduationCap,
   Home,
   MapPin,

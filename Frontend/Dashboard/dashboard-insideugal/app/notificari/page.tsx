@@ -21,18 +21,20 @@ function NotificariContent() {
   const [notifications, setNotifications] = useState<Notification[]>([
     { id: '1', title: 'Bun venit!', description: 'Aceasta este prima ta notificare.', time: '10:00' },
   ]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [newNotification, setNewNotification] = useState({ title: '', description: '' });
 
   // ACEASTA ESTE LOGICA CARE DESCHIDE MODALUL AUTOMAT DATORITĂ PARAMETRULUI DIN URL
-  useEffect(() => {
-    if (searchParams.get('open') === 'true') {
-      setIsModalOpen(true);
-      
-      // Curățăm URL-ul înapoi la simplu "/notificari" (opțional, ca să nu rămână ?open=true dacă închizi modalul)
-      router.replace('/notificari');
-    }
-  }, [searchParams, router]);
+  // 1. Setează valoarea inițială direct din URL
+const [isModalOpen, setIsModalOpen] = useState(() => {
+  return searchParams.get('open') === 'true';
+});
+
+// 2. Păstrează în useEffect DOAR curățarea URL-ului, fără setState!
+useEffect(() => {
+  if (searchParams.get('open') === 'true') {
+    router.replace('/notificari');
+  }
+}, [searchParams, router]);
 
   const handleCreate = () => {
     if (!newNotification.title || !newNotification.description) return;
