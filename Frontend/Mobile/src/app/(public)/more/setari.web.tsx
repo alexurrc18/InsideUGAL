@@ -36,9 +36,6 @@ export default function SettingsScreen() {
     return unsubscribe;
   }, []);
   
-  const [notifyStaff, setNotifyStaff] = useState(true);
-  const [notifyStiri, setNotifyStiri] = useState(true);
-
   const languages = [
     { code: "ro", label: "Română" },
     { code: "en", label: "English" },
@@ -192,40 +189,7 @@ export default function SettingsScreen() {
                 </View>
               </View>
 
-              {/* SECȚIUNEA 2: NOTIFICĂRI */}
-              <View style={{ gap: Spacing.md, marginTop: Spacing.md }}>
-                <Text style={[Typography.Heading4, { color: theme.text }]}>
-                  Notificări
-                </Text>
-                
-                <View style={{ gap: Spacing.md }}>
-                  {/* Notificare 1 (Alerte Campus) */}
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: Spacing.xs }}>
-                    <View style={{ flex: 1, marginRight: Spacing.md }}>
-                      <Text style={[Typography.Paragraph2, { color: theme.text }]}>Alerte Campus</Text>
-                    </View>
-                    <Switch 
-                      value={notifyStaff} 
-                      onValueChange={setNotifyStaff}
-                      trackColor={{ false: theme.border, true: theme.primary }}
-                    />
-                  </View>
-
-                  {/* Notificare 2 (Știri & Anunțuri) */}
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: Spacing.xs }}>
-                    <View style={{ flex: 1, marginRight: Spacing.md }}>
-                      <Text style={[Typography.Paragraph2, { color: theme.text }]}>Știri & Anunțuri</Text>
-                    </View>
-                    <Switch 
-                      value={notifyStiri} 
-                      onValueChange={setNotifyStiri}
-                      trackColor={{ false: theme.border, true: theme.primary }}
-                    />
-                  </View>
-                </View>
-              </View>
-
-              {/* SECȚIUNEA 3: DESPRE & ACȚIUNI */}
+              {/* SECȚIUNEA 2: DESPRE & ACȚIUNI */}
               <View style={{ gap: Spacing.md, marginTop: Spacing.md }}>
                 <Text style={[Typography.Heading4, { color: theme.text }]}>
                   Asistență & Info

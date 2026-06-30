@@ -16,7 +16,7 @@ export default function SplashScreen() {
         if (hasSeenOnboarding === "true") {
           router.replace("/(public)/acasa");
         } else {
-          router.replace("/(onboarding)/notificari");
+          router.replace("/(onboarding)/locatie");
         }
       }
     };

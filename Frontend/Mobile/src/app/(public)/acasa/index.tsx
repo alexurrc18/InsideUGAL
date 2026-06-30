@@ -1,11 +1,9 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, ScrollView, RefreshControl, Platform, Pressable, Alert, StyleSheet } from "react-native";
-import Animated, { useSharedValue, withTiming, useAnimatedStyle, useAnimatedProps, interpolateColor } from "react-native-reanimated";
+import React, { useState, useEffect } from "react";
+import { View, Text, ScrollView, RefreshControl, Alert } from "react-native";
+import Animated, { useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter, useFocusEffect } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
-import { MOCK_NOTIFICARI } from "./notificari";
+import { useRouter } from "expo-router";
 
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
@@ -17,56 +15,13 @@ import { getFormattedDate, parseRomanianDate, isoToRomanianDateStr, getTodayRoma
 import api, { storage } from "@/services/api";
 import { ErrorState } from "@/components/ui/display/error-state";
 import { HomeSkeleton, CarouselSkeleton } from "@/components/ui/display/skeletons";
-import { InteractiveGlass } from "@/components/ui/layout/interactive-glass";
-import BellIcon from "@/assets/icons/svg/bell.svg";
-
-const AnimatedBell = Animated.createAnimatedComponent(BellIcon);
-
-function hexToRgba(hex: string, alpha: number) {
-  const cleanHex = hex.replace("#", "");
-  let r = 0, g = 0, b = 0;
-  if (cleanHex.length === 3) {
-    r = parseInt(cleanHex[0] + cleanHex[0], 16);
-    g = parseInt(cleanHex[1] + cleanHex[1], 16);
-    b = parseInt(cleanHex[2] + cleanHex[2], 16);
-  } else if (cleanHex.length === 6) {
-    r = parseInt(cleanHex.substring(0, 2), 16);
-    g = parseInt(cleanHex.substring(2, 4), 16);
-    b = parseInt(cleanHex.substring(4, 6), 16);
-  }
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
 
 
 export default function HomeScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
-  const headerBgColor = themeName === "light" ? ColorScheme.pureBlack : ColorScheme.pureWhite;
   const insets = useSafeAreaInsets();
   const router = useRouter();
-
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  useFocusEffect(
-    useCallback(() => {
-      storage.getItem('read_notification_ids').then((val) => {
-        let readSet = new Set<string>();
-        if (val) {
-          try {
-            const ids = JSON.parse(val);
-            if (Array.isArray(ids)) {
-              readSet = new Set(ids);
-            }
-          } catch (e) {
-            console.error(e);
-          }
-        }
-        const count = MOCK_NOTIFICARI.filter(n => !readSet.has(n.id)).length;
-        setUnreadCount(count);
-      });
-    }, [])
-  );
 
   const [noutati, setNoutati] = useState<any[]>([]);
   const [evenimente, setEvenimente] = useState<any[]>([]);
@@ -75,28 +30,11 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const headerAnim = useSharedValue(0);
   const scrollY = useSharedValue(0);
-  const isPastThreshold = React.useRef(false);
-
-  const headerFadeStyle = useAnimatedStyle(() => ({
-    opacity: headerAnim.value,
-  }));
-  const bellAnimatedProps = useAnimatedProps(() => ({
-    color: interpolateColor(headerAnim.value, [0, 1], [ColorScheme.white, theme.text]),
-  }));
 
   const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     scrollY.set(offsetY);
-    const headerHeight = insets.top + 56;
-    const threshold = HERO_HEIGHT - headerHeight;
-    const isPast = offsetY >= threshold;
-
-    if (isPast !== isPastThreshold.current) {
-      isPastThreshold.current = isPast;
-      headerAnim.set(withTiming(isPast ? 1 : 0, { duration: 250 }));
-    }
   };
 
   const fetchApiData = async () => {
@@ -333,10 +271,6 @@ export default function HomeScreen() {
     });
   };
 
-  const handleNotificationsPress = () => {
-    router.push("/(public)/acasa/notificari");
-  };
-
   const activeNoutati = noutati;
   const activeEvenimente = evenimente;
   const activeFacultati = facultati;
@@ -360,110 +294,6 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      {/* Fixed Header */}
-      <Animated.View 
-        style={{ 
-          position: "absolute", 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          paddingTop: insets.top + Spacing.sm, 
-          paddingBottom: Spacing.sm,
-          paddingHorizontal: Spacing.lg, 
-          flexDirection: "row", 
-          justifyContent: "flex-end", 
-          alignItems: "center", 
-          zIndex: 100,
-        }}
-      >
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            headerFadeStyle,
-          ]}
-        >
-          <LinearGradient
-            colors={[
-              hexToRgba(headerBgColor, 0.5),
-              hexToRgba(headerBgColor, 0.0)
-            ]}
-            style={StyleSheet.absoluteFill}
-          />
-        </Animated.View>
-
-
-
-        {Platform.OS === 'ios' ? (
-          <Pressable
-            onPress={handleNotificationsPress}
-            style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
-          >
-            <InteractiveGlass size={45} style={{ shadowColor: theme.text, shadowOpacity: 0.2, shadowRadius: 5 }}>
-              <AnimatedBell width={25} height={25} animatedProps={bellAnimatedProps} />
-            </InteractiveGlass>
-            {unreadCount > 0 && (
-              <View
-                style={{
-                  position: "absolute",
-                  top: -4,
-                  right: -4,
-                  minWidth: 20,
-                  height: 20,
-                  borderRadius: 10,
-                  backgroundColor: theme.secondary,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  paddingHorizontal: 3,
-                }}
-              >
-                <Text style={{ color: ColorScheme.white, fontSize: 11, fontFamily: "InstrumentSans-SemiBold", lineHeight: 13 }}>
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </Text>
-              </View>
-            )}
-          </Pressable>
-        ) : (
-          <Pressable
-            onPress={handleNotificationsPress}
-            style={({ pressed }) => [
-              { 
-                opacity: pressed ? 0.85 : 1,
-                width: 45,
-                height: 45,
-                borderRadius: 22.5,
-                backgroundColor: theme.primary,
-                alignItems: "center",
-                justifyContent: "center"
-              }
-            ]}
-          >
-            <AnimatedBell width={26} height={26} color="#FFFFFF" />
-            {unreadCount > 0 && (
-              <View
-                style={{
-                  position: "absolute",
-                  top: -4,
-                  right: -4,
-                  minWidth: 20,
-                  height: 20,
-                  borderRadius: 10,
-                  backgroundColor: theme.secondary,
-                  borderWidth: 1.5,
-                  borderColor: theme.primary,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  paddingHorizontal: 2,
-                }}
-              >
-                <Text style={{ color: ColorScheme.white, fontSize: 11, fontFamily: "InstrumentSans-SemiBold", lineHeight: 13 }}>
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </Text>
-              </View>
-            )}
-          </Pressable>
-        )}
-      </Animated.View>
-
       <Animated.ScrollView 
         style={{ flex: 1 }} 
         contentContainerStyle={{ flexGrow: 1 }}

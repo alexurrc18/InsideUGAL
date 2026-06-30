@@ -472,6 +472,7 @@ function VizualizareScreen() {
                                 <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                     <CalendarIcon width={24} height={24} color={theme.primary} />
                                     <View>
+                                        <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Program:</Text>
                                         {formatSchedules(itemData.schedules).map((line: string, i: number) => (
                                             <Text key={i} style={[Typography.Heading5, { color: theme.text }]}>{line}</Text>
                                         ))}

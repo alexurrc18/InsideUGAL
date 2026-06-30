@@ -7,7 +7,7 @@
 //
 // Folosita doar din fisiere web (.web.tsx), deci nu intra in bundle-ul de mobil.
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, Linking, TouchableOpacity, Alert, useWindowDimensions, StyleSheet, type LayoutChangeEvent } from "react-native";
+import { View, Text, ScrollView, Linking, TouchableOpacity, useWindowDimensions, StyleSheet, type LayoutChangeEvent } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -182,14 +182,9 @@ export function ArticleDetail({
     };
 
     const handleCall = () => {
-        Alert.alert(
-            "Contact Facultate",
-            `Doriți să apelați numărul ${phone}?`,
-            [
-                { text: "Anulează", style: "cancel" },
-                { text: "Sună", onPress: () => Linking.openURL(`tel:${phone}`) },
-            ]
-        );
+        if (window.confirm(`Doriți să apelați numărul ${phone}?`)) {
+            Linking.openURL(`tel:${phone}`);
+        }
     };
 
     const formattedDate = getFormattedDate(date || posted_at);
@@ -271,10 +266,10 @@ export function ArticleDetail({
                                         <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                             <CalendarIcon width={24} height={24} color={theme.primary} />
                                             <View>
-                                                <Text style={[Typography.Paragraph2, { color: theme.text }]}>
+                                                <Text style={[Typography.Heading5, { color: theme.text }]}>
                                                     De pe {date_start || "N/A"} {time_start || ""}
                                                 </Text>
-                                                <Text style={[Typography.Paragraph2, { color: theme.text }]}>
+                                                <Text style={[Typography.Heading5, { color: theme.text }]}>
                                                     Până la {date_end || "N/A"} {time_end || ""}
                                                 </Text>
                                             </View>
@@ -282,7 +277,7 @@ export function ArticleDetail({
                                         <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                             <LocationIcon width={24} height={24} color={theme.primary} />
                                             <View>
-                                                <Text style={[Typography.Paragraph2, { color: theme.text }]}>
+                                                <Text style={[Typography.Heading5, { color: theme.text }]}>
                                                     {location || "Locație nespecificată"}
                                                 </Text>
                                             </View>
@@ -299,7 +294,7 @@ export function ArticleDetail({
                                             <LocationIcon width={24} height={24} color={theme.primary} />
                                             <View style={{ flex: 1 }}>
                                                 <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Adresă</Text>
-                                                <Text style={[Typography.Paragraph2, { color: theme.text }]}>
+                                                <Text style={[Typography.Heading5, { color: theme.text }]}>
                                                     {address || "Nespecificată"}
                                                 </Text>
                                             </View>
@@ -311,7 +306,7 @@ export function ArticleDetail({
                                                 <View style={{ flex: 1 }}>
                                                     <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Telefon</Text>
                                                     <TouchableOpacity onPress={handleCall}>
-                                                        <Text style={[Typography.Paragraph2, { color: theme.text }]}>{phone}</Text>
+                                                        <Text style={[Typography.Heading5, { color: theme.text }]}>{phone}</Text>
                                                     </TouchableOpacity>
                                                 </View>
                                             </View>
@@ -323,7 +318,7 @@ export function ArticleDetail({
                                                 <View style={{ flex: 1 }}>
                                                     <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Website</Text>
                                                     <TouchableOpacity onPress={() => Linking.openURL(website)}>
-                                                        <Text style={[Typography.Paragraph2, { color: theme.secondary }]}>{website}</Text>
+                                                        <Text style={[Typography.Heading5, { color: theme.secondary }]}>{website}</Text>
                                                     </TouchableOpacity>
                                                 </View>
                                             </View>

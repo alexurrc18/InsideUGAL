@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, Linking, TouchableOpacity, Alert, useWindowDimensions, StyleSheet, type LayoutChangeEvent, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, Linking, TouchableOpacity, useWindowDimensions, StyleSheet, type LayoutChangeEvent, ActivityIndicator } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -284,14 +284,9 @@ function VizualizareScreen() {
     };
 
     const handleCall = () => {
-        Alert.alert(
-            "Contact Facultate",
-            `Doriți să apelați numărul ${phone}?`,
-            [
-                { text: "Anulează", style: "cancel" },
-                { text: "Sună", onPress: () => Linking.openURL(`tel:${phone}`) },
-            ]
-        );
+        if (window.confirm(`Doriți să apelați numărul ${phone}?`)) {
+            Linking.openURL(`tel:${phone}`);
+        }
     };
 
     const displayDateValue = category === "Noutăți"
@@ -507,6 +502,7 @@ function VizualizareScreen() {
                                         <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                             <CalendarIcon width={24} height={24} color={theme.primary} />
                                             <View>
+                                                <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Program:</Text>
                                                 {formatSchedules(itemData.schedules).map((line: string, i: number) => (
                                                     <Text key={i} style={[Typography.Heading5, { color: theme.text }]}>{line}</Text>
                                                 ))}

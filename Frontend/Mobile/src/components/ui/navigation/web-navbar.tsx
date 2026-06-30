@@ -26,7 +26,6 @@ import { WebContainer, WEB_COMPACT_BREAKPOINT } from "@/components/ui/layout/web
 import { ThemeMenu } from "@/components/ui/navigation/theme-menu";
 import { ThemeToggle } from "@/components/ui/navigation/theme-toggle";
 import { ProfileMenu, DASHBOARD_URL } from "@/components/ui/navigation/profile-menu";
-import { NotificationMenu } from "@/components/ui/navigation/notification-menu";
 import ChevronIcon from "@/assets/icons/svg/chevron-left.svg";
 import api, { getAuthToken, logout } from "@/services/api";
 
@@ -95,7 +94,7 @@ export function WebNavbar() {
   const zoom = width > WebContentMaxWidth ? Math.min(width / WebContentMaxWidth, WebMaxScale) : 1;
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [activeMenu, setActiveMenu] = useState<"theme" | "profile" | "notifications" | null>(null);
+  const [activeMenu, setActiveMenu] = useState<"theme" | "profile" | null>(null);
   // Hide-on-scroll: bara ascunsa la scroll in jos, vizibila la scroll in sus.
   const [hidden, setHidden] = useState(false);
   // Pozitia de scroll de la ultimul event (ref, ca sa o putem reseta la navigare).
@@ -283,16 +282,8 @@ export function WebNavbar() {
           </Pressable>
 
           {isCompact ? (
-            /* Ecran ingust: clopotel de notificari + buton hamburger. */
+            /* Ecran ingust: buton hamburger. */
             <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.xs, height: NAVBAR_HEIGHT }}>
-              <NotificationMenu
-                open={activeMenu === "notifications"}
-                onToggle={() => {
-                  setMenuOpen(false); // nu tinem ambele panouri deschise simultan
-                  setActiveMenu(activeMenu === "notifications" ? null : "notifications");
-                }}
-                onClose={() => activeMenu === "notifications" && setActiveMenu(null)}
-              />
               <Pressable
                 onPress={() => {
                   setActiveMenu(null); // inchide panoul de notificari la deschiderea meniului
@@ -384,11 +375,6 @@ export function WebNavbar() {
               })}
 
               <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.xs, marginLeft: Spacing.xl3, height: NAVBAR_HEIGHT }}>
-                <NotificationMenu
-                  open={activeMenu === "notifications"}
-                  onToggle={() => setActiveMenu(activeMenu === "notifications" ? null : "notifications")}
-                  onClose={() => activeMenu === "notifications" && setActiveMenu(null)}
-                />
                 <ThemeMenu
                   solid={solid}
                   open={activeMenu === "theme"}
