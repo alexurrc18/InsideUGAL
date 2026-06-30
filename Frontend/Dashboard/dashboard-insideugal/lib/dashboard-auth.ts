@@ -124,3 +124,6 @@ export function useRequireDashboardAccess(canAccess: (role: DashboardRole | null
 
   return { role, loading, allowed: !loading && canAccess(role) };
 }
+export function canSendNotifications(role: DashboardRole | null): boolean {
+  return role === "HEAD_ADMIN" || role === "HEAD_FACULTATI";
+}
