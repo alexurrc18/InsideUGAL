@@ -26,8 +26,9 @@ import { useTheme } from '@/hooks/use-theme';
 import { Spacing, ColorScheme } from '@/constants/theme';
 import { Typography } from '@/constants/typography';
 import { NewsCard } from '@/components/ui/display/news-card';
-import api from '@/services/api';
 import { streamAce } from '@/services/ace-stream';
+
+import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 
 import CloseIcon from '@/assets/icons/svg/x.svg';
 import MessagePlusIcon from '@/assets/icons/svg/message-plus.svg';
@@ -72,33 +73,33 @@ function renderFormattedText(text: string, baseStyle: any, boldStyle: any) {
   });
 }
 
-// Trei puncte care pulseaza, afisate cat timp "Ace scrie".
-function TypingDots({ color }: { color: string }) {
-  const [dots] = useState(() => [new Animated.Value(0.3), new Animated.Value(0.3), new Animated.Value(0.3)]);
+function GradientSpinner() {
+  const [rotate] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
-    const animations = dots.map((dot, i) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(i * 160),
-          Animated.timing(dot, { toValue: 1, duration: 320, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(dot, { toValue: 0.3, duration: 320, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        ])
-      )
+    const anim = Animated.loop(
+      Animated.timing(rotate, { toValue: 1, duration: 1000, easing: Easing.linear, useNativeDriver: false })
     );
-    animations.forEach((a) => a.start());
-    return () => animations.forEach((a) => a.stop());
-  }, [dots]);
+    anim.start();
+    return () => anim.stop();
+  }, [rotate]);
+
+  const spin = rotate.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
   return (
-    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center', paddingVertical: Spacing.xs }}>
-      {dots.map((dot, i) => (
-        <Animated.View
-          key={i}
-          style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: color, opacity: dot }}
-        />
-      ))}
-    </View>
+    <Animated.View style={{ width: 24, height: 24, transform: [{ rotate: spin }] }}>
+      <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+        <Defs>
+          <SvgLinearGradient id="ace-grad-web" x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor="#3476d6" />
+            <Stop offset="30%" stopColor="#5861b8" />
+            <Stop offset="65%" stopColor="#742d73" />
+            <Stop offset="100%" stopColor="#dc1647" />
+          </SvgLinearGradient>
+        </Defs>
+        <Circle cx={12} cy={12} r={9} stroke="url(#ace-grad-web)" strokeWidth={3} strokeLinecap="round" strokeDasharray="40 16" />
+      </Svg>
+    </Animated.View>
   );
 }
 
@@ -414,7 +415,7 @@ export function Ace() {
             messages.map(renderMessage)
           )}
 
-          {isTyping ? <TypingDots color={theme.textSecondary} /> : null}
+          {isTyping ? <GradientSpinner /> : null}
         </ScrollView>
 
         {/* Input */}

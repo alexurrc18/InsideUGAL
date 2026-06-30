@@ -15,7 +15,7 @@ import { HomeHighlights } from "@/components/ui/display/home-highlights";
 import { NAVBAR_HEIGHT } from "@/components/ui/navigation/web-navbar";
 import { getFormattedDate, parseRomanianDate, isoToRomanianDateStr, getTodayRomanianDate } from "@/utils/date";
 import { useWebScrollAware } from "@/contexts/web-scroll-context";
-import api, { storage } from "@/services/api";
+import api from "@/services/api";
 import { ErrorState } from "@/components/ui/display/error-state";
 import { HomeSkeleton } from "@/components/ui/display/skeletons";
 import { Seo } from "@/components/seo";
@@ -53,8 +53,6 @@ export default function HomeScreen() {
         if (response.data && response.data.items) {
           const apiItems = response.data.items;
           
-          await storage.setItem('cached_announcements', JSON.stringify(apiItems));
-
           const apiNoutati = apiItems
             .filter((item: any) => item.type === "NOUTATE")
             .map((item: any) => ({
@@ -62,7 +60,7 @@ export default function HomeScreen() {
               title: item.title || "Titlu necunoscut",
               category: "Noutăți",
               date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
-              author: item.author || "Autor necunoscut",
+              author: item.author_name || "",
               image: item.image_url || undefined,
               content: item.content || "Conținut necunoscut",
               created_at: item.created_at,
@@ -79,7 +77,7 @@ export default function HomeScreen() {
               date_end: isoToRomanianDateStr(item.end_date) || "",
               time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
               time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-              author: item.author || "Autor necunoscut",
+              author: item.author_name || "",
               image: item.image_url || undefined,
               content: item.content || "Conținut necunoscut",
               location: item.location_name || "Locație necunoscută",
@@ -105,8 +103,6 @@ export default function HomeScreen() {
         });
         if (response.data && response.data.items) {
           const apiItems = response.data.items;
-          await storage.setItem('cached_faculties', JSON.stringify(apiItems));
-
           const apiFaculties = apiItems.map((item: any) => ({
             id: item.id.toString(),
             title: item.name || "Titlu necunoscut",
@@ -126,7 +122,7 @@ export default function HomeScreen() {
       }
 
       try {
-        const response = await api.get("/locations/", {
+        const response = await api.get("/facilities/", {
           params: {
             page: 1,
             size: 50
@@ -134,22 +130,17 @@ export default function HomeScreen() {
         });
         if (response.data && response.data.items) {
           const apiItems = response.data.items;
-          await storage.setItem('cached_facilities', JSON.stringify(apiItems));
-
           const apiFacilities = apiItems.map((item: any) => ({
             id: item.id.toString(),
             title: item.name || "Titlu necunoscut",
             image: item.image_url || undefined,
-            address: item.address || "Adresă necunoscută",
-            phone: item.phone || "",
-            website: item.website_url || "",
-            content: item.name || "Conținut necunoscut",
-            schedule: item.schedule || "",
+            content: item.description || "",
+            schedules: item.schedules || [],
           }));
           setFacilitati(apiFacilities);
         }
       } catch (err) {
-        console.error("[API] Could not load facilities/locations:", err);
+        console.error("[API] Could not load facilities:", err);
         if (facilitati.length === 0) {
           setHasError(true);
         }

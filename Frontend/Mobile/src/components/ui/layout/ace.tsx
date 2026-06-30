@@ -77,7 +77,7 @@ export function Ace() {
             borderRadius: 28,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: theme.card,
+            backgroundColor: theme.primary,
           }}
         >
           <SparkleIcon width={34} height={34} color="#FFFFFF" style={{ marginLeft: 1, marginTop: -1 }} />

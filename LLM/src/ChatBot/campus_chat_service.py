@@ -56,6 +56,8 @@ def campus_chat(question: str) -> dict:
             "link": link,
         }
 
+    gemini_ok = False
+    answer = ""
     try:
         resp = _client.models.generate_content(
             model=GEMINI_MODEL,
@@ -67,16 +69,14 @@ def campus_chat(question: str) -> dict:
         )
         answer = resp.text or ""
         if answer:
+            gemini_ok = True
             llm_cache.set(cache_key, answer)
     except Exception:
-        answer = backend_context if backend_context else ""
+        pass
 
     if not answer:
-        answer = (
-            backend_context if backend_context
-            else "Nu am detalii despre asta în acest moment. Poți găsi mai multe informații la "
-                 "https://www.ugal.ro/ sau contactează direct secretariatul facultății."
-        )
+        answer = "Asistentul este momentan supraîncărcat. Te rugăm să încerci din nou în câteva secunde."
+        sources = []
 
     if len(answer.strip()) < MIN_ANSWER_LENGTH_FOR_SOURCES:
         sources = []
@@ -84,8 +84,9 @@ def campus_chat(question: str) -> dict:
     return {
         "answer": answer,
         "sources": sources,
-        "suggestions": generate_suggestions(question, answer, _client, GEMINI_MODEL),
+        "suggestions": generate_suggestions(question, answer, _client, GEMINI_MODEL) if gemini_ok else [],
         "link": link,
+        "_from_fallback": not gemini_ok,
     }
 
 
@@ -131,14 +132,9 @@ def campus_chat_stream(question: str):
     except Exception:
         pass
 
-    # Fallback direct (Gemini indisponibil)
-    answer = (
-        backend_context if backend_context
-        else "Nu am detalii despre asta în acest moment. Poți găsi mai multe informații la "
-             "https://www.ugal.ro/ sau contactează direct secretariatul facultății."
-    )
+    # Fallback: Gemini indisponibil — mesaj curat, fără date brute
+    answer = "Asistentul este momentan supraîncărcat. Te rugăm să încerci din nou în câteva secunde."
     for token in re.split(r"(\s+)", answer):
         if token:
             yield f"data: {json.dumps({'token': token})}\n\n"
-    visible_sources = [] if len(answer.strip()) < MIN_ANSWER_LENGTH_FOR_SOURCES else sources
-    yield f"data: {json.dumps({'done': True, 'sources': visible_sources, 'suggestions': [], 'link': link})}\n\n"
+    yield f"data: {json.dumps({'done': True, 'sources': [], 'suggestions': [], 'link': link, '_from_fallback': True})}\n\n"

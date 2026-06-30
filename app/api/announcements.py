@@ -4,7 +4,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 import httpx
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Query, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,8 +21,10 @@ manage_announcements = require_roles(
     schemas.UserRole.HEAD_ADMIN,
     schemas.UserRole.HEAD_FACULTATI,
     schemas.UserRole.PROFESOR,
-    schemas.UserRole.STUDENT_RESPONSABIL
+    schemas.UserRole.STUDENT_RESPONSABIL,
 )
+
+LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://llm:8000")
 
 
 async def validate_announcement_refs(payload: BaseModel, db: AsyncSession) -> None:
@@ -33,7 +35,7 @@ async def validate_announcement_refs(payload: BaseModel, db: AsyncSession) -> No
             result = await db.execute(select(models.Faculty).where(models.Faculty.abbreviation == abbr))
             if not result.scalars().first():
                 raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail=f"Faculty abbreviation '{abbr}' not found.",
                 )
 
@@ -42,12 +44,12 @@ def validate_announcement_dates(payload: schemas.AnnouncementCreate) -> None:
     if payload.type == schemas.PostType.EVENIMENT:
         if payload.start_date is None:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="start_date is required for EVENIMENT announcements.",
             )
         if payload.end_date is not None and payload.end_date < payload.start_date:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="end_date must be after start_date.",
             )
 
@@ -64,9 +66,62 @@ def assert_can_manage_announcement(profile, announcement: models.Announcement | 
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Nu ai permisiuni suficiente.")
 
 
+async def get_or_translate_announcement(
+    announcement: models.Announcement,
+    lang: str,
+    session: AsyncSession,
+) -> models.Announcement:
+    if not lang or lang == "ro":
+        return announcement
+    
+    translation = await repo.get_translation(session, announcement.id, lang)
+    if translation:
+        announcement.title = translation.translated_title
+        announcement.content = translation.translated_content
+        announcement.is_translated = True
+        return announcement
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                f"{LLM_SERVICE_URL}/api/v1/translate-announcement",
+                json={
+                    "title": announcement.title or "",
+                    "content": announcement.content,
+                    "target_lang": lang,
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            
+            await repo.save_translation(
+                session,
+                announcement.id,
+                lang,
+                data["translated_title"],
+                data["translated_content"],
+            )
+            
+            announcement.title = data["translated_title"]
+            announcement.content = data["translated_content"]
+            announcement.is_translated = True
+            return announcement
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Traducere eșuată: {exc.response.text if exc.response else str(exc)}",
+        )
+    except httpx.RequestError:
+        raise HTTPException(
+            status_code=503,
+            detail="Serviciul LLM nu este disponibil pentru traducere.",
+        )
+
+
 @router.get("/", response_model=schemas.PaginatedResponse[schemas.AnnouncementResponse])
 async def read_announcements(
     announcement_type: schemas.PostType | None = None,
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
     pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_db),
 ):
@@ -76,15 +131,27 @@ async def read_announcements(
         limit=pagination.size,
         offset=pagination.offset,
         announcement_type=type_value,
+        lang=lang if lang != "ro" else None,
     )
+    if lang and lang != "ro":
+        for item in items:
+            await get_or_translate_announcement(item, lang, session)
     return paginated_response(items, total, pagination)
 
 
 @router.get("/{announcement_id}", response_model=schemas.AnnouncementResponse)
-async def read_announcement(announcement_id: int, session: AsyncSession = Depends(get_db)):
+async def read_announcement(
+    announcement_id: int,
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
+    session: AsyncSession = Depends(get_db),
+):
     announcement = await repo.get_by_id(session, announcement_id)
     if not announcement:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Announcement not found.")
+    
+    if lang and lang != "ro":
+        announcement = await get_or_translate_announcement(announcement, lang, session)
+    
     return announcement
 
 
@@ -121,11 +188,9 @@ async def upload_announcement_image(
         "Content-Type": file.content_type or "application/octet-stream",
     }
 
-    # FIX: Citește imaginea în memorie înainte de a face request-ul HTTP
     file_bytes = await file.read()
 
     async with httpx.AsyncClient(timeout=30.0) as client:
-        # Trimite pachetul de biți complet către Supabase
         response = await client.post(upload_url, headers=headers, content=file_bytes)
 
     if response.status_code >= 400:
@@ -148,7 +213,7 @@ async def update_announcement(
     try:
         return await repo.update(session, announcement, announcement_in)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
 
 @router.delete("/{announcement_id}", status_code=status.HTTP_204_NO_CONTENT)

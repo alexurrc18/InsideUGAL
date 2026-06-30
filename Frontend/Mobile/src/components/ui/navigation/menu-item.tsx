@@ -6,12 +6,13 @@ import { Typography } from "@/constants/typography";
 
 export interface MenuItemProps {
   name: string;
-  price: number;
+  price: number | string;
   description: string;
+  quantity?: string;
   isLast?: boolean;
 }
 
-export function MenuItem({ name, price, description, isLast = false }: MenuItemProps) {
+export function MenuItem({ name, price, description, quantity, isLast = false }: MenuItemProps) {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
 
@@ -30,9 +31,11 @@ export function MenuItem({ name, price, description, isLast = false }: MenuItemP
           {price} RON
         </Text>
       </View>
-      <Text style={[Typography.Small1, { color: theme.textSecondary }]}>
-        {description}
-      </Text>
+      {(quantity || description) && (
+        <Text style={[Typography.Small1, { color: theme.textSecondary }]}>
+          {[quantity, description].filter(Boolean).join(" • ")}
+        </Text>
+      )}
     </View>
   );
 }
