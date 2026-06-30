@@ -179,7 +179,7 @@ export default function Page() {
   }, [apiData, menusData]);
 
   const categoryFilters = useMemo(() => {
-    return ["Toate categoriile", ...categories.map(c => c.name).filter(name => name !== "Meniul Zilei")];
+    return ["Toate categoriile", ...categories.map(c => c.name).filter(name => name.toLowerCase() !== "meniul zilei")];
   }, [categories]);
 
   const filteredData = useMemo(() => {
