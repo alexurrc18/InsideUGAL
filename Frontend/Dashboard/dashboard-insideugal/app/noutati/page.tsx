@@ -259,7 +259,7 @@ function AnnouncementsContent() {
             className="text-blue-600 hover:underline font-medium text-xs flex items-center gap-1"
             onClick={(e) => e.stopPropagation()} // Important: Oprește deschiderea modalului de detalii
           >
-            🔗 Sursă externă
+            Sursă externă
           </a>
         );
       }
