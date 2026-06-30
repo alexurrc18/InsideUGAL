@@ -39,3 +39,4 @@ packaging==26.2
 # Testing
 pytest==9.0.3
 pytest-asyncio==1.4.0
+pyyaml==6.0.2
