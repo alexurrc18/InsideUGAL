@@ -435,8 +435,9 @@ def campus_chat(request: CampusChatRequest):
         if "error" in result:
             raise HTTPException(status_code=500, detail=result["error"])
 
-        # 3. Salvare în cache după răspuns cu succes
-        llm_optimizer_service.save_to_cache(request.question, result["answer"])
+        # 3. Salvare în cache doar dacă Gemini a răspuns (nu fallback)
+        if not result.pop("_from_fallback", False):
+            llm_optimizer_service.save_to_cache(request.question, result["answer"])
 
         return CampusChatResponse(**result)
     except HTTPException:

@@ -20,12 +20,12 @@ TIMEOUT      = 5
 
 # ── Fetch din Supabase direct ────────────────────────────────────────────────
 
-def _sb(table: str, order: str = "created_at.desc", limit: int = 10) -> list:
+def _sb(table: str, order: str = "created_at.desc", limit: int = 10, select: str = "*") -> list:
     if not SUPABASE_URL or not SUPABASE_KEY:
         return []
     try:
         resp = requests.get(
-            f"{SUPABASE_URL}/rest/v1/{table}?order={order}&limit={limit}",
+            f"{SUPABASE_URL}/rest/v1/{table}?select={select}&order={order}&limit={limit}",
             headers={
                 "apikey": SUPABASE_KEY,
                 "Authorization": f"Bearer {SUPABASE_KEY}",
@@ -50,73 +50,117 @@ def _backend(path: str) -> list:
     return []
 
 
-def _fetch(table: str, backend_path: str = None, order: str = "created_at.desc", limit: int = 10) -> list:
+def _fetch(table: str, backend_path: str = None, order: str = "created_at.desc", limit: int = 10, select: str = "*") -> list:
     """Încearcă Supabase direct, fallback pe backend API."""
-    data = _sb(table, order=order, limit=limit)
+    data = _sb(table, order=order, limit=limit, select=select)
     if not data and backend_path:
         data = _backend(backend_path)
     return data
+
+
+def _fetch_menus(limit: int = 7) -> list:
+    """Fetch meniuri cu produse via join (menu_products -> products)."""
+    return _sb(
+        "daily_menus",
+        order="id.asc",
+        limit=limit,
+        select="id,day_of_week,menu_products(product_id,products(name,price))",
+    )
 
 
 # ── Detectare tip întrebare ──────────────────────────────────────────────────
 
 _KEYWORDS = {
     "announcements": [
-        "anunț", "anunturi", "anunțuri", "noutăți", "noutati", "stiri", "știri",
-        "news", "anunt", "anuntat", "anunțat", "aviz", "comunicat", "vesti",
-        "announcements", "announcement", "notices", "notice", "updates", "latest",
+        # română
+        "anunt", "anunturi", "anuntat", "noutati", "noutate", "stire", "stiri",
+        "veste", "vesti", "aviz", "comunicat", "afisaj", "afisare", "postare",
+        "eveniment", "evenimente", "activitate", "activitati", "program", "programare",
+        "workshop", "conferinta", "seminar", "concurs", "competitie", "hackathon",
+        "bursa", "burse", "erasmus", "mobilitate", "practica", "stagiu", "stagii",
+        "admitere", "inscriere", "inscrieri", "termen", "deadline", "rezultate",
+        "sesiune", "examene", "examen", "colocviu", "restanta", "marire",
+        "festiv", "deschidere", "absolvire", "diplomare", "ceremonie",
+        "nou", "noi", "recent", "recente", "ultimele", "cele mai noi",
+        # engleză
+        "announcement", "news", "notice", "update", "event", "activity",
+        "scholarship", "internship", "competition", "latest", "recent",
     ],
     "faculties": [
-        "facultate", "facultati", "facultăți", "facultatile", "facultățile",
-        "lista facultati", "lista facultăți", "toate facultatile", "toate facultățile",
-        "ce facultati are ugal", "câte facultăți", "cate facultati",
-        "contact facultate", "telefon facultate", "adresa facultate",
-        "list of faculties", "all faculties", "faculty list",
-        "faculty", "faculties", "department", "departments",
+        # română
+        "facultate", "facultati", "facultatii", "facultatea",
+        "inginerie", "medicina", "farmacie", "litere", "sport", "educatie fizica",
+        "arhitectura navala", "automatica", "calculatoare", "electronica", "electrica",
+        "secretariat", "decan", "prodecan", "rector", "prorector",
+        "telefon", "contact", "adresa", "email", "site", "website",
+        "specializare", "specializari", "program de studiu", "programe de studiu",
+        "licenta", "master", "doctorat", "postuniversitar",
+        "acreditare", "clasificare", "ranking", "ugal",
+        # engleză
+        "faculty", "faculties", "department", "dean", "rector",
+        "specialization", "study program", "bachelor", "master", "phd",
     ],
     "locations": [
-        "locație", "locatie", "locatii", "locații", "hartă", "harta", "campus",
-        "clădire", "cladire", "sala", "sală", "corp", "adresă", "adresa",
-        "unde se află", "unde este", "unde e", "unde gasesc",
-        "location", "locations", "building", "room", "where is", "where are",
-        "cămin", "camin", "cămine", "camine", "căminul", "caminul", "cazare",
-        "dormitory", "dorm", "student housing",
-        "sală de sport", "sala de sport", "sport", "fitness", "gym", "piscină", "piscina",
-        "bibliotecă", "biblioteca", "library",
+        # română
+        "unde", "locatie", "locatii", "harta", "campus",
+        "cladire", "corp", "sala", "laborator", "amfiteatru", "aula",
+        "camin", "camine", "cazare", "dormitor", "camera",
+        "cantina", "bufet", "restaurant", "cafeteria",
+        "biblioteca", "sala de lectura", "sala de studiu",
+        "sala de sport", "bazin", "piscina", "teren sport", "palestra",
+        "parcare", "intrare", "acces", "poarta",
+        "str.", "strada", "bulevardul", "domneasca", "stiintei", "garii",
+        # engleză
+        "location", "building", "room", "lab", "dorm", "dormitory",
+        "library", "pool", "gym", "canteen", "parking", "where is", "where are",
     ],
     "daily_menus": [
-        "meniu", "meniuri", "cantina", "cantină", "mancare", "mâncare",
-        "prânz", "pranz", "masa", "masă", "ce se mănâncă", "menu",
-        "daily menu", "lunch", "food today", "what to eat",
-    ],
-    "complaints": [
-        "sesizare", "sesizări", "sesizari", "reclamație", "reclamatie",
-        "problemă", "problema", "raportez", "raportat", "plângere", "plangere",
-        "complaint", "complaints", "report", "issue", "problem",
-    ],
-    "questions_history": [
-        "intrebari", "întrebări", "istoric intrebari", "ce am intrebat",
-        "întrebat", "intrebat", "history", "previous questions", "past questions",
-    ],
-    "menu_products": [
-        "produse meniu", "ce produse are meniul", "meniu produse",
-        "menu products", "what's in the menu",
-    ],
-    "llm_calls": [
-        "tokeni", "tokens", "apeluri ai", "usage", "consum api", "statistici",
-        "ai usage", "api calls", "statistics", "how many calls",
-    ],
-    "profiles": [
-        "utilizatori", "studenti înregistrați", "conturi", "profil", "profiluri",
-        "câți studenți", "users", "accounts", "profiles", "registered",
-    ],
-    "categories": [
-        "categorie", "categorii", "category", "categories", "tip anunț", "tipuri anunțuri",
-        "types of announcements", "what types",
+        # română
+        "cantina", "meniu", "meniuri", "mancare", "masa", "pranz", "cina", "mic dejun",
+        "luni", "marti", "miercuri", "joi", "vineri", "sambata", "duminica",
+        "azi", "astazi", "maine", "saptamana",
+        "fel", "feluri", "preparat", "preparate", "garnitura",
+        "ciorba", "supa", "friptura", "salata", "desert", "clatite", "papanasi",
+        "ce se mananca", "ce e la", "ce ofera", "ce servesc",
+        # engleză
+        "menu", "lunch", "dinner", "breakfast", "food", "meal", "today",
+        "monday", "tuesday", "wednesday", "thursday", "friday",
+        "what to eat", "canteen", "cafeteria food",
     ],
     "products": [
-        "produs", "produse", "ce produse", "articol", "articole",
-        "product", "products", "items", "what products",
+        # română
+        "produs", "produse", "preparat", "preparate",
+        "costa", "pret", "preturi", "cat costa", "cat platesc", "cat e",
+        "ieftin", "scump", "disponibil", "disponibile",
+        "ciorba", "supa", "friptura", "snitel", "ceafa", "piure", "cartofi",
+        "salata", "desert", "clatite", "papanasi", "dulceata",
+        # engleză
+        "product", "price", "cost", "how much", "cheap", "expensive",
+        "soup", "steak", "salad", "dessert",
+    ],
+    "complaints": [
+        # română
+        "sesizare", "sesizari", "reclamatie", "reclamatii",
+        "problema", "probleme", "defect", "defectiune", "stricat", "stricata",
+        "raportat", "raporta", "raportez", "depus", "depune",
+        "status", "stare", "rezolvat", "solutionat", "in lucru", "in asteptare",
+        "wi-fi", "wifi", "internet", "retea", "apa", "caldura", "curent",
+        "geam", "fereastra", "usa", "priza", "lumina", "lift", "elevator",
+        "toaleta", "baie", "duș", "dus",
+        # engleză
+        "complaint", "complaints", "issue", "problem", "broken", "report",
+        "status", "resolved", "pending", "wifi", "water", "heating",
+    ],
+    "categories": [
+        "categorie", "categorii", "tipuri", "tip de anunt", "clasificare",
+        "category", "categories", "type", "types",
+    ],
+    "profiles": [
+        "studenti", "utilizatori", "conturi", "profil", "profiluri", "inregistrati",
+        "cati studenti", "nr studenti", "users", "accounts", "profiles", "students",
+    ],
+    "llm_calls": [
+        "tokeni", "tokens", "apeluri", "consum", "statistici", "usage", "api calls",
     ],
 }
 
@@ -196,12 +240,12 @@ def _fmt_menus(items: list) -> str:
             day_name = _DAYS_RO[int(day_raw) - 1]
         except (ValueError, IndexError, TypeError):
             day_name = str(day_raw) if day_raw else "Necunoscut"
-        prods = m.get("products") or m.get("preparate") or []
-        if prods and isinstance(prods[0], dict):
-            names = [p.get("name") or p.get("nume") or str(p) for p in prods[:6]]
+        # Supabase join: menu_products -> products
+        menu_prods = m.get("menu_products") or []
+        prods = [mp["products"] for mp in menu_prods if mp.get("products")]
+        if prods:
+            names = [f"{p.get('name', '')} ({p.get('price', '')} lei)" for p in prods[:6]]
             line = f"- {day_name}: {', '.join(names)}"
-        elif prods:
-            line = f"- {day_name}: {len(prods)} produse disponibile"
         else:
             line = f"- {day_name}: meniu nedisponibil"
         lines.append(line)
@@ -317,83 +361,43 @@ def fetch_entity_link(question: str) -> str:
     return ""
 
 
-# ── Tabele care se aduc MEREU ca context pentru Gemini ──────────────────────
+# ── Tabele aduse mereu, indiferent de întrebare ─────────────────────────────
 
 _ALWAYS_FETCH = ["announcements", "faculties", "locations", "daily_menus", "complaints"]
 
-# Tabel implicit când nu e detectat niciun keyword
-_DEFAULT_FALLBACK = ["announcements"]
-
-
-# ── Funcție principală ───────────────────────────────────────────────────────
-
-def fetch_focused_context(question: str) -> str:
-    """
-    Returnează doar datele relevante pentru întrebarea pusă (fără _ALWAYS_FETCH).
-    Folosit în fallback când Gemini nu e disponibil — răspuns focusat, nu tot.
-    """
-    intents = detect_intent(question)
-    if not intents:
-        return ""
-    parts = []
-    for intent in intents:
-        if intent not in _TABLE_MAP:
-            continue
-        table, backend_path, order, limit, fmt_fn = _TABLE_MAP[intent]
-        data = _fetch(table, backend_path, order, limit)
-        if data:
-            text = fmt_fn(data)
-            if text:
-                parts.append(text)
-    return "\n\n---\n\n".join(parts)
-
-
-def fetch_context(question: str) -> str:
-    """
-    Aduce date live din Supabase / backend.
-    Tabelele din _ALWAYS_FETCH sunt interogate mereu; restul doar când sunt detectate keyword-uri.
-    """
-    intents = detect_intent(question)
-    to_fetch = list(dict.fromkeys(_ALWAYS_FETCH + [i for i in intents if i not in _ALWAYS_FETCH]))
-
-    parts = []
-    for intent in to_fetch:
-        if intent not in _TABLE_MAP:
-            continue
-        table, backend_path, order, limit, fmt_fn = _TABLE_MAP[intent]
-        data = _fetch(table, backend_path, order, limit)
-        if data:
-            text = fmt_fn(data)
-            if text:
-                parts.append(text)
-
-    return "\n\n---\n\n".join(parts)
+# Dacă nu e detectat niciun keyword, aducem și restul (catch-all)
+_FALLBACK_TABLES = ["products", "categories"]
 
 
 def fetch_context_combined(question: str) -> tuple[str, str]:
     """
-    Returnează (full_context, focused_context) într-un singur pass Supabase.
-    full_context = _ALWAYS_FETCH + tabele intent (pentru Gemini).
-    focused_context = doar tabele intent (pentru fallback / detecție relevanță).
-    Înlocuiește apelurile duble fetch_focused_context + fetch_context din app.py.
+    Combină keywords + always-fetch:
+    - _ALWAYS_FETCH: mereu prezente în context
+    - tabele detectate prin keywords: adăugate în plus
+    - niciun keyword detectat: aduce și _FALLBACK_TABLES (catch-all)
+    Returnează (full_context, focused_context).
     """
     intents = detect_intent(question)
-    to_fetch = list(dict.fromkeys(_ALWAYS_FETCH + [i for i in intents if i not in _ALWAYS_FETCH]))
+    to_fetch = list(dict.fromkeys(
+        _ALWAYS_FETCH
+        + [i for i in intents if i not in _ALWAYS_FETCH]
+        + (_FALLBACK_TABLES if not intents else [])
+    ))
 
     all_parts: list[str] = []
     focused_parts: list[str] = []
     sep = "\n\n---\n\n"
 
-    for intent in to_fetch:
-        if intent not in _TABLE_MAP:
+    for key in to_fetch:
+        if key not in _TABLE_MAP:
             continue
-        table, backend_path, order, limit, fmt_fn = _TABLE_MAP[intent]
-        data = _fetch(table, backend_path, order, limit)
+        table, backend_path, order, limit, fmt_fn = _TABLE_MAP[key]
+        data = _fetch_menus() if key == "daily_menus" else _fetch(table, backend_path, order, limit)
         if data:
             text = fmt_fn(data)
             if text:
                 all_parts.append(text)
-                if intent in intents:
+                if key in intents:
                     focused_parts.append(text)
 
     return sep.join(all_parts), sep.join(focused_parts)

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { z } from "zod"; // Adăugat pentru validarea schemei generice
 
 import { useApiMutation } from "@/hooks/useApiMutation";
 import { useApiQuery } from "@/hooks/useApiQuery";
@@ -12,6 +13,14 @@ import {
   userSchema,
 } from "@/lib/api-schemas";
 import type { Announcement } from "@/lib/api-types";
+
+// Definim o schemă Zod flexibilă pentru Sesizări pentru a satisface cerința useApiQuery
+const complaintsGenericSchema = z.union([
+  z.array(z.unknown()),
+  z.object({
+    items: z.array(z.unknown())
+  }).passthrough()
+]);
 
 export function useAnnouncements() {
   return useQuery({
@@ -69,5 +78,14 @@ export function useCurrentUser() {
     queryKey: ["users", "me"],
     retry: false,
     schema: userSchema,
+  });
+}
+
+// Hook-ul nou adăugat pentru al doilea card (Sesizări Active)
+export function useComplaints() {
+  return useApiQuery({
+    path: "/complaints", // Schimbă cu '/sesizari' dacă ruta de backend diferă
+    queryKey: ["complaints"],
+    schema: complaintsGenericSchema, // Schema pasată obligatoriu pentru a rezolva eroarea TS2345
   });
 }

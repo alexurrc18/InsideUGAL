@@ -57,3 +57,19 @@ export type ApiErrorBody = {
 export type ApiRequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
 };
+
+
+// Adaugă la sfârșitul fișierului tău api-types.ts:
+
+export type TicketStatus = 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' | 'REJECTED'; 
+// Notă: Înlocuiește valorile de mai sus dacă backend-ul tău folosește alte denumiri (ex: "ACTIVA", "REZOLVATA")
+
+export type ComplaintTicket = {
+  id: number;
+  title: string;
+  description: string;
+  status: TicketStatus;
+  faculty?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
