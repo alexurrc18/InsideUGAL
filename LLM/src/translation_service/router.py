@@ -17,6 +17,11 @@ logger = logging.getLogger("translation-service")
 
 GEMINI_MODEL = os.getenv("TRANSLATION_GEMINI_MODEL", "gemini-2.5-flash-lite")
 
+# TODO (debug-only): pune True doar local, ca sa vezi mesajul real al exceptiei
+# in raspunsul HTTP 500. Scoate / pune pe False inainte de deploy in productie,
+# ca sa nu scurgi detalii interne catre clienti.
+DEBUG_EXPOSE_ERRORS = os.getenv("TRANSLATION_DEBUG_ERRORS", "true").strip().lower() == "true"
+
 
 class TranslateRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=15000)
@@ -119,7 +124,7 @@ class TranslationService:
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
-        retry=retry_if_exception_type((ValueError, Exception)),
+        retry=retry_if_exception_type(Exception),
         reraise=True,
     )
     def translate_text_uncached(self, text: str, target_language: str) -> str:
@@ -158,7 +163,7 @@ class TranslationService:
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
-        retry=retry_if_exception_type((ValueError, Exception)),
+        retry=retry_if_exception_type(Exception),
         reraise=True,
     )
     def translate_many_uncached(self, items: dict[str, str], target_language: str) -> dict[str, str]:
@@ -191,7 +196,13 @@ class TranslationService:
         if not raw:
             raise ValueError("Gemini returned an empty batch translation.")
 
-        translated = json.loads(raw)
+        cleaned = self._strip_json_fences(raw)
+        try:
+            translated = json.loads(cleaned)
+        except json.JSONDecodeError as exc:
+            logger.error("Could not parse Gemini batch JSON. Raw response: %r", raw)
+            raise ValueError(f"Gemini batch translation returned invalid JSON: {exc}") from exc
+
         if not isinstance(translated, dict):
             raise ValueError("Gemini batch translation did not return a JSON object.")
 
@@ -200,7 +211,7 @@ class TranslationService:
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
-        retry=retry_if_exception_type((ValueError, Exception)),
+        retry=retry_if_exception_type(Exception),
         reraise=True,
     )
     def translate_announcement_uncached(self, title: str, content: str, target_language: str) -> dict[str, str]:
@@ -238,8 +249,17 @@ class TranslationService:
         raw = (response.text or "").strip()
         if not raw:
             raise ValueError("Gemini returned an empty announcement translation.")
-        
-        translated = json.loads(raw)
+
+        cleaned = self._strip_json_fences(raw)
+        try:
+            translated = json.loads(cleaned)
+        except json.JSONDecodeError as exc:
+            logger.error("Could not parse Gemini announcement JSON. Raw response: %r", raw)
+            raise ValueError(f"Gemini announcement translation returned invalid JSON: {exc}") from exc
+
+        if not isinstance(translated, dict):
+            raise ValueError("Gemini announcement translation did not return a JSON object.")
+
         return translated
 
     def translate_announcement(self, title: str, content: str, target_language: str) -> AnnouncementTranslateResponse:
@@ -302,7 +322,7 @@ class TranslationService:
                         translated = self.translate_text_uncached(original, normalized_language)
                     except Exception as exc:
                         logger.warning("Per-item LLM call failed for '%s': %s", original, exc)
-                        translated = original  # Fallback to original string so the batch doesn't crash completely
+                        translated = original  # fallback: nu lasam tot batch-ul sa pice
 
                 path = tuple(path_key.split("__"))
                 translated_by_path[path] = translated
@@ -382,9 +402,29 @@ class TranslationService:
             return text[1:-1].strip()
         return text
 
+    @staticmethod
+    def _strip_json_fences(text: str) -> str:
+        """Elimina fence-uri markdown (```json ... ```) pe care unele modele
+        le adauga uneori chiar si cand li se cere JSON brut / response_mime_type."""
+        cleaned = text.strip()
+        if cleaned.startswith("```"):
+            lines = cleaned.splitlines()
+            if lines:
+                lines = lines[1:]  # scoate prima linie (``` sau ```json)
+            if lines and lines[-1].strip().startswith("```"):
+                lines = lines[:-1]
+            cleaned = "\n".join(lines).strip()
+        return cleaned
+
 
 translation_service = TranslationService()
 router = APIRouter(tags=["Translations"])
+
+
+def _error_detail(default_message: str, exc: Exception) -> str:
+    if DEBUG_EXPOSE_ERRORS:
+        return f"{default_message} ({type(exc).__name__}: {exc})"
+    return default_message
 
 
 @router.post("/translate", response_model=TranslateResponse)
@@ -393,7 +433,7 @@ def translate(request: TranslateRequest) -> TranslateResponse:
         return translation_service.translate(request.text, request.target_language)
     except Exception as exc:
         logger.error("Translation failed: %s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail="Translation failed.") from exc
+        raise HTTPException(status_code=500, detail=_error_detail("Translation failed.", exc)) from exc
 
 
 @router.post("/translate/batch", response_model=BatchTranslateResponse)
@@ -402,7 +442,7 @@ def translate_batch(request: BatchTranslateRequest) -> BatchTranslateResponse:
         return translation_service.translate_batch(request.translations, request.target_language)
     except Exception as exc:
         logger.error("Batch translation failed: %s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail="Batch translation failed.") from exc
+        raise HTTPException(status_code=500, detail=_error_detail("Batch translation failed.", exc)) from exc
 
 
 @router.post("/translate/announcement", response_model=AnnouncementTranslateResponse)
@@ -413,4 +453,4 @@ def translate_announcement(request: AnnouncementTranslateRequest) -> Announcemen
         )
     except Exception as exc:
         logger.error("Announcement translation failed: %s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail="Announcement translation failed.") from exc
+        raise HTTPException(status_code=500, detail=_error_detail("Announcement translation failed.", exc)) from exc
