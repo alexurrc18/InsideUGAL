@@ -19,6 +19,7 @@ import app.api.auth as auth
 import app.api.categories as categories
 import app.api.city_guide as city_guide
 import app.api.complaints as complaints
+import app.api.daily_menu as daily_menu
 import app.api.daily_menus as daily_menus
 import app.api.faculties as faculties
 import app.api.facilities as facilities
@@ -144,6 +145,7 @@ app.include_router(city_guide.router)
 app.include_router(locations.router)
 app.include_router(product_categories.router)
 app.include_router(products.router)
+app.include_router(daily_menu.router)
 app.include_router(daily_menus.router)
 app.include_router(complaints.router)
 app.include_router(announcements.router)

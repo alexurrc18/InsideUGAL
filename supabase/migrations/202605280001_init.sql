@@ -104,15 +104,12 @@ CREATE TABLE IF NOT EXISTS public.products (
 
 CREATE TABLE IF NOT EXISTS public.daily_menus (
     id SERIAL PRIMARY KEY,
-    day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 1 AND 7),
+    name VARCHAR(255) NOT NULL,
+    price DECIMAL(10, 2) NOT NULL CHECK (price > 0),
+    description VARCHAR(500),
+    day DATE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS public.menu_products (
-    menu_id INTEGER REFERENCES public.daily_menus(id) ON DELETE CASCADE,
-    product_id INTEGER REFERENCES public.products(id) ON DELETE CASCADE,
-    PRIMARY KEY (menu_id, product_id)
 );
 
 CREATE TABLE IF NOT EXISTS public.complaints (
@@ -340,7 +337,6 @@ ALTER TABLE public.facility_schedules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.daily_menus ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.menu_products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.complaints ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_calls ENABLE ROW LEVEL SECURITY;
@@ -423,12 +419,6 @@ CREATE POLICY "cafeteria_public_read" ON public.daily_menus FOR SELECT USING (TR
 DROP POLICY IF EXISTS "cafeteria_authorized_manage" ON public.daily_menus;
 CREATE POLICY "cafeteria_authorized_manage" ON public.daily_menus FOR ALL USING (public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_CANTINA')) WITH CHECK (public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_CANTINA'));
 
-DROP POLICY IF EXISTS "menu_products_public_read" ON public.menu_products;
-CREATE POLICY "menu_products_public_read" ON public.menu_products FOR SELECT USING (TRUE);
-
-DROP POLICY IF EXISTS "menu_products_authorized_manage" ON public.menu_products;
-CREATE POLICY "menu_products_authorized_manage" ON public.menu_products FOR ALL USING (public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_CANTINA')) WITH CHECK (public.current_user_role() IN ('HEAD_ADMIN', 'HEAD_CANTINA'));
-
 DROP POLICY IF EXISTS "complaints_owner_or_staff_read" ON public.complaints;
 CREATE POLICY "complaints_owner_or_staff_read" ON public.complaints FOR SELECT USING (user_id = public.current_auth_uid() OR public.current_user_role() IN ('HEAD_ADMIN', 'PROFESOR', 'HEAD_FACULTATI'));
 
@@ -464,6 +454,7 @@ CREATE INDEX IF NOT EXISTS idx_products_category_id ON public.products(category_
 CREATE INDEX IF NOT EXISTS idx_profiles_faculty_id ON public.profiles(faculty_id);
 CREATE INDEX IF NOT EXISTS idx_locations_facility_id ON public.locations(facility_id);
 CREATE INDEX IF NOT EXISTS idx_facility_schedules_facility_id ON public.facility_schedules(facility_id);
+CREATE INDEX IF NOT EXISTS idx_daily_menus_day ON public.daily_menus(day);
 CREATE INDEX IF NOT EXISTS idx_llm_calls_function ON public.llm_calls (function_name);
 CREATE INDEX IF NOT EXISTS idx_llm_calls_created  ON public.llm_calls (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_qh_user_id ON public.questions_history(user_id); -- Nou index pentru user

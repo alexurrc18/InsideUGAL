@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import date
 
 from app.api.auth_deps import require_roles
 from app.api.pagination import PaginationParams, paginated_response
@@ -15,7 +16,7 @@ manage_menus = require_roles(schemas.UserRole.HEAD_ADMIN, schemas.UserRole.HEAD_
 
 @router.get("/", response_model=schemas.PaginatedResponse[schemas.DailyMenuResponse])
 async def read_daily_menus(
-    day_of_week: int | None = None,
+    day: date | None = None,
     pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_db),
 ):
@@ -23,9 +24,14 @@ async def read_daily_menus(
         session,
         limit=pagination.size,
         offset=pagination.offset,
-        day_of_week=day_of_week,
+        day=day,
     )
     return paginated_response(items, total, pagination)
+
+
+@router.get("/today", response_model=list[schemas.DailyMenuResponse])
+async def read_todays_daily_menu(session: AsyncSession = Depends(get_db)):
+    return await repo.get_by_day(session, date.today())
 
 
 @router.get("/{menu_id}", response_model=schemas.DailyMenuResponse)
@@ -44,8 +50,6 @@ async def create_daily_menu(
 ):
     try:
         return await repo.create(session, menu_in)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except IntegrityError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Daily menu already exists.") from exc
 
@@ -60,10 +64,7 @@ async def update_daily_menu(
     menu = await repo.get_by_id(session, menu_id)
     if not menu:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Daily menu not found.")
-    try:
-        return await repo.update(session, menu, menu_in)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return await repo.update(session, menu, menu_in)
 
 
 @router.delete("/{menu_id}", status_code=status.HTTP_204_NO_CONTENT)

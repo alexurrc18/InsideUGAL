@@ -61,24 +61,37 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
                 """
                 CREATE TABLE IF NOT EXISTS public.daily_menus (
                     id SERIAL PRIMARY KEY,
-                    day_of_week INTEGER NOT NULL,
+                    name VARCHAR(255) NOT NULL,
+                    price DECIMAL(10, 2) NOT NULL,
+                    description VARCHAR(500),
+                    day DATE NOT NULL,
                     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
                 )
                 """
             )
         )
+        await connection.execute(text("DROP TABLE IF EXISTS public.menu_products"))
+        await connection.execute(text("ALTER TABLE public.daily_menus ADD COLUMN IF NOT EXISTS name VARCHAR(255)"))
+        await connection.execute(text("ALTER TABLE public.daily_menus ADD COLUMN IF NOT EXISTS price DECIMAL(10, 2)"))
+        await connection.execute(text("ALTER TABLE public.daily_menus ADD COLUMN IF NOT EXISTS description VARCHAR(500)"))
+        await connection.execute(text("ALTER TABLE public.daily_menus ADD COLUMN IF NOT EXISTS day DATE"))
+        await connection.execute(text("ALTER TABLE public.daily_menus DROP COLUMN IF EXISTS day_of_week"))
         await connection.execute(
             text(
                 """
-                CREATE TABLE IF NOT EXISTS public.menu_products (
-                    menu_id INTEGER NOT NULL REFERENCES public.daily_menus(id) ON DELETE CASCADE,
-                    product_id INTEGER NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
-                    PRIMARY KEY (menu_id, product_id)
-                )
+                UPDATE public.daily_menus
+                SET
+                    name = COALESCE(name, 'Meniul zilei'),
+                    price = COALESCE(price, 1),
+                    day = COALESCE(day, CURRENT_DATE)
+                WHERE name IS NULL OR price IS NULL OR day IS NULL
                 """
             )
         )
+        await connection.execute(text("ALTER TABLE public.daily_menus ALTER COLUMN name SET NOT NULL"))
+        await connection.execute(text("ALTER TABLE public.daily_menus ALTER COLUMN price SET NOT NULL"))
+        await connection.execute(text("ALTER TABLE public.daily_menus ALTER COLUMN day SET NOT NULL"))
         await connection.execute(text("ALTER TABLE public.facilities ADD COLUMN IF NOT EXISTS image_url TEXT"))
         await connection.execute(
             text(

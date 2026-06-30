@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Generic, Optional, List, TypeVar
 from uuid import UUID
-from datetime import datetime, time
+from datetime import date, datetime, time
 from decimal import Decimal
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 from typing import Dict, Any
@@ -426,27 +426,32 @@ class ProductResponse(ProductBase):
 # DAILY MENUS (MENIUL ZILEI)
 # ==========================================
 class DailyMenuBase(BaseModel):
-    day_of_week: int
+    name: str
+    price: Decimal
+    description: Optional[str] = None
+    day: date
 
 
 class DailyMenuCreate(DailyMenuBase):
-    product_ids: List[int] = []
     model_config = ConfigDict(json_schema_extra={
         "example": {
-            "day_of_week": 1,
-            "product_ids": [1, 2, 3]
+            "name": "Ciorba de burta",
+            "price": "18.50",
+            "description": "Portie 400g",
+            "day": "2026-06-30"
         }
     })
 
 
 class DailyMenuUpdate(BaseModel):
-    day_of_week: Optional[int] = None
-    product_ids: Optional[List[int]] = None
+    name: Optional[str] = None
+    price: Optional[Decimal] = None
+    description: Optional[str] = None
+    day: Optional[date] = None
 
 
 class DailyMenuResponse(DailyMenuBase):
     id: int
-    products: List[ProductResponse] = []
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)

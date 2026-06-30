@@ -7,16 +7,32 @@ ALTER TABLE public.locations DROP COLUMN IF EXISTS faculty_id;
 
 CREATE TABLE IF NOT EXISTS public.daily_menus (
     id SERIAL PRIMARY KEY,
-    day_of_week INTEGER NOT NULL,
+    name VARCHAR(255),
+    price DECIMAL(10, 2),
+    description VARCHAR(500),
+    day DATE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS public.menu_products (
-    menu_id INTEGER NOT NULL REFERENCES public.daily_menus(id) ON DELETE CASCADE,
-    product_id INTEGER NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
-    PRIMARY KEY (menu_id, product_id)
-);
+DROP TABLE IF EXISTS public.menu_products;
+ALTER TABLE public.daily_menus ADD COLUMN IF NOT EXISTS name VARCHAR(255);
+ALTER TABLE public.daily_menus ADD COLUMN IF NOT EXISTS price DECIMAL(10, 2);
+ALTER TABLE public.daily_menus ADD COLUMN IF NOT EXISTS description VARCHAR(500);
+ALTER TABLE public.daily_menus ADD COLUMN IF NOT EXISTS day DATE;
+ALTER TABLE public.daily_menus DROP COLUMN IF EXISTS day_of_week;
+UPDATE public.daily_menus
+SET
+    name = COALESCE(name, 'Meniul zilei'),
+    price = COALESCE(price, 1),
+    day = COALESCE(day, CURRENT_DATE)
+WHERE name IS NULL OR price IS NULL OR day IS NULL;
+ALTER TABLE public.daily_menus ALTER COLUMN name SET NOT NULL;
+ALTER TABLE public.daily_menus ALTER COLUMN price SET NOT NULL;
+ALTER TABLE public.daily_menus ALTER COLUMN day SET NOT NULL;
+ALTER TABLE public.daily_menus DROP CONSTRAINT IF EXISTS daily_menus_price_check;
+ALTER TABLE public.daily_menus ADD CONSTRAINT daily_menus_price_check CHECK (price > 0);
+CREATE INDEX IF NOT EXISTS idx_daily_menus_day ON public.daily_menus(day);
 
 CREATE TABLE IF NOT EXISTS public.location_faculties (
     location_id INTEGER NOT NULL REFERENCES public.locations(id) ON DELETE CASCADE,
@@ -105,9 +121,9 @@ INSERT INTO public.product_categories (id, name) VALUES
 (3, 'Preparate carne'),
 (4, 'Salate si sosuri'),
 (5, 'Paine'),
-(6, 'Desert'),
-(7, 'Meniul zilei')
+(6, 'Desert')
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
+DELETE FROM public.product_categories WHERE name = 'Meniul zilei';
 
 -- 5. FACILITIES
 INSERT INTO public.facilities (id, name, description, image_url) VALUES
@@ -245,23 +261,18 @@ ON CONFLICT (id) DO UPDATE SET
     price = EXCLUDED.price,
     category_id = EXCLUDED.category_id;
 
--- 8. DAILY MENUS (Luni-Vineri)
-INSERT INTO public.daily_menus (id, day_of_week) VALUES
-(1, 1),
-(2, 2),
-(3, 3),
-(4, 4),
-(5, 5)
+-- 8. DAILY MENUS (Meniul zilei pentru data curenta)
+INSERT INTO public.daily_menus (id, name, price, description, day) VALUES
+(1, 'Ciorba de perisoare', 14.50, 'Ciorba traditionala cu smantana si ardei iute', CURRENT_DATE),
+(2, 'Ceafa de porc la gratar', 16.00, 'Ceafa suculenta rumenita pe plita', CURRENT_DATE),
+(3, 'Cartofi prajiti', 7.00, 'Cartofi taiati mare, usor condimentati', CURRENT_DATE),
+(4, 'Salata de rosii cu branza', 6.50, 'Rosii proaspete si telemea de vaca', CURRENT_DATE),
+(5, 'Papanasi cu dulceata', 12.00, 'Doi papanasi cu smantana si dulceata de afine', CURRENT_DATE)
 ON CONFLICT (id) DO UPDATE SET
-    day_of_week = EXCLUDED.day_of_week;
-
-INSERT INTO public.menu_products (menu_id, product_id) VALUES
-(1, 1), (1, 2), (1, 3), (1, 4), (1, 5),
-(2, 6), (2, 7), (2, 8), (2, 9), (2, 10),
-(3, 1), (3, 7), (3, 3), (3, 9), (3, 5),
-(4, 6), (4, 2), (4, 8), (4, 4), (4, 10),
-(5, 1), (5, 6), (5, 7), (5, 3), (5, 5)
-ON CONFLICT (menu_id, product_id) DO NOTHING;
+    name = EXCLUDED.name,
+    price = EXCLUDED.price,
+    description = EXCLUDED.description,
+    day = EXCLUDED.day;
 
 -- 9. ANNOUNCEMENTS
 INSERT INTO public.announcements (id, type, title, content, image_url, event_link, files, faculties, location_name, start_date, end_date, created_by) VALUES

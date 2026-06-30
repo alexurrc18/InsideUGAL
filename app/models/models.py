@@ -4,6 +4,7 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     Column,
+    Date,
     DateTime,
     ForeignKey,
     Integer,
@@ -24,15 +25,6 @@ from app.db.database import Base
 class TimestampMixin:
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-
-
-menu_products = Table(
-    "menu_products",
-    Base.metadata,
-    Column("menu_id", Integer, ForeignKey("public.daily_menus.id", ondelete="CASCADE"), primary_key=True),
-    Column("product_id", Integer, ForeignKey("public.products.id", ondelete="CASCADE"), primary_key=True),
-    schema="public",
-)
 
 
 location_faculties = Table(
@@ -188,7 +180,6 @@ class Product(Base, TimestampMixin):
     category_id = Column(Integer, ForeignKey("public.product_categories.id", ondelete="SET NULL"))
 
     category = relationship("ProductCategory", back_populates="products")
-    daily_menus = relationship("DailyMenu", secondary=menu_products, back_populates="products")
 
 
 class DailyMenu(Base, TimestampMixin):
@@ -196,9 +187,10 @@ class DailyMenu(Base, TimestampMixin):
     __table_args__ = {"schema": "public"}
 
     id = Column(Integer, primary_key=True)
-    day_of_week = Column(Integer, nullable=False)
-
-    products = relationship("Product", secondary=menu_products, back_populates="daily_menus", lazy="selectin")
+    name = Column(String(255), nullable=False)
+    price = Column(Numeric(10, 2), nullable=False)
+    description = Column(String(500))
+    day = Column(Date, nullable=False)
 
 
 class Complaint(Base, TimestampMixin):
