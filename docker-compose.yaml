@@ -46,6 +46,7 @@ services:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@supabase-db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
       SUPABASE_URL: http://supabase-kong:8000
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      BACKEND_URL: ${BACKEND_URL:-http://backend:8000}
       ALLOWED_ORIGINS: ${LLM_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,http://localhost:8081,http://127.0.0.1:8081,http://localhost:8082,http://127.0.0.1:8082}
       ADMIN_SECRET: ${ADMIN_SECRET}
       SUPABASE_WEBHOOK_SECRET: ${SUPABASE_WEBHOOK_SECRET}
@@ -141,6 +142,7 @@ services:
     - ./supabase/migrations/20260608000001_chatbot_chunks.sql:/docker-entrypoint-initdb.d/04_chatbot_chunks.sql:ro
     - ./supabase/migrations/20260610185900_create_cache_table.sql:/docker-entrypoint-initdb.d/05_llm_cache.sql:ro
     - ./supabase/migrations/202606280001_announcements_extended.sql:/docker-entrypoint-initdb.d/06_announcements_extended.sql:ro
+    - ./supabase/migrations/202606300001_fix_cache_permissions.sql:/docker-entrypoint-initdb.d/07_fix_cache_permissions.sql:ro
     networks:
     - public
     - internal
