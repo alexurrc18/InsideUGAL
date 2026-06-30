@@ -60,6 +60,7 @@ function NotificariContent() {
   const [totalPages, setTotalPages] = useState(1);
 
   const [faculties, setFaculties] = useState<FacultyOption[]>([]);
+  const [profileNames, setProfileNames] = useState<Record<string, string>>({});
 
   const [newNotification, setNewNotification] = useState({
     title: '',
@@ -110,6 +111,39 @@ function NotificariContent() {
     },
     [faculties]
   );
+  const resolveProfileNames = useCallback(
+  async (ids: string[]) => {
+    const uniqueIds = Array.from(new Set(ids)).filter((id) => !(id in profileNames));
+    if (uniqueIds.length === 0) return;
+
+    const results = await Promise.all(
+      uniqueIds.map(async (id) => {
+        try {
+          const res = await fetch(`${apiBaseUrl}/profiles/${id}`, {
+            cache: 'no-store',
+            credentials: 'include',
+            headers: getAuthHeaders(),
+          });
+          if (!res.ok) return [id, id] as const;
+          const profile = await res.json();
+          const name =
+            profile.username ||
+            `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim();
+          return [id, name || id] as const;
+        } catch {
+          return [id, id] as const;
+        }
+      })
+    );
+
+    setProfileNames((prev) => {
+      const next = { ...prev };
+      for (const [id, name] of results) next[id] = name;
+      return next;
+    });
+  },
+  [profileNames]
+);
 
   const loadNotifications = useCallback(
     async (pageToLoad: number) => {
@@ -146,6 +180,7 @@ function NotificariContent() {
           }))
         );
         setTotalPages(data.total_pages || 1);
+        resolveProfileNames(data.items.map((n) => n.sent_by));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Eroare necunoscută.');
       } finally {
@@ -217,7 +252,11 @@ function NotificariContent() {
           <span className="text-muted">—</span>
         ),
     },
-    { header: 'Trimis de', key: 'sentBy' },
+    {
+  header: 'Trimis de',
+  key: 'sentBy',
+  render: (row: NotificationRow) => profileNames[row.sentBy] ?? row.sentBy,
+},
     { header: 'Ora', key: 'time' },
   ];
 
