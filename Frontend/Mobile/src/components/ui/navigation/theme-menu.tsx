@@ -8,6 +8,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { settingsStore } from "@/utils/settings-store";
 import CogIcon from "@/assets/icons/svg/cog.svg";
 import ChevronIcon from "@/assets/icons/svg/chevron-left.svg";
+import { useTranslation } from "react-i18next";
 
 const THEMES = [
   { id: "system" as const, label: "Sistem" },
@@ -52,6 +53,7 @@ export function ThemeMenu({
   const theme = Colors[themeName];
   const { themeMode, setThemeMode } = useThemeContext();
   const [selectedLang, setSelectedLang] = useState(() => settingsStore.getLang());
+  const { t } = useTranslation();
 
   useEffect(() => settingsStore.subscribe(() => setSelectedLang(settingsStore.getLang())), []);
 
@@ -91,7 +93,7 @@ export function ThemeMenu({
     transform: [{ translateX: interpolate(subAnim.value, [0, 1], [8, 0], Extrapolation.CLAMP) }],
   }));
 
-  const themeLabel = THEMES.find((t) => t.id === themeMode)?.label ?? themeMode;
+  const themeLabel = themeMode === 'system' ? t('theme.system') : themeMode === 'light' ? t('theme.light') : themeMode === 'dark' ? t('theme.dark') : themeMode;
   const langLabel = LANGUAGES.find((l) => l.code === selectedLang)?.label ?? selectedLang;
 
   return (
@@ -100,7 +102,7 @@ export function ThemeMenu({
         onPress={toggle}
         hitSlop={8}
         accessibilityRole="button"
-        accessibilityLabel="Setări"
+        accessibilityLabel={t('settings.title')}
         style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
       >
         <View
@@ -151,7 +153,9 @@ export function ThemeMenu({
                       color: (pressed || hovered || isSelected) ? theme.primary : theme.text,
                       fontFamily: isSelected ? "InstrumentSans-SemiBold" : "InstrumentSans-Medium",
                     }]}>
-                      {opt.label}
+                      {subMenu === "tema"
+                        ? (opt.id === "system" ? t('theme.system') : opt.id === "light" ? t('theme.light') : opt.id === "dark" ? t('theme.dark') : opt.label)
+                        : opt.label}
                     </Text>
                   )}
                 </Pressable>
@@ -163,8 +167,8 @@ export function ThemeMenu({
         {/* Panoul principal: Temă curentă + Limbă curentă */}
         <View style={{ minWidth: 260, backgroundColor: theme.surface, overflow: "hidden", paddingVertical: Spacing.xs, ...SHADOW }}>
           {[
-            { label: "Temă curentă", value: themeLabel, sub: "tema" as const },
-            { label: "Limbă curentă", value: langLabel, sub: "limba" as const },
+            { label: t('theme.current'), value: themeLabel, sub: "tema" as const },
+            { label: t('language.current'), value: langLabel, sub: "limba" as const },
           ].map((item, i) => {
             const isActive = subMenu === item.sub;
             return (

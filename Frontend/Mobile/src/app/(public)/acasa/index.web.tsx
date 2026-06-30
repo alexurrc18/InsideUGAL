@@ -16,6 +16,7 @@ import { NAVBAR_HEIGHT } from "@/components/ui/navigation/web-navbar";
 import { getFormattedDate, parseRomanianDate, isoToRomanianDateStr, getTodayRomanianDate } from "@/utils/date";
 import { useWebScrollAware } from "@/contexts/web-scroll-context";
 import api from "@/services/api";
+import { useTranslation } from 'react-i18next';
 import { ErrorState } from "@/components/ui/display/error-state";
 import { HomeSkeleton } from "@/components/ui/display/skeletons";
 import { Seo } from "@/components/seo";
@@ -30,6 +31,7 @@ export default function HomeScreen() {
   // Navbar transparent pana trece de hero. Pragul = inaltimea hero-ului minus navbar.
   const scrollProps = useWebScrollAware(HERO_HEIGHT - NAVBAR_HEIGHT);
 
+  const { t, i18n } = useTranslation();
   const [noutati, setNoutati] = useState<any[]>([]);
   const [evenimente, setEvenimente] = useState<any[]>([]);
   const [facultati, setFacultati] = useState<any[]>([]);
@@ -47,22 +49,23 @@ export default function HomeScreen() {
             page: 1,
             size: 50,
             announcement_type: undefined,
-            faculty_id: undefined
+            faculty_id: undefined,
+            lang: i18n.language,
           }
         });
         if (response.data && response.data.items) {
           const apiItems = response.data.items;
-          
+
           const apiNoutati = apiItems
             .filter((item: any) => item.type === "NOUTATE")
             .map((item: any) => ({
               id: item.id.toString(),
-              title: item.title || "Titlu necunoscut",
-              category: "Noutăți",
-              date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
+              title: (i18n.language !== 'ro' && item.is_translated ? item.translated_title : null) || item.title || t('common.unknownTitle'),
+              category: t('home.news'),
+              date: isoToRomanianDateStr(item.created_at) || t('common.unknownDate'),
               author: item.author_name || "",
               image: item.image_url || undefined,
-              content: item.content || "Conținut necunoscut",
+              content: (i18n.language !== 'ro' && item.is_translated ? item.translated_content : null) || item.content || t('common.unknownContent'),
               created_at: item.created_at,
             }));
 
@@ -70,17 +73,17 @@ export default function HomeScreen() {
             .filter((item: any) => item.type === "EVENIMENT")
             .map((item: any) => ({
               id: item.id.toString(),
-              title: item.title || "Titlu necunoscut",
-              category: "Evenimente",
-              date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
+              title: (i18n.language !== 'ro' && item.is_translated ? item.translated_title : null) || item.title || t('common.unknownTitle'),
+              category: t('home.events'),
+              date: isoToRomanianDateStr(item.created_at) || t('common.unknownDate'),
               date_start: isoToRomanianDateStr(item.start_date) || "",
               date_end: isoToRomanianDateStr(item.end_date) || "",
               time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
               time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
               author: item.author_name || "",
               image: item.image_url || undefined,
-              content: item.content || "Conținut necunoscut",
-              location: item.location_name || "Locație necunoscută",
+              content: (i18n.language !== 'ro' && item.is_translated ? item.translated_content : null) || item.content || t('common.unknownContent'),
+              location: item.location_name || t('common.unknownLocation'),
               created_at: item.created_at,
             }));
 
@@ -163,7 +166,7 @@ export default function HomeScreen() {
     };
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [i18n.language]);
 
   // Ultimele 3 anunturi (Noutăți), cele mai recente primele, pentru hero.
   const announcementsForHero = [...noutati]
@@ -286,15 +289,15 @@ export default function HomeScreen() {
             {activeNoutati.length === 0 ? (
               <View style={{ marginVertical: Spacing.xl3 }}>
                 <View style={{ paddingHorizontal: Spacing.lg }}>
-                  <Text accessibilityRole="header" {...({ "aria-level": 2 } as any)} style={[Typography.Heading1, { color: theme.text, marginBottom: Spacing.xs }]}>Noutăți</Text>
+                  <Text accessibilityRole="header" {...({ "aria-level": 2 } as any)} style={[Typography.Heading1, { color: theme.text, marginBottom: Spacing.xs }]}>{t('home.news')}</Text>
                   <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>
-                    {hasError ? "Nu s-au putut încărca noutățile." : "Nu există noutăți."}
+                    {hasError ? t('home.loadErrorNews') : t('home.emptyNews')}
                   </Text>
                 </View>
               </View>
             ) : (
               <Carousel
-                title="Noutăți"
+                title={t('home.news')}
                 data={activeNoutati}
                 keyExtractor={(item) => item.id}
                 viewAllHref="/(public)/acasa/categorie?title=Noutăți"
@@ -315,15 +318,15 @@ export default function HomeScreen() {
             {activeEvenimente.length === 0 ? (
               <View style={{ marginVertical: Spacing.xl3 }}>
                 <View style={{ paddingHorizontal: Spacing.lg }}>
-                  <Text accessibilityRole="header" {...({ "aria-level": 2 } as any)} style={[Typography.Heading1, { color: theme.text, marginBottom: Spacing.xs }]}>Evenimente</Text>
+                  <Text accessibilityRole="header" {...({ "aria-level": 2 } as any)} style={[Typography.Heading1, { color: theme.text, marginBottom: Spacing.xs }]}>{t('home.events')}</Text>
                   <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>
-                    {hasError ? "Nu s-au putut încărca evenimentele." : "Nu există evenimente."}
+                    {hasError ? t('home.loadErrorEvents') : t('home.emptyEvents')}
                   </Text>
                 </View>
               </View>
             ) : (
               <Carousel
-                title="Evenimente"
+                title={t('home.events')}
                 data={activeEvenimente}
                 keyExtractor={(item) => item.id}
                 viewAllHref="/(public)/acasa/categorie?title=Evenimente"
@@ -344,15 +347,15 @@ export default function HomeScreen() {
             {activeFacultati.length === 0 ? (
               <View style={{ marginVertical: Spacing.xl3 }}>
                 <View style={{ paddingHorizontal: Spacing.lg }}>
-                  <Text accessibilityRole="header" {...({ "aria-level": 2 } as any)} style={[Typography.Heading1, { color: theme.text, marginBottom: Spacing.xs }]}>Facultăți</Text>
+                  <Text accessibilityRole="header" {...({ "aria-level": 2 } as any)} style={[Typography.Heading1, { color: theme.text, marginBottom: Spacing.xs }]}>{t('home.faculties')}</Text>
                   <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>
-                    {hasError ? "Nu s-au putut încărca facultățile." : "Nu există facultăți."}
+                    {hasError ? t('home.loadErrorFaculties') : t('home.emptyFaculties')}
                   </Text>
                 </View>
               </View>
             ) : (
               <Carousel
-                title="Facultăți"
+                title={t('home.faculties')}
                 data={activeFacultati}
                 keyExtractor={(item) => item.id}
                 viewAllHref="/(public)/acasa/categorie?title=Facultăți"
@@ -371,15 +374,15 @@ export default function HomeScreen() {
             {activeFacilitati.length === 0 ? (
               <View style={{ marginVertical: Spacing.xl3 }}>
                 <View style={{ paddingHorizontal: Spacing.lg }}>
-                  <Text accessibilityRole="header" {...({ "aria-level": 2 } as any)} style={[Typography.Heading1, { color: theme.text, marginBottom: Spacing.xs }]}>Facilități</Text>
+                  <Text accessibilityRole="header" {...({ "aria-level": 2 } as any)} style={[Typography.Heading1, { color: theme.text, marginBottom: Spacing.xs }]}>{t('home.facilities')}</Text>
                   <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>
-                    {hasError ? "Nu s-au putut încărca facilitățile." : "Nu există facilități."}
+                    {hasError ? t('home.loadErrorFacilities') : t('home.emptyFacilities')}
                   </Text>
                 </View>
               </View>
             ) : (
               <Carousel
-                title="Facilități"
+                title={t('home.facilities')}
                 data={activeFacilitati}
                 keyExtractor={(item) => item.id}
                 viewAllHref="/(public)/acasa/categorie?title=Facilități"

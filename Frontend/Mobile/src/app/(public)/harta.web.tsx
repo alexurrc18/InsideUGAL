@@ -26,6 +26,7 @@ import { Seo } from "@/components/seo";
 import api, { storage } from "@/services/api";
 import { ErrorState } from "@/components/ui/display/error-state";
 import { useNavigation } from "expo-router";
+import { useTranslation } from 'react-i18next';
 
 let lastKnownUserLocation: { lat: number; lng: number } | null = null;
 
@@ -38,6 +39,7 @@ export default function HartaScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const contentTop = useWebContentTop();
+  const { t } = useTranslation();
   const [hasError, setHasError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(lastKnownUserLocation);
@@ -136,14 +138,14 @@ export default function HartaScreen() {
 
   const facultyFilters = useMemo(() => {
     return [
-      { id: null, title: "Toate locațiile" },
-      { id: "f8", title: "Facilități" },
+      { id: null, title: t('map.allLocations') },
+      { id: "f8", title: t('map.facilities') },
       ...faculties.map((f) => ({
         id: f.id.toString(),
         title: f.abbreviation || f.name
       }))
     ];
-  }, [faculties]);
+  }, [faculties, t]);
 
   const mappedBuildings = useMemo(() => {
     return locations.map((item: any) => ({
@@ -176,7 +178,7 @@ export default function HartaScreen() {
         />
         <WebContainer>
           <CategoryHeader
-            title="Hartă"
+            title={t('map.title')}
             filters={facultyFilters}
             selectedFilterId={selectedFacultyId}
             onSelectFilter={handleSelectFilter}

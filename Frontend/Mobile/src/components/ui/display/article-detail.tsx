@@ -18,6 +18,7 @@ import { Typography } from "@/constants/typography";
 import { getFormattedDate, getReadingTime, isoToRomanianDateStr } from "@/utils/date";
 import { WebContainer } from "@/components/ui/layout/web-container";
 import { Breadcrumbs, type Crumb } from "@/components/ui/navigation/breadcrumbs";
+import { useTranslation } from "react-i18next";
 import { CompactCard } from "@/components/ui/display/home-highlights";
 import { NewsCard, CategoryTag } from "@/components/ui/display/news-card";
 import { eventHref, anuntHref } from "@/utils/article-url";
@@ -78,6 +79,7 @@ export function ArticleDetail({
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { width } = useWindowDimensions();
+    const { t } = useTranslation();
     const twoCol = width >= TWO_COL_BREAKPOINT;
 
     const tipPagina = type || "Eveniment";
@@ -182,7 +184,7 @@ export function ArticleDetail({
     };
 
     const handleCall = () => {
-        if (window.confirm(`Doriți să apelați numărul ${phone}?`)) {
+        if (window.confirm(t('detail.callConfirm', { phone }))) {
             Linking.openURL(`tel:${phone}`);
         }
     };
@@ -195,11 +197,11 @@ export function ArticleDetail({
     // duce la lista categoriei respective; ultimul (titlul) nu e clickabil.
     const crumbCategory = category || tipPagina;
     const crumbs: Crumb[] = [
-        { label: "Acasă", href: "/(public)/acasa" },
+        { label: t('common.home'), href: "/(public)/acasa" },
         ...(crumbCategory
-            ? [{ label: crumbCategory, href: `/(public)/acasa/categorie?title=${encodeURIComponent(crumbCategory)}` }]
+            ? [{ label: crumbCategory === "Evenimente" ? t('home.events') : crumbCategory === "Noutăți" ? t('home.news') : crumbCategory === "Facultăți" ? t('home.faculties') : crumbCategory === "Facilități" ? t('home.facilities') : crumbCategory, href: `/(public)/acasa/categorie?title=${encodeURIComponent(crumbCategory)}` }]
             : []),
-        { label: title || "Articol" },
+        { label: title || t('common.article') },
     ];
 
     return (
@@ -209,7 +211,7 @@ export function ArticleDetail({
                 <View style={{ width: "100%", height: 320 }}>
                     <Image
                         source={image ? { uri: image } : require("@/assets/images/campus-stiintei.png")}
-                        accessibilityLabel={title || "Imagine articol"}
+                        accessibilityLabel={title || t('common.article')}
                         style={{ width: "100%", height: "100%", position: "absolute" }}
                         contentFit="cover"
                     />
@@ -230,7 +232,7 @@ export function ArticleDetail({
                                 <CategoryTag category={category} />
                             ) : (
                                 <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
-                                    {category || (tipPagina === "Facultate" ? "Facultate" : "Categorie")}
+                                    {category || (tipPagina === "Facultate" ? t('common.faculty') : t('common.category'))}
                                 </Text>
                             )}
                             <Text
@@ -238,7 +240,7 @@ export function ArticleDetail({
                                 {...({ "aria-level": 1 } as any)}
                                 style={[Typography.Heading2, { color: ColorScheme.white }]}
                             >
-                                {title || "Titlu"}
+                                {title || t('common.unknownTitle')}
                             </Text>
                         </WebContainer>
                     </View>
@@ -255,22 +257,22 @@ export function ArticleDetail({
                         <View style={{ flex: 1, gap: Spacing.xxl, width: "100%" }}>
                             {tipPagina !== "Facultate" && (
                                 <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>
-                                    {[dateDisplay, author].filter(Boolean).join("  ·  ") || "Dată necunoscută"}
+                                    {[dateDisplay, author].filter(Boolean).join("  ·  ") || t('common.unknownDate')}
                                 </Text>
                             )}
 
                             {tipPagina === "Eveniment" && (
                                 <View style={{ gap: Spacing.md }}>
-                                    <Text style={[Typography.Heading4, { color: theme.text, fontFamily: "InstrumentSans-SemiBold", fontWeight: "600" }]}>Informații eveniment</Text>
+                                    <Text style={[Typography.Heading4, { color: theme.text, fontFamily: "InstrumentSans-SemiBold", fontWeight: "600" }]}>{t('detail.eventInfo')}</Text>
                                     <View style={{ gap: Spacing.md }}>
                                         <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                             <CalendarIcon width={24} height={24} color={theme.primary} />
                                             <View>
                                                 <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                                    De pe {date_start || "N/A"} {time_start || ""}
+                                                    {t('detail.from')} {date_start || "N/A"} {time_start || ""}
                                                 </Text>
                                                 <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                                    Până la {date_end || "N/A"} {time_end || ""}
+                                                    {t('detail.until')} {date_end || "N/A"} {time_end || ""}
                                                 </Text>
                                             </View>
                                         </View>
@@ -278,7 +280,7 @@ export function ArticleDetail({
                                             <LocationIcon width={24} height={24} color={theme.primary} />
                                             <View>
                                                 <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                                    {location || "Locație nespecificată"}
+                                                    {location || t('common.unknownLocation')}
                                                 </Text>
                                             </View>
                                         </View>
@@ -288,14 +290,14 @@ export function ArticleDetail({
 
                             {tipPagina === "Facultate" && (
                                 <View style={{ gap: Spacing.md }}>
-                                    <Text style={[Typography.Heading4, { color: theme.text }]}>Contact și Locație</Text>
+                                    <Text style={[Typography.Heading4, { color: theme.text }]}>{t('detail.contact')}</Text>
                                     <View style={{ gap: Spacing.lg }}>
                                         <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                             <LocationIcon width={24} height={24} color={theme.primary} />
                                             <View style={{ flex: 1 }}>
-                                                <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Adresă</Text>
+                                                <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>{t('detail.address')}</Text>
                                                 <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                                    {address || "Nespecificată"}
+                                                    {address || t('common.unknownAddress')}
                                                 </Text>
                                             </View>
                                         </View>
@@ -304,7 +306,7 @@ export function ArticleDetail({
                                             <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                                 <PhoneIcon width={24} height={24} color={theme.primary} />
                                                 <View style={{ flex: 1 }}>
-                                                    <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Telefon</Text>
+                                                    <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>{t('detail.phone')}</Text>
                                                     <TouchableOpacity onPress={handleCall}>
                                                         <Text style={[Typography.Heading5, { color: theme.text }]}>{phone}</Text>
                                                     </TouchableOpacity>
@@ -316,7 +318,7 @@ export function ArticleDetail({
                                             <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                                 <WebsiteIcon width={24} height={24} color={theme.primary} />
                                                 <View style={{ flex: 1 }}>
-                                                    <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Website</Text>
+                                                    <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>{t('detail.website')}</Text>
                                                     <TouchableOpacity onPress={() => Linking.openURL(website)}>
                                                         <Text style={[Typography.Heading5, { color: theme.secondary }]}>{website}</Text>
                                                     </TouchableOpacity>
@@ -329,10 +331,10 @@ export function ArticleDetail({
 
                             <View style={{ gap: Spacing.md }}>
                                 <Text style={[Typography.Heading4, { color: theme.text, fontFamily: "InstrumentSans-SemiBold", fontWeight: "600" }]}>
-                                    {tipPagina === "Eveniment" ? "Despre eveniment" : tipPagina === "Facultate" ? "Despre facultate" : "Detalii anunț"}
+                                    {tipPagina === "Eveniment" ? t('detail.aboutEvent') : tipPagina === "Facultate" ? t('detail.aboutFaculty') : t('detail.details')}
                                 </Text>
                                 <Text style={[Typography.Paragraph2, { color: theme.text, lineHeight: 25 }]}>
-                                    {content || "Conținutul nu este disponibil."}
+                                    {content || t('common.unknownContent')}
                                 </Text>
                             </View>
 
@@ -344,7 +346,7 @@ export function ArticleDetail({
                         {/* Dreapta: 3 carduri Noutăți, una sub alta. */}
                         {sidebarItems.length > 0 && (
                             <View style={{ width: twoCol ? SIDEBAR_WIDTH : "100%", gap: Spacing.lg }}>
-                                <Text style={[Typography.Heading2, { color: theme.text }]}>Articole similare</Text>
+                                <Text style={[Typography.Heading2, { color: theme.text }]}>{t('detail.relatedArticles')}</Text>
                                 {sidebarItems.map((item) => (
                                     <CompactCard key={item.id} item={item} onPress={() => openItem(item)} />
                                 ))}
@@ -355,7 +357,7 @@ export function ArticleDetail({
                     {/* Jos, sub tot: 3 carduri pe un rand. */}
                     {relatedItems.length > 0 && (
                         <View style={{ gap: Spacing.lg }}>
-                            <Text style={[Typography.Heading2, { color: theme.text }]}>Mai multe</Text>
+                            <Text style={[Typography.Heading2, { color: theme.text }]}>{t('detail.more')}</Text>
                             <View style={{ flexDirection: "row", gap: Spacing.lg }} onLayout={onRowLayout}>
                                 {bottomCardWidth > 0 &&
                                     relatedItems.map((item) => (

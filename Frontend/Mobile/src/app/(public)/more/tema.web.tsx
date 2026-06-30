@@ -10,6 +10,7 @@ import { Typography } from "@/constants/typography";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import { WebContainer } from "@/components/ui/layout/web-container";
 import { settingsStore } from "@/utils/settings-store";
+import { useTranslation } from 'react-i18next';
 
 import CloseIcon from "@/assets/icons/svg/x.svg";
 
@@ -23,13 +24,15 @@ export default function ThemeScreen() {
 
   const [scrollY] = useState(() => new Animated.Value(0));
 
+  const { t } = useTranslation();
+
   // Read current selected theme from settings store
   const currentTheme = settingsStore.getTheme();
 
   const themes = [
-    { code: "system", label: "Sistem" },
-    { code: "light", label: "Luminos" },
-    { code: "dark", label: "Întunecat" }
+    { code: "system", label: t('theme.system') },
+    { code: "light", label: t('theme.light') },
+    { code: "dark", label: t('theme.dark') },
   ];
 
   const handleSelectTheme = (code: string) => {
@@ -77,7 +80,7 @@ export default function ThemeScreen() {
                 ]}
                 numberOfLines={1}
               >
-                Temă aplicație
+                {t('theme.title')}
               </Text>
             </Animated.View>
           ),
@@ -98,20 +101,20 @@ export default function ThemeScreen() {
       >
         <WebContainer>
           <View style={{ width: "100%", paddingHorizontal: WebSidePadding }}>
-            <CategoryHeader title="Temă" />
+            <CategoryHeader title={t('theme.header')} />
 
             <View style={{ gap: Spacing.md, marginTop: Spacing.md }}>
               <Text style={[Typography.Heading4, { color: theme.text }]}>
-                Selectează tema
+                {t('theme.select')}
               </Text>
 
               <View style={{ gap: Spacing.sm, marginTop: Spacing.xs }}>
-                {themes.map((t) => {
-                  const isSelected = currentTheme === t.code;
+                {themes.map((themeItem) => {
+                  const isSelected = currentTheme === themeItem.code;
                   return (
                     <Pressable
-                      key={t.code}
-                      onPress={() => handleSelectTheme(t.code)}
+                      key={themeItem.code}
+                      onPress={() => handleSelectTheme(themeItem.code)}
                       style={({ pressed }) => ({
                         flexDirection: "row",
                         justifyContent: "space-between",
@@ -127,7 +130,7 @@ export default function ThemeScreen() {
                           fontSize: 18
                         }}
                       >
-                        {t.label}
+                        {themeItem.label}
                       </Text>
                       {isSelected && (
                         <Text
@@ -137,7 +140,7 @@ export default function ThemeScreen() {
                             fontSize: 16
                           }}
                         >
-                          (Selectat)
+                          {t('language.selected')}
                         </Text>
                       )}
                     </Pressable>

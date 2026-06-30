@@ -8,6 +8,7 @@ import { CategoryHeader } from '@/components/ui/display/category-header';
 import api, { storage } from '@/services/api';
 import { ErrorState } from '@/components/ui/display/error-state';
 import * as Location from 'expo-location';
+import { useTranslation } from 'react-i18next';
 
 export default function HartaScreen() {
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
@@ -17,6 +18,7 @@ export default function HartaScreen() {
   const insets = useSafeAreaInsets();
   const themeName = (useColorScheme() ?? 'light') as keyof typeof Colors;
   const theme = Colors[themeName];
+  const { t } = useTranslation();
   const [hasError, setHasError] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -76,14 +78,14 @@ export default function HartaScreen() {
 
   const facultyFilters = useMemo(() => {
     return [
-      { id: null, title: 'Toate locațiile' },
-      { id: 'f8', title: 'Facilități' },
+      { id: null, title: t('map.allLocations') },
+      { id: 'f8', title: t('map.facilities') },
       ...faculties.map(f => ({
         id: f.id.toString(),
         title: f.abbreviation || f.name
       }))
     ];
-  }, [faculties]);
+  }, [faculties, t]);
 
   const mappedBuildings = useMemo(() => {
     return locations.map((item: any) => ({
@@ -112,7 +114,7 @@ export default function HartaScreen() {
       paddingTop: insets.top + Spacing.md,
     }}>
       <CategoryHeader
-        title='Hartă'
+        title={t('map.title')}
         filters={facultyFilters}
         selectedFilterId={selectedFacultyId}
         onSelectFilter={handleSelectFilter}

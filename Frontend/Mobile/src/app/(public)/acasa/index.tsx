@@ -13,6 +13,7 @@ import { NewsCard } from "@/components/ui/display/news-card";
 import { HeroSlideshow, HERO_HEIGHT } from "@/components/ui/display/hero-slideshow";
 import { getFormattedDate, parseRomanianDate, isoToRomanianDateStr, getTodayRomanianDate } from "@/utils/date";
 import api, { storage } from "@/services/api";
+import { useTranslation } from 'react-i18next';
 import { ErrorState } from "@/components/ui/display/error-state";
 import { HomeSkeleton, CarouselSkeleton } from "@/components/ui/display/skeletons";
 
@@ -23,6 +24,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
+  const { t, i18n } = useTranslation();
   const [noutati, setNoutati] = useState<any[]>([]);
   const [evenimente, setEvenimente] = useState<any[]>([]);
   const [facultati, setFacultati] = useState<any[]>([]);
@@ -47,24 +49,25 @@ export default function HomeScreen() {
             page: 1,
             size: 50,
             announcement_type: undefined,
-            faculty_id: undefined
+            faculty_id: undefined,
+            lang: i18n.language,
           }
         });
         if (response.data && response.data.items) {
           const apiItems = response.data.items;
-          
+
           await storage.setItem('cached_announcements', JSON.stringify(apiItems));
 
           const apiNoutati = apiItems
             .filter((item: any) => item.type === "NOUTATE")
             .map((item: any) => ({
               id: item.id.toString(),
-              title: item.title || "Titlu necunoscut",
-              category: "Noutăți",
-              date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
+              title: (i18n.language !== 'ro' && item.is_translated ? item.translated_title : null) || item.title || t('common.unknownTitle'),
+              category: t('home.news'),
+              date: isoToRomanianDateStr(item.created_at) || t('common.unknownDate'),
               author: item.author_name || "",
               image: item.image_url || undefined,
-              content: item.content || "Conținut necunoscut",
+              content: (i18n.language !== 'ro' && item.is_translated ? item.translated_content : null) || item.content || t('common.unknownContent'),
               created_at: item.created_at,
             }));
 
@@ -72,17 +75,17 @@ export default function HomeScreen() {
             .filter((item: any) => item.type === "EVENIMENT")
             .map((item: any) => ({
               id: item.id.toString(),
-              title: item.title || "Titlu necunoscut",
-              category: "Evenimente",
-              date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
+              title: (i18n.language !== 'ro' && item.is_translated ? item.translated_title : null) || item.title || t('common.unknownTitle'),
+              category: t('home.events'),
+              date: isoToRomanianDateStr(item.created_at) || t('common.unknownDate'),
               date_start: isoToRomanianDateStr(item.start_date) || "",
               date_end: isoToRomanianDateStr(item.end_date) || "",
               time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
               time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
               author: item.author_name || "",
               image: item.image_url || undefined,
-              content: item.content || "Conținut necunoscut",
-              location: item.location_name || "Locație necunoscută",
+              content: (i18n.language !== 'ro' && item.is_translated ? item.translated_content : null) || item.content || t('common.unknownContent'),
+              location: item.location_name || t('common.unknownLocation'),
               created_at: item.created_at,
             }));
 
@@ -206,7 +209,7 @@ export default function HomeScreen() {
     
     const isPageEmpty = noutati.length === 0 && evenimente.length === 0 && facultati.length === 0 && facilitati.length === 0;
     if (!success && !isPageEmpty) {
-      Alert.alert("Eroare la actualizare", "Nu s-au putut reîmprospăta datele de pe ecranul principal. Te rugăm să verifici conexiunea la internet.");
+      Alert.alert(t('common.updateError'), t('home.refreshError'));
     }
     
     const elapsed = Date.now() - start;
@@ -220,7 +223,7 @@ export default function HomeScreen() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchApiData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [i18n.language]);
 
   const announcementsForHero = [...noutati]
     .sort((a, b) => parseRomanianDate(b.date).getTime() - parseRomanianDate(a.date).getTime())
@@ -324,15 +327,15 @@ export default function HomeScreen() {
             <>
               {activeNoutati.length === 0 ? (
                 <View style={{ marginVertical: Spacing.lg, paddingHorizontal: Spacing.lg }}>
-                  <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs }]}>Noutăți</Text>
-                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>Nu s-au putut găsi noutăți.</Text>
+                  <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs }]}>{t('home.news')}</Text>
+                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>{t('home.noNews')}</Text>
                 </View>
               ) : (
                 <Carousel
-                  title="Noutăți"
+                  title={t('home.news')}
                   data={activeNoutati}
                   keyExtractor={(item) => item.id}
-                  viewAllHref="/(public)/acasa/categorie?title=Noutăți"
+                  viewAllHref={`/(public)/acasa/categorie?title=Noutăți`}
                   renderItem={({ item, index }) => (
                     <NewsCard
                       title={item.title}
@@ -349,12 +352,12 @@ export default function HomeScreen() {
 
               {activeEvenimente.length === 0 ? (
                 <View style={{ marginVertical: Spacing.lg, paddingHorizontal: Spacing.lg }}>
-                  <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs }]}>Evenimente</Text>
-                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>Nu s-au putut găsi evenimente.</Text>
+                  <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs }]}>{t('home.events')}</Text>
+                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>{t('home.noEvents')}</Text>
                 </View>
               ) : (
                 <Carousel
-                  title="Evenimente"
+                  title={t('home.events')}
                   data={activeEvenimente}
                   keyExtractor={(item) => item.id}
                   viewAllHref="/(public)/acasa/categorie?title=Evenimente"
@@ -374,12 +377,12 @@ export default function HomeScreen() {
 
               {activeFacultati.length === 0 ? (
                 <View style={{ marginVertical: Spacing.lg, paddingHorizontal: Spacing.lg }}>
-                  <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs }]}>Facultăți</Text>
-                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>Nu s-au putut găsi facultăți.</Text>
+                  <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs }]}>{t('home.faculties')}</Text>
+                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>{t('home.noFaculties')}</Text>
                 </View>
               ) : (
                 <Carousel
-                  title="Facultăți"
+                  title={t('home.faculties')}
                   data={activeFacultati}
                   keyExtractor={(item) => item.id}
                   viewAllHref="/(public)/acasa/categorie?title=Facultăți"
@@ -397,12 +400,12 @@ export default function HomeScreen() {
 
               {activeFacilitati.length === 0 ? (
                 <View style={{ marginVertical: Spacing.lg, paddingHorizontal: Spacing.lg }}>
-                  <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs }]}>Facilități</Text>
-                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>Nu s-au putut găsi facilități.</Text>
+                  <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs }]}>{t('home.facilities')}</Text>
+                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>{t('home.noFacilities')}</Text>
                 </View>
               ) : (
                 <Carousel
-                  title="Facilități"
+                  title={t('home.facilities')}
                   data={activeFacilitati}
                   keyExtractor={(item) => item.id}
                   viewAllHref="/(public)/acasa/categorie?title=Facilități"

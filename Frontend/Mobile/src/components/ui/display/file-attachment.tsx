@@ -4,6 +4,7 @@ import { Typography } from "@/constants/typography";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import FileIcon from "@/assets/icons/svg/file.svg";
 import DownloadIcon from "@/assets/icons/svg/arrow-to-bottom-stroke.svg";
+import { useTranslation } from "react-i18next";
 
 export type FileItem = { name: string; url: string };
 
@@ -57,12 +58,13 @@ function FileCard({ file }: { file: FileItem }) {
 export function FileAttachments({ files }: { files?: FileItem[] }) {
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
     const theme = Colors[themeName];
+    const { t } = useTranslation();
 
     if (!files?.length) return null;
 
     return (
         <View style={{ gap: Spacing.md }}>
-            <Text style={[Typography.Heading4, { color: theme.text }]}>Fișiere atașate</Text>
+            <Text style={[Typography.Heading4, { color: theme.text }]}>{t('common.attachedFiles')}</Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: Spacing.md }}>
                 {files.map((f, i) => (
                     <FileCard key={i} file={f} />

@@ -9,6 +9,7 @@ import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import PlusIcon from "@/assets/icons/svg/plus.svg";
 import { CategoryHeader, FilterItem } from "@/components/ui/display/category-header";
 import { InteractiveGlass } from "@/components/ui/layout/interactive-glass";
+import { useTranslation } from 'react-i18next';
 
 export const unstable_settings = {
   initialRouteName: "index",
@@ -20,6 +21,7 @@ export default function SesizariLayout() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const activeFilter = (params.filter as string) || "toate";
 
   const scalePlusAnim = useSharedValue(1);
@@ -36,11 +38,11 @@ export default function SesizariLayout() {
   };
 
   const filters: FilterItem[] = [
-    { id: "toate", title: "Toate sesizările" },
-    { id: "mele", title: "Sesizările mele" },
-    { id: "active", title: "Active" },
-    { id: "respinse", title: "Respinse" },
-    { id: "finalizate", title: "Finalizate" },
+    { id: "toate", title: t('reports.all') },
+    { id: "mele", title: t('reports.mine') },
+    { id: "active", title: t('reports.active') },
+    { id: "respinse", title: t('reports.rejected') },
+    { id: "finalizate", title: t('reports.completed') },
   ];
 
   return (
@@ -63,7 +65,7 @@ export default function SesizariLayout() {
           header: () => (
             <View style={{ backgroundColor: theme.background, paddingTop: insets.top + Spacing.md }}>
               <CategoryHeader
-                title="Sesizări"
+                title={t('reports.title')}
                 filters={filters}
                 selectedFilterId={activeFilter}
                 onSelectFilter={(id) => {
@@ -122,7 +124,7 @@ export default function SesizariLayout() {
         name="adauga"
         options={{
           headerShown: true,
-          headerTitle: "Sesizare nouă",
+          headerTitle: t('reports.newReport'),
           headerLeft: () => (
             <Pressable 
               onPress={() => router.back()} 

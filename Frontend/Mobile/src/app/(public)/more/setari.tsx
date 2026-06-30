@@ -10,6 +10,7 @@ import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import { settingsStore } from "@/utils/settings-store";
+import { useTranslation } from 'react-i18next';
 
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import GlobeIcon from "@/assets/icons/svg/globe-europe.svg";
@@ -28,6 +29,8 @@ export default function SettingsScreen() {
   const headerTitleStyle = useAnimatedStyle(() => ({
     opacity: interpolate(scrollY.value, [50, 90], [0, 1], Extrapolation.CLAMP),
   }));
+
+  const { t, i18n } = useTranslation();
 
   // Local settings states driven by settingsStore
   const [selectedTheme, setSelectedTheme] = useState(() => settingsStore.getTheme());
@@ -95,7 +98,7 @@ export default function SettingsScreen() {
                 ]}
                 numberOfLines={1}
               >
-                Setări
+                {t('settings.title')}
               </Text>
             </Animated.View>
           ),
@@ -111,20 +114,20 @@ export default function SettingsScreen() {
         onScroll={scrollHandler}
         scrollEventThrottle={16}
       >
-        <CategoryHeader title="Setări" />
+        <CategoryHeader title={t('settings.title')} />
 
         <View style={{ paddingHorizontal: Spacing.lg, gap: Spacing.xl, marginTop: Spacing.md }}>
           
           {/* SECȚIUNEA 1: ASPECT & LIMBĂ */}
           <View style={{ gap: Spacing.md }}>
             <Text style={[Typography.Heading4, { color: theme.text }]}>
-              Aspect & Limbă
+              {t('settings.appearanceLang')}
             </Text>
             
             <View style={{ gap: Spacing.lg, paddingVertical: Spacing.xs }}>
               {/* Opțiune Temă */}
               <View style={{ gap: Spacing.xs }}>
-                <Text style={[Typography.Paragraph2, { color: theme.text }]}>Temă aplicație</Text>
+                <Text style={[Typography.Paragraph2, { color: theme.text }]}>{t('settings.themeApp')}</Text>
                 
                 {/* Buton navigare temă - navighează la tema.tsx */}
                 <Pressable
@@ -142,8 +145,8 @@ export default function SettingsScreen() {
                   })}
                 >
                   <Text style={{ color: theme.text, fontFamily: "InstrumentSans-Medium", fontSize: 16 }}>
-                    Temă curentă: <Text style={{ color: theme.primary, fontFamily: "InstrumentSans-Bold" }}>
-                      {selectedTheme === "system" ? "Sistem" : selectedTheme === "light" ? "Luminos" : "Întunecat"}
+                    {t('settings.currentTheme')} <Text style={{ color: theme.primary, fontFamily: "InstrumentSans-Bold" }}>
+                      {selectedTheme === "system" ? t('theme.system') : selectedTheme === "light" ? t('theme.light') : t('theme.dark')}
                     </Text>
                   </Text>
                   <BackIcon 
@@ -157,7 +160,7 @@ export default function SettingsScreen() {
 
               {/* Opțiune Limbă */}
               <View style={{ gap: Spacing.xs }}>
-                <Text style={[Typography.Paragraph2, { color: theme.text }]}>Limbă aplicație</Text>
+                <Text style={[Typography.Paragraph2, { color: theme.text }]}>{t('language.title')}</Text>
 
                 {/* Buton navigare limbă - navighează la limba.tsx */}
                 <Pressable
@@ -175,7 +178,7 @@ export default function SettingsScreen() {
                   })}
                 >
                   <Text style={{ color: theme.text, fontFamily: "InstrumentSans-Medium", fontSize: 16 }}>
-                    Limbă curentă: <Text style={{ color: theme.primary, fontFamily: "InstrumentSans-Bold" }}>{languages.find((l) => l.code === selectedLang)?.label || "Română"}</Text>
+                    {t('settings.currentLang')} <Text style={{ color: theme.primary, fontFamily: "InstrumentSans-Bold" }}>{languages.find((l) => l.code === i18n.language)?.label || "Română"}</Text>
                   </Text>
                   <BackIcon 
                     width={18} 
@@ -191,7 +194,7 @@ export default function SettingsScreen() {
           {/* SECȚIUNEA 2: DESPRE & ACȚIUNI */}
           <View style={{ gap: Spacing.md, marginTop: Spacing.md }}>
             <Text style={[Typography.Heading4, { color: theme.text }]}>
-              Asistență & Info
+              {t('settings.supportInfo')}
             </Text>
 
             <View style={{ gap: Spacing.md }}>
@@ -206,7 +209,7 @@ export default function SettingsScreen() {
                   opacity: pressed ? 0.6 : 1
                 })}
               >
-                <Text style={[Typography.Paragraph2, { color: theme.text }]}>Vizitează Website UGAL</Text>
+                <Text style={[Typography.Paragraph2, { color: theme.text }]}>{t('settings.visitWebsite')}</Text>
                 <GlobeIcon width={22} height={22} color={theme.textSecondary} />
               </Pressable>
             </View>
@@ -218,7 +221,7 @@ export default function SettingsScreen() {
               InsideUGAL v0.1.0
             </Text>
             <Text style={[Typography.Small2, { color: theme.textSecondary, textAlign: "center" }]}>
-              Creat pentru studenții Universității „Dunărea de Jos” din Galați
+              {t('settings.appSlogan')}
             </Text>
           </View>
 

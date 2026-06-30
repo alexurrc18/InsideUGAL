@@ -9,6 +9,7 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useAuth } from "@/contexts/auth-context";
 import { WEB_COMPACT_BREAKPOINT } from "@/components/ui/layout/web-container";
 import CloseIcon from "@/assets/icons/svg/x.svg";
+import { useTranslation } from 'react-i18next';
 
 const LOGO = require("@/assets/images/logo.png");
 
@@ -17,6 +18,7 @@ export default function LoginScreen() {
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
     const theme = Colors[themeName];
     const { login } = useAuth();
+    const { t } = useTranslation();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -27,15 +29,15 @@ export default function LoginScreen() {
         const newErrors: { email?: string; password?: string } = {};
 
         if (!email) {
-            newErrors.email = "Email-ul este obligatoriu.";
+            newErrors.email = t('auth.emailRequired');
         } else if (!/\S+@\S+\.\S+/.test(email)) {
-            newErrors.email = "Formatul email-ului este invalid.";
+            newErrors.email = t('auth.emailInvalid');
         }
 
         if (!password) {
-            newErrors.password = "Parola este obligatorie.";
+            newErrors.password = t('auth.passwordRequired');
         } else if (password.length < 6) {
-            newErrors.password = "Parola trebuie să aibă cel puțin 6 caractere.";
+            newErrors.password = t('auth.passwordTooShort');
         }
 
         setErrors(newErrors);
@@ -52,7 +54,7 @@ export default function LoginScreen() {
         } catch (err: any) {
             setErrors(prev => ({
                 ...prev,
-                general: err.message || "Email-ul sau parola sunt incorecte."
+                general: err.message || t('auth.invalidCredentials')
             }));
         } finally {
             setSubmitting(false);
@@ -104,9 +106,9 @@ export default function LoginScreen() {
                 >
                     <View style={{ paddingVertical: Spacing.xxl, paddingHorizontal: isDesktop ? Spacing.xxl * 2 : Spacing.xl, maxWidth: 480, width: '100%' }}>
                         <View style={{ marginBottom: Spacing.xl4, alignItems: 'center' }}>
-                            <Text style={[Typography.Heading2, { color: theme.text, textAlign: 'center' }]}>Autentificare</Text>
+                            <Text style={[Typography.Heading2, { color: theme.text, textAlign: 'center' }]}>{t('auth.title')}</Text>
                             <Text style={[Typography.Paragraph2, { color: theme.textSecondary, marginTop: Spacing.xs, textAlign: 'center' }]}>
-                                Introdu datele pentru a intra în cont
+                                {t('auth.subtitle')}
                             </Text>
                         </View>
 
@@ -119,7 +121,7 @@ export default function LoginScreen() {
 
                             {/* Email Input */}
                             <View style={{ gap: Spacing.xs }}>
-                                <Text style={[Typography.Heading5, { color: theme.text }]}>Email</Text>
+                                <Text style={[Typography.Heading5, { color: theme.text }]}>{t('auth.email')}</Text>
                                 <TextInput
                                     value={email}
                                     onChangeText={(text) => {
@@ -150,7 +152,7 @@ export default function LoginScreen() {
 
                             {/* Password Input */}
                             <View style={{ gap: Spacing.xs }}>
-                                <Text style={[Typography.Heading5, { color: theme.text }]}>Parolă</Text>
+                                <Text style={[Typography.Heading5, { color: theme.text }]}>{t('auth.password')}</Text>
                                 <TextInput
                                     value={password}
                                     onChangeText={(text) => {
@@ -195,7 +197,7 @@ export default function LoginScreen() {
                                 {submitting ? (
                                     <ActivityIndicator color="white" />
                                 ) : (
-                                    <Text style={[Typography.Heading4, { color: 'white' }]}>Autentificare</Text>
+                                    <Text style={[Typography.Heading4, { color: 'white' }]}>{t('auth.login')}</Text>
                                 )}
                             </Pressable>
                         </View>

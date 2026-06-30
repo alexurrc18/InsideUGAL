@@ -20,6 +20,7 @@ import GlobeIcon from "@/assets/icons/svg/globe-europe.svg";
 import UserIcon from "@/assets/icons/svg/user.svg";
 import SettingsIcon from "@/assets/icons/svg/cog.svg";
 import DoorOpenAltIcon from "@/assets/icons/svg/door-open-alt.svg";
+import { useTranslation } from 'react-i18next';
 
 export default function MoreScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
@@ -27,6 +28,7 @@ export default function MoreScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { isAuthenticated, logout } = useAuth();
+  const { t } = useTranslation();
 
   const [categories, setCategories] = useState<any[]>([]);
 
@@ -95,12 +97,12 @@ export default function MoreScreen() {
             onPress={async () => {
               if (isAuthenticated) {
                 Alert.alert(
-                  "Profilul tău",
-                  "Ești deja conectat în cont. Vrei să te deconectezi?",
+                  t('more.profileTitle'),
+                  t('more.profileLoggedIn'),
                   [
-                    { text: "Anulează", style: "cancel" },
+                    { text: t('more.cancel'), style: "cancel" },
                     {
-                      text: "Deconectare",
+                      text: t('more.logout'),
                       style: "destructive",
                       onPress: async () => {
                         await logout();
@@ -147,7 +149,7 @@ export default function MoreScreen() {
               }} 
               numberOfLines={2}
             >
-              {isAuthenticated ? "Deconectează-te" : "Conectare"}
+              {isAuthenticated ? t('more.disconnect') : t('more.login')}
             </Text>
           </Pressable>
 
@@ -185,14 +187,14 @@ export default function MoreScreen() {
               }} 
               numberOfLines={2}
             >
-              Setări
+              {t('more.settings')}
             </Text>
           </Pressable>
         </View>
 
         {/* Section Title */}
         <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.xl, marginBottom: Spacing.md }}>
-          <Text style={[Typography.Heading4, { color: theme.text }]}>Vizitează Galați</Text>
+          <Text style={[Typography.Heading4, { color: theme.text }]}>{t('more.visitGalati')}</Text>
         </View>
 
         {/* Categories Grid - 3 items per row */}

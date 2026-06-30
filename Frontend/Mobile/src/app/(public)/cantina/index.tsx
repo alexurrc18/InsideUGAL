@@ -10,6 +10,7 @@ import { MenuItem } from "@/components/ui/navigation/menu-item";
 import api, { storage } from "@/services/api";
 import { CantinaMenuSkeleton } from "@/components/ui/display/skeletons";
 import { ErrorState } from "@/components/ui/display/error-state";
+import { useTranslation } from 'react-i18next';
 
 function formatCategoryName(name: string): string {
   if (!name) return "";
@@ -32,16 +33,17 @@ export default function CantinaScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [menuData, setMenuData] = useState<any[]>([]);
   const [categoriesList, setCategoriesList] = useState<any[]>([]);
 
   const daysFilter = useMemo(() => {
     const allDays = [
-      { id: "luni", title: "Luni" },
-      { id: "marti", title: "Marți" },
-      { id: "miercuri", title: "Miercuri" },
-      { id: "joi", title: "Joi" },
-      { id: "vineri", title: "Vineri" },
+      { id: "luni", title: t('days.1') },
+      { id: "marti", title: t('days.2') },
+      { id: "miercuri", title: t('days.3') },
+      { id: "joi", title: t('days.4') },
+      { id: "vineri", title: t('days.5') },
     ];
 
     const now = new Date();
@@ -57,9 +59,9 @@ export default function CantinaScreen() {
 
     return sortedDays.map((day, index) => ({
       ...day,
-      title: index === 0 ? "Azi" : day.title,
+      title: index === 0 ? t('canteen.today') : day.title,
     }));
-  }, []);
+  }, [t]);
 
   const [selectedDay, setSelectedDay] = useState<string>(daysFilter[0].id);
   const [loading, setLoading] = useState(true);
@@ -124,7 +126,7 @@ export default function CantinaScreen() {
       console.warn('[API] Error refreshing daily menus data:', err);
       setHasError(true);
       if (menuData.length > 0) {
-        Alert.alert("Eroare la actualizare", "Nu s-a putut reîmprospăta meniul cantinei. Te rugăm să verifici conexiunea la internet.");
+        Alert.alert(t('common.updateError'), t('canteen.updateError'));
       }
     }
   };
@@ -184,7 +186,7 @@ export default function CantinaScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top + Spacing.md }}>
       <CategoryHeader
-        title="Cantina"
+        title={t('canteen.title')}
         filters={daysFilter}
         selectedFilterId={selectedDay}
         onSelectFilter={(id) => id && setSelectedDay(id)}
@@ -207,7 +209,7 @@ export default function CantinaScreen() {
             {currentMenu.length === 0 ? (
               <View style={{ paddingVertical: Spacing.xl4, alignItems: "center", justifyContent: "center" }}>
                 <Text style={[Typography.Paragraph1, { color: theme.textSecondary, textAlign: "center" }]}>
-                  Nu există meniu disponibil pentru această zi.
+                  {t('canteen.empty')}
                 </Text>
               </View>
             ) : (

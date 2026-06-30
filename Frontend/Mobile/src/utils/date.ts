@@ -37,10 +37,10 @@ export const getFormattedDate = (dateStr?: string) => {
 /**
  * Calculează timpul de citire estimat bazat pe lungimea textului
  */
-export const getReadingTime = (text?: string) => {
-    if (!text) return "1 min citire";
+export const getReadingTime = (text?: string, formatter?: (minutes: number) => string) => {
     const words = text.split(/\s+/).length;
     const minutes = Math.max(1, Math.ceil(words / 200));
+    if (formatter) return formatter(minutes);
     return `${minutes} min citire`;
 };
 

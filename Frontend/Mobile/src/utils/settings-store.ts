@@ -19,6 +19,8 @@ class SettingsStore {
   setLang(lang: string) {
     this.lang = lang;
     this.notify();
+    // Lazy import to avoid circular dependency with i18n init reading settingsStore
+    import('@/i18n').then((mod) => mod.default.changeLanguage(lang));
   }
 
   subscribe(listener: () => void) {

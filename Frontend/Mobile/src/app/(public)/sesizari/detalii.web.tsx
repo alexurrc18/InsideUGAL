@@ -14,6 +14,7 @@ import { WebContainer } from "@/components/ui/layout/web-container";
 import { Breadcrumbs } from "@/components/ui/navigation/breadcrumbs";
 import api, { storage, resolveImageUrl } from "@/services/api";
 import { ErrorState } from "@/components/ui/display/error-state";
+import { useTranslation } from 'react-i18next';
 
 import LocationIcon from "@/assets/icons/svg/location.svg";
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
@@ -49,6 +50,7 @@ export default function SesizareDetaliiScreen() {
   const insets = useSafeAreaInsets();
 
   const id = params.id as string;
+  const { t } = useTranslation();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

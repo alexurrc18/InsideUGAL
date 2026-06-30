@@ -15,16 +15,9 @@ import PlusIcon from "@/assets/icons/svg/plus.svg";
 import api, { storage, resolveImageUrl } from "@/services/api";
 import { useAuth } from "@/contexts/auth-context";
 import { ErrorState } from "@/components/ui/display/error-state";
+import { useTranslation } from 'react-i18next';
 
 type FilterType = "toate" | "mele" | "active" | "respinse" | "finalizate";
-
-const filters: FilterItem[] = [
-  { id: "toate", title: "Toate sesizările" },
-  { id: "mele", title: "Sesizările mele" },
-  { id: "active", title: "Active" },
-  { id: "respinse", title: "Respinse" },
-  { id: "finalizate", title: "Finalizate" },
-];
 
 function mapApiStatus(apiStatus: string): "active" | "respinse" | "finalizate" {
   switch (apiStatus) {
@@ -46,6 +39,15 @@ export default function SesizariScreen() {
   const router = useRouter();
 
   const { isAuthenticated, user, isLoading: authLoading } = useAuth();
+  const { t } = useTranslation();
+
+  const filters: FilterItem[] = [
+    { id: "toate", title: t('reports.all') },
+    { id: "mele", title: t('reports.mine') },
+    { id: "active", title: t('reports.active') },
+    { id: "respinse", title: t('reports.rejected') },
+    { id: "finalizate", title: t('reports.completed') },
+  ];
 
   const [reports, setReports] = useState<Sesizare[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,10 +123,10 @@ export default function SesizariScreen() {
         id: item.id.toString(),
         title: item.title,
         description: item.description,
-        category: "General",
+        category: t('reports.general'),
         status: mapApiStatus(item.status),
         date: item.created_at,
-        location: locationMap.get(item.location_id) || "Locație nespecificată",
+        location: locationMap.get(item.location_id) || t('reports.unknownLocation'),
         isUserReport: myProfileId ? item.user_id === myProfileId : false,
         image: resolveImageUrl(item.image_url) || undefined,
       }));
@@ -133,7 +135,7 @@ export default function SesizariScreen() {
     } catch (err: any) {
       setLoading(false);
       console.warn('[API] Error fetching complaints:', err);
-      setError(err.message || "A apărut o eroare la încărcarea sesizărilor.");
+      setError(err.message || t('reports.loadErrorGeneral'));
     }
   };
 
@@ -187,7 +189,7 @@ export default function SesizariScreen() {
       >
         <WebContainer>
           <CategoryHeader
-            title="Sesizări"
+            title={t('reports.title')}
             filters={filters}
             selectedFilterId={activeFilter}
             onSelectFilter={(id) => setActiveFilter((id as FilterType) || "mele")}
@@ -214,16 +216,16 @@ export default function SesizariScreen() {
             {!isAuthenticated ? (
               <View style={{ paddingVertical: 64, justifyContent: "center", alignItems: "center", gap: Spacing.md }}>
                 <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs, textAlign: "center" }]}>
-                  Trebuie să fii conectat
+                  {t('reports.loginRequired')}
                 </Text>
                 <Text style={[Typography.Paragraph2, { color: theme.textSecondary, textAlign: "center", marginBottom: Spacing.md }]}>
-                  Conectează-te pentru a trimite sau vizualiza sesizările tale.
+                  {t('reports.loginDesc')}
                 </Text>
                 <Pressable
                   onPress={() => router.push("/(auth)")}
                   style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}
                 >
-                  <Text style={{ color: "white", fontWeight: "bold" }}>Conectare</Text>
+                  <Text style={{ color: "white", fontWeight: "bold" }}>{t('reports.login')}</Text>
                 </Pressable>
               </View>
             ) : loading && reports.length === 0 ? (
@@ -245,10 +247,10 @@ export default function SesizariScreen() {
                  {filteredData.length === 0 && (
                   <View style={{ alignItems: "center", justifyContent: "center", paddingVertical: 64 }}>
                     <Text style={[Typography.Heading5, { color: theme.text, marginBottom: Spacing.xs }]}>
-                      Nicio sesizare în această secțiune
+                      {t('reports.empty')}
                     </Text>
                     <Text style={[Typography.Paragraph3, { color: theme.textSecondary, textAlign: "center" }]}>
-                      Momentan nu există înregistrări.
+                      {t('reports.emptyDesc')}
                     </Text>
                   </View>
                 )}

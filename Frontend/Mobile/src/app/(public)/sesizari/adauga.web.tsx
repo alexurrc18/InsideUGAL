@@ -12,6 +12,7 @@ import api, { storage } from "@/services/api";
 import XIcon from "@/assets/icons/svg/x.svg";
 import ImagesIcon from "@/assets/icons/svg/images.svg";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
+import { useTranslation } from 'react-i18next';
 
 interface LocationPillProps {
   label: string;
@@ -53,11 +54,12 @@ export default function AdaugaSesizareScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const [locations, setLocations] = useState<any[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [location, setLocation] = useState("Exterior");
+  const [location, setLocation] = useState(t('reports.exterior'));
   const [photos, setPhotos] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ title?: string; description?: string; photos?: string; general?: string }>({});
@@ -90,19 +92,20 @@ export default function AdaugaSesizareScreen() {
 
   const buildingsList = useMemo(() => {
     const list = locations.map(loc => loc.name);
-    return list.length > 0 ? [...Array.from(new Set(list)), "Exterior"] : ["Exterior"];
-  }, [locations]);
+    const exterior = t('reports.exterior');
+    return list.length > 0 ? [...Array.from(new Set(list)), exterior] : [exterior];
+  }, [locations, t]);
 
   const validate = () => {
     const newErrors: { title?: string; description?: string; photos?: string } = {};
     if (!title.trim()) {
-      newErrors.title = "Titlul este obligatoriu.";
+      newErrors.title = t('reports.titleRequired');
     }
     if (!description.trim()) {
-      newErrors.description = "Descrierea este obligatorie.";
+      newErrors.description = t('reports.descRequired');
     }
     if (photos.length === 0) {
-      newErrors.photos = "Este obligatoriu să adăugați o fotografie.";
+      newErrors.photos = t('reports.photoRequired');
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -112,7 +115,7 @@ export default function AdaugaSesizareScreen() {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
-      alert("Permisiunea de acces la fotografii este necesară pentru a adăuga o poză!");
+      alert(t('reports.photoPermission'));
       return;
     }
 
@@ -133,7 +136,7 @@ export default function AdaugaSesizareScreen() {
 
   const handleRemovePhoto = (index: number) => {
     setPhotos([]);
-    setErrors({ ...errors, photos: "Este obligatoriu să adăugați o fotografie." });
+    setErrors({ ...errors, photos: t('reports.photoRequired') });
   };
 
   const handleSubmit = async () => {
@@ -183,7 +186,7 @@ export default function AdaugaSesizareScreen() {
         console.warn('[API] Error creating complaint:', err);
         setErrors(prev => ({ 
           ...prev, 
-          general: err.message || "A apărut o eroare la trimiterea sesizării. Te rugăm să încerci din nou." 
+          general: err.message || t('reports.submitError')
         }));
       } finally {
         setSubmitting(false);
@@ -218,7 +221,7 @@ export default function AdaugaSesizareScreen() {
             >
               <BackIcon width={28} height={28} color={theme.text} />
             </Pressable>
-            <Text style={[Typography.Heading2, { color: theme.text }]}>Sesizare nouă</Text>
+            <Text style={[Typography.Heading2, { color: theme.text }]}>{t('reports.newReport')}</Text>
           </View>
 
           <View style={{ gap: Spacing.lg, paddingHorizontal: Spacing.lg }}>
@@ -229,7 +232,7 @@ export default function AdaugaSesizareScreen() {
             )}
 
             <View style={{ gap: Spacing.xs }}>
-              <Text style={[Typography.Heading5, { color: theme.text }]}>Locație</Text>
+              <Text style={[Typography.Heading5, { color: theme.text }]}>{t('reports.location')}</Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm, marginTop: Spacing.xs }}>
                 {buildingsList.map((bldg) => (
                   <LocationPill
@@ -244,7 +247,7 @@ export default function AdaugaSesizareScreen() {
             </View>
 
             <View style={{ gap: Spacing.xs }}>
-              <Text style={[Typography.Heading5, { color: theme.text }]}>Titlu</Text>
+              <Text style={[Typography.Heading5, { color: theme.text }]}>{t('reports.titleField')}</Text>
               <TextInput
                 value={title}
                 onChangeText={(text) => {
@@ -274,7 +277,7 @@ export default function AdaugaSesizareScreen() {
             </View>
 
             <View style={{ gap: Spacing.xs }}>
-              <Text style={[Typography.Heading5, { color: theme.text }]}>Descriere detaliată</Text>
+              <Text style={[Typography.Heading5, { color: theme.text }]}>{t('reports.descDetailed')}</Text>
               <TextInput
                 value={description}
                 onChangeText={(text) => {
@@ -307,7 +310,7 @@ export default function AdaugaSesizareScreen() {
               )}
             </View>
             <View style={{ gap: Spacing.xs }}>
-              <Text style={[Typography.Heading5, { color: theme.text }]}>Adaugă o fotografie</Text>
+              <Text style={[Typography.Heading5, { color: theme.text }]}>{t('reports.addPhoto')}</Text>
               {photos.length < 1 && (
                 <Pressable
                   onPress={handleAddPhoto}
@@ -329,7 +332,7 @@ export default function AdaugaSesizareScreen() {
                 >
                   <ImagesIcon width={24} height={24} color={theme.textSecondary} />
                   <Text style={{ ...Typography.Small1, color: theme.textSecondary }}>
-                    Adaugă poză
+                    {t('reports.addPhotoBtn')}
                   </Text>
                 </Pressable>
               )}
@@ -400,7 +403,7 @@ export default function AdaugaSesizareScreen() {
               {submitting ? (
                 <ActivityIndicator color="white" />
               ) : (
-                <Text style={[Typography.Heading5, { color: "white" }]}>Trimite sesizarea</Text>
+                <Text style={[Typography.Heading5, { color: "white" }]}>{t('reports.submit')}</Text>
               )}
             </Pressable>
           </View>
