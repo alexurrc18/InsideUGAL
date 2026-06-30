@@ -7,6 +7,7 @@ import Sidebar from "./components/global/Sidebar";
 import Header from "./components/global/PageHeader";
 import { Providers } from "./providers";
 import { canAccessPath, fetchCurrentDashboardRole } from "@/lib/dashboard-auth";
+import { setAuthToken } from "@/lib/api-client";
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -28,15 +29,13 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
     fetchCurrentDashboardRole().then((role) => {
       if (!canAccessPath(pathname, role)) {
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("token_type");
+        setAuthToken(null);
         router.replace("/login");
         return;
       }
       setChecking(false);
     }).catch(() => {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("token_type");
+      setAuthToken(null);
       router.replace("/login");
     });
   }, [pathname, router]);
