@@ -4,16 +4,17 @@ from pathlib import Path
 from urllib.parse import quote
 
 import httpx
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Request, Query, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth_deps import require_roles
+from app.api.auth_deps import require_roles, require_roles_with_token
 from app.api.pagination import PaginationParams, paginated_response
 from app.db.database import get_db
 from app.models import models, schemas
 from app.repositories.announcement_repo import AnnouncementRepository
+from app.rate_limit import limiter, AUTH_RATE_LIMIT
 
 router = APIRouter(prefix="/announcements", tags=["Announcements"])
 repo = AnnouncementRepository()
@@ -22,6 +23,12 @@ manage_announcements = require_roles(
     schemas.UserRole.HEAD_FACULTATI,
     schemas.UserRole.PROFESOR,
     schemas.UserRole.STUDENT_RESPONSABIL,
+)
+manage_announcements_with_token = require_roles_with_token(
+    schemas.UserRole.HEAD_ADMIN,
+    schemas.UserRole.HEAD_FACULTATI,
+    schemas.UserRole.PROFESOR,
+    schemas.UserRole.STUDENT_RESPONSABIL
 )
 
 LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://llm:8000")
@@ -166,13 +173,17 @@ async def create_announcement(
     return await repo.create_for_user(session, announcement_in, user_id=profile.id)
 
 
-@router.post("/upload-image/", dependencies=[Depends(manage_announcements)])
+@router.post("/upload-image/")
+@limiter.limit(AUTH_RATE_LIMIT)
 async def upload_announcement_image(
+    request: Request,
     file: UploadFile = File(...),
+    user_data: tuple[str, str] = Depends(manage_announcements_with_token),
 ):
+    user_id, access_token = user_data
     supabase_url = os.environ.get("SUPABASE_URL")
-    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
-    if not supabase_url or not supabase_key:
+    supabase_anon_key = os.environ.get("SUPABASE_ANON_KEY")
+    if not supabase_url or not supabase_anon_key:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Supabase Storage is not configured.")
 
     safe_filename = Path(file.filename or "upload").name
@@ -183,8 +194,8 @@ async def upload_announcement_image(
     public_url = f"{supabase_url.rstrip('/')}/storage/v1/object/public/images/announcements/{encoded_filename}"
     
     headers = {
-        "apikey": supabase_key,
-        "Authorization": f"Bearer {supabase_key}",
+        "apikey": supabase_anon_key,
+        "Authorization": f"Bearer {access_token}",
         "Content-Type": file.content_type or "application/octet-stream",
     }
 

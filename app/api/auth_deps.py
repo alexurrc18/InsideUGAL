@@ -123,6 +123,69 @@ async def get_current_user(
     return str(user_id)
 
 
+async def get_current_user_with_token(
+    token: str | None = Depends(oauth2_scheme),
+) -> tuple[str, str]:
+    """Returns (user_id, raw_token) tuple for RLS enforcement."""
+    if token is None:
+        raise _unauthorized("Missing authentication token.")
+
+    token_value = token.strip()
+
+    if len(token_value) >= 2 and (
+        (token_value.startswith('"') and token_value.endswith('"'))
+        or (token_value.startswith("'") and token_value.endswith("'"))
+    ):
+        token_value = token_value[1:-1]
+
+    try:
+        payload = verify_supabase_token(token_value)
+    except ExpiredSignatureError as exc:
+        logger.error("JWT expired: %s", exc)
+        raise _unauthorized("Token expired.") from exc
+    except InvalidTokenError as exc:
+        logger.error("Invalid JWT: %s", exc)
+        raise _unauthorized("Invalid or expired authentication token.") from exc
+
+    user_id = payload.get("sub")
+    if not user_id:
+        raise _unauthorized("Invalid token payload.")
+
+    return (str(user_id), token_value)
+
+
+def require_roles_with_token(*roles: UserRole | str):
+    """Returns a dependency that validates both token and profile roles, returning (user_id, token)."""
+    allowed_roles = {
+        role.value if isinstance(role, UserRole) else role
+        for role in roles
+    }
+
+    async def dependency(
+        user_data: tuple[str, str] = Depends(get_current_user_with_token),
+        session: AsyncSession = Depends(get_db),
+    ) -> tuple[str, str]:
+        user_id, token = user_data
+        result = await session.execute(
+            select(Profile).options(joinedload(Profile.faculty)).where(Profile.id == user_id)
+        )
+        profile = result.scalars().first()
+
+        if profile is None or not profile.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Active profile not found.",
+            )
+        if profile.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Nu ai permisiuni suficiente.",
+            )
+        return (user_id, token)
+
+    return dependency
+
+
 async def get_current_profile(
     user_id: str = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),

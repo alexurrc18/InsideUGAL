@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Modal from '../components/ui/Modal';
 import Table, { Column } from '../components/ui/Table';
 import { useRequireDashboardAccess, canAccessContent } from '@/lib/dashboard-auth';
@@ -12,13 +13,28 @@ type Notification = {
   time: string;
 };
 
-export default function NotificariPage() {
+function NotificariContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const access = useRequireDashboardAccess(canAccessContent);
+  
   const [notifications, setNotifications] = useState<Notification[]>([
     { id: '1', title: 'Bun venit!', description: 'Aceasta este prima ta notificare.', time: '10:00' },
   ]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [newNotification, setNewNotification] = useState({ title: '', description: '' });
+
+  // ACEASTA ESTE LOGICA CARE DESCHIDE MODALUL AUTOMAT DATORITĂ PARAMETRULUI DIN URL
+  // 1. Setează valoarea inițială direct din URL
+const [isModalOpen, setIsModalOpen] = useState(() => {
+  return searchParams.get('open') === 'true';
+});
+
+// 2. Păstrează în useEffect DOAR curățarea URL-ului, fără setState!
+useEffect(() => {
+  if (searchParams.get('open') === 'true') {
+    router.replace('/notificari');
+  }
+}, [searchParams, router]);
 
   const handleCreate = () => {
     if (!newNotification.title || !newNotification.description) return;
@@ -45,9 +61,9 @@ export default function NotificariPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Container pentru buton, aliniat la dreapta fără titlu */}
+      
+      {/* Butonul clasic din pagină */}
       <div className="flex justify-end items-center w-full pb-2">
-        {/* Butonul cu stilul exact din documentul de sesizări */}
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
@@ -87,12 +103,21 @@ export default function NotificariPage() {
           <button 
             type="button" 
             onClick={handleCreate} 
-            className="w-full bg-brand text-white p-2 rounded-lg text-sm font-bold hover:opacity-90 transition-all"
+            className="w-full bg-brand text-white p-2 rounded-lg text-sm font-bold hover:opacity-90 transition-all cursor-pointer"
           >
             Trimite
           </button>
         </div>
       </Modal>
     </div>
+  );
+}
+
+// Next.js cere ca orice pagină care folosește searchParams să fie învelită într-un Suspense component
+export default function NotificariPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-muted animate-pulse">Se încarcă...</div>}>
+      <NotificariContent />
+    </Suspense>
   );
 }

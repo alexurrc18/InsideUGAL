@@ -22,19 +22,27 @@ from chatbot_shared import (
 # ── Instanțe partajate ────────────────────────────────────────────────────────
 
 _client = genai.Client(api_key=os.getenv("GEMINI_API_KEY", ""))
-_rag = RAGEngine()
+_rag: RAGEngine | None = None
+
+
+def configure(rag: RAGEngine) -> None:
+    """Injectează instanța RAG partajată din combined_app pentru a evita duplicate."""
+    global _rag
+    _rag = rag
 
 
 # ── Context builder ───────────────────────────────────────────────────────────
 
 def _build_context(question: str) -> tuple[str, str, list[str]]:
     """Returnează (context_pentru_llm, fallback_direct, sources)."""
-    # Un singur pass Supabase — RAG doar dacă nu există intent recunoscut
     full_ctx, focused = backend_client.fetch_context_combined(question)
     if focused:
         return full_ctx, focused, []
 
-    raw_context, sources = _rag.query_with_sources(question, n_results=3)
+    if _rag is not None:
+        raw_context, sources = _rag.query_with_sources(question, n_results=3)
+    else:
+        raw_context, sources = "", []
     ctx = raw_context or "Nu am găsit informații specifice. Îndrumă utilizatorul spre https://www.ugal.ro/"
     return ctx, raw_context, sources
 

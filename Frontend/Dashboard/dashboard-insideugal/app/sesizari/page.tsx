@@ -127,10 +127,13 @@ export default function SesizariPage() {
           cache: "no-store",
         }),
         fetch(`${apiBaseUrl}/locations/?size=50`, { cache: "no-store" }),
-        fetch(`${apiBaseUrl}/users/?size=50`, {
-          headers: getAuthHeaders(),
-          cache: "no-store",
-        }).catch(() => null),
+        fetch(`${apiBaseUrl}/profiles/?size=50`, {
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  }).catch((err) => {
+    console.error("Eroare critică la încărcarea utilizatorilor:", err);
+    return null;
+  }),
       ]);
 
       if (!complaintsResponse.ok) throw new Error(`Complaints status ${complaintsResponse.status}`);

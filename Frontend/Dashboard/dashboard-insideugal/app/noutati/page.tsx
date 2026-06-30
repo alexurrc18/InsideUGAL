@@ -118,24 +118,29 @@ function AnnouncementsContent() {
   }, [backendData]);
 
   useEffect(() => {
-    let timerId: NodeJS.Timeout;
+  let timerId: NodeJS.Timeout;
 
-    if (searchParams.get("open") === "true") {
-      timerId = setTimeout(() => {
-        setFormState({ faculties: [], pdfFiles: [], type: 'NOUTATE', locationName: '', startDate: '', endDate: '' });
-        setActiveModal('add');
-      }, 0);
-    }
+  if (searchParams.get("open") === "true") {
+    const urlType = searchParams.get("type"); // Citim tipul din URL
+    const defaultType = (urlType === 'EVENIMENT' || urlType === 'NOUTATE') ? urlType : 'NOUTATE';
 
-    return () => {
-      if (timerId) clearTimeout(timerId);
-    };
-  }, [searchParams]);
+    timerId = setTimeout(() => {
+      setFormState({ 
+        faculties: [], 
+        pdfFiles: [], 
+        type: defaultType, // Îl setăm ca preselectat în formular
+        locationName: '', 
+        startDate: '', 
+        endDate: '' 
+      });
+      setActiveModal('add');
+    }, 0);
+  }
 
-  const allFilterOptions = useMemo(() => {
-    return ['Toate', ...availableFacultiesFromSystem];
-  }, []);
-
+  return () => {
+    if (timerId) clearTimeout(timerId);
+  };
+}, [searchParams]);
   const filteredData = useMemo(() => {
     let result = data;
     
@@ -432,7 +437,7 @@ function AnnouncementsContent() {
 
             {isFacultyDropdownOpen && (
               <div className="absolute left-14 top-full mt-1.5 w-48 bg-card border border-border rounded-xl shadow-lg py-1 z-50">
-                {allFilterOptions.map(faculty => (
+                {['Toate', ...availableFacultiesFromSystem].map(faculty => (
                   <div
                     key={faculty}
                     onClick={() => { setSelectedFaculty(faculty); setIsFacultyDropdownOpen(false); }}
