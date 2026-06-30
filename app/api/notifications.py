@@ -19,7 +19,6 @@ from app.repositories.notification_repo import NotificationRepository
 logger = logging.getLogger(__name__)
 
 PUSH_SERVICE_URL = os.getenv("PUSH_SERVICE_URL")
-
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 repo = NotificationRepository()
 send_notifications = require_roles(
@@ -42,11 +41,11 @@ async def _send_push(token: str, title: str, body: str, action: str | None) -> N
     if not PUSH_SERVICE_URL:
         logger.warning("PUSH_SERVICE_URL not configured; skipping push notification.")
         raise RuntimeError("Push notification service is not configured.")
-
+        
     payload = {"token": token, "title": title, "body": body}
     if action:
         payload["action"] = action
-
+        
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(PUSH_SERVICE_URL, json=payload)
@@ -87,6 +86,8 @@ async def send_notification(
 
     sent_count = 0
     invalid_token_ids: List[int] = []
+    
+    # Trimite push notification către toți utilizatorii vizați
     for p in target_profiles:
         for token in p.push_tokens:
             if not token.is_valid:
@@ -109,9 +110,12 @@ async def send_notification(
         db, payload, user_id=str(profile.id), recipient_count=sent_count
     )
     await db.refresh(notification, attribute_names=["sent_by_profile", "faculty"])
+    
+    # Trimite prin WebSocket către toți utilizatorii vizați
     websocket_payload = _notification_payload(notification)
     for target_profile in target_profiles:
         await notification_manager.send_notification_to_user(str(target_profile.id), websocket_payload)
+        
     return notification
 
 

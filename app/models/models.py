@@ -134,7 +134,6 @@ class Location(Base, TimestampMixin):
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False)
     coordinates = Column(Geometry(geometry_type="POINT", srid=4326))
-    faculty_id = Column(Integer, ForeignKey("public.faculties.id", ondelete="SET NULL"), nullable=True)
     facility_id = Column(Integer, ForeignKey("public.facilities.id", ondelete="SET NULL"))
     marker = Column(String(10))
 
