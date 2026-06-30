@@ -112,13 +112,24 @@ export default function Page() {
       const res = await fetch(`${apiBaseUrl}/product_categories/`);
       if (res.ok) {
         const data = await res.json();
-        if (data.items) {
+        if (data.items && data.items.length > 0) {
           setCategories(data.items);
+          return;
         }
       }
     } catch (err) {
       console.error("Eroare la categorii:", err);
     }
+    // Fallback dacă tabela din baza de date este goală sau apelul eșuează
+    setCategories([
+      { id: 1, name: "Meniul Zilei" },
+      { id: 2, name: "Supe/Ciorbe" },
+      { id: 3, name: "Fel Principal" },
+      { id: 4, name: "Garnituri" },
+      { id: 5, name: "Salate" },
+      { id: 6, name: "Desert" },
+      { id: 7, name: "Băuturi" }
+    ]);
   }, []);
 
   useEffect(() => {
@@ -168,7 +179,7 @@ export default function Page() {
   }, [apiData, menusData]);
 
   const categoryFilters = useMemo(() => {
-    return ["Toate categoriile", ...categories.map(c => c.name)];
+    return ["Toate categoriile", ...categories.map(c => c.name).filter(name => name !== "Meniul Zilei")];
   }, [categories]);
 
   const filteredData = useMemo(() => {
