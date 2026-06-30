@@ -105,9 +105,9 @@ function NotificariContent() {
 
   useEffect(() => {
     if (access.loading || !access.allowed) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadNotifications(page);
   }, [access.loading, access.allowed, page, loadNotifications]);
-
   const handleCreate = async () => {
     if (!newNotification.title || !newNotification.body) return;
 
