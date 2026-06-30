@@ -115,17 +115,14 @@ function NotificariContent() {
     setSubmitError(null);
     try {
       const res = await fetch(`${apiBaseUrl}/notifications/send`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          ...getAuthHeaders(),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: newNotification.title,
-          body: newNotification.body,
-        }),
-      });
+  method: 'POST',
+  credentials: 'include',
+  headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+  body: JSON.stringify({
+    title: newNotification.title,
+    body: newNotification.body,
+  }),
+});
 
       if (!res.ok) {
         throw new Error(`Eroare ${res.status} la trimiterea notificării.`);
