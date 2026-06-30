@@ -31,7 +31,20 @@ export default function MoreScreen() {
   const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
-    api.get('/city-guide/categories').then(res => setCategories(res.data)).catch(() => {});
+    api.get('/city-guide/categories')
+      .then(res => {
+        const data = res.data;
+        if (data && Array.isArray(data)) {
+          setCategories(data);
+        } else if (data && Array.isArray(data.items)) {
+          setCategories(data.items);
+        } else {
+          setCategories([]);
+        }
+      })
+      .catch(() => {
+        setCategories([]);
+      });
   }, []);
 
   const renderIcon = (iconName: string, color: string) => {
@@ -39,10 +52,13 @@ export default function MoreScreen() {
       case "bus":
         return <BusIcon width={44} height={44} color={color} />;
       case "dino":
+      case "museum":
         return <DinoIcon width={44} height={44} color={color} />;
       case "film-roll-alt":
+      case "theater":
         return <FilmIcon width={44} height={44} color={color} />;
       case "tree-alt":
+      case "park":
         return <TreeIcon width={44} height={44} color={color} />;
       case "phone":
         return <PhoneIcon width={44} height={44} color={color} />;
@@ -216,7 +232,7 @@ export default function MoreScreen() {
                     marginBottom: 2
                   }}
                 >
-                  {renderIcon(cat.iconName, theme.secondary)}
+                  {renderIcon(cat.icon_name || cat.iconName || "", theme.secondary)}
                 </View>
 
                 <Text 

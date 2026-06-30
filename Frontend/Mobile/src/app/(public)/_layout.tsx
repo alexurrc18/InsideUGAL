@@ -4,7 +4,7 @@ import React from 'react';
 import { View } from "react-native";
 import { Colors } from '@/constants/theme';
 import { useNavigation } from 'expo-router';
-// import { Ace } from '@/components/ui/layout/ace';
+import { Ace } from '@/components/ui/layout/ace';
 import { Typography } from '@/constants/typography';
 
 export default function TabLayout() {
@@ -29,7 +29,14 @@ export default function TabLayout() {
                     tabPress: (e) => {
                         const state = navigation.getState();
                         if (state) {
+                            const current = state.routes[state.index];
                             const route = state.routes.find((r: any) => r.key === e.target);
+                            if (current?.name === 'acasa' && route?.name !== 'acasa') {
+                                navigation.navigate('acasa', { screen: 'index' });
+                            }
+                            if (current?.name === 'sesizari' && route?.name !== 'sesizari') {
+                                navigation.navigate('sesizari', { screen: 'index' });
+                            }
                             if (route) {
                                 navigation.navigate(route.name, { screen: 'index' });
                             }
@@ -92,7 +99,7 @@ export default function TabLayout() {
                     <NativeTabs.Trigger.Label>Mai multe</NativeTabs.Trigger.Label>
                 </NativeTabs.Trigger>
             </NativeTabs>
-            {/* <Ace /> */}
+            <Ace />
         </View>
     );
 }

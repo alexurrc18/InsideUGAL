@@ -140,6 +140,16 @@ const api = axios.create({
   },
 });
 
+export const ace = axios.create({
+  baseURL: `${Config.LLM_BASE_URL}/api/v1/campus-chat/stream`,
+  timeout: 0,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+  transformResponse: [(data) => data]
+});
+
 /**
  * Sets the auth token both in memory and persists it to AsyncStorage / localStorage.
  * Call this with the access token after a successful login or refresh, or with null on logout.
@@ -289,28 +299,26 @@ function setAuthorizationHeader(config: InternalAxiosRequestConfig, token: strin
 }
 
 // Request Interceptor: Attach bearer token to outgoing requests, proactively refreshing if needed
-api.interceptors.request.use(
-  async (config: InternalAxiosRequestConfig) => {
-    // Don't inject tokens or trigger refresh for auth endpoints
-    const url = config.url ?? '';
-    if (
-      url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/logout') ||
-      url.includes('/login') || url.includes('/refresh') || url.includes('/logout')
-    ) {
-      return config;
-    }
-
-    const refreshed = await proactiveRefreshIfNeeded();
-    const token = refreshed ?? await getAuthToken();
-    if (token) {
-      setAuthorizationHeader(config, token);
-    }
+const requestInterceptor = async (config: InternalAxiosRequestConfig) => {
+  // Don't inject tokens or trigger refresh for auth endpoints
+  const url = config.url ?? '';
+  if (
+    url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/logout') ||
+    url.includes('/login') || url.includes('/refresh') || url.includes('/logout')
+  ) {
     return config;
-  },
-  (error) => {
-    return Promise.reject(error);
   }
-);
+
+  const refreshed = await proactiveRefreshIfNeeded();
+  const token = refreshed ?? await getAuthToken();
+  if (token) {
+    setAuthorizationHeader(config, token);
+  }
+  return config;
+};
+
+api.interceptors.request.use(requestInterceptor, (error) => Promise.reject(error));
+ace.interceptors.request.use(requestInterceptor, (error) => Promise.reject(error));
 
 function cleanErrorMessage(detail: string | undefined, defaultMsg: string, status?: number): string {
   if (!detail) {

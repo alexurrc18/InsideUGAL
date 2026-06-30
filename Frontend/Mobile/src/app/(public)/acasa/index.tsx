@@ -1,10 +1,11 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, ScrollView, RefreshControl, Platform, Pressable, Alert, StyleSheet } from "react-native";
 import Animated, { useSharedValue, withTiming, useAnimatedStyle, useAnimatedProps, interpolateColor } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import { MOCK_NOTIFICARI } from "./notificari";
 
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
@@ -44,6 +45,28 @@ export default function HomeScreen() {
   const headerBgColor = themeName === "light" ? ColorScheme.pureBlack : ColorScheme.pureWhite;
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      storage.getItem('read_notification_ids').then((val) => {
+        let readSet = new Set<string>();
+        if (val) {
+          try {
+            const ids = JSON.parse(val);
+            if (Array.isArray(ids)) {
+              readSet = new Set(ids);
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        const count = MOCK_NOTIFICARI.filter(n => !readSet.has(n.id)).length;
+        setUnreadCount(count);
+      });
+    }, [])
+  );
 
   const [noutati, setNoutati] = useState<any[]>([]);
   const [evenimente, setEvenimente] = useState<any[]>([]);
@@ -101,7 +124,7 @@ export default function HomeScreen() {
               title: item.title || "Titlu necunoscut",
               category: "Noutăți",
               date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
-              author: item.author || "Autor necunoscut",
+              author: item.author_name || "",
               image: item.image_url || undefined,
               content: item.content || "Conținut necunoscut",
               created_at: item.created_at,
@@ -118,7 +141,7 @@ export default function HomeScreen() {
               date_end: isoToRomanianDateStr(item.end_date) || "",
               time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
               time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-              author: item.author || "Autor necunoscut",
+              author: item.author_name || "",
               image: item.image_url || undefined,
               content: item.content || "Conținut necunoscut",
               location: item.location_name || "Locație necunoscută",
@@ -131,9 +154,28 @@ export default function HomeScreen() {
       } catch (err) {
         console.error("[API] Could not load announcements:", err);
         success = false;
-        if (noutati.length === 0 && evenimente.length === 0) {
-          setHasError(true);
-        }
+        try {
+          const cached = await storage.getItem('cached_announcements');
+          if (cached) {
+            const apiItems = JSON.parse(cached);
+            setNoutati(apiItems.filter((i: any) => i.type === "NOUTATE").map((i: any) => ({
+              id: i.id.toString(), title: i.title || "Titlu necunoscut", category: "Noutăți",
+              date: isoToRomanianDateStr(i.created_at) || "Dată necunoscută", author: i.author_name || "",
+              image: i.image_url || undefined, content: i.content || "Conținut necunoscut", created_at: i.created_at,
+            })));
+            setEvenimente(apiItems.filter((i: any) => i.type === "EVENIMENT").map((i: any) => ({
+              id: i.id.toString(), title: i.title || "Titlu necunoscut", category: "Evenimente",
+              date: isoToRomanianDateStr(i.created_at) || "Dată necunoscută",
+              date_start: isoToRomanianDateStr(i.start_date) || "", date_end: isoToRomanianDateStr(i.end_date) || "",
+              time_start: i.start_date ? new Date(i.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
+              time_end: i.end_date ? new Date(i.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
+              author: i.author_name || "", image: i.image_url || undefined,
+              content: i.content || "Conținut necunoscut", location: i.location_name || "Locație necunoscută", created_at: i.created_at,
+            })));
+          } else if (noutati.length === 0 && evenimente.length === 0) {
+            setHasError(true);
+          }
+        } catch { if (noutati.length === 0 && evenimente.length === 0) setHasError(true); }
       }
 
       try {
@@ -161,13 +203,23 @@ export default function HomeScreen() {
       } catch (err) {
         console.error("[API] Could not load faculties:", err);
         success = false;
-        if (facultati.length === 0) {
-          setHasError(true);
-        }
+        try {
+          const cached = await storage.getItem('cached_faculties');
+          if (cached) {
+            const apiItems = JSON.parse(cached);
+            setFacultati(apiItems.map((i: any) => ({
+              id: i.id.toString(), title: i.name || "Titlu necunoscut", image: i.logo_url || undefined,
+              address: i.address || "Adresă necunoscută", phone: i.phone || "",
+              website: i.website_url || "", content: i.description || "Conținut necunoscut",
+            })));
+          } else if (facultati.length === 0) {
+            setHasError(true);
+          }
+        } catch { if (facultati.length === 0) setHasError(true); }
       }
 
       try {
-        const response = await api.get("/locations/", {
+        const response = await api.get("/facilities/", {
           params: {
             page: 1,
             size: 50
@@ -175,26 +227,32 @@ export default function HomeScreen() {
         });
         if (response.data && response.data.items) {
           const apiItems = response.data.items;
-          await storage.setItem('cached_facilities', JSON.stringify(apiItems));
+          await storage.setItem('cached_ugal_facilities', JSON.stringify(apiItems));
 
           const apiFacilities = apiItems.map((item: any) => ({
             id: item.id.toString(),
             title: item.name || "Titlu necunoscut",
             image: item.image_url || undefined,
-            address: item.address || "Adresă necunoscută",
-            phone: item.phone || "",
-            website: item.website_url || "",
-            content: item.name || "Conținut necunoscut",
-            schedule: item.schedule || "",
+            content: item.description || "",
+            schedules: item.schedules || [],
           }));
           setFacilitati(apiFacilities);
         }
       } catch (err) {
-        console.error("[API] Could not load facilities/locations:", err);
+        console.error("[API] Could not load facilities:", err);
         success = false;
-        if (facilitati.length === 0) {
-          setHasError(true);
-        }
+        try {
+          const cached = await storage.getItem('cached_ugal_facilities');
+          if (cached) {
+            const apiItems = JSON.parse(cached);
+            setFacilitati(apiItems.map((i: any) => ({
+              id: i.id.toString(), title: i.name || "Titlu necunoscut",
+              image: i.image_url || undefined, content: i.description || "", schedules: i.schedules || [],
+            })));
+          } else if (facilitati.length === 0) {
+            setHasError(true);
+          }
+        } catch { if (facilitati.length === 0) setHasError(true); }
       }
       setLoading(false);
       return success;
@@ -221,102 +279,8 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    const loadCache = async () => {
-      try {
-        const cachedAnnouncements = await storage.getItem('cached_announcements');
-        const cachedFaculties = await storage.getItem('cached_faculties');
-        const cachedFacilities = await storage.getItem('cached_facilities');
-
-        let hasData = false;
-
-        if (cachedAnnouncements) {
-          const apiItems = JSON.parse(cachedAnnouncements);
-          if (Array.isArray(apiItems) && apiItems.length > 0) {
-            const apiNoutati = apiItems
-              .filter((item: any) => item.type === "NOUTATE")
-              .map((item: any) => ({
-                id: item.id.toString(),
-                title: item.title || "Titlu necunoscut",
-                category: "Noutăți",
-                date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
-                author: item.author || "Autor necunoscut",
-                image: item.image_url || undefined,
-                content: item.content || "Conținut necunoscut",
-                created_at: item.created_at,
-              }));
-
-            const apiEvenimente = apiItems
-              .filter((item: any) => item.type === "EVENIMENT")
-              .map((item: any) => ({
-                id: item.id.toString(),
-                title: item.title || "Titlu necunoscut",
-                category: "Evenimente",
-                date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
-                date_start: isoToRomanianDateStr(item.start_date) || "",
-                date_end: isoToRomanianDateStr(item.end_date) || "",
-                time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-                time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-                author: item.author || "Autor necunoscut",
-                image: item.image_url || undefined,
-                content: item.content || "Conținut necunoscut",
-                location: item.location_name || "Locație necunoscută",
-                created_at: item.created_at,
-              }));
-
-            setNoutati(apiNoutati);
-            setEvenimente(apiEvenimente);
-            hasData = true;
-          }
-        }
-
-        if (cachedFaculties) {
-          const apiItems = JSON.parse(cachedFaculties);
-          if (Array.isArray(apiItems) && apiItems.length > 0) {
-            const apiFaculties = apiItems.map((item: any) => ({
-              id: item.id.toString(),
-              title: item.name || "Titlu necunoscut",
-              image: item.image_url || undefined,
-              address: item.address || "Adresă necunoscută",
-              phone: item.phone || "",
-              website: item.website_url || "",
-              content: item.description || "Conținut necunoscut",
-            }));
-            setFacultati(apiFaculties);
-            hasData = true;
-          }
-        }
-
-        if (cachedFacilities) {
-          const apiItems = JSON.parse(cachedFacilities);
-          if (Array.isArray(apiItems) && apiItems.length > 0) {
-            const apiFacilities = apiItems.map((item: any) => ({
-              id: item.id.toString(),
-              title: item.name || "Titlu necunoscut",
-              image: item.image_url || undefined,
-              address: item.address || "Adresă necunoscută",
-              phone: item.phone || "",
-              website: item.website_url || "",
-              content: item.name || "Conținut necunoscut",
-              schedule: item.schedule || "",
-            }));
-            setFacilitati(apiFacilities);
-            hasData = true;
-          }
-        }
-
-        if (hasData) {
-          setLoading(false);
-        }
-      } catch (e) {
-        console.warn("[Cache] Could not load cached items:", e);
-      }
-    };
-
-    const run = async () => {
-      await loadCache();
-      fetchApiData();
-    };
-    run();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchApiData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -437,6 +401,26 @@ export default function HomeScreen() {
             <InteractiveGlass size={45} style={{ shadowColor: theme.text, shadowOpacity: 0.2, shadowRadius: 5 }}>
               <AnimatedBell width={25} height={25} animatedProps={bellAnimatedProps} />
             </InteractiveGlass>
+            {unreadCount > 0 && (
+              <View
+                style={{
+                  position: "absolute",
+                  top: -4,
+                  right: -4,
+                  minWidth: 20,
+                  height: 20,
+                  borderRadius: 10,
+                  backgroundColor: theme.secondary,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingHorizontal: 3,
+                }}
+              >
+                <Text style={{ color: ColorScheme.white, fontSize: 11, fontFamily: "InstrumentSans-SemiBold", lineHeight: 13 }}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </Text>
+              </View>
+            )}
           </Pressable>
         ) : (
           <Pressable
@@ -454,6 +438,28 @@ export default function HomeScreen() {
             ]}
           >
             <AnimatedBell width={26} height={26} color="#FFFFFF" />
+            {unreadCount > 0 && (
+              <View
+                style={{
+                  position: "absolute",
+                  top: -4,
+                  right: -4,
+                  minWidth: 20,
+                  height: 20,
+                  borderRadius: 10,
+                  backgroundColor: theme.secondary,
+                  borderWidth: 1.5,
+                  borderColor: theme.primary,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingHorizontal: 2,
+                }}
+              >
+                <Text style={{ color: ColorScheme.white, fontSize: 11, fontFamily: "InstrumentSans-SemiBold", lineHeight: 13 }}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </Text>
+              </View>
+            )}
           </Pressable>
         )}
       </Animated.View>

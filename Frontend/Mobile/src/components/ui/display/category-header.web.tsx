@@ -39,6 +39,24 @@ export function CategoryHeader({
 }: CategoryHeaderProps) {
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
     const theme = Colors[themeName];
+    const scrollViewRef = React.useRef<any>(null);
+
+    React.useEffect(() => {
+        const el = scrollViewRef.current?.getScrollableNode?.() || scrollViewRef.current;
+        if (!el) return;
+
+        const handleWheel = (e: WheelEvent) => {
+            if (e.deltaY !== 0) {
+                e.preventDefault();
+                el.scrollLeft += e.deltaY;
+            }
+        };
+
+        el.addEventListener("wheel", handleWheel, { passive: false });
+        return () => {
+            el.removeEventListener("wheel", handleWheel);
+        };
+    }, []);
 
     return (
         <View style={{ gap: Spacing.xs, marginBottom: Spacing.sm }}>
@@ -55,6 +73,7 @@ export function CategoryHeader({
 
             {filters && filters.length > 0 && onSelectFilter && (
                 <ScrollView
+                    ref={scrollViewRef}
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={{ paddingHorizontal: Spacing.lg, gap: Spacing.xl, alignItems: "center" }}

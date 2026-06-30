@@ -1,4 +1,4 @@
-import os
+﻿import os
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -22,6 +22,17 @@ class GenerateBannerRequest(BaseModel):
     title: str
     description: str
     faculty: str | None = None
+
+
+class TranslateAnnouncementRequest(BaseModel):
+    title: str
+    content: str
+    target_lang: str = Field(..., min_length=2, max_length=10)
+
+
+class TranslateAnnouncementResponse(BaseModel):
+    translated_title: str
+    translated_content: str
 
 
 @router.post("/ask")
@@ -96,6 +107,41 @@ async def ask_chatbot(
         ) from exc
 
 
+@router.post("/translate-announcement", response_model=TranslateAnnouncementResponse)
+@limiter.limit(LLM_RATE_LIMIT)
+async def translate_announcement(
+    payload: TranslateAnnouncementRequest,
+    request: Request,
+):
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            llm_resp = await client.post(
+                f"{LLM_SERVICE_URL}/api/v1/translate-announcement",
+                json={
+                    "title": payload.title,
+                    "content": payload.content,
+                    "target_lang": payload.target_lang,
+                },
+            )
+            llm_resp.raise_for_status()
+            return TranslateAnnouncementResponse(**llm_resp.json())
+    except httpx.TimeoutException:
+        raise HTTPException(
+            status_code=503,
+            detail="Serviciul de traducere a depășit timpul de răspuns.",
+        )
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Traducere eșuată: {exc.response.text if exc.response else str(exc)}",
+        )
+    except httpx.RequestError:
+        raise HTTPException(
+            status_code=503,
+            detail="Serviciul de traducere nu este disponibil.",
+        )
+
+
 @router.post("/generate-banner")
 @limiter.limit(LLM_RATE_LIMIT)
 async def generate_banner(
@@ -103,10 +149,6 @@ async def generate_banner(
     request: Request,
     current_profile: Profile = Depends(get_current_profile),
 ):
-    """
-    Proxy catre smart-news-parser: construieste un ExtractedAnnouncementInfo
-    minimal din titlu + descriere + facultate si cere generarea unui banner AI.
-    """
     extracted_info = {
         "materie_sau_subiect": payload.title,
         "entitate_sursa": payload.faculty,

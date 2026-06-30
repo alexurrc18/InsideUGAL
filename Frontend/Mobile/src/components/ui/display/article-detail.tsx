@@ -49,6 +49,7 @@ export interface ArticleDetailProps {
     phone?: string;
     website?: string;
     date?: string;
+    author?: string;
 }
 
 export function ArticleDetail({
@@ -67,6 +68,7 @@ export function ArticleDetail({
     phone = "",
     website = "",
     date = "",
+    author = "",
 }: ArticleDetailProps) {
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
     const theme = Colors[themeName];
@@ -125,7 +127,7 @@ export function ArticleDetail({
             time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
             posted_at: isoToRomanianDateStr(item.created_at) || "",
             date: isoToRomanianDateStr(item.start_date) || "Dată necunoscută",
-            author: item.author || "Autor necunoscut",
+            author: item.author_name || "",
             created_at: item.created_at,
             updated_at: item.updated_at,
         }));
@@ -255,7 +257,7 @@ export function ArticleDetail({
                         <View style={{ flex: 1, gap: Spacing.xxl, width: "100%" }}>
                             {tipPagina !== "Facultate" && (
                                 <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>
-                                    {dateDisplay || "Dată necunoscută"}
+                                    {[dateDisplay, author].filter(Boolean).join("  ·  ") || "Dată necunoscută"}
                                 </Text>
                             )}
 

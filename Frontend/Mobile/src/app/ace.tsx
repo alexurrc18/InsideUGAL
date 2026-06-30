@@ -22,7 +22,7 @@ import { InteractiveGlass } from '@/components/ui/layout/interactive-glass';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { NewsCard } from '@/components/ui/display/news-card';
-import api from '@/services/api';
+import { ace } from '@/services/api';
 
 import CloseIcon from '@/assets/icons/svg/x.svg';
 import MessagePlusIcon from '@/assets/icons/svg/message-plus.svg';
@@ -318,6 +318,11 @@ export default function AceScreen() {
   const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const flatListRef = useRef<FlatList>(null);
+  const animIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => { if (animIntervalRef.current) clearInterval(animIntervalRef.current); };
+  }, []);
 
   const scaleClearAnim = useSharedValue(1);
   const scaleClearStyle = useAnimatedStyle(() => ({ transform: [{ scale: scaleClearAnim.value }] }));
@@ -371,44 +376,72 @@ export default function AceScreen() {
     }, 100);
   };
 
-  const handleSend = async (textToSend: string) => {
+  const handleSend = (textToSend: string) => {
     if (!textToSend.trim()) return;
 
-    const userMsg: ChatMessage = {
-      id: generateMsgId(),
-      text: textToSend,
-      sender: 'user',
-      timestamp: new Date(),
-    };
+    if (animIntervalRef.current) {
+      clearInterval(animIntervalRef.current);
+      animIntervalRef.current = null;
+    }
 
-    setMessages((prev) => [...prev, userMsg]);
+    const history = messages
+      .filter(m => m.text)
+      .map(m => ({ role: m.sender === 'user' ? 'user' as const : 'assistant' as const, content: m.text }));
+
+    const userMsg: ChatMessage = { id: generateMsgId(), text: textToSend, sender: 'user', timestamp: new Date() };
+    setMessages(prev => [...prev, userMsg]);
     setIsTyping(true);
     scrollToBottom();
 
-    try {
-      const res = await api.post('/ace/chat', { message: textToSend });
-      const data = res.data;
-      const aiMsg: ChatMessage = {
-        id: generateMsgId(),
-        text: data.text || data.message || '',
-        imageUrl: data.image_url || undefined,
-        event: data.event || undefined,
-        sender: 'ai',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiMsg]);
-    } catch {
-      const errorMsg: ChatMessage = {
-        id: generateMsgId(),
-        text: 'A apărut o eroare. Vă rugăm să încercați din nou.',
-        sender: 'ai',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMsg]);
-    } finally {
-      setIsTyping(false);
-      scrollToBottom();
-    }
+    ace.post('', { question: textToSend, history })
+      .then(res => {
+        const raw: string = typeof res.data === 'string' ? res.data : '';
+        const tokens: string[] = [];
+
+        for (const line of raw.split('\n')) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith('data:')) continue;
+          const payload = trimmed.slice(5).trim();
+          if (!payload || payload === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(payload);
+            if (parsed.error) {
+              setIsTyping(false);
+              setMessages(prev => [...prev, { id: generateMsgId(), text: typeof parsed.error === 'string' ? parsed.error : 'Eroare la asistent.', sender: 'ai', timestamp: new Date() }]);
+              return;
+            }
+            const tok = parsed.token ?? parsed.content ?? '';
+            if (tok) tokens.push(tok);
+          } catch {}
+        }
+
+        if (tokens.length === 0) {
+          setIsTyping(false);
+          setMessages(prev => [...prev, { id: generateMsgId(), text: 'Nu am primit un răspuns valid.', sender: 'ai', timestamp: new Date() }]);
+          return;
+        }
+
+        const aiMsgId = generateMsgId();
+        setIsTyping(false);
+        setMessages(prev => [...prev, { id: aiMsgId, text: '', sender: 'ai', timestamp: new Date() }]);
+
+        let i = 0;
+        animIntervalRef.current = setInterval(() => {
+          if (i >= tokens.length) {
+            clearInterval(animIntervalRef.current!);
+            animIntervalRef.current = null;
+            return;
+          }
+          const chunk = tokens[i++];
+          setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: m.text + chunk } : m));
+          scrollToBottom();
+        }, 20);
+      })
+      .catch(() => {
+        setIsTyping(false);
+        setMessages(prev => [...prev, { id: generateMsgId(), text: 'A apărut o eroare. Vă rugăm să încercați din nou.', sender: 'ai', timestamp: new Date() }]);
+        scrollToBottom();
+      });
   };
 
   const handleClearChat = () => {
@@ -547,6 +580,9 @@ export default function AceScreen() {
               />
               <Text style={{ ...Typography.Heading3, color: theme.text, textAlign: 'center' }}>
                 Cu ce te pot ajuta azi?
+              </Text>
+              <Text style={{ ...Typography.Paragraph2, color: theme.textSecondary, textAlign: 'center', marginTop: Spacing.xs }}>
+                Întreabă-mă despre evenimente, cantină, hartă sau sesizări.
               </Text>
             </Animated.View>
           ) : null}

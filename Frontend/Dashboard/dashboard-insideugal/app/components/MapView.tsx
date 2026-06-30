@@ -8,6 +8,7 @@ import { MapPin } from "./MapPin";
 interface Cladire {
   id: number;
   denumire: string;
+  marker?: string | null;
   adresa: string;
   lat: string;
   lng: string;
@@ -37,7 +38,7 @@ export default function MapView({ cladiri }: { cladiri: Cladire[] }) {
             latitude={parseFloat(c.lat)}
             onClick={() => setSelected(c)}
           >
-            <MapPin name={c.denumire} facultyId={c.facultate} />
+            <MapPin name={c.denumire} marker={c.marker} isFacility={c.facultate === "f8"} />
           </Marker>
         )
       ))}
@@ -47,7 +48,7 @@ export default function MapView({ cladiri }: { cladiri: Cladire[] }) {
           latitude={parseFloat(selected.lat)}
           onClose={() => setSelected(null)}
         >
-          <div><strong>{selected.denumire}</strong><p>{selected.adresa}</p></div>
+          <div><strong>{selected.denumire}</strong></div>
         </Popup>
       )}
     </Map>

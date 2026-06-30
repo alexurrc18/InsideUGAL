@@ -89,8 +89,9 @@ async def upload_complaint_image(
     encoded_filename = quote(unique_filename)
     
     # MODIFICARE AICI: Am adăugat bucket-ul corect "images"
-    upload_url = f"{supabase_url.rstrip('/')}/storage/v1/object/images/complaints/{encoded_filename}"
-    public_url = f"{supabase_url.rstrip('/')}/storage/v1/object/public/images/complaints/{encoded_filename}"
+   # Înlocuiește liniile vechi cu acestea două:
+    upload_url = f"{supabase_url.rstrip('/')}/storage/v1/object/complaints_images/{encoded_filename}"
+    public_url = f"{supabase_url.rstrip('/')}/storage/v1/object/public/complaints_images/{encoded_filename}"
     
     headers = {
         "apikey": supabase_key,

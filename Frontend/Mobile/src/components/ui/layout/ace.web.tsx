@@ -6,6 +6,8 @@
 // click, deschide un panou de chat ancorat in colt. Panoul e montat in
 // `_layout.web.tsx`, deci ramane montat la navigarea intre paginile (public) =>
 // conversatia persista ("sticky").
+//
+// Raspunsurile vin in streaming (token cu token) de la backend prin `@/services/ace-stream`.
 import { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -24,26 +26,30 @@ import { useTheme } from '@/hooks/use-theme';
 import { Spacing, ColorScheme } from '@/constants/theme';
 import { Typography } from '@/constants/typography';
 import { NewsCard } from '@/components/ui/display/news-card';
-import api from '@/services/api';
+import { streamAce } from '@/services/ace-stream';
+
+import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 
 import CloseIcon from '@/assets/icons/svg/x.svg';
 import MessagePlusIcon from '@/assets/icons/svg/message-plus.svg';
 import SendIcon from '@/assets/icons/svg/send.svg';
 import SparkleIcon from '@/assets/icons/svg/message-circle-star.svg';
 
+// Tipul unui mesaj din chat + generator de id. Definite local: widget-ul nu mai
+// depinde de `ace-responses` (modul eliminat din proiect).
 interface ChatMessage {
   id: string;
   text: string;
+  sender: 'user' | 'ai';
+  timestamp: Date;
   imageUrl?: string;
   event?: {
     title: string;
     date: string;
     location: string;
-    link?: string;
     description?: string;
+    link?: string;
   };
-  sender: 'user' | 'ai';
-  timestamp: Date;
 }
 
 function generateMsgId(): string {
@@ -67,33 +73,33 @@ function renderFormattedText(text: string, baseStyle: any, boldStyle: any) {
   });
 }
 
-// Trei puncte care pulseaza, afisate cat timp "Ace scrie".
-function TypingDots({ color }: { color: string }) {
-  const [dots] = useState(() => [new Animated.Value(0.3), new Animated.Value(0.3), new Animated.Value(0.3)]);
+function GradientSpinner() {
+  const [rotate] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
-    const animations = dots.map((dot, i) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(i * 160),
-          Animated.timing(dot, { toValue: 1, duration: 320, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(dot, { toValue: 0.3, duration: 320, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        ])
-      )
+    const anim = Animated.loop(
+      Animated.timing(rotate, { toValue: 1, duration: 1000, easing: Easing.linear, useNativeDriver: false })
     );
-    animations.forEach((a) => a.start());
-    return () => animations.forEach((a) => a.stop());
-  }, [dots]);
+    anim.start();
+    return () => anim.stop();
+  }, [rotate]);
+
+  const spin = rotate.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
   return (
-    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center', paddingVertical: Spacing.xs }}>
-      {dots.map((dot, i) => (
-        <Animated.View
-          key={i}
-          style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: color, opacity: dot }}
-        />
-      ))}
-    </View>
+    <Animated.View style={{ width: 24, height: 24, transform: [{ rotate: spin }] }}>
+      <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+        <Defs>
+          <SvgLinearGradient id="ace-grad-web" x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor="#3476d6" />
+            <Stop offset="30%" stopColor="#5861b8" />
+            <Stop offset="65%" stopColor="#742d73" />
+            <Stop offset="100%" stopColor="#dc1647" />
+          </SvgLinearGradient>
+        </Defs>
+        <Circle cx={12} cy={12} r={9} stroke="url(#ace-grad-web)" strokeWidth={3} strokeLinecap="round" strokeDasharray="40 16" />
+      </Svg>
+    </Animated.View>
   );
 }
 
@@ -108,6 +114,13 @@ export function Ace() {
   const [inputText, setInputText] = useState('');
 
   const scrollRef = useRef<ScrollView>(null);
+  // Functia de oprire a stream-ului curent (pentru cleanup / anulare).
+  const streamStopRef = useRef<null | (() => void)>(null);
+
+  // La demontarea componentei, inchidem orice stream activ (evitam scurgeri).
+  useEffect(() => {
+    return () => streamStopRef.current?.();
+  }, []);
 
   // Dimensiuni responsive: pe ecrane inguste panoul aproape umple latimea.
   const panelWidth = Math.min(PANEL_MAX_WIDTH, width - Spacing.xl3);
@@ -129,9 +142,12 @@ export function Ace() {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
   };
 
-  const handleSend = async () => {
+  const handleSend = () => {
     const textToSend = inputText.trim();
     if (!textToSend) return;
+
+    // Daca un raspuns inca curge, il oprim inainte de a porni altul.
+    streamStopRef.current?.();
 
     const userMsg: ChatMessage = {
       id: generateMsgId(),
@@ -139,38 +155,71 @@ export function Ace() {
       sender: 'user',
       timestamp: new Date(),
     };
-    setMessages((prev) => [...prev, userMsg]);
+
+    // Istoricul trimis backend-ului = mesajele de pana acum (rol + text).
+    const history = messages.map((m) => ({
+      role: (m.sender === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+      content: m.text,
+    }));
+
+    // Adaugam mesajul userului + un mesaj AI GOL, care se umple progresiv din tokeni.
+    const aiMsgId = generateMsgId();
+    setMessages((prev) => [
+      ...prev,
+      userMsg,
+      { id: aiMsgId, text: '', sender: 'ai', timestamp: new Date() },
+    ]);
     setInputText('');
     setIsTyping(true);
     scrollToBottom();
 
-    try {
-      const res = await api.post('/ace/chat', { message: textToSend });
-      const data = res.data;
-      const aiMsg: ChatMessage = {
-        id: generateMsgId(),
-        text: data.text || data.message || '',
-        imageUrl: data.image_url || undefined,
-        event: data.event || undefined,
-        sender: 'ai',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiMsg]);
-    } catch {
-      const errorMsg: ChatMessage = {
-        id: generateMsgId(),
-        text: 'A apărut o eroare. Vă rugăm să încercați din nou.',
-        sender: 'ai',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMsg]);
-    } finally {
-      setIsTyping(false);
-      scrollToBottom();
-    }
+    const appendToAi = (chunk: string) =>
+      setMessages((prev) =>
+        prev.map((m) => (m.id === aiMsgId ? { ...m, text: m.text + chunk } : m))
+      );
+
+    streamStopRef.current = streamAce(textToSend, history, {
+      onToken: (chunk) => {
+        setIsTyping(false);
+        appendToAi(chunk);
+        scrollToBottom();
+      },
+      onDone: () => {
+        setIsTyping(false);
+        streamStopRef.current = null;
+        // Daca stream-ul s-a terminat fara niciun token, raspunsul a venit gol de la
+        // server (LLM jos / fara output) — aratam un mesaj in loc de o bula goala.
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === aiMsgId && !m.text
+              ? { ...m, text: '⚠️ Asistentul nu a returnat niciun răspuns. Încearcă din nou mai târziu.' }
+              : m
+          )
+        );
+        scrollToBottom();
+      },
+      onError: (msg) => {
+        setIsTyping(false);
+        streamStopRef.current = null;
+        // Daca a venit deja text partial, atasam eroarea la final; altfel doar eroarea.
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === aiMsgId
+              ? { ...m, text: m.text ? `${m.text}\n\n⚠️ ${msg}` : `⚠️ ${msg}` }
+              : m
+          )
+        );
+        scrollToBottom();
+      },
+    });
   };
 
-  const handleClearChat = () => setMessages([]);
+  const handleClearChat = () => {
+    streamStopRef.current?.();
+    streamStopRef.current = null;
+    setIsTyping(false);
+    setMessages([]);
+  };
 
   // Navigheaza la destinatia unui card de eveniment/anunt din raspuns, apoi inchide
   // widget-ul ca utilizatorul sa vada pagina.
@@ -366,7 +415,7 @@ export function Ace() {
             messages.map(renderMessage)
           )}
 
-          {isTyping ? <TypingDots color={theme.textSecondary} /> : null}
+          {isTyping ? <GradientSpinner /> : null}
         </ScrollView>
 
         {/* Input */}
