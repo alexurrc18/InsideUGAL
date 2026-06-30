@@ -179,15 +179,23 @@ INSERT INTO public.locations (id, name, coordinates, facility_id, marker) VALUES
 (30, 'Biblioteca Universitara', ST_SetSRID(ST_MakePoint(28.0510, 45.4434), 4326), 9, 'BU'),
 (31, 'Corp P - Str. Domneasca nr. 111', ST_SetSRID(ST_MakePoint(28.053061933059915, 45.447027850913734), 4326), NULL, 'P'),
 (32, 'Corp Q - Str. Basarabiei', ST_SetSRID(ST_MakePoint(28.047657120278704, 45.44452418294696), 4326), NULL, 'Q'),
-(33, 'Camine Studentesti', ST_SetSRID(ST_MakePoint(28.049234340818312, 45.453463566441165), 4326), NULL, 'CS')
+(33, 'Camine Studentesti', ST_SetSRID(ST_MakePoint(28.049234340818312, 45.453463566441165), 4326), NULL, 'CS'),
+(34, 'Camin E - Baieti', ST_SetSRID(ST_MakePoint(28.05199171505145, 45.45433761201449), 4326), NULL, NULL),
+(35, 'Caminul J - Galati', ST_SetSRID(ST_MakePoint(28.051337777580574, 45.453991483611254), 4326), NULL, NULL),
+(36, 'Camin A Galati', ST_SetSRID(ST_MakePoint(28.051143808028872, 45.45352474328845), 4326), NULL, NULL),
+(37, 'Camin Studentesc B', ST_SetSRID(ST_MakePoint(28.051840745140876, 45.453713022054295), 4326), NULL, NULL),
+(38, 'Camin F', ST_SetSRID(ST_MakePoint(28.051770825885175, 45.45327001219165), 4326), NULL, NULL),
+(39, 'Camin G', ST_SetSRID(ST_MakePoint(28.04991673801843, 45.45300665899378), 4326), NULL, NULL),
+(40, 'Camin D Galati', ST_SetSRID(ST_MakePoint(28.04936833369286, 45.45313923158966), 4326), NULL, NULL),
+(41, 'Camin Corp H', ST_SetSRID(ST_MakePoint(28.049673552832353, 45.45341465652275), 4326), NULL, NULL),
+(42, 'Camin C', ST_SetSRID(ST_MakePoint(28.049362979286386, 45.453942185824026), 4326), NULL, NULL)
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     coordinates = EXCLUDED.coordinates,
     facility_id = EXCLUDED.facility_id,
     marker = EXCLUDED.marker;
-
 DELETE FROM public.locations
-WHERE id > 33;
+WHERE id > 42;
 
 DELETE FROM public.location_faculties;
 
