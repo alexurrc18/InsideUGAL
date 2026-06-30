@@ -72,7 +72,7 @@ class TranslationService:
         
         # Fallback Client (OpenRouter)
         self.fallback_key = os.getenv("OPENROUTER_API_KEY", "").strip().strip("'").strip('"')
-        self.fallback_model = "meta-llama/llama-3.3-70b-instruct:free"
+        self.fallback_model = "google/gemini-2.5-flash"
         self.fallback_provider = f"openrouter:{self.fallback_model}"
         if self.fallback_key:
             logger.info("OpenRouter fallback client configured.")
