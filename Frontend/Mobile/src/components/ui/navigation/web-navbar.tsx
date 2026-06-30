@@ -169,7 +169,7 @@ export function WebNavbar() {
   }
 
   // Doar pagina de acasa (index) are hero -> transparent pana la scroll.
-  const isHome = pathname === "/acasa" || pathname === "/";
+  const isHome = pathname === "/acasa" || pathname === "/" || pathname === "/(auth)" || pathname.startsWith("/auth");
   // Bara e solida daca: nu suntem pe hero / s-a derulat / panoul hamburger e deschis.
   const solid = !isHome || scrolled || (isCompact && menuOpen);
 
