@@ -29,6 +29,7 @@ import { NotificareCard, Notificare } from "@/components/ui/display/notificare-c
 import { getAuthToken, storage } from "@/services/api";
 import { Config } from "@/constants/config";
 import { useAuth } from "@/contexts/auth-context";
+import { anuntHref, eventHref } from "@/utils/article-url";
 
 type BackendNotification = {
   id: string | number;
@@ -40,10 +41,24 @@ type BackendNotification = {
   created_at?: string;
 };
 
+type BackendAnnouncement = {
+  id: string | number;
+  title?: string;
+  content?: string;
+  type?: "NOUTATE" | "EVENIMENT" | string;
+  created_at?: string;
+};
+
 type NotificationsResponse =
   | BackendNotification[]
   | {
       items?: BackendNotification[];
+    };
+
+type AnnouncementsResponse =
+  | BackendAnnouncement[]
+  | {
+      items?: BackendAnnouncement[];
     };
 
 function formatNotificationDate(value?: string): string {
@@ -73,6 +88,43 @@ function extractNotificationItems(data: NotificationsResponse): BackendNotificat
   return Array.isArray(data.items) ? data.items : [];
 }
 
+function extractAnnouncementItems(data: AnnouncementsResponse): BackendAnnouncement[] {
+  if (Array.isArray(data)) return data;
+  return Array.isArray(data.items) ? data.items : [];
+}
+
+function mapBackendAnnouncement(announcement: BackendAnnouncement): Notificare {
+  const id = String(announcement.id);
+  const title = announcement.title ?? "Anunt nou";
+  const href =
+    announcement.type === "EVENIMENT"
+      ? eventHref({ id, title })
+      : anuntHref({ id, title });
+
+  return {
+    id: `announcement-${id}`,
+    data: formatNotificationDate(announcement.created_at),
+    titlu: title,
+    continut: announcement.content ?? "",
+    actiune: href,
+  };
+}
+
+function buildNotificationsWsUrl(profileId: string): string {
+  const baseUrl = Config.API_BASE_URL || "http://localhost:8002";
+
+  try {
+    const url = new URL(baseUrl);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    url.pathname = `/notifications/ws/${encodeURIComponent(profileId)}`;
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return `ws://localhost:8002/notifications/ws/${encodeURIComponent(profileId)}`;
+  }
+}
+
 export function NotificationMenu({
   open: controlledOpen,
   onToggle,
@@ -83,7 +135,7 @@ export function NotificationMenu({
   onClose?: () => void;
 }) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const isDark = themeName === "dark";
@@ -158,6 +210,8 @@ export function NotificationMenu({
   }, []);
 
   useEffect(() => {
+    if (authLoading) return;
+
     const profileId = user?.id ?? (typeof window !== "undefined" ? window.localStorage.getItem("profile_id") : null);
     console.log("DEBUG: Attempting connection, user:", user, "profileId:", profileId);
     console.log("DEBUG: ProfileID resolution:", profileId, "Auth:", Boolean(user?.id));
@@ -219,45 +273,50 @@ export function NotificationMenu({
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [authLoading, user]);
 
   useEffect(() => {
     const profileId = resolvedProfileId;
 
-    if (!profileId) {
-      console.warn("DEBUG: No profileId found, skipping WebSocket");
-      return;
-    }
-
     const loadInitialNotifications = async () => {
       const token = await getAuthToken();
-      const headers: HeadersInit = { Accept: "application/json" };
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
 
       try {
-        let response = await fetch(`${Config.API_BASE_URL}/notifications/me`, {
+        if (profileId && token) {
+          const response = await fetch(`${Config.API_BASE_URL}/notifications/me`, {
+            cache: "no-store",
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            const data = (await response.json()) as NotificationsResponse;
+            const items = extractNotificationItems(data);
+
+            setNotifications(items.map(mapBackendNotification));
+            setUnreadCount(items.filter((notification) => !notification.is_read).length);
+            return;
+          }
+
+          console.warn(`DEBUG: GET notifications/me failed with ${response.status}; loading public announcements`);
+        }
+
+        const response = await fetch(`${Config.API_BASE_URL}/announcements/?page=1&size=5`, {
           cache: "no-store",
-          headers,
+          headers: { Accept: "application/json" },
         });
 
-        if (!response.ok && response.status === 404) {
-          response = await fetch(`${Config.API_BASE_URL}/notifications/`, {
-            cache: "no-store",
-            headers,
-          });
-        }
-
         if (!response.ok) {
-          throw new Error(`GET notifications failed with ${response.status}`);
+          throw new Error(`GET announcements failed with ${response.status}`);
         }
 
-        const data = (await response.json()) as NotificationsResponse;
-        const items = extractNotificationItems(data);
+        const data = (await response.json()) as AnnouncementsResponse;
+        const items = extractAnnouncementItems(data);
 
-        setNotifications(items.map(mapBackendNotification));
-        setUnreadCount(items.filter((notification) => !notification.is_read).length);
+        setNotifications(items.map(mapBackendAnnouncement));
+        setUnreadCount(items.length);
       } catch (e) {
         console.error("Initial load failed", e);
       }
@@ -265,13 +324,21 @@ export function NotificationMenu({
 
     loadInitialNotifications();
 
-    const ws = new WebSocket(`ws://localhost:8002/notifications/ws/${profileId}`);
+    if (!profileId) {
+      console.warn("DEBUG: No profileId found, skipping WebSocket");
+      return;
+    }
 
-    ws.onopen = () => console.log('✅ WebSockets Connected on Mobile/UI!');
-    ws.onerror = (e) => console.error('❌ WebSockets Error on Mobile/UI:', e);
+    const ws = new WebSocket(buildNotificationsWsUrl(profileId));
+    const logWebSocketConnected = () => console.log("WebSocket connected on Mobile/UI");
+    ws.addEventListener("open", logWebSocketConnected);
+
+    ws.onopen = null;
+    ws.onerror = (e) => console.error("WebSocket error on Mobile/UI:", e);
     ws.onmessage = handleWebSocketMessage;
 
     return () => {
+      ws.removeEventListener("open", logWebSocketConnected);
       ws.close();
     };
   }, [handleWebSocketMessage, resolvedProfileId]);
