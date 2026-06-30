@@ -4,7 +4,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 import httpx
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Request, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Request, Query, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
