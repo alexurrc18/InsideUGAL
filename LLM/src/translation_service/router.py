@@ -70,18 +70,14 @@ class TranslationService:
         self.provider = f"gemini:{GEMINI_MODEL}"
         self.supabase = self._create_supabase_client()
         
-        # HuggingFace Client
-        self.hf_client = None
-        self.hf_provider = ""
-        hf_key = os.getenv("HUGGINGFACE_API_KEY", "").strip().strip("'").strip('"')
-        if hf_key:
-            try:
-                from huggingface_hub import InferenceClient
-                self.hf_client = InferenceClient(model="meta-llama/Llama-3.3-70B-Instruct", token=hf_key)
-                self.hf_provider = "huggingface:meta-llama/Llama-3.3-70B-Instruct"
-                logger.info("HuggingFace fallback client initialized.")
-            except ImportError:
-                logger.warning("huggingface_hub nu este instalat. Fallback-ul HF este dezactivat.")
+        # Fallback Client (OpenRouter)
+        self.fallback_key = os.getenv("OPENROUTER_API_KEY", "").strip().strip("'").strip('"')
+        self.fallback_model = "meta-llama/llama-3.3-70b-instruct:free"
+        self.fallback_provider = f"openrouter:{self.fallback_model}"
+        if self.fallback_key:
+            logger.info("OpenRouter fallback client configured.")
+        else:
+            logger.warning("OPENROUTER_API_KEY nu este setat. Fallback-ul este dezactivat.")
 
     def _create_supabase_client(self) -> Client | None:
         supabase_url = os.getenv("SUPABASE_URL")
@@ -173,16 +169,29 @@ class TranslationService:
             raise ValueError("Gemini returned an empty translation.")
         return self._strip_wrapping_quotes(translated)
 
-    def _translate_text_hf(self, text: str, target_language: str, prompt: str) -> str:
-        if not self.hf_client:
-            raise ValueError("HuggingFace fallback client is not initialized.")
-        logger.info("Using HuggingFace fallback for text translation.")
-        messages = [
-            {"role": "system", "content": "You are a professional university administrative translator. Return ONLY the translated text without any explanation, markdown or quotes. Strictly follow the user's rules."},
-            {"role": "user", "content": prompt}
-        ]
-        response = self.hf_client.chat_completion(messages=messages, max_tokens=8192, temperature=0.0)
-        translated = response.choices[0].message.content.strip()
+    def _translate_text_fallback(self, text: str, target_language: str, prompt: str) -> str:
+        if not self.fallback_key:
+            raise ValueError("Fallback client is not configured.")
+        logger.info("Using OpenRouter fallback for text translation.")
+        
+        import requests
+        headers = {
+            "Authorization": f"Bearer {self.fallback_key}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": self.fallback_model,
+            "messages": [
+                {"role": "system", "content": "You are a professional university administrative translator. Return ONLY the translated text without any explanation, markdown or quotes. Strictly follow the user's rules."},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.0
+        }
+        
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=30)
+        response.raise_for_status()
+        
+        translated = response.json()["choices"][0]["message"]["content"].strip()
         return self._strip_wrapping_quotes(translated)
 
     @retry(
@@ -287,27 +296,39 @@ class TranslationService:
 
         return translated
 
-    def _translate_announcement_hf(self, payload: str, target_language: str, prompt: str) -> dict[str, str]:
-        if not self.hf_client:
-            raise ValueError("HuggingFace fallback client is not initialized.")
-        logger.info("Using HuggingFace fallback for announcement translation.")
-        messages = [
-            {"role": "system", "content": "You are a professional university administrative translator. Return ONLY a valid JSON object. Strictly follow the user's rules."},
-            {"role": "user", "content": prompt}
-        ]
-        response = self.hf_client.chat_completion(messages=messages, max_tokens=8192, temperature=0.0)
-        raw = response.choices[0].message.content.strip()
+    def _translate_announcement_fallback(self, payload: str, target_language: str, prompt: str) -> dict[str, str]:
+        if not self.fallback_key:
+            raise ValueError("Fallback client is not configured.")
+        logger.info("Using OpenRouter fallback for announcement translation.")
+        
+        import requests
+        headers = {
+            "Authorization": f"Bearer {self.fallback_key}",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "model": self.fallback_model,
+            "messages": [
+                {"role": "system", "content": "You are a professional university administrative translator. Return ONLY a valid JSON object. Strictly follow the user's rules."},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.0
+        }
+        
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data, timeout=45)
+        response.raise_for_status()
+        
+        raw = response.json()["choices"][0]["message"]["content"].strip()
         cleaned = self._strip_json_fences(raw)
-        translated = json.loads(cleaned)
-        return translated
+        return json.loads(cleaned)
 
     def translate_announcement(self, title: str, content: str, target_language: str) -> AnnouncementTranslateResponse:
         normalized_language = self._normalize_language(target_language)
         try:
             translated = self.translate_announcement_uncached(title, content, normalized_language)
         except Exception as exc:
-            logger.warning("Gemini announcement translation failed after retries: %s. Falling back to HuggingFace.", exc)
-            if not self.hf_client:
+            logger.warning("Gemini announcement translation failed after retries: %s. Falling back to OpenRouter.", exc)
+            if not self.fallback_key:
                 raise
             payload = json.dumps({"title": title, "content": content}, ensure_ascii=False)
             prompt = (
@@ -320,7 +341,7 @@ class TranslationService:
                 "No explanations, no markdown formatting block quotes around the response.\n"
                 f"JSON: {payload}"
             )
-            translated = self._translate_announcement_hf(payload, normalized_language, prompt)
+            translated = self._translate_announcement_fallback(payload, normalized_language, prompt)
             
         return AnnouncementTranslateResponse(
             translated_title=str(translated.get("translated_title", "")).strip(),
@@ -343,8 +364,8 @@ class TranslationService:
             translated = self.translate_text_uncached(text, normalized_language)
             provider_used = self.provider
         except Exception as exc:
-            logger.warning("Gemini text translation failed after retries: %s. Falling back to HuggingFace.", exc)
-            if not self.hf_client:
+            logger.warning("Gemini text translation failed after retries: %s. Falling back to OpenRouter.", exc)
+            if not self.fallback_key:
                 raise
             
             prompt = (
@@ -356,8 +377,8 @@ class TranslationService:
                 "Return only the translated text, no explanations, no markdown, no quotes.\n"
                 f"Text: {text}"
             )
-            translated = self._translate_text_hf(text, normalized_language, prompt)
-            provider_used = self.hf_provider
+            translated = self._translate_text_fallback(text, normalized_language, prompt)
+            provider_used = self.fallback_provider
 
         self.save_translation(text, normalized_language, translated)
         return TranslateResponse(
@@ -403,18 +424,18 @@ class TranslationService:
                         translated = self.translate_text_uncached(original, normalized_language)
                     except Exception as exc:
                         logger.warning("Gemini per-item fallback failed for '%s': %s", original, exc)
-                        if self.hf_client:
-                            logger.info("Falling back to HuggingFace for '%s'", original)
+                        if self.fallback_key:
+                            logger.info("Falling back to OpenRouter for '%s'", original)
                             try:
                                 prompt = (
                                     f"Translate the following Romanian university administrative text to {normalized_language}.\n"
                                     "Return only the translated text, no explanations, no markdown, no quotes.\n"
                                     f"Text: {original}"
                                 )
-                                translated = self._translate_text_hf(original, normalized_language, prompt)
-                                provider_used = self.hf_provider
-                            except Exception as hf_exc:
-                                logger.warning("HuggingFace per-item fallback failed for '%s': %s", original, hf_exc)
+                                translated = self._translate_text_fallback(original, normalized_language, prompt)
+                                provider_used = self.fallback_provider
+                            except Exception as fallback_exc:
+                                logger.warning("OpenRouter per-item fallback failed for '%s': %s", original, fallback_exc)
                                 translated = original
                         else:
                             translated = original  # fallback: nu lasam tot batch-ul sa pice
