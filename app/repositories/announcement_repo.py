@@ -1,3 +1,4 @@
+from sqlalchemy import delete as sqlalchemy_delete
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -96,6 +97,14 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
 
     async def create_for_user(self, session: AsyncSession, announcement_in: AnnouncementCreate, user_id: str) -> Announcement:
         return await self.create(session, announcement_in, created_by=user_id)
+
+    async def delete(self, session: AsyncSession, db_announcement: Announcement) -> None:
+        await session.execute(
+            sqlalchemy_delete(Announcement)
+            .where(Announcement.id == db_announcement.id)
+            .execution_options(synchronize_session=False)
+        )
+        await session.commit()
 
     async def update(
         self,
