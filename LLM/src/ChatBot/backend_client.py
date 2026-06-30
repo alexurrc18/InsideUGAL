@@ -60,12 +60,25 @@ def _fetch(table: str, backend_path: str = None, order: str = "created_at.desc",
 
 def _fetch_menus(limit: int = 7) -> list:
     """Fetch meniuri cu produse via join (menu_products -> products)."""
-    return _sb(
+    data = _sb(
         "daily_menus",
         order="id.asc",
         limit=limit,
         select="id,day_of_week,menu_products(product_id,products(name,price))",
     )
+    if data:
+        return data
+
+    # Dacă fetch-ul direct din Supabase e blocat, încercăm fallback la API-ul backend.
+    backend_data = _backend(f"/daily-menus?limit={limit}")
+    if isinstance(backend_data, dict):
+        if "items" in backend_data:
+            return backend_data["items"]
+        if "data" in backend_data:
+            return backend_data["data"]
+    if isinstance(backend_data, list):
+        return backend_data
+    return []
 
 
 # ── Detectare tip întrebare ──────────────────────────────────────────────────
