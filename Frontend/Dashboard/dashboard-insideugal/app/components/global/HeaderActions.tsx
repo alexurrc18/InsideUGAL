@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { announcementsService } from "@/lib/announcements-service";
 import { useTheme } from "../../providers";
+import { setAuthToken } from "@/lib/api-client";
 
 interface Announcement {
   id: number;
@@ -110,8 +111,7 @@ export default function HeaderActions() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("token_type");
+    setAuthToken(null);
     router.replace("/login");
   };
 
