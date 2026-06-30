@@ -69,6 +69,19 @@ class TranslationService:
         self.client = genai.Client(api_key=raw_key)
         self.provider = f"gemini:{GEMINI_MODEL}"
         self.supabase = self._create_supabase_client()
+        
+        # HuggingFace Client
+        self.hf_client = None
+        self.hf_provider = ""
+        hf_key = os.getenv("HUGGINGFACE_API_KEY", "").strip().strip("'").strip('"')
+        if hf_key:
+            try:
+                from huggingface_hub import InferenceClient
+                self.hf_client = InferenceClient(model="meta-llama/Llama-3.3-70B-Instruct", token=hf_key)
+                self.hf_provider = "huggingface:meta-llama/Llama-3.3-70B-Instruct"
+                logger.info("HuggingFace fallback client initialized.")
+            except ImportError:
+                logger.warning("huggingface_hub nu este instalat. Fallback-ul HF este dezactivat.")
 
     def _create_supabase_client(self) -> Client | None:
         supabase_url = os.getenv("SUPABASE_URL")
@@ -158,6 +171,18 @@ class TranslationService:
         translated = (response.text or "").strip()
         if not translated:
             raise ValueError("Gemini returned an empty translation.")
+        return self._strip_wrapping_quotes(translated)
+
+    def _translate_text_hf(self, text: str, target_language: str, prompt: str) -> str:
+        if not self.hf_client:
+            raise ValueError("HuggingFace fallback client is not initialized.")
+        logger.info("Using HuggingFace fallback for text translation.")
+        messages = [
+            {"role": "system", "content": "You are a professional university administrative translator. Return ONLY the translated text without any explanation, markdown or quotes. Strictly follow the user's rules."},
+            {"role": "user", "content": prompt}
+        ]
+        response = self.hf_client.chat_completion(messages=messages, max_tokens=8192, temperature=0.0)
+        translated = response.choices[0].message.content.strip()
         return self._strip_wrapping_quotes(translated)
 
     @retry(
@@ -262,9 +287,41 @@ class TranslationService:
 
         return translated
 
+    def _translate_announcement_hf(self, payload: str, target_language: str, prompt: str) -> dict[str, str]:
+        if not self.hf_client:
+            raise ValueError("HuggingFace fallback client is not initialized.")
+        logger.info("Using HuggingFace fallback for announcement translation.")
+        messages = [
+            {"role": "system", "content": "You are a professional university administrative translator. Return ONLY a valid JSON object. Strictly follow the user's rules."},
+            {"role": "user", "content": prompt}
+        ]
+        response = self.hf_client.chat_completion(messages=messages, max_tokens=8192, temperature=0.0)
+        raw = response.choices[0].message.content.strip()
+        cleaned = self._strip_json_fences(raw)
+        translated = json.loads(cleaned)
+        return translated
+
     def translate_announcement(self, title: str, content: str, target_language: str) -> AnnouncementTranslateResponse:
         normalized_language = self._normalize_language(target_language)
-        translated = self.translate_announcement_uncached(title, content, normalized_language)
+        try:
+            translated = self.translate_announcement_uncached(title, content, normalized_language)
+        except Exception as exc:
+            logger.warning("Gemini announcement translation failed after retries: %s. Falling back to HuggingFace.", exc)
+            if not self.hf_client:
+                raise
+            payload = json.dumps({"title": title, "content": content}, ensure_ascii=False)
+            prompt = (
+                f"Translate the title and content of this university announcement to {normalized_language}.\n"
+                "Rules:\n"
+                "- Maintain an official, formal, academic tone throughout.\n"
+                "- Use precise university/higher-education terminology.\n"
+                "- CRITICAL: Preserve the original formatting EXACTLY, including all paragraphs, markdown syntax, links, and newlines.\n"
+                "Return only a valid JSON object with the keys 'translated_title' and 'translated_content' containing the translated strings.\n"
+                "No explanations, no markdown formatting block quotes around the response.\n"
+                f"JSON: {payload}"
+            )
+            translated = self._translate_announcement_hf(payload, normalized_language, prompt)
+            
         return AnnouncementTranslateResponse(
             translated_title=str(translated.get("translated_title", "")).strip(),
             translated_content=str(translated.get("translated_content", "")).strip()
@@ -282,14 +339,33 @@ class TranslationService:
                 provider=self.provider,
             )
 
-        translated = self.translate_text_uncached(text, normalized_language)
+        try:
+            translated = self.translate_text_uncached(text, normalized_language)
+            provider_used = self.provider
+        except Exception as exc:
+            logger.warning("Gemini text translation failed after retries: %s. Falling back to HuggingFace.", exc)
+            if not self.hf_client:
+                raise
+            
+            prompt = (
+                f"Translate the following Romanian university administrative text to {normalized_language}.\n"
+                "Rules:\n"
+                "- Maintain an official, formal, academic tone throughout.\n"
+                "- Use precise university/higher-education terminology.\n"
+                "- Do NOT translate proper nouns, brand names or commercial names.\n"
+                "Return only the translated text, no explanations, no markdown, no quotes.\n"
+                f"Text: {text}"
+            )
+            translated = self._translate_text_hf(text, normalized_language, prompt)
+            provider_used = self.hf_provider
+
         self.save_translation(text, normalized_language, translated)
         return TranslateResponse(
             source_text=text,
             target_language=normalized_language,
             translated_text=translated,
             cached=False,
-            provider=self.provider,
+            provider=provider_used,
         )
 
     def translate_batch(self, data: Any, target_language: str) -> BatchTranslateResponse:
@@ -315,14 +391,33 @@ class TranslationService:
                 logger.warning("Batch LLM call failed, falling back to per-item: %s", exc)
                 translated_misses = {}
 
+            provider_used = self.provider
+            if not misses:
+                # Toate au venit din cache
+                pass
+
             for path_key, original in misses.items():
                 translated = translated_misses.get(path_key)
                 if translated is None:
                     try:
                         translated = self.translate_text_uncached(original, normalized_language)
                     except Exception as exc:
-                        logger.warning("Per-item LLM call failed for '%s': %s", original, exc)
-                        translated = original  # fallback: nu lasam tot batch-ul sa pice
+                        logger.warning("Gemini per-item fallback failed for '%s': %s", original, exc)
+                        if self.hf_client:
+                            logger.info("Falling back to HuggingFace for '%s'", original)
+                            try:
+                                prompt = (
+                                    f"Translate the following Romanian university administrative text to {normalized_language}.\n"
+                                    "Return only the translated text, no explanations, no markdown, no quotes.\n"
+                                    f"Text: {original}"
+                                )
+                                translated = self._translate_text_hf(original, normalized_language, prompt)
+                                provider_used = self.hf_provider
+                            except Exception as hf_exc:
+                                logger.warning("HuggingFace per-item fallback failed for '%s': %s", original, hf_exc)
+                                translated = original
+                        else:
+                            translated = original  # fallback: nu lasam tot batch-ul sa pice
 
                 path = tuple(path_key.split("__"))
                 translated_by_path[path] = translated
@@ -336,7 +431,7 @@ class TranslationService:
             translations=result,
             cached_items=cached_items,
             translated_items=translated_items,
-            provider=self.provider,
+            provider=provider_used if misses else self.provider,
         )
 
     def _flatten_string_values(self, value: Any, path: tuple[str, ...] = ()) -> dict[tuple[str, ...], str]:
