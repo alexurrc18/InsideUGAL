@@ -20,6 +20,8 @@ repo = NotificationRepository()
 send_notifications = require_roles(
     UserRole.HEAD_ADMIN,
     UserRole.HEAD_FACULTATI,
+    UserRole.PROFESOR,
+    UserRole.STUDENT_RESPONSABIL,
 )
 
 
@@ -43,6 +45,7 @@ async def send_notification(
     db: AsyncSession = Depends(get_db),
     profile: Profile = Depends(send_notifications),
 ):
+
     target_profiles = await _get_target_profiles(db, payload.faculty_id)
 
     sent_count = 0
@@ -77,8 +80,17 @@ async def read_notifications(
     faculty_id: int | None = None,
     pagination: PaginationParams = Depends(),
     db: AsyncSession = Depends(get_db),
-    profile: Profile = Depends(require_roles(UserRole.HEAD_ADMIN)),
+    profile: Profile = Depends(
+        require_roles(
+            UserRole.HEAD_ADMIN,
+            UserRole.HEAD_FACULTATI,
+            UserRole.PROFESOR,
+            UserRole.STUDENT_RESPONSABIL,
+        )
+    ),
 ):
+
+
     items, total = await repo.get_page(
         db,
         limit=pagination.size,

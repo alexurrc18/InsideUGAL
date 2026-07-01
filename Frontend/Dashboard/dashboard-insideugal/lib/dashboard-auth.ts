@@ -67,7 +67,7 @@ export function canAccessPath(pathname: string, role: DashboardRole | null): boo
   if (pathname.startsWith("/harti")) return canAccessMaps(role);
   if (pathname.startsWith("/facultati")) return canAccessFaculties(role);
   if (pathname.startsWith("/sesizari")) return canAccessComplaints(role);
-  if (pathname.startsWith("/noutati") || pathname.startsWith("/evenimente")) return canAccessContent(role);
+  if (pathname.startsWith("/notificari") || pathname.startsWith("/noutati") || pathname.startsWith("/evenimente")) return canAccessContent(role);
   return true;
 }
 

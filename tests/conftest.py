@@ -16,11 +16,12 @@ POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD", "postgres")
 POSTGRES_HOST_PORT = os.environ.get("POSTGRES_HOST_PORT", "54399")
 POSTGRES_DB = os.environ.get("POSTGRES_DB", "postgres")
 
-TEST_DATABASE_URL = (
+TEST_DATABASE_URL = os.environ.get(
+    "TEST_DATABASE_URL",
     f"postgresql+asyncpg://postgres:{POSTGRES_PASSWORD}"
     f"@127.0.0.1:{POSTGRES_HOST_PORT}/{POSTGRES_DB}"
 )
-SUPABASE_URL = "http://127.0.0.1:54325"
+SUPABASE_URL = os.environ.get("TEST_SUPABASE_URL", "http://127.0.0.1:54325")
 SUPABASE_JWT_SECRET = "test-supabase-jwt-secret"
 SUPABASE_JWT_AUDIENCE = "authenticated"
 SUPABASE_ANON_KEY = "test-anon-key"
