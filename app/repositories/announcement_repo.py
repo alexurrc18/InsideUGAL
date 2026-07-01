@@ -1,9 +1,9 @@
 from sqlalchemy import delete as sqlalchemy_delete
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
-from app.models.models import Announcement, AnnouncementTranslation
+from app.models.models import Announcement, AnnouncementTranslation, Faculty
 from app.models.schemas import AnnouncementCreate, AnnouncementUpdate, UserRole
 from app.repositories.base import CRUDRepository, schema_to_data
 
@@ -23,7 +23,23 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
 
     @staticmethod
     def _base_select():
-        return select(Announcement).options(joinedload(Announcement.creator))
+        return select(Announcement).options(
+            joinedload(Announcement.creator),
+            selectinload(Announcement.faculties),
+        )
+
+    async def _load_faculties(self, session: AsyncSession, faculty_ids: list[int]) -> list[Faculty]:
+        if not faculty_ids:
+            return []
+
+        result = await session.execute(select(Faculty).where(Faculty.id.in_(faculty_ids)))
+        faculties = list(result.scalars().all())
+        found_ids = {faculty.id for faculty in faculties}
+        missing_ids = set(faculty_ids) - found_ids
+        if missing_ids:
+            missing = ", ".join(str(faculty_id) for faculty_id in sorted(missing_ids))
+            raise ValueError(f"Faculty id(s) not found: {missing}.")
+        return faculties
 
     async def get_all(
         self,
@@ -96,7 +112,17 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         return announcement
 
     async def create_for_user(self, session: AsyncSession, announcement_in: AnnouncementCreate, user_id: str) -> Announcement:
-        return await self.create(session, announcement_in, created_by=user_id)
+        data = schema_to_data(announcement_in)
+        faculty_ids = data.pop("faculty_ids", None) or []
+        data["created_by"] = user_id
+
+        db_announcement = Announcement(**data)
+        db_announcement.faculties = await self._load_faculties(session, faculty_ids)
+
+        session.add(db_announcement)
+        await session.commit()
+        await session.refresh(db_announcement)
+        return await self.get_by_id(session, db_announcement.id) or db_announcement
 
     async def delete(self, session: AsyncSession, db_announcement: Announcement) -> None:
         await session.execute(
@@ -115,6 +141,8 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
     ) -> Announcement:
         data = schema_to_data(announcement_in, exclude_unset=True)
         data.update(extra_data)
+        has_faculty_update = "faculty_ids" in data
+        faculty_ids = data.pop("faculty_ids", None) or []
 
         announcement_type = data.get("type", db_announcement.type)
         if announcement_type == "NOUTATE":
@@ -132,9 +160,12 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         for key, value in data.items():
             setattr(db_announcement, key, value)
 
+        if has_faculty_update:
+            db_announcement.faculties = await self._load_faculties(session, faculty_ids)
+
         await session.commit()
         await session.refresh(db_announcement)
-        return db_announcement
+        return await self.get_by_id(session, db_announcement.id) or db_announcement
 
     async def get_translation(
         self,

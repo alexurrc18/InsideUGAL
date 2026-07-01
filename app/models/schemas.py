@@ -349,12 +349,13 @@ class AnnouncementBase(BaseModel):
     image_url: Optional[str] = None
     event_link: Optional[str] = None
     files: Optional[List[Dict[str, Any]]] = []
-    faculties: Optional[List[str]] = []
     location_name: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
 
 class AnnouncementCreate(AnnouncementBase):
+    faculty_ids: Optional[List[int]] = []
+
     model_config = ConfigDict(json_schema_extra={
         "example": {
             "type": "EVENIMENT",
@@ -363,7 +364,7 @@ class AnnouncementCreate(AnnouncementBase):
             "image_url": "https://example.com/images/hackathon.jpg",
             "event_link": "https://example.com/register",
             "files": [{"name": "regulament.pdf", "url": "https://example.com/regulament.pdf"}],
-            "faculties": ["AC", "FIE", "Drept"],
+            "faculty_ids": [1, 2, 3],
             "location_name": "Corpul C",
             "start_date": "2024-06-15T09:00:00",
             "end_date": "2024-06-15T18:00:00"
@@ -377,7 +378,7 @@ class AnnouncementUpdate(BaseModel):
     image_url: Optional[str] = None
     event_link: Optional[str] = None
     files: Optional[List[Dict[str, Any]]] = None
-    faculties: Optional[List[str]] = None
+    faculty_ids: Optional[List[int]] = None
     location_name: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
@@ -385,6 +386,7 @@ class AnnouncementUpdate(BaseModel):
 class AnnouncementResponse(AnnouncementBase):
     id: int
     created_by: UUID
+    faculties: Optional[List[FacultyResponse]] = []
     author: Optional[str] = Field(alias="author_name", default=None)
     is_translated: bool = False
     translated_title: Optional[str] = None

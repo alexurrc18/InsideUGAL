@@ -92,6 +92,17 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
                 """
             )
         )
+        await connection.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS public.announcement_faculties (
+                    announcement_id INTEGER NOT NULL REFERENCES public.announcements(id) ON DELETE CASCADE,
+                    faculty_id INTEGER NOT NULL REFERENCES public.faculties(id) ON DELETE CASCADE,
+                    PRIMARY KEY (announcement_id, faculty_id)
+                )
+                """
+            )
+        )
         TestingSessionLocal = async_sessionmaker(
             bind=connection,
             class_=AsyncSession,
