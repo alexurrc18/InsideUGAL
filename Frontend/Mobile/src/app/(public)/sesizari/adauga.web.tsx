@@ -8,7 +8,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { WebContainer } from "@/components/ui/layout/web-container";
-import api, { storage } from "@/services/api";
+import api from "@/services/api";
 import XIcon from "@/assets/icons/svg/x.svg";
 import ImagesIcon from "@/assets/icons/svg/images.svg";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
@@ -67,19 +67,10 @@ export default function AdaugaSesizareScreen() {
   useEffect(() => {
     async function loadLocations() {
       try {
-        const cached = await storage.getItem('cached_facilities');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          setLocations(parsed);
-          if (parsed.length > 0) {
-            setLocation(parsed[0].name);
-          }
-        }
         const res = await api.get('/locations/', { params: { page: 1, size: 50 } });
         if (res.data?.items) {
           setLocations(res.data.items);
-          await storage.setItem('cached_facilities', JSON.stringify(res.data.items));
-          if (res.data.items.length > 0 && !cached) {
+          if (res.data.items.length > 0) {
             setLocation(res.data.items[0].name);
           }
         }

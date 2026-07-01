@@ -12,7 +12,7 @@ import { SesizariListSkeleton } from "@/components/ui/display/skeletons";
 import { Seo } from "@/components/seo";
 import { SesizareCard, Sesizare } from "@/components/ui/display/sesizare-card";
 import PlusIcon from "@/assets/icons/svg/plus.svg";
-import api, { storage, resolveImageUrl } from "@/services/api";
+import api, { resolveImageUrl } from "@/services/api";
 import { useAuth } from "@/contexts/auth-context";
 import { ErrorState } from "@/components/ui/display/error-state";
 import { useTranslation } from 'react-i18next';
@@ -64,15 +64,10 @@ export default function SesizariScreen() {
       }
       // 1. Fetch/load locations to build a map of id -> name
       let locationsData: any[] = [];
-      const cachedLocs = await storage.getItem('cached_facilities');
-      if (cachedLocs) {
-        locationsData = JSON.parse(cachedLocs);
-      }
       try {
         const locsRes = await api.get('/locations/', { params: { page: 1, size: 50 } });
         if (locsRes.data?.items) {
           locationsData = locsRes.data.items;
-          await storage.setItem('cached_facilities', JSON.stringify(locsRes.data.items));
         }
       } catch (locError) {
         console.warn('[API] Could not fetch fresh locations for complaints:', locError);

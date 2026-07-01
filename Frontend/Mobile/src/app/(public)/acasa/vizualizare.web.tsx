@@ -284,7 +284,7 @@ function VizualizareScreen() {
     };
 
     const handleCall = () => {
-        if (window.confirm(`Doriți să apelați numărul ${phone}?`)) {
+        if (window.confirm(t('detail.callConfirm', { phone }))) {
             Linking.openURL(`tel:${phone}`);
         }
     };
@@ -324,10 +324,15 @@ function VizualizareScreen() {
     // Breadcrumbs: Acasă / [categorie sau tip] / [titlu]. Segmentul de categorie
     // duce la lista categoriei respective; ultimul (titlul) nu e clickabil.
     const crumbCategory = (category as string) || (tipPagina as string);
+    const TIP_LABELS: Record<string, string> = {
+        "Facultate": t('common.faculty'),
+        "Facilitate": t('common.facility'),
+    };
+    const crumbLabel = TIP_LABELS[crumbCategory] || crumbCategory;
     const crumbs: Crumb[] = [
         { label: t('common.home'), href: "/(public)/acasa" },
         ...(crumbCategory
-            ? [{ label: crumbCategory, href: `/(public)/acasa/categorie?title=${encodeURIComponent(crumbCategory)}` }]
+            ? [{ label: crumbLabel, href: `/(public)/acasa/categorie?title=${encodeURIComponent(crumbCategory)}` }]
             : []),
         { label: (title as string) || t('common.unknownTitle') },
     ];
@@ -389,7 +394,7 @@ function VizualizareScreen() {
                                 <CategoryTag category={category} />
                             ) : (
                                 <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
-                                    {category || (tipPagina === "Facultate" ? "Facultate" : "Categorie")}
+                                    {category || TIP_LABELS[tipPagina] || t('common.category')}
                                 </Text>
                             )}
                             <Text

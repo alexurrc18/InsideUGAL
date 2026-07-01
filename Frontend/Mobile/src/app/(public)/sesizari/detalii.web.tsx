@@ -12,7 +12,7 @@ import { CAROUSEL_CARD_MARGIN } from "@/components/ui/display/carousel/carousel.
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import { WebContainer } from "@/components/ui/layout/web-container";
 import { Breadcrumbs } from "@/components/ui/navigation/breadcrumbs";
-import api, { storage, resolveImageUrl } from "@/services/api";
+import api, { resolveImageUrl } from "@/services/api";
 import { ErrorState } from "@/components/ui/display/error-state";
 import { useTranslation } from 'react-i18next';
 
@@ -67,17 +67,12 @@ export default function SesizareDetaliiScreen() {
         setLoading(true);
         setError(null);
         
-        // 1. Fetch locations for mapping (using cached first)
+        // 1. Fetch locations for mapping
         let locationsData: any[] = [];
-        const cachedLocs = await storage.getItem('cached_facilities');
-        if (cachedLocs) {
-          locationsData = JSON.parse(cachedLocs);
-        }
         try {
           const locsRes = await api.get('/locations/', { params: { page: 1, size: 50 } });
           if (locsRes.data?.items) {
             locationsData = locsRes.data.items;
-            await storage.setItem('cached_facilities', JSON.stringify(locsRes.data.items));
           }
         } catch (locError) {
           console.warn('[API] Could not fetch fresh locations for complaint detail web:', locError);

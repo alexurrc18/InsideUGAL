@@ -22,7 +22,7 @@ import { useTranslation } from "react-i18next";
 import { CompactCard } from "@/components/ui/display/home-highlights";
 import { NewsCard, CategoryTag } from "@/components/ui/display/news-card";
 import { eventHref, anuntHref } from "@/utils/article-url";
-import api, { storage } from "@/services/api";
+import api from "@/services/api";
 
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
 import LocationIcon from "@/assets/icons/svg/location.svg";
@@ -79,7 +79,7 @@ export function ArticleDetail({
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { width } = useWindowDimensions();
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const twoCol = width >= TWO_COL_BREAKPOINT;
 
     const tipPagina = type || "Eveniment";
@@ -90,18 +90,9 @@ export function ArticleDetail({
         let isMounted = true;
         const loadRelated = async () => {
             try {
-                let cachedStr = await storage.getItem('cached_announcements');
-                let items = [];
-                if (cachedStr) {
-                    items = JSON.parse(cachedStr);
-                } else {
-                    const res = await api.get('/announcements/', { params: { page: 1, size: 20 } });
-                    if (res.data?.items) {
-                        items = res.data.items;
-                    }
-                }
-                if (isMounted) {
-                    setRelatedPool(items);
+                const res = await api.get('/announcements/', { params: { page: 1, size: 20, lang: i18n.language } });
+                if (res.data?.items && isMounted) {
+                    setRelatedPool(res.data.items);
                 }
             } catch (err) {
                 console.warn('[ArticleDetail] Error loading related announcements:', err);
@@ -111,7 +102,7 @@ export function ArticleDetail({
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [i18n.language]);
 
     // Anunturi inrudite: prioritizam aceeasi categorie ca articolul curent, apoi
     // completam cu restul. Excludem articolul curent (dupa titlu). Sidebar-ul ia
@@ -121,17 +112,17 @@ export function ArticleDetail({
         .map((item: any) => ({
             id: item.id.toString(),
             type: item.type === "NOUTATE" ? "Anunț" : "Eveniment",
-            title: item.title || "Titlu necunoscut",
+            title: (i18n.language !== 'ro' && item.is_translated ? item.translated_title : null) || item.title || t('common.unknownTitle'),
             category: item.type === "NOUTATE" ? t('home.news') : t('home.events'),
-            content: item.content || "Conținut necunoscut",
+            content: (i18n.language !== 'ro' && item.is_translated ? item.translated_content : null) || item.content || t('common.unknownContent'),
             image: item.image_url || "",
-            location: item.location_name || "Locație necunoscută",
+            location: item.location_name || t('common.unknownLocation'),
             date_start: isoToRomanianDateStr(item.start_date) || "",
             date_end: isoToRomanianDateStr(item.end_date) || "",
             time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
             time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
             posted_at: isoToRomanianDateStr(item.created_at) || "",
-            date: isoToRomanianDateStr(item.start_date) || "Dată necunoscută",
+            date: isoToRomanianDateStr(item.start_date) || t('common.unknownDate'),
             author: item.author_name || "",
             created_at: item.created_at,
             updated_at: item.updated_at,

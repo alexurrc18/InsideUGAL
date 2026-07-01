@@ -23,7 +23,7 @@ import { CategoryHeader } from "@/components/ui/display/category-header";
 import { WebContainer, WEB_COMPACT_BREAKPOINT } from "@/components/ui/layout/web-container";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { Seo } from "@/components/seo";
-import api, { storage } from "@/services/api";
+import api from "@/services/api";
 import { ErrorState } from "@/components/ui/display/error-state";
 import { useNavigation } from "expo-router";
 import { useTranslation } from 'react-i18next';
@@ -100,16 +100,6 @@ export default function HartaScreen() {
     async function loadData() {
       try {
         if (active) setHasError(false);
-        // Load cached data first for immediate render
-        const [cachedFacs, cachedLocs] = await Promise.all([
-          storage.getItem('cached_faculties'),
-          storage.getItem('cached_facilities'),
-        ]);
-
-        if (active) {
-          if (cachedFacs) setFaculties(JSON.parse(cachedFacs));
-          if (cachedLocs) setLocations(JSON.parse(cachedLocs));
-        }
 
         // Fetch fresh data from API
         const [facsRes, locsRes] = await Promise.all([
@@ -120,11 +110,9 @@ export default function HartaScreen() {
         if (active) {
           if (facsRes.data?.items) {
             setFaculties(facsRes.data.items);
-            await storage.setItem('cached_faculties', JSON.stringify(facsRes.data.items));
           }
           if (locsRes.data?.items) {
             setLocations(locsRes.data.items);
-            await storage.setItem('cached_facilities', JSON.stringify(locsRes.data.items));
           }
         }
       } catch (err) {

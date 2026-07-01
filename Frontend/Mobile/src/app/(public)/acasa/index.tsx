@@ -274,10 +274,10 @@ export default function HomeScreen() {
     });
   };
 
-  const activeNoutati = noutati;
-  const activeEvenimente = evenimente;
-  const activeFacultati = facultati;
-  const activeFacilitati = facilitati;
+  const activeNoutati = noutati.slice(0, 3);
+  const activeEvenimente = evenimente.slice(0, 3);
+  const activeFacultati = facultati.slice(0, 3);
+  const activeFacilitati = facilitati.slice(0, 3);
 
   const isPageEmpty = noutati.length === 0 && evenimente.length === 0 && facultati.length === 0 && facilitati.length === 0;
 
