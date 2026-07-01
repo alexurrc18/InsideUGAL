@@ -33,6 +33,7 @@ manage_announcements_with_token = require_roles_with_token(
 )
 
 LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://llm:8000")
+LLM_TRANSLATION_TIMEOUT_SECONDS = float(os.getenv("LLM_TRANSLATION_TIMEOUT_SECONDS", "120"))
 
 
 async def ensure_translation_cache_table(session: AsyncSession) -> None:
@@ -72,7 +73,8 @@ async def ensure_translation_cache_table(session: AsyncSession) -> None:
 
 
 async def fetch_translation_from_llm(title: str, content: str, target_language: str) -> tuple[str, str]:
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    timeout = httpx.Timeout(LLM_TRANSLATION_TIMEOUT_SECONDS, connect=10.0)
+    async with httpx.AsyncClient(timeout=timeout) as client:
         resp = await client.post(
             f"{LLM_SERVICE_URL}/translate/announcement",
             json={
@@ -93,8 +95,8 @@ async def translate_announcement_if_needed(
 ) -> models.Announcement:
     translation = await repo.get_translation(session, announcement.id, language_code)
     if translation:
-        announcement.title = translation.translated_title
-        announcement.content = translation.translated_content
+        announcement.translated_title = translation.translated_title
+        announcement.translated_content = translation.translated_content
         announcement.is_translated = True
         return announcement
 
@@ -130,8 +132,8 @@ async def translate_announcement_if_needed(
             detail="Serviciul LLM nu este disponibil pentru traducere.",
         ) from exc
 
-    announcement.title = translated_title
-    announcement.content = translated_content
+    announcement.translated_title = translated_title
+    announcement.translated_content = translated_content
     announcement.is_translated = True
     return announcement
 

@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_roles
+from app.api.model_translation_cache import FACULTY_TRANSLATION, translate_with_model_cache
 from app.api.pagination import PaginationParams, paginated_response
-from app.api.translation_utils import translate_payload
 from app.db.database import get_db
 from app.models import schemas
 from app.repositories.faculty_repo import FacultyRepository
@@ -20,7 +20,7 @@ async def read_faculties(
     session: AsyncSession = Depends(get_db),
 ):
     items, total = await repo.get_page(session, limit=pagination.size, offset=pagination.offset)
-    items = await translate_payload(items, lang)
+    items = await translate_with_model_cache(items, lang, session, FACULTY_TRANSLATION)
     return paginated_response(items, total, pagination)
 
 
@@ -33,7 +33,7 @@ async def read_faculty(
     faculty = await repo.get_by_id(session, faculty_id)
     if not faculty:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Faculty not found.")
-    return await translate_payload(faculty, lang)
+    return await translate_with_model_cache(faculty, lang, session, FACULTY_TRANSLATION)
 
 
 @router.post("/", response_model=schemas.FacultyResponse, status_code=status.HTTP_201_CREATED)

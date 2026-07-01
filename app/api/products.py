@@ -2,8 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_roles
+from app.api.model_translation_cache import (
+    PRODUCT_CATEGORY_TRANSLATION,
+    PRODUCT_TRANSLATION,
+    translate_with_model_cache,
+)
 from app.api.pagination import PaginationParams, paginated_response
-from app.api.translation_utils import translate_payload
 from app.db.database import get_db
 from app.models import schemas
 from app.repositories.product_repo import ProductRepository
@@ -17,6 +21,19 @@ manage_products = require_roles(
 )
 
 
+async def translate_product_response(payload, lang: str, session: AsyncSession):
+    payload = await translate_with_model_cache(payload, lang, session, PRODUCT_TRANSLATION)
+    items = payload if isinstance(payload, list) else [payload]
+    categories = [
+        item.get("category")
+        for item in items
+        if isinstance(item, dict) and isinstance(item.get("category"), dict)
+    ]
+    if categories:
+        await translate_with_model_cache(categories, lang, session, PRODUCT_CATEGORY_TRANSLATION)
+    return payload
+
+
 @router.get("/", response_model=schemas.PaginatedResponse[schemas.ProductResponse])
 async def read_products(
     lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
@@ -24,7 +41,7 @@ async def read_products(
     session: AsyncSession = Depends(get_db),
 ):
     items, total = await repo.get_page(session, limit=pagination.size, offset=pagination.offset)
-    items = await translate_payload(items, lang)
+    items = await translate_product_response(items, lang, session)
     return paginated_response(items, total, pagination)
 
 
@@ -37,7 +54,7 @@ async def read_product(
     product = await repo.get_by_id(session, product_id)
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found.")
-    return await translate_payload(product, lang)
+    return await translate_product_response(product, lang, session)
 
 
 @router.post("/", response_model=schemas.ProductResponse, status_code=status.HTTP_201_CREATED)

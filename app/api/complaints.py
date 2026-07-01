@@ -10,8 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import get_current_user_with_token, get_current_profile, is_role, get_current_user
 from app.api.crud import ensure_exists
+from app.api.model_translation_cache import COMPLAINT_TRANSLATION, translate_with_model_cache
 from app.api.pagination import PaginationParams, paginated_response
-from app.api.translation_utils import translate_payload
 from app.db.database import get_db
 from app.models import models, schemas
 from app.repositories.complaint_repo import ComplaintRepository
@@ -50,7 +50,7 @@ async def read_complaints(
         location_id=location_id,
         user_id=user_id,
     )
-    items = await translate_payload(items, lang)
+    items = await translate_with_model_cache(items, lang, session, COMPLAINT_TRANSLATION)
     return paginated_response(items, total, pagination)
 
 
@@ -66,7 +66,7 @@ async def read_complaint(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Complaint not found.")
     if complaint.user_id != str(profile.id) and not is_role(profile, staff_roles):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Nu ai permisiuni suficiente.")
-    return await translate_payload(complaint, lang)
+    return await translate_with_model_cache(complaint, lang, session, COMPLAINT_TRANSLATION)
 
 
 @router.post("/", response_model=schemas.ComplaintResponse, status_code=status.HTTP_201_CREATED)

@@ -3,8 +3,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_roles
+from app.api.model_translation_cache import (
+    PRODUCT_CATEGORY_TRANSLATION,
+    PRODUCT_TRANSLATION,
+    translate_with_model_cache,
+)
 from app.api.pagination import PaginationParams, paginated_response
-from app.api.translation_utils import translate_payload
 from app.db.database import get_db
 from app.models import schemas
 from app.repositories.daily_menu_repo import DailyMenuRepository
@@ -12,6 +16,27 @@ from app.repositories.daily_menu_repo import DailyMenuRepository
 router = APIRouter(prefix="/daily-menus", tags=["DailyMenus"])
 repo = DailyMenuRepository()
 manage_menus = require_roles(schemas.UserRole.HEAD_ADMIN, schemas.UserRole.HEAD_CANTINA)
+
+
+async def translate_daily_menu_response(payload, lang: str, session: AsyncSession):
+    items = payload if isinstance(payload, list) else [payload]
+    products = [
+        product
+        for item in items
+        if isinstance(item, dict)
+        for product in item.get("products", [])
+        if isinstance(product, dict)
+    ]
+    if products:
+        await translate_with_model_cache(products, lang, session, PRODUCT_TRANSLATION)
+        categories = [
+            product.get("category")
+            for product in products
+            if isinstance(product.get("category"), dict)
+        ]
+        if categories:
+            await translate_with_model_cache(categories, lang, session, PRODUCT_CATEGORY_TRANSLATION)
+    return payload
 
 
 @router.get("/", response_model=schemas.PaginatedResponse[schemas.DailyMenuResponse])
@@ -27,7 +52,11 @@ async def read_daily_menus(
         offset=pagination.offset,
         day_of_week=day_of_week,
     )
-    items = await translate_payload(items, lang)
+    items = [
+        schemas.DailyMenuResponse.model_validate(item).model_dump(mode="json")
+        for item in items
+    ]
+    items = await translate_daily_menu_response(items, lang, session)
     return paginated_response(items, total, pagination)
 
 
@@ -40,7 +69,8 @@ async def read_daily_menu(
     menu = await repo.get_by_id(session, menu_id)
     if not menu:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Daily menu not found.")
-    return await translate_payload(menu, lang)
+    menu_response = schemas.DailyMenuResponse.model_validate(menu).model_dump(mode="json")
+    return await translate_daily_menu_response(menu_response, lang, session)
 
 
 @router.post("/", response_model=schemas.DailyMenuResponse, status_code=status.HTTP_201_CREATED)

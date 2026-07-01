@@ -4,8 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_roles
 from app.api.crud import ensure_exists
+from app.api.model_translation_cache import LOCATION_TRANSLATION, translate_with_model_cache
 from app.api.pagination import PaginationParams, paginated_response
-from app.api.translation_utils import translate_payload
 from app.db.database import get_db
 from app.models import models, schemas
 from app.repositories.location_repo import LocationRepository
@@ -34,7 +34,7 @@ async def read_locations(
     session: AsyncSession = Depends(get_db),
 ):
     items, total = await repo.get_page_for_response(session, limit=pagination.size, offset=pagination.offset)
-    items = await translate_payload(items, lang)
+    items = await translate_with_model_cache(items, lang, session, LOCATION_TRANSLATION)
     return paginated_response(items, total, pagination)
 
 
@@ -47,7 +47,7 @@ async def read_location(
     location = await repo.get_response_by_id(session, location_id)
     if not location:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Location not found.")
-    return await translate_payload(location, lang)
+    return await translate_with_model_cache(location, lang, session, LOCATION_TRANSLATION)
 
 
 @router.post("/", response_model=schemas.LocationResponse, status_code=status.HTTP_201_CREATED)

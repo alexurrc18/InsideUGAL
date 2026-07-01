@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from app.api.auth_deps import require_roles, get_current_profile
+from app.api.model_translation_cache import NOTIFICATION_TRANSLATION, translate_with_model_cache
 from app.api.pagination import PaginationParams, paginated_response
-from app.api.translation_utils import translate_payload
 from app.db.database import get_db
 from app.models.models import Profile, PushToken
 from app.models.schemas import NotificationCreate, NotificationResponse, PaginatedResponse, UserRole
@@ -87,7 +87,7 @@ async def read_notifications(
         offset=pagination.offset,
         faculty_id=faculty_id,
     )
-    items = await translate_payload(items, lang)
+    items = await translate_with_model_cache(items, lang, db, NOTIFICATION_TRANSLATION)
     return paginated_response(items, total, pagination)
 
 
@@ -104,5 +104,5 @@ async def read_my_notifications(
         limit=pagination.size,
         offset=pagination.offset,
     )
-    items = await translate_payload(items, lang)
+    items = await translate_with_model_cache(items, lang, db, NOTIFICATION_TRANSLATION)
     return paginated_response(items, total, pagination)

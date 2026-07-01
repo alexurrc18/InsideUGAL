@@ -3,8 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_roles
 from app.api.crud import ensure_exists
+from app.api.model_translation_cache import (
+    CITY_GUIDE_CATEGORY_TRANSLATION,
+    CITY_GUIDE_ITEM_TRANSLATION,
+    translate_with_model_cache,
+)
 from app.api.pagination import PaginationParams, paginated_response
-from app.api.translation_utils import translate_payload
 from app.db.database import get_db
 from app.models import models, schemas
 from app.repositories.city_guide_repo import CityGuideCategoryRepository, CityGuideItemRepository
@@ -13,6 +17,19 @@ router = APIRouter(prefix="/city-guide", tags=["City Guide"])
 category_repo = CityGuideCategoryRepository()
 item_repo = CityGuideItemRepository()
 manage_city_guide = require_roles(schemas.UserRole.HEAD_ADMIN)
+
+
+async def translate_city_guide_items(payload, lang: str, session: AsyncSession):
+    payload = await translate_with_model_cache(payload, lang, session, CITY_GUIDE_ITEM_TRANSLATION)
+    items = payload if isinstance(payload, list) else [payload]
+    categories = [
+        item.get("category")
+        for item in items
+        if isinstance(item, dict) and isinstance(item.get("category"), dict)
+    ]
+    if categories:
+        await translate_with_model_cache(categories, lang, session, CITY_GUIDE_CATEGORY_TRANSLATION)
+    return payload
 
 
 async def validate_category(category_id: str | None, session: AsyncSession) -> None:
@@ -32,7 +49,7 @@ async def read_city_guide_categories(
     session: AsyncSession = Depends(get_db),
 ):
     items, total = await category_repo.get_page(session, limit=pagination.size, offset=pagination.offset)
-    items = await translate_payload(items, lang)
+    items = await translate_with_model_cache(items, lang, session, CITY_GUIDE_CATEGORY_TRANSLATION)
     return paginated_response(items, total, pagination)
 
 
@@ -90,7 +107,7 @@ async def read_city_guide_items(
         )
     else:
         items, total = await item_repo.get_page(session, limit=pagination.size, offset=pagination.offset)
-    items = await translate_payload(items, lang)
+    items = await translate_city_guide_items(items, lang, session)
     return paginated_response(items, total, pagination)
 
 

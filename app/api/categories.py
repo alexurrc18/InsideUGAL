@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_admin
+from app.api.model_translation_cache import CATEGORY_TRANSLATION, translate_with_model_cache
 from app.api.pagination import PaginationParams, paginated_response
-from app.api.translation_utils import translate_payload
 from app.db.database import get_db
 from app.models import schemas
 from app.repositories.category_repo import CategoryRepository
@@ -19,7 +19,7 @@ async def read_categories(
     session: AsyncSession = Depends(get_db),
 ):
     items, total = await repo.get_page(session, limit=pagination.size, offset=pagination.offset)
-    items = await translate_payload(items, lang)
+    items = await translate_with_model_cache(items, lang, session, CATEGORY_TRANSLATION)
     return paginated_response(items, total, pagination)
 
 
@@ -32,7 +32,7 @@ async def read_category(
     category = await repo.get_by_id(session, category_id)
     if not category:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found.")
-    return await translate_payload(category, lang)
+    return await translate_with_model_cache(category, lang, session, CATEGORY_TRANSLATION)
 
 
 @router.post("/", response_model=schemas.CategoryResponse, status_code=status.HTTP_201_CREATED)
