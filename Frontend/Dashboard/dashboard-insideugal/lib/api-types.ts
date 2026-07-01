@@ -5,13 +5,17 @@ import type {
   courseSchema,
   enrollmentSchema,
   facultySchema,
+  notificationSchema,
+  profileSchema,
   professorSchema,
   studentSchema,
   userSchema,
 } from "./api-schemas";
 
 export type User = z.infer<typeof userSchema>;
+export type ApiNotification = z.infer<typeof notificationSchema>;
 export type Faculty = z.infer<typeof facultySchema>;
+export type Profile = z.infer<typeof profileSchema>;
 export type Student = z.infer<typeof studentSchema>;
 export type Professor = z.infer<typeof professorSchema>;
 export type Course = z.infer<typeof courseSchema>;
