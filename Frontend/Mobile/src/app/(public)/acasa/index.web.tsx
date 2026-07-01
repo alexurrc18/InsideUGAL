@@ -356,7 +356,7 @@ export default function HomeScreen() {
             ) : (
               <Carousel
                 title={t('home.faculties')}
-                data={activeFacultati.slice(0, 3)}
+                data={activeFacultati}
                 keyExtractor={(item) => item.id}
                 viewAllHref="/(public)/acasa/categorie?title=Facultăți"
                 renderItem={({ item, index }) => (
@@ -364,7 +364,7 @@ export default function HomeScreen() {
                     variant="square"
                     title={item.title}
                     image={item.image}
-                    marginRight={index === Math.min(activeFacultati.length, 3) - 1 ? 0 : CAROUSEL_CARD_MARGIN}
+                    marginRight={index === activeFacultati.length - 1 ? 0 : CAROUSEL_CARD_MARGIN}
                     onPress={() => handleFacultyPress(item)}
                   />
                 )}
@@ -383,7 +383,7 @@ export default function HomeScreen() {
             ) : (
               <Carousel
                 title={t('home.facilities')}
-                data={activeFacilitati.slice(0, 3)}
+                data={activeFacilitati}
                 keyExtractor={(item) => item.id}
                 viewAllHref="/(public)/acasa/categorie?title=Facilități"
                 renderItem={({ item, index }) => (
@@ -391,7 +391,7 @@ export default function HomeScreen() {
                     variant="square"
                     title={item.title}
                     image={item.image}
-                    marginRight={index === Math.min(activeFacilitati.length, 3) - 1 ? 0 : CAROUSEL_CARD_MARGIN}
+                    marginRight={index === activeFacilitati.length - 1 ? 0 : CAROUSEL_CARD_MARGIN}
                     onPress={() => handleFacilityPress(item)}
                   />
                 )}
