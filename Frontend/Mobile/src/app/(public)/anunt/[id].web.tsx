@@ -9,6 +9,7 @@ import { parseEventId, allAnuntParams } from "@/utils/article-url";
 import api from "@/services/api";
 import { isoToRomanianDateStr } from "@/utils/date";
 import { Colors, Spacing } from "@/constants/theme";
+import { useTranslation } from "react-i18next";
 
 // Pre-generează paginile la build
 export function generateStaticParams() {
@@ -16,6 +17,7 @@ export function generateStaticParams() {
 }
 
 export default function AnuntScreen() {
+    const { t } = useTranslation();
     const params = useLocalSearchParams();
     const id = parseEventId(params.id);
     const [item, setItem] = useState<any>(null);
@@ -90,7 +92,7 @@ export default function AnuntScreen() {
             <ArticleDetail
                 type="Anunț"
                 title={title}
-                category="Noutăți"
+                category={t('home.news')}
                 content={content}
                 image={image}
                 date={date}

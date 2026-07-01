@@ -393,6 +393,11 @@ function cleanErrorMessage(detail: string | undefined, defaultMsg: string, statu
     }
   }
 
+  // Server-side errors are not auth errors
+  if (status && status >= 500) {
+    return "Serverul este temporar indisponibil. Vă rugăm să reîncercați mai târziu.";
+  }
+
   // Fallback for technical strings containing raw supabase or json information
   if (lowerMsg.includes("supabase") || lowerMsg.includes("{") || lowerMsg.includes("status_code")) {
     return "A apărut o eroare de autentificare. Vă rugăm să reîncercați.";

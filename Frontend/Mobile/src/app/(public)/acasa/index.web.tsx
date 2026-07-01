@@ -177,9 +177,9 @@ export default function HomeScreen() {
     {
       id: "default_hero",
       title: "InsideUGAL",
-      category: "Universitate",
+      category: t('common.university'),
       date: getTodayRomanianDate(),
-      author: "Platforma ta universitară",
+      author: t('common.universityPlatform'),
       image: null
     }
   ];
@@ -197,11 +197,11 @@ export default function HomeScreen() {
   const handlePress = (item: any) => {
     if (item.id === "default_hero") return;
     // Evenimentele si anunturile au URL curat; restul raman pe vizualizare.
-    if (item.category === "Evenimente") {
+    if (item.category === t('home.events')) {
         router.push(eventHref(item) as any);
         return;
     }
-    if (item.category === "Noutăți") {
+    if (item.category === t('home.news')) {
         router.push(anuntHref(item) as any);
         return;
     }

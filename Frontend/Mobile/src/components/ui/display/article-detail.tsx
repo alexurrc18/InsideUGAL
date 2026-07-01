@@ -122,7 +122,7 @@ export function ArticleDetail({
             id: item.id.toString(),
             type: item.type === "NOUTATE" ? "Anunț" : "Eveniment",
             title: item.title || "Titlu necunoscut",
-            category: item.type === "NOUTATE" ? "Noutăți" : "Evenimente",
+            category: item.type === "NOUTATE" ? t('home.news') : t('home.events'),
             content: item.content || "Conținut necunoscut",
             image: item.image_url || "",
             location: item.location_name || "Locație necunoscută",
@@ -157,18 +157,18 @@ export function ArticleDetail({
 
     // Navigare catre alt articol. Evenimentele si anunturile au URL curat.
     const openItem = (item: any) => {
-        if (item.category === "Evenimente") {
+        if (item.category === t('home.events')) {
             router.push(eventHref(item) as any);
             return;
         }
-        if (item.category === "Noutăți") {
+        if (item.category === t('home.news')) {
             router.push(anuntHref(item) as any);
             return;
         }
         router.push({
             pathname: "/(public)/acasa/vizualizare",
             params: {
-                type: item.category === "Evenimente" ? "Eveniment" : "Anunț",
+                type: item.category === t('home.events') ? "Eveniment" : "Anunț",
                 title: item.title,
                 category: item.category,
                 content: item.content,
@@ -191,7 +191,7 @@ export function ArticleDetail({
 
     const formattedDate = getFormattedDate(date || posted_at);
     const readingTime = getReadingTime(content);
-    const dateDisplay = category === "Noutăți" ? `${formattedDate} | ${readingTime}` : formattedDate;
+    const dateDisplay = category === t('home.news') ? `${formattedDate} | ${readingTime}` : formattedDate;
 
     // Breadcrumbs: Acasă / [categorie sau tip] / [titlu]. Segmentul de categorie
     // duce la lista categoriei respective; ultimul (titlul) nu e clickabil.

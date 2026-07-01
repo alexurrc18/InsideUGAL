@@ -17,9 +17,11 @@ import { Seo } from "@/components/seo";
 import { eventHref, anuntHref } from "@/utils/article-url";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import api from "@/services/api";
+import { useTranslation } from "react-i18next";
 
 export default function CategoryScreen() {
   const { title: categoryTitle } = useLocalSearchParams();
+  const { t } = useTranslation();
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
@@ -36,9 +38,15 @@ export default function CategoryScreen() {
   const [hasError, setHasError] = useState(false);
   const [faculties, setFaculties] = useState<any[]>([]);
 
+  const categoryLabel = categoryTitle === "Noutăți" ? t('home.news')
+    : categoryTitle === "Evenimente" ? t('home.events')
+    : categoryTitle === "Facultăți" ? t('home.faculties')
+    : categoryTitle === "Facilități" ? t('home.facilities')
+    : (categoryTitle as string) || t('category.fallback');
+
   const crumbs: Crumb[] = [
-    { label: "Acasă", href: "/(public)/acasa" },
-    { label: (categoryTitle as string) || "Categorie" }
+    { label: t('common.home'), href: "/(public)/acasa" },
+    { label: categoryLabel }
   ];
 
   // Fetch faculties list for filter options

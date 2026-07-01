@@ -75,7 +75,10 @@
     "attachedFiles": "Fișiere atașate",
     "noItems": "Nu există elemente în această categorie.",
     "loading": "Se încarcă...",
-    "errorTitle": "Ups! A intervenit o eroare..."
+    "errorTitle": "Ups! A intervenit o eroare...",
+    "viewAll": "Vezi mai multe",
+    "university": "Universitate",
+    "universityPlatform": "Platforma ta universitară"
   },
   "days": {
     "1": "Luni",

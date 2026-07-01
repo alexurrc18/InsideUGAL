@@ -175,7 +175,7 @@ export default function SesizareDetaliiScreen() {
             <View style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm }}>
               <Breadcrumbs 
                 items={[
-                  { label: "Acasă", href: "/(public)/acasa" },
+                  { label: t('common.home'), href: "/(public)/acasa" },
                   { label: "Sesizări", href: "/(public)/sesizari" },
                   { label: "Încărcare..." }
                 ]} 
@@ -205,7 +205,7 @@ export default function SesizareDetaliiScreen() {
             <View style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm }}>
               <Breadcrumbs 
                 items={[
-                  { label: "Acasă", href: "/(public)/acasa" },
+                  { label: t('common.home'), href: "/(public)/acasa" },
                   { label: "Sesizări", href: "/(public)/sesizari" },
                   { label: "Eroare" }
                 ]} 
@@ -237,7 +237,7 @@ export default function SesizareDetaliiScreen() {
           <View style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm }}>
             <Breadcrumbs 
               items={[
-                { label: "Acasă", href: "/(public)/acasa" },
+                { label: t('common.home'), href: "/(public)/acasa" },
                 { label: "Sesizări", href: "/(public)/sesizari" },
                 { label: title || "Detalii sesizare" }
               ]} 

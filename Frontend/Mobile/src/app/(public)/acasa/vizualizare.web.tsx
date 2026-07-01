@@ -278,7 +278,7 @@ function VizualizareScreen() {
             pathname: "/(public)/acasa/vizualizare",
             params: {
                 id: item.id,
-                type: item.category === "Evenimente" ? "Eveniment" : "Anunț",
+                type: item.category === t('home.events') ? "Eveniment" : "Anunț",
             },
         });
     };
@@ -289,13 +289,13 @@ function VizualizareScreen() {
         }
     };
 
-    const displayDateValue = category === "Noutăți"
-        ? (posted_at && posted_at !== "Dată necunoscută" ? posted_at : "")
-        : (date && date !== "Dată necunoscută" ? date : posted_at);
+    const displayDateValue = category === t('home.news')
+        ? (posted_at && posted_at !== t('common.unknownDate') ? posted_at : "")
+        : (date && date !== t('common.unknownDate') ? date : posted_at);
 
     const formattedDate = getFormattedDate(displayDateValue as string);
     const readingTime = getReadingTime(content as string);
-    const dateDisplay = category === "Noutăți" ? (formattedDate ? `${formattedDate} | ${readingTime}` : "Dată necunoscută") : (formattedDate || t('common.unknownDate'));
+    const dateDisplay = category === t('home.news') ? (formattedDate ? `${formattedDate} | ${readingTime}` : t('common.unknownDate')) : (formattedDate || t('common.unknownDate'));
 
     const createdTime = itemData?.created_at ? new Date(itemData.created_at).getTime() : 0;
     const updatedTime = itemData?.updated_at ? new Date(itemData.updated_at).getTime() : 0;

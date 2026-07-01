@@ -75,7 +75,10 @@
     "attachedFiles": "Attached files",
     "noItems": "No items in this category.",
     "loading": "Loading...",
-    "errorTitle": "Oops! Something went wrong..."
+    "errorTitle": "Oops! Something went wrong...",
+    "viewAll": "View all",
+    "university": "University",
+    "universityPlatform": "Your university platform"
   },
   "days": {
     "1": "Monday",

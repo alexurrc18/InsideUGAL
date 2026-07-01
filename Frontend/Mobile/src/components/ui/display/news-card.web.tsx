@@ -5,6 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Typography } from "@/constants/typography";
 import { Colors, Spacing, ColorScheme } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTranslation } from "react-i18next";
 
 const DEFAULT_IMAGE = require("@/assets/images/campus-stiintei.png");
 
@@ -22,7 +23,8 @@ export interface NewsCardProps {
 }
 
 export function CategoryTag({ category }: { category: string }) {
-    const isEvent = category === "Evenimente";
+    const { t } = useTranslation();
+    const isEvent = category === t('home.events');
     return (
         <View style={{
             alignSelf: "flex-start",
@@ -113,12 +115,14 @@ export function NewsCard({
                 })}
                 {...(Platform.OS === "web" ? ({ dataSet: { card: "true" } } as any) : {})}
             >
-                <Image
-                    source={cardImage}
-                    accessibilityLabel={title}
-                    style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, zIndex: 1 }}
-                    contentFit="cover"
-                />
+                <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, zIndex: 1, overflow: "hidden" }}>
+                    <Image
+                        source={cardImage}
+                        accessibilityLabel={title}
+                        style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
+                        contentFit="cover"
+                    />
+                </View>
 
                 <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, zIndex: 2 }}>
                     <LinearGradient
@@ -157,11 +161,13 @@ export function NewsCard({
             })}
             {...(Platform.OS === "web" ? ({ dataSet: { card: "true" } } as any) : {})}
         >
-            <Image
-                source={cardImage}
-                style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, zIndex: 1 }}
-                contentFit="cover"
-            />
+            <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, zIndex: 1, overflow: "hidden" }}>
+                <Image
+                    source={cardImage}
+                    style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
+                    contentFit="cover"
+                />
+            </View>
 
             <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, zIndex: 2 }}>
                 <LinearGradient

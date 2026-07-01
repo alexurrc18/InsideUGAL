@@ -100,12 +100,12 @@ export default function HomeScreen() {
           if (cached) {
             const apiItems = JSON.parse(cached);
             setNoutati(apiItems.filter((i: any) => i.type === "NOUTATE").map((i: any) => ({
-              id: i.id.toString(), title: i.title || "Titlu necunoscut", category: "Noutăți",
+              id: i.id.toString(), title: i.title || t('common.unknownTitle'), category: t('home.news'),
               date: isoToRomanianDateStr(i.created_at) || "Dată necunoscută", author: i.author_name || "",
               image: i.image_url || undefined, content: i.content || "Conținut necunoscut", created_at: i.created_at,
             })));
             setEvenimente(apiItems.filter((i: any) => i.type === "EVENIMENT").map((i: any) => ({
-              id: i.id.toString(), title: i.title || "Titlu necunoscut", category: "Evenimente",
+              id: i.id.toString(), title: i.title || t('common.unknownTitle'), category: t('home.events'),
               date: isoToRomanianDateStr(i.created_at) || "Dată necunoscută",
               date_start: isoToRomanianDateStr(i.start_date) || "", date_end: isoToRomanianDateStr(i.end_date) || "",
               time_start: i.start_date ? new Date(i.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
@@ -230,16 +230,16 @@ export default function HomeScreen() {
     .slice(0, 3)
     .map(item => ({
       ...item,
-      category: item.category || "Noutăți"
+      category: item.category || t('home.news')
     }));
 
   const heroItems = announcementsForHero.length > 0 ? announcementsForHero : [
     {
       id: "default_hero",
       title: "InsideUGAL",
-      category: "Universitate",
+      category: t('common.university'),
       date: getTodayRomanianDate(),
-      author: "Platforma ta universitară",
+      author: t('common.universityPlatform'),
       image: null
     }
   ];

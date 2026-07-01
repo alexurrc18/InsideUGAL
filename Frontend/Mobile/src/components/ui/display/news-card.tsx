@@ -5,6 +5,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Typography } from "@/constants/typography";
 import { Colors, Spacing, ColorScheme } from "@/constants/theme";
+import { useTranslation } from "react-i18next";
 
 
 const DEFAULT_IMAGE = require("@/assets/images/campus-stiintei.png");
@@ -23,7 +24,8 @@ export interface NewsCardProps {
 }
 
 export function CategoryTag({ category }: { category: string }) {
-    const isEvent = category === "Evenimente";
+    const { t } = useTranslation();
+    const isEvent = category === t('home.events');
     return (
         <View style={{
             alignSelf: "flex-start",

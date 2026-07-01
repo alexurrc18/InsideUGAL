@@ -9,6 +9,7 @@ import { parseEventId, allEventParams } from "@/utils/article-url";
 import api from "@/services/api";
 import { isoToRomanianDateStr } from "@/utils/date";
 import { Colors, Spacing } from "@/constants/theme";
+import { useTranslation } from "react-i18next";
 
 // Pre-generează paginile la build
 export function generateStaticParams() {
@@ -16,6 +17,7 @@ export function generateStaticParams() {
 }
 
 export default function EvenimentScreen() {
+    const { t } = useTranslation();
     const params = useLocalSearchParams();
     const id = parseEventId(params.id);
     const [ev, setEv] = useState<any>(null);
@@ -98,7 +100,7 @@ export default function EvenimentScreen() {
             <ArticleDetail
                 type="Eveniment"
                 title={title}
-                category="Evenimente"
+                category={t('home.events')}
                 content={content}
                 image={image}
                 location={location}
