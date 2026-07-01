@@ -1,13 +1,14 @@
 import logging
 from typing import List
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from app.api.auth_deps import require_roles, get_current_profile
 from app.api.pagination import PaginationParams, paginated_response
+from app.api.translation_utils import translate_payload
 from app.db.database import get_db
 from app.models.models import Profile, PushToken
 from app.models.schemas import NotificationCreate, NotificationResponse, PaginatedResponse, UserRole
@@ -75,6 +76,7 @@ async def send_notification(
 @router.get("/", response_model=PaginatedResponse[NotificationResponse])
 async def read_notifications(
     faculty_id: int | None = None,
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
     pagination: PaginationParams = Depends(),
     db: AsyncSession = Depends(get_db),
     profile: Profile = Depends(require_roles(UserRole.HEAD_ADMIN)),
@@ -85,11 +87,13 @@ async def read_notifications(
         offset=pagination.offset,
         faculty_id=faculty_id,
     )
+    items = await translate_payload(items, lang)
     return paginated_response(items, total, pagination)
 
 
 @router.get("/me", response_model=PaginatedResponse[NotificationResponse])
 async def read_my_notifications(
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
     pagination: PaginationParams = Depends(),
     db: AsyncSession = Depends(get_db),
     profile: Profile = Depends(get_current_profile),
@@ -100,4 +104,5 @@ async def read_my_notifications(
         limit=pagination.size,
         offset=pagination.offset,
     )
+    items = await translate_payload(items, lang)
     return paginated_response(items, total, pagination)

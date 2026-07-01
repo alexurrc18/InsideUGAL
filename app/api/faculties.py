@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_roles
 from app.api.pagination import PaginationParams, paginated_response
+from app.api.translation_utils import translate_payload
 from app.db.database import get_db
 from app.models import schemas
 from app.repositories.faculty_repo import FacultyRepository
@@ -14,19 +15,25 @@ manage_faculties = require_roles(schemas.UserRole.HEAD_ADMIN, schemas.UserRole.H
 
 @router.get("/", response_model=schemas.PaginatedResponse[schemas.FacultyResponse])
 async def read_faculties(
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
     pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_db),
 ):
     items, total = await repo.get_page(session, limit=pagination.size, offset=pagination.offset)
+    items = await translate_payload(items, lang)
     return paginated_response(items, total, pagination)
 
 
 @router.get("/{faculty_id}", response_model=schemas.FacultyResponse)
-async def read_faculty(faculty_id: int, session: AsyncSession = Depends(get_db)):
+async def read_faculty(
+    faculty_id: int,
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
+    session: AsyncSession = Depends(get_db),
+):
     faculty = await repo.get_by_id(session, faculty_id)
     if not faculty:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Faculty not found.")
-    return faculty
+    return await translate_payload(faculty, lang)
 
 
 @router.post("/", response_model=schemas.FacultyResponse, status_code=status.HTTP_201_CREATED)

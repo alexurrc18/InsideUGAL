@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_roles
 from app.api.crud import ensure_exists
 from app.api.pagination import PaginationParams, paginated_response
+from app.api.translation_utils import translate_payload
 from app.db.database import get_db
 from app.models import models, schemas
 from app.repositories.city_guide_repo import CityGuideCategoryRepository, CityGuideItemRepository
@@ -26,10 +27,12 @@ async def validate_category(category_id: str | None, session: AsyncSession) -> N
 
 @router.get("/categories", response_model=schemas.PaginatedResponse[schemas.CityGuideCategoryResponse])
 async def read_city_guide_categories(
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
     pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_db),
 ):
     items, total = await category_repo.get_page(session, limit=pagination.size, offset=pagination.offset)
+    items = await translate_payload(items, lang)
     return paginated_response(items, total, pagination)
 
 
@@ -73,6 +76,7 @@ async def delete_city_guide_category(
 @router.get("/", response_model=schemas.PaginatedResponse[schemas.CityGuideItemResponse])
 async def read_city_guide_items(
     category_id: str | None = None,
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
     pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_db),
 ):
@@ -86,6 +90,7 @@ async def read_city_guide_items(
         )
     else:
         items, total = await item_repo.get_page(session, limit=pagination.size, offset=pagination.offset)
+    items = await translate_payload(items, lang)
     return paginated_response(items, total, pagination)
 
 

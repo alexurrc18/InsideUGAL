@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.faculties import manage_faculties
 from app.api.pagination import PaginationParams, paginated_response
+from app.api.translation_utils import translate_payload
 from app.db.database import get_db
 from app.models import schemas
 from app.repositories.facility_repo import FacilityRepository
@@ -15,19 +16,25 @@ schedule_repo = FacilityScheduleRepository()
 
 @router.get("/", response_model=schemas.PaginatedResponse[schemas.FacilityResponse])
 async def read_facilities(
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
     pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_db),
 ):
     items, total = await repo.get_page(session, limit=pagination.size, offset=pagination.offset)
+    items = await translate_payload(items, lang)
     return paginated_response(items, total, pagination)
 
 
 @router.get("/{facility_id}", response_model=schemas.FacilityResponse)
-async def read_facility(facility_id: int, session: AsyncSession = Depends(get_db)):
+async def read_facility(
+    facility_id: int,
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
+    session: AsyncSession = Depends(get_db),
+):
     facility = await repo.get_by_id(session, facility_id)
     if not facility:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Facility not found.")
-    return facility
+    return await translate_payload(facility, lang)
 
 
 @router.post("/", response_model=schemas.FacilityResponse, status_code=status.HTTP_201_CREATED)

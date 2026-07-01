@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_admin
 from app.api.pagination import PaginationParams, paginated_response
+from app.api.translation_utils import translate_payload
 from app.db.database import get_db
 from app.models import schemas
 from app.repositories.category_repo import CategoryRepository
@@ -13,19 +14,25 @@ repo = CategoryRepository()
 
 @router.get("/", response_model=schemas.PaginatedResponse[schemas.CategoryResponse])
 async def read_categories(
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
     pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_db),
 ):
     items, total = await repo.get_page(session, limit=pagination.size, offset=pagination.offset)
+    items = await translate_payload(items, lang)
     return paginated_response(items, total, pagination)
 
 
 @router.get("/{category_id}", response_model=schemas.CategoryResponse)
-async def read_category(category_id: int, session: AsyncSession = Depends(get_db)):
+async def read_category(
+    category_id: int,
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
+    session: AsyncSession = Depends(get_db),
+):
     category = await repo.get_by_id(session, category_id)
     if not category:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found.")
-    return category
+    return await translate_payload(category, lang)
 
 
 @router.post("/", response_model=schemas.CategoryResponse, status_code=status.HTTP_201_CREATED)

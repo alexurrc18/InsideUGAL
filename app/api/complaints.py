@@ -4,13 +4,14 @@ from pathlib import Path
 from urllib.parse import quote
 
 import httpx
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Request, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Query, Request, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import get_current_user_with_token, get_current_profile, is_role, get_current_user
 from app.api.crud import ensure_exists
 from app.api.pagination import PaginationParams, paginated_response
+from app.api.translation_utils import translate_payload
 from app.db.database import get_db
 from app.models import models, schemas
 from app.repositories.complaint_repo import ComplaintRepository
@@ -34,6 +35,7 @@ async def validate_complaint_refs(payload: BaseModel, db: AsyncSession, user_id:
 async def read_complaints(
     complaint_status: schemas.ComplaintStatus | None = None,
     location_id: int | None = None,
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
     pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_db),
     profile=Depends(get_current_profile),
@@ -48,12 +50,14 @@ async def read_complaints(
         location_id=location_id,
         user_id=user_id,
     )
+    items = await translate_payload(items, lang)
     return paginated_response(items, total, pagination)
 
 
 @router.get("/{complaint_id}", response_model=schemas.ComplaintResponse)
 async def read_complaint(
     complaint_id: int,
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
     session: AsyncSession = Depends(get_db),
     profile=Depends(get_current_profile),
 ):
@@ -62,7 +66,7 @@ async def read_complaint(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Complaint not found.")
     if complaint.user_id != str(profile.id) and not is_role(profile, staff_roles):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Nu ai permisiuni suficiente.")
-    return complaint
+    return await translate_payload(complaint, lang)
 
 
 @router.post("/", response_model=schemas.ComplaintResponse, status_code=status.HTTP_201_CREATED)

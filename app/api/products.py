@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_roles
 from app.api.pagination import PaginationParams, paginated_response
+from app.api.translation_utils import translate_payload
 from app.db.database import get_db
 from app.models import schemas
 from app.repositories.product_repo import ProductRepository
@@ -18,19 +19,25 @@ manage_products = require_roles(
 
 @router.get("/", response_model=schemas.PaginatedResponse[schemas.ProductResponse])
 async def read_products(
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
     pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_db),
 ):
     items, total = await repo.get_page(session, limit=pagination.size, offset=pagination.offset)
+    items = await translate_payload(items, lang)
     return paginated_response(items, total, pagination)
 
 
 @router.get("/{product_id}", response_model=schemas.ProductResponse)
-async def read_product(product_id: int, session: AsyncSession = Depends(get_db)):
+async def read_product(
+    product_id: int,
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
+    session: AsyncSession = Depends(get_db),
+):
     product = await repo.get_by_id(session, product_id)
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found.")
-    return product
+    return await translate_payload(product, lang)
 
 
 @router.post("/", response_model=schemas.ProductResponse, status_code=status.HTTP_201_CREATED)

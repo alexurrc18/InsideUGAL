@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_roles
 from app.api.pagination import PaginationParams, paginated_response
+from app.api.translation_utils import translate_payload
 from app.db.database import get_db
 from app.models import schemas
 from app.repositories.daily_menu_repo import DailyMenuRepository
@@ -16,6 +17,7 @@ manage_menus = require_roles(schemas.UserRole.HEAD_ADMIN, schemas.UserRole.HEAD_
 @router.get("/", response_model=schemas.PaginatedResponse[schemas.DailyMenuResponse])
 async def read_daily_menus(
     day_of_week: int | None = None,
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
     pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_db),
 ):
@@ -25,15 +27,20 @@ async def read_daily_menus(
         offset=pagination.offset,
         day_of_week=day_of_week,
     )
+    items = await translate_payload(items, lang)
     return paginated_response(items, total, pagination)
 
 
 @router.get("/{menu_id}", response_model=schemas.DailyMenuResponse)
-async def read_daily_menu(menu_id: int, session: AsyncSession = Depends(get_db)):
+async def read_daily_menu(
+    menu_id: int,
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
+    session: AsyncSession = Depends(get_db),
+):
     menu = await repo.get_by_id(session, menu_id)
     if not menu:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Daily menu not found.")
-    return menu
+    return await translate_payload(menu, lang)
 
 
 @router.post("/", response_model=schemas.DailyMenuResponse, status_code=status.HTTP_201_CREATED)
