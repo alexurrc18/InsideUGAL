@@ -17,13 +17,6 @@ import {
 import { Announcement as BackendAnnouncement } from '@/lib/api-types';
 import { canAccessContent, useRequireDashboardAccess } from '@/lib/dashboard-auth';
 
-// Interfață strictă pentru a elimina eroarea de TypeScript / ESLint cu "any"
-interface SystemFaculty {
-  id?: number | string;
-  abbreviation?: string;
-  name?: string;
-}
-
 type ExtendedAnnouncement = Announcement & { 
   type: 'NOUTATE' | 'EVENIMENT';
   locationName?: string;
@@ -45,7 +38,6 @@ const formatToDatetimeLocal = (dateString?: string) => {
 
 function AnnouncementsContent() {
   const access = useRequireDashboardAccess(canAccessContent);
-  // Eliminat announcementsError pentru a rezolva warning-ul de "assigned a value but never used"
   const { data: backendData, isLoading: isLoadingAnnouncements, isError: isErrorAnnouncements, refetch } = useAnnouncements();
   
   const createMutation = useCreateAnnouncement();
@@ -56,46 +48,15 @@ function AnnouncementsContent() {
   const [activeModal, setActiveModal] = useState<'add' | 'edit' | 'details' | null>(null);
   const [selectedItem, setSelectedItem] = useState<ExtendedAnnouncement | null>(null);
   const [formState, setFormState] = useState<Partial<ExtendedAnnouncement>>({});
-  const [selectedFaculty, setSelectedFaculty] = useState<string>('Toate');
   const [selectedType, setSelectedType] = useState<string>('TOATE'); 
   const [searchQuery, setSearchQuery] = useState<string>('');
   
-  const [isFacultyDropdownOpen, setIsFacultyDropdownOpen] = useState<boolean>(false);
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState<boolean>(false);
-  
-  // State dinamic pentru facultățile luate din endpoint cu fallback sigur
-  const [availableFacultiesFromSystem, setAvailableFacultiesFromSystem] = useState<string[]>([
-    "ACIEE", "FAN", "FEFS", "ING", "LIT", "FMF", "SIA", "FT", "FSM", "FIFT", "FDSA", "FIAB", "FEAA", "FSED", "FA"
-  ]);
 
-  const facultyDropdownRef = useRef<HTMLDivElement>(null);
   const typeDropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const pdfInputRef = useRef<HTMLInputElement>(null);
   
   const searchParams = useSearchParams();
-
-  // Încărcare dinamică din endpoint-ul de facultăți fără "any"
-  useEffect(() => {
-    async function fetchFaculties() {
-      try {
-        const response = await fetch('http://10.66.4.9:8002/faculties');
-        if (response.ok) {
-          const data = await response.json();
-          const list = data && typeof data === 'object' && 'items' in data ? data.items : data;
-          if (Array.isArray(list)) {
-            const abbreviations = list.map((f: SystemFaculty) => f.abbreviation || f.name || String(f)).filter(Boolean);
-            if (abbreviations.length > 0) {
-              setAvailableFacultiesFromSystem(abbreviations);
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Endpoint-ul de facultăți nu a răspuns, se folosește lista predefinită:", error);
-      }
-    }
-    fetchFaculties();
-  }, []);
 
   const data = useMemo((): ExtendedAnnouncement[] => {
     const list = backendData && typeof backendData === 'object' && 'items' in backendData 
@@ -149,6 +110,18 @@ function AnnouncementsContent() {
     });
   }, [backendData]);
 
+  // Facultățile disponibile sunt derivate direct din coloana "faculties" a
+  // anunțurilor existente în baza de date (nu mai există un endpoint separat / listă hardcodată).
+  const availableFacultiesFromSystem = useMemo(() => {
+    const facultySet = new Set<string>();
+    data.forEach(item => {
+      item.faculties?.forEach(f => {
+        if (f) facultySet.add(f);
+      });
+    });
+    return Array.from(facultySet).sort((a, b) => a.localeCompare(b));
+  }, [data]);
+
   useEffect(() => {
     let timerId: NodeJS.Timeout;
     if (searchParams.get("open") === "true") {
@@ -173,9 +146,6 @@ function AnnouncementsContent() {
 
   const filteredData = useMemo(() => {
     let result = data;
-    if (selectedFaculty !== 'Toate') {
-      result = result.filter(item => item.faculties?.includes(selectedFaculty));
-    }
     if (selectedType !== 'TOATE') {
       result = result.filter(item => item.type === selectedType);
     }
@@ -187,13 +157,10 @@ function AnnouncementsContent() {
       );
     }
     return result;
-  }, [data, selectedFaculty, selectedType, searchQuery]);
+  }, [data, selectedType, searchQuery]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (facultyDropdownRef.current && !facultyDropdownRef.current.contains(event.target as Node)) {
-        setIsFacultyDropdownOpen(false);
-      }
       if (typeDropdownRef.current && !typeDropdownRef.current.contains(event.target as Node)) {
         setIsTypeDropdownOpen(false);
       }
@@ -205,23 +172,15 @@ function AnnouncementsContent() {
   const handleForceDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     e.preventDefault();
-    
+
     if (!confirm('Ești sigur că vrei să ștergi acest anunț?')) return;
 
     try {
       await deleteMutation.mutateAsync(Number(id));
-      refetch();
+      await refetch();
     } catch (err) {
-      console.warn("Mutația directă a eșuat sau a fost blocată de CORS/500. Se încearcă fallback manual...", err);
-      
-      try {
-        await fetch(`http://10.66.4.9:8002/announcements/${id}`, { method: 'DELETE' });
-      } catch (fetchErr) {
-        console.error("Eroare la fetch-ul manual de delete:", fetchErr);
-      }
-      
-      refetch();
-      setTimeout(() => refetch(), 800);
+      console.error("Eroare la ștergerea anunțului:", err);
+      alert('A apărut o eroare la ștergerea anunțului. Te rugăm să încerci din nou.');
     }
   };
 
@@ -278,23 +237,6 @@ function AnnouncementsContent() {
       render: (item) => <span className="block max-w-xs truncate text-muted">{item.description}</span> 
     },
     { 
-      header: 'Facultate relevantă', 
-      key: 'faculties',
-      render: (item) => (
-        <div className="flex flex-wrap gap-1">
-          {item.faculties && item.faculties.length > 0 ? (
-            item.faculties.map((f) => (
-              <span key={f} className="bg-blue-50 text-brand text-xs px-2.5 py-0.5 rounded-md font-medium border border-blue-100/50">
-                {f}
-              </span>
-            ))
-          ) : (
-            <span className="text-slate-300 text-[10px] italic">General / Toate</span>
-          )}
-        </div>
-      )
-    },
-    { 
       header: 'Data publicării', 
       key: 'publishDate',
       render: (item) => <span className="text-muted text-xs">{item.publishDate}</span>
@@ -318,10 +260,11 @@ function AnnouncementsContent() {
           <button type="button" className="text-green-600 hover:text-green-800 font-medium hover:underline cursor-pointer" onClick={() => handleShare(item)}>Share</button>
           <button 
             type="button" 
-            className="text-red-500 hover:text-red-700 font-medium hover:underline cursor-pointer" 
+            className="text-red-500 hover:text-red-700 font-medium hover:underline cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
             onClick={(e) => handleForceDelete(e, item.id)}
+            disabled={deleteMutation.isPending}
           >
-            Ștergere
+            {deleteMutation.isPending ? 'Se șterge...' : 'Ștergere'}
           </button>
         </div>
       )
@@ -338,27 +281,6 @@ function AnnouncementsContent() {
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const handleAnyFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      const newFiles: PdfFile[] = Array.from(files).map(file => ({
-        name: file.name,
-        url: URL.createObjectURL(file) 
-      }));
-      setFormState(prev => ({
-        ...prev,
-        pdfFiles: [...(prev.pdfFiles || []), ...newFiles]
-      }));
-    }
-  };
-
-  const handleRemoveFile = (indexToRemove: number) => {
-    setFormState(prev => ({
-      ...prev,
-      pdfFiles: prev.pdfFiles?.filter((_, index) => index !== indexToRemove)
-    }));
   };
 
   const handleAiGenerate = () => {
@@ -390,7 +312,6 @@ function AnnouncementsContent() {
       image_url: formState.image_url || formState.thumbnail || null,
       faculties: formState.faculties && formState.faculties.length > 0 ? formState.faculties : [], 
       event_link: formState.eventLink && formState.eventLink.trim() !== '' ? formState.eventLink : null, 
-      files: formState.pdfFiles && formState.pdfFiles.length > 0 ? formState.pdfFiles : [], 
       location_name: isEveniment && formState.locationName && formState.locationName.trim() !== '' ? formState.locationName : null,
       start_date: isEveniment && formState.startDate && formState.startDate.trim() !== '' ? new Date(formState.startDate).toISOString() : null,
       end_date: isEveniment && formState.endDate && formState.endDate.trim() !== '' ? new Date(formState.endDate).toISOString() : null
@@ -425,41 +346,7 @@ function AnnouncementsContent() {
             {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 text-xs">✕</button>}
           </div>
 
-          <div className="flex items-center gap-2 relative" ref={facultyDropdownRef}>
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Facultate:</span>
-            <button
-              type="button"
-              onClick={() => setIsFacultyDropdownOpen(!isFacultyDropdownOpen)}
-              className="flex items-center justify-between min-w-[130px] border border-border px-3 py-2 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-foreground"
-            >
-              <span>{selectedFaculty}</span>
-              <svg className={`w-4 h-4 ml-1 text-slate-400 transition-transform duration-200 ${isFacultyDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {isFacultyDropdownOpen && (
-              <div className="absolute left-14 top-full mt-1.5 w-48 bg-card border border-border rounded-xl shadow-lg py-1 z-50 max-h-60 overflow-y-auto">
-                <div
-                  onClick={() => { setSelectedFaculty('Toate'); setIsFacultyDropdownOpen(false); }}
-                  className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedFaculty === 'Toate' ? 'bg-blue-50 text-blue-600 font-bold' : 'text-muted hover:bg-slate-50'}`}
-                >
-                  <span>Toate</span>
-                </div>
-                {availableFacultiesFromSystem.map(faculty => (
-                  <div
-                    key={faculty}
-                    onClick={() => { setSelectedFaculty(faculty); setIsFacultyDropdownOpen(false); }}
-                    className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedFaculty === faculty ? 'bg-blue-50 text-blue-600 font-bold' : 'text-muted hover:bg-slate-50'}`}
-                  >
-                    <span>{faculty}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 relative sm:border-l sm:border-border sm:pl-4" ref={typeDropdownRef}>
+          <div className="flex items-center gap-2 relative" ref={typeDropdownRef}>
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tip Anunț:</span>
             <button
               type="button"
@@ -570,22 +457,6 @@ function AnnouncementsContent() {
                 <p className="text-muted leading-relaxed whitespace-pre-wrap font-medium bg-slate-50/40 p-3 rounded-xl border border-border/60">{selectedItem.description}</p>
               </div>
 
-              {selectedItem.pdfFiles && selectedItem.pdfFiles.length > 0 && (
-                <div className="space-y-2 pt-2 border-t border-border">
-                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Documente atașate ({selectedItem.pdfFiles.length}):</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {selectedItem.pdfFiles.map((file, idx) => (
-                      <a key={idx} href={file.url || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 bg-card hover:bg-slate-50 text-slate-700 border border-border p-2.5 rounded-xl text-xs font-semibold transition-all group truncate">
-                        <div className="p-1.5 bg-red-50 text-red-600 rounded-md group-hover:bg-red-100 transition-colors">
-                          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        </div>
-                        <span className="truncate flex-1 pr-1">{file.name || `Document_${idx + 1}`}</span>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {selectedItem.eventLink && (
                 <div className="pt-2 border-t border-border">
                   <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Link Sursă / Înregistrare:</span>
@@ -679,34 +550,8 @@ function AnnouncementsContent() {
             </div>
 
             <div>
-              <span className="block text-xs font-semibold text-foreground mb-1">Documente și fișiere atașate</span>
-              <div className="p-3 border border-dashed border-border rounded-lg bg-background/50 flex flex-col gap-2">
-                <input type="file" ref={pdfInputRef} onChange={handleAnyFileChange} multiple className="hidden" />
-                <button type="button" onClick={() => pdfInputRef.current?.click()} className="flex items-center justify-center gap-2 border border-border px-4 py-2 rounded-md text-xs font-semibold text-foreground bg-card hover:bg-slate-50 transition-all cursor-pointer w-full">
-                  <svg className="w-4 h-4 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                  Încarcă fișiere (PDF, Word, etc.)
-                </button>
-                {formState.pdfFiles && formState.pdfFiles.length > 0 && (
-                  <div className="flex flex-col gap-1.5 mt-1">
-                    {formState.pdfFiles.map((file, idx) => (
-                      <div key={idx} className="flex items-center justify-between bg-slate-50 border border-border rounded-lg p-2 text-xs text-muted">
-                        <span className="truncate max-w-[250px] font-medium text-slate-600">{file.name}</span>
-                        <button type="button" onClick={() => handleRemoveFile(idx)} className="text-red-500 font-bold px-1">✕</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div>
               <label htmlFor="ann-desc" className="block text-xs font-semibold text-foreground mb-1">Descriere detaliată</label>
               <textarea id="ann-desc" value={formState.description || ''} onChange={e => setFormState({...formState, description: e.target.value})} className="w-full border border-border p-2 rounded-lg h-24 bg-background resize-none" required />
-            </div>
-
-            <div>
-              <label htmlFor="ann-link" className="block text-xs font-semibold text-foreground mb-1">Link către noutate (opțional)</label>
-              <input id="ann-link" type="text" value={formState.eventLink || ''} onChange={e => setFormState({...formState, eventLink: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background" placeholder="https://..." />
             </div>
           </div>
 
