@@ -162,7 +162,7 @@ function VizualizareScreen() {
                                     id: item.id.toString(),
                                     type: "Facultate",
                                     title: item.name || t('common.unknownTitle'),
-                                    image: item.image_url || "",
+                                    image: item.logo_url || "",
                                     address: item.address || t('common.unknownAddress'),
                                     phone: item.phone || "",
                                     website: item.website_url || "",
