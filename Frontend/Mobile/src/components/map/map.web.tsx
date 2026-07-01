@@ -6,6 +6,7 @@ import { cleanMapStyle } from '@/utils/map-helper';
 import { createRoot, flushSync } from 'react-dom/client';
 import { MapPin } from './map-pin';
 import { UserLocationPin } from './user-location-pin';
+import { MapSkeleton } from '@/components/ui/display/skeletons';
 
 interface MapProps {
   themeName: 'light' | 'dark';
@@ -221,11 +222,7 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
   }, []);
 
   if (!mapStyle) {
-    return (
-      <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8F9FA', borderRadius: '16px' }}>
-        <span style={{ color: '#121212' }}>Se încarcă harta...</span>
-      </div>
-    );
+    return <MapSkeleton />;
   }
 
   return (
