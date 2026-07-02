@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import time
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -13,9 +12,12 @@ from pydantic import BaseModel, Field
 from supabase import Client, create_client
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
+from src.translation_service.languages import validate_translation_language
+
 logger = logging.getLogger("translation-service")
 
 GEMINI_MODEL = os.getenv("TRANSLATION_GEMINI_MODEL", "gemini-2.5-flash-lite")
+BATCH_USE_OPENROUTER_FIRST = os.getenv("TRANSLATION_BATCH_USE_OPENROUTER_FIRST", "true").strip().lower() in {"1", "true", "yes"}
 
 # TODO (debug-only): pune True doar local, ca sa vezi mesajul real al exceptiei
 # in raspunsul HTTP 500. Scoate / pune pe False inainte de deploy in productie,
@@ -69,6 +71,15 @@ class TranslationService:
         self.client = genai.Client(api_key=raw_key)
         self.provider = f"gemini:{GEMINI_MODEL}"
         self.supabase = self._create_supabase_client()
+        
+        # Fallback Client (OpenRouter)
+        self.fallback_key = os.getenv("OPENROUTER_API_KEY", "").strip().strip("'").strip('"')
+        self.fallback_model = "google/gemini-2.5-flash"
+        self.fallback_provider = f"openrouter:{self.fallback_model}"
+        if self.fallback_key:
+            logger.info("OpenRouter fallback client configured.")
+        else:
+            logger.warning("OPENROUTER_API_KEY nu este setat. Fallback-ul este dezactivat.")
 
     def _create_supabase_client(self) -> Client | None:
         supabase_url = os.getenv("SUPABASE_URL")
@@ -102,6 +113,7 @@ class TranslationService:
                 return response.data[0]["translated_text"]
         except Exception as exc:
             logger.warning("Translation cache read failed: %s", exc)
+            self.supabase = None
 
         return None
 
@@ -120,6 +132,7 @@ class TranslationService:
             ).execute()
         except Exception as exc:
             logger.warning("Translation cache write failed: %s", exc)
+            self.supabase = None
 
     @retry(
         stop=stop_after_attempt(3),
@@ -158,6 +171,31 @@ class TranslationService:
         translated = (response.text or "").strip()
         if not translated:
             raise ValueError("Gemini returned an empty translation.")
+        return self._strip_wrapping_quotes(translated)
+
+    def _translate_text_fallback(self, text: str, target_language: str, prompt: str) -> str:
+        if not self.fallback_key:
+            raise ValueError("Fallback client is not configured.")
+        logger.info("Using OpenRouter fallback for text translation.")
+        
+        import requests
+        headers = {
+            "Authorization": f"Bearer {self.fallback_key}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": self.fallback_model,
+            "messages": [
+                {"role": "system", "content": "You are a professional university administrative translator. Return ONLY the translated text without any explanation, markdown or quotes. Strictly follow the user's rules."},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.0
+        }
+        
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=30)
+        response.raise_for_status()
+        
+        translated = response.json()["choices"][0]["message"]["content"].strip()
         return self._strip_wrapping_quotes(translated)
 
     @retry(
@@ -206,6 +244,59 @@ class TranslationService:
         if not isinstance(translated, dict):
             raise ValueError("Gemini batch translation did not return a JSON object.")
 
+        return {key: str(translated[key]).strip() for key in items if key in translated}
+
+    def _translate_many_fallback(self, items: dict[str, str], target_language: str) -> dict[str, str]:
+        if not self.fallback_key:
+            raise ValueError("Fallback client is not configured.")
+        if not items:
+            return {}
+
+        logger.info("Using OpenRouter fallback for batch translation.")
+
+        import requests
+
+        payload = json.dumps(items, ensure_ascii=False)
+        prompt = (
+            f"Translate every Romanian string value in this JSON object to {target_language}.\n"
+            "Rules:\n"
+            "- Maintain an official, formal, academic tone.\n"
+            "- Use precise university terminology for the target language.\n"
+            "- Do NOT translate proper nouns, brand names or commercial names.\n"
+            "- Preserve all numbers, percentages, dates and legal citations exactly.\n"
+            "Return only a valid JSON object with the same keys and translated string values. "
+            "No explanations, no markdown, no quotes around the whole response.\n"
+            f"JSON: {payload}"
+        )
+        headers = {
+            "Authorization": f"Bearer {self.fallback_key}",
+            "Content-Type": "application/json",
+        }
+        data = {
+            "model": self.fallback_model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a professional university administrative translator. Return ONLY a valid JSON object. Strictly follow the user's rules.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0.0,
+        }
+
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers=headers,
+            json=data,
+            timeout=60,
+        )
+        response.raise_for_status()
+
+        raw = response.json()["choices"][0]["message"]["content"].strip()
+        cleaned = self._strip_json_fences(raw)
+        translated = json.loads(cleaned)
+        if not isinstance(translated, dict):
+            raise ValueError("OpenRouter batch translation did not return a JSON object.")
         return {key: str(translated[key]).strip() for key in items if key in translated}
 
     @retry(
@@ -262,9 +353,53 @@ class TranslationService:
 
         return translated
 
+    def _translate_announcement_fallback(self, payload: str, target_language: str, prompt: str) -> dict[str, str]:
+        if not self.fallback_key:
+            raise ValueError("Fallback client is not configured.")
+        logger.info("Using OpenRouter fallback for announcement translation.")
+        
+        import requests
+        headers = {
+            "Authorization": f"Bearer {self.fallback_key}",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "model": self.fallback_model,
+            "messages": [
+                {"role": "system", "content": "You are a professional university administrative translator. Return ONLY a valid JSON object. Strictly follow the user's rules."},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.0
+        }
+        
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data, timeout=45)
+        response.raise_for_status()
+        
+        raw = response.json()["choices"][0]["message"]["content"].strip()
+        cleaned = self._strip_json_fences(raw)
+        return json.loads(cleaned)
+
     def translate_announcement(self, title: str, content: str, target_language: str) -> AnnouncementTranslateResponse:
         normalized_language = self._normalize_language(target_language)
-        translated = self.translate_announcement_uncached(title, content, normalized_language)
+        try:
+            translated = self.translate_announcement_uncached(title, content, normalized_language)
+        except Exception as exc:
+            logger.warning("Gemini announcement translation failed after retries: %s. Falling back to OpenRouter.", exc)
+            if not self.fallback_key:
+                raise
+            payload = json.dumps({"title": title, "content": content}, ensure_ascii=False)
+            prompt = (
+                f"Translate the title and content of this university announcement to {normalized_language}.\n"
+                "Rules:\n"
+                "- Maintain an official, formal, academic tone throughout.\n"
+                "- Use precise university/higher-education terminology.\n"
+                "- CRITICAL: Preserve the original formatting EXACTLY, including all paragraphs, markdown syntax, links, and newlines.\n"
+                "Return only a valid JSON object with the keys 'translated_title' and 'translated_content' containing the translated strings.\n"
+                "No explanations, no markdown formatting block quotes around the response.\n"
+                f"JSON: {payload}"
+            )
+            translated = self._translate_announcement_fallback(payload, normalized_language, prompt)
+            
         return AnnouncementTranslateResponse(
             translated_title=str(translated.get("translated_title", "")).strip(),
             translated_content=str(translated.get("translated_content", "")).strip()
@@ -282,14 +417,33 @@ class TranslationService:
                 provider=self.provider,
             )
 
-        translated = self.translate_text_uncached(text, normalized_language)
+        try:
+            translated = self.translate_text_uncached(text, normalized_language)
+            provider_used = self.provider
+        except Exception as exc:
+            logger.warning("Gemini text translation failed after retries: %s. Falling back to OpenRouter.", exc)
+            if not self.fallback_key:
+                raise
+            
+            prompt = (
+                f"Translate the following Romanian university administrative text to {normalized_language}.\n"
+                "Rules:\n"
+                "- Maintain an official, formal, academic tone throughout.\n"
+                "- Use precise university/higher-education terminology.\n"
+                "- Do NOT translate proper nouns, brand names or commercial names.\n"
+                "Return only the translated text, no explanations, no markdown, no quotes.\n"
+                f"Text: {text}"
+            )
+            translated = self._translate_text_fallback(text, normalized_language, prompt)
+            provider_used = self.fallback_provider
+
         self.save_translation(text, normalized_language, translated)
         return TranslateResponse(
             source_text=text,
             target_language=normalized_language,
             translated_text=translated,
             cached=False,
-            provider=self.provider,
+            provider=provider_used,
         )
 
     def translate_batch(self, data: Any, target_language: str) -> BatchTranslateResponse:
@@ -309,11 +463,32 @@ class TranslationService:
 
         translated_items = 0
         if misses:
-            try:
-                translated_misses = self.translate_many_uncached(misses, normalized_language)
-            except Exception as exc:
-                logger.warning("Batch LLM call failed, falling back to per-item: %s", exc)
-                translated_misses = {}
+            provider_used = self.provider
+            if BATCH_USE_OPENROUTER_FIRST and self.fallback_key:
+                try:
+                    translated_misses = self._translate_many_fallback(misses, normalized_language)
+                    provider_used = self.fallback_provider
+                except Exception as exc:
+                    logger.warning("OpenRouter batch call failed, falling back to Gemini batch: %s", exc)
+                    try:
+                        translated_misses = self.translate_many_uncached(misses, normalized_language)
+                    except Exception as gemini_exc:
+                        logger.warning("Gemini batch fallback failed: %s", gemini_exc)
+                        translated_misses = {}
+            else:
+                try:
+                    translated_misses = self.translate_many_uncached(misses, normalized_language)
+                except Exception as exc:
+                    logger.warning("Gemini batch call failed, falling back to OpenRouter batch: %s", exc)
+                    if self.fallback_key:
+                        try:
+                            translated_misses = self._translate_many_fallback(misses, normalized_language)
+                            provider_used = self.fallback_provider
+                        except Exception as fallback_exc:
+                            logger.warning("OpenRouter batch fallback failed: %s", fallback_exc)
+                            translated_misses = {}
+                    else:
+                        translated_misses = {}
 
             for path_key, original in misses.items():
                 translated = translated_misses.get(path_key)
@@ -321,8 +496,22 @@ class TranslationService:
                     try:
                         translated = self.translate_text_uncached(original, normalized_language)
                     except Exception as exc:
-                        logger.warning("Per-item LLM call failed for '%s': %s", original, exc)
-                        translated = original  # fallback: nu lasam tot batch-ul sa pice
+                        logger.warning("Gemini per-item fallback failed for '%s': %s", original, exc)
+                        if self.fallback_key:
+                            logger.info("Falling back to OpenRouter for '%s'", original)
+                            try:
+                                prompt = (
+                                    f"Translate the following Romanian university administrative text to {normalized_language}.\n"
+                                    "Return only the translated text, no explanations, no markdown, no quotes.\n"
+                                    f"Text: {original}"
+                                )
+                                translated = self._translate_text_fallback(original, normalized_language, prompt)
+                                provider_used = self.fallback_provider
+                            except Exception as fallback_exc:
+                                logger.warning("OpenRouter per-item fallback failed for '%s': %s", original, fallback_exc)
+                                translated = original
+                        else:
+                            translated = original  # fallback: nu lasam tot batch-ul sa pice
 
                 path = tuple(path_key.split("__"))
                 translated_by_path[path] = translated
@@ -336,7 +525,7 @@ class TranslationService:
             translations=result,
             cached_items=cached_items,
             translated_items=translated_items,
-            provider=self.provider,
+            provider=provider_used if misses else self.provider,
         )
 
     def _flatten_string_values(self, value: Any, path: tuple[str, ...] = ()) -> dict[tuple[str, ...], str]:
@@ -375,7 +564,7 @@ class TranslationService:
 
     @staticmethod
     def _normalize_language(target_language: str) -> str:
-        lang = target_language.strip().lower()
+        lang = validate_translation_language(target_language)
         # ISO 639-1 code mapping for common languages to help the LLM
         iso_map = {
             "ro": "Romanian",
@@ -390,9 +579,12 @@ class TranslationService:
             "uk": "Ukrainian",
             "zh": "Chinese",
             "ja": "Japanese",
+            "ko": "Korean",
             "ar": "Arabic",
             "bg": "Bulgarian",
-            "el": "Greek"
+            "el": "Greek",
+            "hi": "Hindi",
+            "vi": "Vietnamese",
         }
         return iso_map.get(lang, lang)
 

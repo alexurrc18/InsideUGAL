@@ -1,12 +1,13 @@
 import logging
 from typing import List
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from app.api.auth_deps import require_roles, get_current_profile
+from app.api.model_translation_cache import NOTIFICATION_TRANSLATION, pretranslate_model_cache, translate_with_model_cache
 from app.api.pagination import PaginationParams, paginated_response
 from app.db.database import get_db
 from app.models.models import Profile, PushToken
@@ -20,6 +21,8 @@ repo = NotificationRepository()
 send_notifications = require_roles(
     UserRole.HEAD_ADMIN,
     UserRole.HEAD_FACULTATI,
+    UserRole.PROFESOR,
+    UserRole.STUDENT_RESPONSABIL,
 )
 
 
@@ -40,9 +43,11 @@ async def _send_push(token: str, title: str, body: str, action: str | None) -> N
 @router.post("/send", response_model=NotificationResponse, status_code=status.HTTP_201_CREATED)
 async def send_notification(
     payload: NotificationCreate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     profile: Profile = Depends(send_notifications),
 ):
+
     target_profiles = await _get_target_profiles(db, payload.faculty_id)
 
     sent_count = 0
@@ -69,27 +74,40 @@ async def send_notification(
         db, payload, user_id=str(profile.id), recipient_count=sent_count
     )
     await db.refresh(notification, attribute_names=["sent_by_profile", "faculty"])
+    background_tasks.add_task(pretranslate_model_cache, notification.id, NOTIFICATION_TRANSLATION)
     return notification
 
 
 @router.get("/", response_model=PaginatedResponse[NotificationResponse])
 async def read_notifications(
     faculty_id: int | None = None,
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
     pagination: PaginationParams = Depends(),
     db: AsyncSession = Depends(get_db),
-    profile: Profile = Depends(require_roles(UserRole.HEAD_ADMIN)),
+    profile: Profile = Depends(
+        require_roles(
+            UserRole.HEAD_ADMIN,
+            UserRole.HEAD_FACULTATI,
+            UserRole.PROFESOR,
+            UserRole.STUDENT_RESPONSABIL,
+        )
+    ),
 ):
+
+
     items, total = await repo.get_page(
         db,
         limit=pagination.size,
         offset=pagination.offset,
         faculty_id=faculty_id,
     )
+    items = await translate_with_model_cache(items, lang, db, NOTIFICATION_TRANSLATION)
     return paginated_response(items, total, pagination)
 
 
 @router.get("/me", response_model=PaginatedResponse[NotificationResponse])
 async def read_my_notifications(
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
     pagination: PaginationParams = Depends(),
     db: AsyncSession = Depends(get_db),
     profile: Profile = Depends(get_current_profile),
@@ -100,4 +118,5 @@ async def read_my_notifications(
         limit=pagination.size,
         offset=pagination.offset,
     )
+    items = await translate_with_model_cache(items, lang, db, NOTIFICATION_TRANSLATION)
     return paginated_response(items, total, pagination)

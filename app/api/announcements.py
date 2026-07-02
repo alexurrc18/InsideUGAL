@@ -1,21 +1,26 @@
+import logging
 import os
 import uuid
+from asyncio import sleep
 from pathlib import Path
 from urllib.parse import quote
 
 import httpx
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Request, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, Request, Query, status
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_roles, require_roles_with_token
 from app.api.pagination import PaginationParams, paginated_response
-from app.db.database import get_db
+from app.api.translation_languages import announcement_pretranslate_languages, validate_translation_language
+from app.db.database import AsyncSessionLocal, get_db
 from app.models import models, schemas
 from app.repositories.announcement_repo import AnnouncementRepository
 from app.rate_limit import limiter, AUTH_RATE_LIMIT
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/announcements", tags=["Announcements"])
 repo = AnnouncementRepository()
 manage_announcements = require_roles(
@@ -30,20 +35,126 @@ manage_announcements_with_token = require_roles_with_token(
     schemas.UserRole.PROFESOR,
     schemas.UserRole.STUDENT_RESPONSABIL
 )
+backfill_announcements = require_roles(
+    schemas.UserRole.HEAD_ADMIN,
+    schemas.UserRole.HEAD_FACULTATI,
+)
 
 LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://llm:8000")
+LLM_TRANSLATION_TIMEOUT_SECONDS = float(os.getenv("LLM_TRANSLATION_TIMEOUT_SECONDS", "120"))
+
+
+async def fetch_translation_from_llm(title: str, content: str, target_language: str) -> tuple[str, str]:
+    timeout = httpx.Timeout(LLM_TRANSLATION_TIMEOUT_SECONDS, connect=10.0)
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        resp = await client.post(
+            f"{LLM_SERVICE_URL}/translate/announcement",
+            json={
+                "title": title,
+                "content": content,
+                "target_language": target_language,
+            },
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return data["translated_title"], data["translated_content"]
+
+
+async def translate_announcement_if_needed(
+    announcement: models.Announcement,
+    language_code: str,
+    session: AsyncSession,
+    *,
+    refresh_existing: bool = False,
+) -> models.Announcement:
+    translation = await repo.get_translation(session, announcement.id, language_code)
+    if translation and not refresh_existing:
+        announcement.translated_title = translation.translated_title
+        announcement.translated_content = translation.translated_content
+        announcement.is_translated = True
+        return announcement
+
+    try:
+        translated_title, translated_content = await fetch_translation_from_llm(
+            announcement.title or "", announcement.content, language_code
+        )
+        await repo.save_translation(
+            session,
+            announcement.id,
+            language_code,
+            translated_title,
+            translated_content,
+        )
+    except IntegrityError:
+        await session.rollback()
+        translation = await repo.get_translation(session, announcement.id, language_code)
+        if not translation:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Traducerea a fost generată, dar cache-ul local nu a putut fi citit.",
+            )
+        translated_title = translation.translated_title
+        translated_content = translation.translated_content
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Traducere eșuată: {exc.response.text if exc.response else str(exc)}",
+        ) from exc
+    except (httpx.RequestError, KeyError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Serviciul LLM nu este disponibil pentru traducere.",
+        ) from exc
+
+    announcement.translated_title = translated_title
+    announcement.translated_content = translated_content
+    announcement.is_translated = True
+    return announcement
+
+
+async def pretranslate_announcement(
+    announcement_id: int,
+    refresh_existing: bool = False,
+    languages: tuple[str, ...] | None = None,
+) -> None:
+    languages = languages or announcement_pretranslate_languages()
+    if not languages:
+        return
+
+    async with AsyncSessionLocal() as session:
+        announcement = await repo.get_by_id(session, announcement_id)
+        if not announcement:
+            logger.warning("Announcement %s was not found for pretranslation.", announcement_id)
+            return
+
+        for language_code in languages:
+            try:
+                await translate_announcement_if_needed(
+                    announcement,
+                    language_code,
+                    session,
+                    refresh_existing=refresh_existing,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Announcement %s pretranslation failed for language %s: %s",
+                    announcement_id,
+                    language_code,
+                    exc,
+                )
+            await sleep(0)
 
 
 async def validate_announcement_refs(payload: BaseModel, db: AsyncSession) -> None:
-    faculties = getattr(payload, "faculties", None)
+    faculty_ids = getattr(payload, "faculty_ids", None)
 
-    if faculties:
-        for abbr in faculties:
-            result = await db.execute(select(models.Faculty).where(models.Faculty.abbreviation == abbr))
+    if faculty_ids:
+        for faculty_id in faculty_ids:
+            result = await db.execute(select(models.Faculty).where(models.Faculty.id == faculty_id))
             if not result.scalars().first():
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=f"Faculty abbreviation '{abbr}' not found.",
+                    detail=f"Faculty id '{faculty_id}' not found.",
                 )
 
 
@@ -73,91 +184,87 @@ def assert_can_manage_announcement(profile, announcement: models.Announcement | 
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Nu ai permisiuni suficiente.")
 
 
-async def get_or_translate_announcement(
-    announcement: models.Announcement,
-    lang: str,
-    session: AsyncSession,
-) -> models.Announcement:
-    if not lang or lang == "ro":
-        return announcement
-    
-    translation = await repo.get_translation(session, announcement.id, lang)
-    if translation:
-        announcement.title = translation.translated_title
-        announcement.content = translation.translated_content
-        announcement.is_translated = True
-        return announcement
-    
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(
-                f"{LLM_SERVICE_URL}/api/v1/translate-announcement",
-                json={
-                    "title": announcement.title or "",
-                    "content": announcement.content,
-                    "target_lang": lang,
-                },
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            
-            await repo.save_translation(
-                session,
-                announcement.id,
-                lang,
-                data["translated_title"],
-                data["translated_content"],
-            )
-            
-            announcement.title = data["translated_title"]
-            announcement.content = data["translated_content"]
-            announcement.is_translated = True
-            return announcement
-    except httpx.HTTPStatusError as exc:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Traducere eșuată: {exc.response.text if exc.response else str(exc)}",
-        )
-    except httpx.RequestError:
-        raise HTTPException(
-            status_code=503,
-            detail="Serviciul LLM nu este disponibil pentru traducere.",
-        )
-
-
 @router.get("/", response_model=schemas.PaginatedResponse[schemas.AnnouncementResponse])
 async def read_announcements(
     announcement_type: schemas.PostType | None = None,
     lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
+    include_untranslated: bool = Query(
+        default=False,
+        description="Include announcements that do not have all configured pretranslations yet.",
+    ),
     pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_db),
 ):
     type_value = announcement_type.value if announcement_type else None
+    required_languages = () if include_untranslated else announcement_pretranslate_languages()
     items, total = await repo.get_page(
         session,
         limit=pagination.size,
         offset=pagination.offset,
         announcement_type=type_value,
-        lang=lang if lang != "ro" else None,
+        required_translation_languages=required_languages,
     )
-    if lang and lang != "ro":
+    
+    language_code = validate_translation_language(lang)
+    if language_code != "ro":
         for item in items:
-            await get_or_translate_announcement(item, lang, session)
+            await translate_announcement_if_needed(item, language_code, session)
+    
     return paginated_response(items, total, pagination)
+
+
+@router.post("/backfill-translations", status_code=status.HTTP_202_ACCEPTED)
+async def backfill_announcement_translations(
+    background_tasks: BackgroundTasks,
+    lang: str | None = Query(default=None, description="Optional single language code to backfill."),
+    refresh_existing: bool = Query(default=False, description="Regenerate translations that already exist."),
+    session: AsyncSession = Depends(get_db),
+    profile=Depends(backfill_announcements),
+):
+    if lang is None:
+        languages = announcement_pretranslate_languages()
+    else:
+        language_code = validate_translation_language(lang)
+        languages = () if language_code == "ro" else (language_code,)
+
+    if not languages:
+        return {"scheduled": 0, "languages": []}
+
+    result = await session.execute(select(models.Announcement.id))
+    announcement_ids = list(result.scalars().all())
+    for announcement_id in announcement_ids:
+        background_tasks.add_task(
+            pretranslate_announcement,
+            announcement_id,
+            refresh_existing,
+            languages,
+        )
+
+    return {"scheduled": len(announcement_ids), "languages": list(languages)}
 
 
 @router.get("/{announcement_id}", response_model=schemas.AnnouncementResponse)
 async def read_announcement(
     announcement_id: int,
     lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
+    include_untranslated: bool = Query(
+        default=False,
+        description="Return the announcement even if it does not have all configured pretranslations yet.",
+    ),
     session: AsyncSession = Depends(get_db),
 ):
-    announcement = await repo.get_by_id(session, announcement_id)
+    required_languages = () if include_untranslated else announcement_pretranslate_languages()
+    announcement = await repo.get_by_id(
+        session,
+        announcement_id,
+        required_translation_languages=required_languages,
+    )
     if not announcement:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Announcement not found.")
     
-    if lang and lang != "ro":
-        announcement = await get_or_translate_announcement(announcement, lang, session)
+    language_code = validate_translation_language(lang)
+    if language_code != "ro":
+        await translate_announcement_if_needed(announcement, language_code, session)
     
     return announcement
 
@@ -165,12 +272,15 @@ async def read_announcement(
 @router.post("/", response_model=schemas.AnnouncementResponse, status_code=status.HTTP_201_CREATED)
 async def create_announcement(
     announcement_in: schemas.AnnouncementCreate,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db),
     profile=Depends(manage_announcements),
 ):
     await validate_announcement_refs(announcement_in, session)
     validate_announcement_dates(announcement_in)
-    return await repo.create_for_user(session, announcement_in, user_id=profile.id)
+    announcement = await repo.create_for_user(session, announcement_in, user_id=profile.id)
+    background_tasks.add_task(pretranslate_announcement, announcement.id)
+    return announcement
 
 
 @router.post("/upload-image/")
@@ -213,6 +323,7 @@ async def upload_announcement_image(
 async def update_announcement(
     announcement_id: int,
     announcement_in: schemas.AnnouncementUpdate,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db),
     profile=Depends(manage_announcements),
 ):
@@ -222,9 +333,12 @@ async def update_announcement(
     assert_can_manage_announcement(profile, announcement)
     await validate_announcement_refs(announcement_in, session)
     try:
-        return await repo.update(session, announcement, announcement_in)
+        updated_announcement = await repo.update(session, announcement, announcement_in)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+    if announcement_in.title is not None or announcement_in.content is not None:
+        background_tasks.add_task(pretranslate_announcement, updated_announcement.id, True)
+    return updated_announcement
 
 
 @router.delete("/{announcement_id}", status_code=status.HTTP_204_NO_CONTENT)

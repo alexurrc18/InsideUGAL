@@ -1,8 +1,9 @@
+from sqlalchemy import delete as sqlalchemy_delete
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
-from app.models.models import Announcement, AnnouncementTranslation
+from app.models.models import Announcement, AnnouncementTranslation, Faculty
 from app.models.schemas import AnnouncementCreate, AnnouncementUpdate, UserRole
 from app.repositories.base import CRUDRepository, schema_to_data
 
@@ -22,29 +23,50 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
 
     @staticmethod
     def _base_select():
-        return select(Announcement).options(joinedload(Announcement.creator))
+        return select(Announcement).options(
+            joinedload(Announcement.creator),
+            selectinload(Announcement.faculties),
+        )
+
+    @staticmethod
+    def _with_complete_translations(query, required_languages: tuple[str, ...]):
+        if not required_languages:
+            return query
+
+        ready_announcements = (
+            select(AnnouncementTranslation.announcement_id)
+            .where(AnnouncementTranslation.language_code.in_(required_languages))
+            .group_by(AnnouncementTranslation.announcement_id)
+            .having(func.count(func.distinct(AnnouncementTranslation.language_code)) == len(required_languages))
+        )
+        return query.where(Announcement.id.in_(ready_announcements))
+
+    async def _load_faculties(self, session: AsyncSession, faculty_ids: list[int]) -> list[Faculty]:
+        if not faculty_ids:
+            return []
+
+        result = await session.execute(select(Faculty).where(Faculty.id.in_(faculty_ids)))
+        faculties = list(result.scalars().all())
+        found_ids = {faculty.id for faculty in faculties}
+        missing_ids = set(faculty_ids) - found_ids
+        if missing_ids:
+            missing = ", ".join(str(faculty_id) for faculty_id in sorted(missing_ids))
+            raise ValueError(f"Faculty id(s) not found: {missing}.")
+        return faculties
 
     async def get_all(
         self,
         session: AsyncSession,
         announcement_type: str | None = None,
-        lang: str | None = None,
+        required_translation_languages: tuple[str, ...] = (),
     ) -> list[Announcement]:
         query = self._base_select().order_by(Announcement.created_at.desc())
         if announcement_type is not None:
             query = query.where(Announcement.type == announcement_type)
+        query = self._with_complete_translations(query, required_translation_languages)
 
         result = await session.execute(query)
-        announcements = [self._with_author_name(announcement) for announcement in result.scalars().all()]
-        
-        if lang and lang != "ro":
-            for announcement in announcements:
-                translation = await self.get_translation(session, announcement.id, lang)
-                if translation:
-                    announcement.title = translation.translated_title
-                    announcement.content = translation.translated_content
-                    announcement.is_translated = True
-        return announcements
+        return [self._with_author_name(announcement) for announcement in result.scalars().all()]
 
     async def get_page(
         self,
@@ -53,49 +75,51 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         limit: int,
         offset: int,
         announcement_type: str | None = None,
-        lang: str | None = None,
+        required_translation_languages: tuple[str, ...] = (),
     ) -> tuple[list[Announcement], int]:
         query = self._base_select().order_by(Announcement.created_at.desc())
         if announcement_type is not None:
             query = query.where(Announcement.type == announcement_type)
+        query = self._with_complete_translations(query, required_translation_languages)
 
         total_result = await session.execute(select(func.count()).select_from(query.order_by(None).subquery()))
         total = total_result.scalar_one()
 
         result = await session.execute(query.limit(limit).offset(offset))
-        announcements = [self._with_author_name(n) for n in result.scalars().all()]
-        
-        if lang and lang != "ro":
-            for announcement in announcements:
-                translation = await self.get_translation(session, announcement.id, lang)
-                if translation:
-                    announcement.title = translation.translated_title
-                    announcement.content = translation.translated_content
-                    announcement.is_translated = True
-        return announcements, total
+        return [self._with_author_name(n) for n in result.scalars().all()], total
 
     async def get_by_id(
         self,
         session: AsyncSession,
         entity_id: int,
-        lang: str | None = None,
+        required_translation_languages: tuple[str, ...] = (),
     ) -> Announcement | None:
-        result = await session.execute(self._base_select().where(Announcement.id == entity_id))
+        query = self._base_select().where(Announcement.id == entity_id)
+        query = self._with_complete_translations(query, required_translation_languages)
+        result = await session.execute(query)
         announcement = result.scalars().first()
-        if not announcement:
-            return None
-        announcement = self._with_author_name(announcement)
-        
-        if lang and lang != "ro":
-            translation = await self.get_translation(session, announcement.id, lang)
-            if translation:
-                announcement.title = translation.translated_title
-                announcement.content = translation.translated_content
-                announcement.is_translated = True
-        return announcement
+        return self._with_author_name(announcement) if announcement else None
 
     async def create_for_user(self, session: AsyncSession, announcement_in: AnnouncementCreate, user_id: str) -> Announcement:
-        return await self.create(session, announcement_in, created_by=user_id)
+        data = schema_to_data(announcement_in)
+        faculty_ids = data.pop("faculty_ids", None) or []
+        data["created_by"] = user_id
+
+        db_announcement = Announcement(**data)
+        db_announcement.faculties = await self._load_faculties(session, faculty_ids)
+
+        session.add(db_announcement)
+        await session.commit()
+        await session.refresh(db_announcement)
+        return await self.get_by_id(session, db_announcement.id) or db_announcement
+
+    async def delete(self, session: AsyncSession, db_announcement: Announcement) -> None:
+        await session.execute(
+            sqlalchemy_delete(Announcement)
+            .where(Announcement.id == db_announcement.id)
+            .execution_options(synchronize_session=False)
+        )
+        await session.commit()
 
     async def update(
         self,
@@ -106,6 +130,8 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
     ) -> Announcement:
         data = schema_to_data(announcement_in, exclude_unset=True)
         data.update(extra_data)
+        has_faculty_update = "faculty_ids" in data
+        faculty_ids = data.pop("faculty_ids", None) or []
 
         announcement_type = data.get("type", db_announcement.type)
         if announcement_type == "NOUTATE":
@@ -123,9 +149,12 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         for key, value in data.items():
             setattr(db_announcement, key, value)
 
+        if has_faculty_update:
+            db_announcement.faculties = await self._load_faculties(session, faculty_ids)
+
         await session.commit()
         await session.refresh(db_announcement)
-        return db_announcement
+        return await self.get_by_id(session, db_announcement.id) or db_announcement
 
     async def get_translation(
         self,

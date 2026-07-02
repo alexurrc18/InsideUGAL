@@ -5,7 +5,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/Card";
 import { Input } from "@/app/components/ui/Input";
 import { Button } from "@/app/components/ui/Button";
-import { apiBaseUrl } from "@/lib/api-client";
+import { apiBaseUrl, setAuthToken } from "@/lib/api-client";
 
 function extractAccessToken(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") {
@@ -58,8 +58,15 @@ export default function LoginPage() {
         ? (data as Record<string, string>).token_type
         : "bearer";
 
-      localStorage.setItem("access_token", accessToken);
-      localStorage.setItem("token_type", tokenType);
+      const refreshToken = data && typeof data === "object" && typeof (data as Record<string, unknown>).refresh_token === "string"
+        ? (data as Record<string, string>).refresh_token
+        : null;
+
+      const expiresAt = data && typeof data === "object" && typeof (data as Record<string, unknown>).expires_at === "number"
+        ? (data as Record<string, number>).expires_at
+        : null;
+
+      setAuthToken(accessToken, tokenType, refreshToken, expiresAt);
 
       window.location.href = "/";
 

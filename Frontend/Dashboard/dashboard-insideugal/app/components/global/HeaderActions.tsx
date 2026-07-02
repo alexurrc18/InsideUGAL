@@ -1,11 +1,11 @@
 "use client";
 
-import { Bell, UserRound, LogOut, Sun, Moon } from "lucide-react";
+import { UserRound, LogOut, Sun, Moon } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation"; 
-import Link from "next/link";
 import { announcementsService } from "@/lib/announcements-service";
 import { useTheme } from "../../providers";
+import { setAuthToken } from "@/lib/api-client";
 
 interface Announcement {
   id: number;
@@ -97,21 +97,8 @@ export default function HeaderActions() {
     fetchAnnouncements();
   }, []);
 
-  const handleToggleNotifications = () => {
-    const willOpen = !open;
-    setOpen(willOpen);
-    setProfileOpen(false);
-
-    if (willOpen && announcements.length > 0) {
-      const maxId = Math.max(...announcements.map((a) => a.id));
-      localStorage.setItem(STORAGE_KEY, String(maxId));
-      setUnreadCount(0);
-    }
-  };
-
   const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("token_type");
+    setAuthToken(null);
     router.replace("/login");
   };
 
@@ -151,44 +138,6 @@ export default function HeaderActions() {
 >
   <Moon size={18} />
 </button>
-      {/* Bell */}
-      <div className="relative" ref={dropdownRef}>
-        <button
-          type="button"
-          aria-label="Notificări"
-          onClick={handleToggleNotifications} 
-          className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-background hover:text-foreground"
-        >
-          <Bell className="h-5 w-5 text-foreground" />
-          {announcements.length > 0 && (
-            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full" />
-          )}
-        </button>
-
-        {open && (
-          <div className="absolute right-0 mt-2 w-80 bg-card border border-border rounded-xl shadow-lg p-4 z-50 max-h-96 overflow-y-auto">
-            <h3 className="font-bold text-sm text-foreground mb-3">Notificari si anunturi</h3>
-            {announcements.length === 0 ? (
-              <p className="text-xs text-muted text-center py-4">Nu exista anunturi noi.</p>
-            ) : (
-              <div className="space-y-3">
-                {announcements.map((ann) => (
-                  <div key={ann.id} className="border-b border-border/50 pb-2 last:border-0 last:pb-0">
-                    <h4 className="font-semibold text-xs text-foreground">{ann.title}</h4>
-                    <p className="text-[11px] text-muted mt-0.5 line-clamp-2">{ann.content}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="mt-3 border-t border-border/60 pt-3">
-              <Link href="/noutati" className="block text-center text-xs font-semibold text-brand hover:underline" onClick={() => setOpen(false)}>
-                Vezi toate anunturile
-              </Link>
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Profil */}
       <div className="relative" ref={profileRef}>
         <button

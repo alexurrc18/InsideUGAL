@@ -62,7 +62,7 @@ async def test_author_can_create_read_filter_update_and_delete_announcement(
         "type": schemas.PostType.EVENIMENT.value,
         "title": "QA Workshop",
         "content": "A practical workshop for integration testing.",
-        "faculties": [faculty.abbreviation],
+        "faculty_ids": [faculty.id],
         "location_name": "Lab QA",
         "start_date": "2031-03-10T10:00:00Z",
         "end_date": "2031-03-10T12:00:00Z",
@@ -73,7 +73,8 @@ async def test_author_can_create_read_filter_update_and_delete_announcement(
     created = create_response.json()
     assert created["created_by"] == author.id
     assert created["type"] == schemas.PostType.EVENIMENT.value
-    assert created["faculties"] == [faculty.abbreviation]
+    assert created["faculties"][0]["id"] == faculty.id
+    assert created["faculties"][0]["abbreviation"] == faculty.abbreviation
     assert created["location_name"] == "Lab QA"
     assert created["start_date"].startswith("2031-03-10T10:00:00")
 
@@ -180,7 +181,7 @@ async def test_public_feed_contains_general_and_faculty_announcements(
             "type": schemas.PostType.NOUTATE.value,
             "title": "Own faculty news",
             "content": "Visible to this student's faculty.",
-            "faculties": [own_faculty.abbreviation],
+            "faculty_ids": [own_faculty.id],
         },
         headers=author.headers,
     )
@@ -190,7 +191,7 @@ async def test_public_feed_contains_general_and_faculty_announcements(
             "type": schemas.PostType.NOUTATE.value,
             "title": "Other faculty news",
             "content": "Not visible to this student.",
-            "faculties": [other_faculty.abbreviation],
+            "faculty_ids": [other_faculty.id],
         },
         headers=author.headers,
     )
@@ -242,10 +243,10 @@ async def test_create_announcement_rejects_missing_faculty_reference(
             "type": schemas.PostType.NOUTATE.value,
             "title": "Invalid faculty",
             "content": "This should fail because the faculty does not exist.",
-            "faculties": ["NONEXISTENT"],
+            "faculty_ids": [999999],
         },
         headers=author.headers,
     )
 
     assert response.status_code == 422
-    assert "Faculty abbreviation 'NONEXISTENT' not found." in str(response.json()["detail"])
+    assert "Faculty id '999999' not found." in str(response.json()["detail"])

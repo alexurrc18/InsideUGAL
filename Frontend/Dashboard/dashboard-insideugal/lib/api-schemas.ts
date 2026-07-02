@@ -106,7 +106,7 @@ export const createPaginatedResponseSchema = <T extends z.ZodTypeAny>(itemSchema
   
 
 export const usersSchema = z.array(userSchema);
-export const facultiesSchema = z.array(facultySchema);
+export const facultiesSchema = createPaginatedResponseSchema(facultySchema);
 export const studentsSchema = z.array(studentSchema);
 export const professorsSchema = z.array(professorSchema);
 export const coursesSchema = z.array(courseSchema);
@@ -149,3 +149,32 @@ export const dishSchema = productSchema;
 export const dishesSchema = productsSchema;
 
 export const enrollmentsSchema = z.array(enrollmentSchema);
+
+export const notificationSchema = z.object({
+  id: z.number().int(),
+  title: z.string(),
+  body: z.string(),
+  action: z.string().nullable().optional(),
+  faculty_id: z.number().int().nullable().optional(),
+  sent_by: z.string(),
+  sent_at: z.string(),
+  recipient_count: z.number().int(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const notificationsSchema = createPaginatedResponseSchema(notificationSchema);
+
+export const profileSchema = z.object({
+  id: z.string(),
+  username: z.string(),
+  first_name: z.string(),
+  last_name: z.string(),
+  email: z.string().email(),
+  role: z.string(),
+  is_active: z.boolean(),
+  faculty_id: z.number().int().nullable().optional(),
+  created_at: isoDateSchema,
+  updated_at: isoDateSchema,
+});
+
