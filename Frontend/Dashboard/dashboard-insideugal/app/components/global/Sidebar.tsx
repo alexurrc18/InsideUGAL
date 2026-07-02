@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import {
   AlertTriangle,
   GraduationCap,
+  Building,
   Home,
   MapPin,
   Menu,
@@ -31,6 +32,7 @@ const menuItems = [
   { label: "Acasă", href: "/", icon: Home, canAccess: canAccessDashboard },
   { label: "Anunțuri", href: "/noutati", icon: Newspaper, canAccess: canAccessContent },
   { label: "Facultăți", href: "/facultati", icon: GraduationCap, canAccess: canAccessFaculties },
+  { label: "Facilități", href: "/facilitati", icon: Building, canAccess: canAccessFaculties },
   { label: "Hărți", href: "/harti", icon: MapPin, canAccess: canAccessMaps },
   { label: "Sesizări", href: "/sesizari", icon: AlertTriangle, canAccess: canAccessComplaints },
   { label: "Cantină", href: "/cantina", icon: Utensils, canAccess: canAccessCantina },

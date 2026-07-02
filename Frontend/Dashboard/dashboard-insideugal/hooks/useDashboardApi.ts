@@ -89,3 +89,56 @@ export function useComplaints() {
     schema: complaintsGenericSchema, // Schema pasată obligatoriu pentru a rezolva eroarea TS2345
   });
 }
+
+// Adaugă acestea în src/hooks/useDashboardApi.ts
+export function useFacilities() {
+  return useApiQuery({
+    path: "/facilities",
+    queryKey: ["facilities"],
+    // Presupunând că ai un schema pentru facilități sau folosești una generică
+    schema: z.object({ items: z.array(z.unknown()), total: z.number() }).passthrough(),
+  });
+}
+
+// În hooks/useDashboardApi.ts
+export function useCreateFacility() {
+  const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8002";
+  
+  return useApiMutation<any, any>({
+    mutationFn: (data) => 
+      fetch(`${apiUrl}/facilities/`, { // Adaugă URL-ul complet aici
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      }).then((res) => {
+        if (!res.ok) throw new Error("Eroare la salvare");
+        return res.json();
+      }),
+    invalidateKeys: [["facilities"]],
+  });
+}
+
+export function useUpdateFacility() {
+  return useApiMutation<any, { id: number; data: any }>({
+    mutationFn: ({ id, data }) => fetch(`/facilities/${id}`, { method: "PATCH", body: JSON.stringify(data) }).then(res => res.json()),
+    invalidateKeys: [["facilities"]],
+  });
+}
+
+// În hooks/useDashboardApi.ts
+export function useDeleteFacility() {
+  const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8002";
+  
+  return useApiMutation<unknown, number>({
+    mutationFn: (id) => 
+      fetch(`${apiUrl}/facilities/${id}`, { // Adaugă URL-ul complet aici
+        method: "DELETE",
+      }).then((res) => {
+        if (!res.ok) throw new Error("Eroare la ștergere");
+        return res;
+      }),
+    invalidateKeys: [["facilities"]],
+  });
+}
