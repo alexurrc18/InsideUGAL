@@ -189,12 +189,15 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - ./supabase/post-init/ensure_auth_profile_trigger.sql:/tmp/ensure_auth_profile_trigger.sql:ro
+      - ./supabase/migrations/202607010001_model_translations.sql:/tmp/model_translations.sql:ro
       - ./supabase/seed.sql:/tmp/seed.sql:ro
     command: >
       sh -c "for i in $$(seq 1 90); do
       if psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -tAc \"select to_regtype('public.user_role') is not null and to_regclass('auth.users') is not null and to_regclass('auth.identities') is not null and exists (select 1 from information_schema.columns where table_schema = 'auth' and table_name = 'users' and column_name = 'is_sso_user') and exists (select 1 from information_schema.columns where table_schema = 'auth' and table_name = 'users' and column_name = 'is_anonymous')\" | grep -q t; then
       echo \"auth schema and public.user_role are ready; applying post-init SQL\";
       psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -v ON_ERROR_STOP=1 -f /tmp/ensure_auth_profile_trigger.sql;
+      echo \"auth/profile sync applied; ensuring model translation tables\";
+      psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -v ON_ERROR_STOP=1 -f /tmp/model_translations.sql;
       echo \"auth/profile sync applied; applying application seed SQL\";
       psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -v ON_ERROR_STOP=1 -f /tmp/seed.sql;
       exit $$?;
