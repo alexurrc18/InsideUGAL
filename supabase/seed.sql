@@ -264,16 +264,43 @@ INSERT INTO public.menu_products (menu_id, product_id) VALUES
 ON CONFLICT (menu_id, product_id) DO NOTHING;
 
 -- 9. ANNOUNCEMENTS
-INSERT INTO public.announcements (id, type, title, content, image_url, event_link, files, faculties, location_name, start_date, end_date, created_by) VALUES
-(1, 'EVENIMENT', 'Festivitatea de deschidere a anului universitar', 'Va invitam sa participati la festivitatea de deschidere a noului an universitar. Evenimentul va avea loc in holul central al universitatii.', 'https://ing.ugal.ro/Resurse/2024/WhatsApp_Image_2024-09-17_at_11.48.08.jpeg', NULL, '[]'::jsonb, '[]'::jsonb, 'Hol Central, Corp A', '2026-09-21T09:00:00Z', '2026-09-21T12:00:00Z', '00000000-0000-0000-0000-000000000001'),
-(2, 'EVENIMENT', 'Hackathon de 24 ore: Inovatie in Galati', 'Esti gata sa schimbi lumea in 24 de ore? Vino la cel mai mare hackathon din regiune.', 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=1000', NULL, '[]'::jsonb, '["ACIEE"]'::jsonb, 'Laborator Multimedia, Corp B', '2026-11-15T10:00:00Z', '2026-11-16T10:00:00Z', '00000000-0000-0000-0000-000000000001'),
-(3, 'NOUTATE', 'Noi oportunitati de burse Erasmus+', 'A fost lansat noul apel pentru mobilitati studentesti. Verifica lista universitatilor partenere si depune dosarul pana la sfarsitul lunii.', 'https://unibuc.ro/wp-content/uploads/2020/01/despre-erasmus.jpg', NULL, '[]'::jsonb, '[]'::jsonb, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000001'),
-(4, 'NOUTATE', 'Workshop de design grafic in weekend', 'Invata bazele designului grafic folosind instrumente moderne. Workshop-ul este gratuit pentru toti studentii UGAL.', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRrvLpegvQvOniv6QIbBLAB50za2oHinfK75g&s', NULL, '[]'::jsonb, '["LIT"]'::jsonb, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000001'),
-(5, 'EVENIMENT', 'Conferinta de Inginerie Sustenabila', 'O conferinta dedicata ultimelor inovatii in domeniul ingineriei sustenabile si energiilor regenerabile.', 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1000', NULL, '[]'::jsonb, '["ING"]'::jsonb, 'Aula Magna, Corp D', '2026-10-10T09:30:00Z', '2026-10-10T17:00:00Z', '00000000-0000-0000-0000-000000000001'),
-(6, 'NOUTATE', 'Rezultate partiale burse de merit', 'Au fost afisate listele partiale pentru bursele de merit aferente semestrului al doilea. Contestatiile se depun online.', 'https://feaa.ugal.ro/wp-content/uploads/feaa-amalia-paharnicu.jpg', NULL, '[]'::jsonb, '["FEFS"]'::jsonb, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000001'),
-(7, 'EVENIMENT', 'Concurs de retele Cisco CCNA', 'Competitie anuala pentru pasionatii de retelistica. Probe practice pe echipamente Cisco si configurari in Packet Tracer.', 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Cisco_logo_blue_2016.svg/1200px-Cisco_logo_blue_2016.svg.png', NULL, '[]'::jsonb, '["ACIEE"]'::jsonb, 'Corpul D, Sala D12', '2026-10-25T09:00:00Z', '2026-10-25T16:00:00Z', '00000000-0000-0000-0000-000000000003'),
-(8, 'NOUTATE', 'Stagii de practica la companii IT', 'Peste 50 de locuri de practica deschise in domeniul dezvoltarii software pentru studentii anilor 2 si 3.', 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97', NULL, '[]'::jsonb, '["ACIEE"]'::jsonb, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000003')
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.announcements (id, type, title, content, image_url, event_link, files, location_name, start_date, end_date, created_by) VALUES
+(1, 'EVENIMENT', 'Festivitatea de deschidere a anului universitar', 'Va invitam sa participati la festivitatea de deschidere a noului an universitar. Evenimentul va avea loc in holul central al universitatii.', 'https://ing.ugal.ro/Resurse/2024/WhatsApp_Image_2024-09-17_at_11.48.08.jpeg', NULL, '[]'::jsonb, 'Hol Central, Corp A', '2026-09-21T09:00:00Z', '2026-09-21T12:00:00Z', '00000000-0000-0000-0000-000000000001'),
+(2, 'EVENIMENT', 'Hackathon de 24 ore: Inovatie in Galati', 'Esti gata sa schimbi lumea in 24 de ore? Vino la cel mai mare hackathon din regiune.', 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=1000', NULL, '[]'::jsonb, 'Laborator Multimedia, Corp B', '2026-11-15T10:00:00Z', '2026-11-16T10:00:00Z', '00000000-0000-0000-0000-000000000001'),
+(3, 'NOUTATE', 'Noi oportunitati de burse Erasmus+', 'A fost lansat noul apel pentru mobilitati studentesti. Verifica lista universitatilor partenere si depune dosarul pana la sfarsitul lunii.', 'https://unibuc.ro/wp-content/uploads/2020/01/despre-erasmus.jpg', NULL, '[]'::jsonb, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000001'),
+(4, 'NOUTATE', 'Workshop de design grafic in weekend', 'Invata bazele designului grafic folosind instrumente moderne. Workshop-ul este gratuit pentru toti studentii UGAL.', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRrvLpegvQvOniv6QIbBLAB50za2oHinfK75g&s', NULL, '[]'::jsonb, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000001'),
+(5, 'EVENIMENT', 'Conferinta de Inginerie Sustenabila', 'O conferinta dedicata ultimelor inovatii in domeniul ingineriei sustenabile si energiilor regenerabile.', 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1000', NULL, '[]'::jsonb, 'Aula Magna, Corp D', '2026-10-10T09:30:00Z', '2026-10-10T17:00:00Z', '00000000-0000-0000-0000-000000000001'),
+(6, 'NOUTATE', 'Rezultate partiale burse de merit', 'Au fost afisate listele partiale pentru bursele de merit aferente semestrului al doilea. Contestatiile se depun online.', 'https://feaa.ugal.ro/wp-content/uploads/feaa-amalia-paharnicu.jpg', NULL, '[]'::jsonb, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000001'),
+(7, 'EVENIMENT', 'Concurs de retele Cisco CCNA', 'Competitie anuala pentru pasionatii de retelistica. Probe practice pe echipamente Cisco si configurari in Packet Tracer.', 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Cisco_logo_blue_2016.svg/1200px-Cisco_logo_blue_2016.svg.png', NULL, '[]'::jsonb, 'Corpul D, Sala D12', '2026-10-25T09:00:00Z', '2026-10-25T16:00:00Z', '00000000-0000-0000-0000-000000000003'),
+(8, 'NOUTATE', 'Stagii de practica la companii IT', 'Peste 50 de locuri de practica deschise in domeniul dezvoltarii software pentru studentii anilor 2 si 3.', 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97', NULL, '[]'::jsonb, NULL, NULL, NULL, '00000000-0000-0000-0000-000000000003')
+ON CONFLICT (id) DO UPDATE SET
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    content = EXCLUDED.content,
+    image_url = EXCLUDED.image_url,
+    event_link = EXCLUDED.event_link,
+    files = EXCLUDED.files,
+    location_name = EXCLUDED.location_name,
+    start_date = EXCLUDED.start_date,
+    end_date = EXCLUDED.end_date,
+    created_by = EXCLUDED.created_by;
+
+DELETE FROM public.announcement_faculties
+WHERE announcement_id BETWEEN 1 AND 8;
+
+INSERT INTO public.announcement_faculties (announcement_id, faculty_id)
+SELECT seeded.announcement_id, f.id
+FROM (
+    VALUES
+        (2, 'ACIEE'),
+        (4, 'LIT'),
+        (5, 'ING'),
+        (6, 'FEFS'),
+        (7, 'ACIEE'),
+        (8, 'ACIEE')
+) AS seeded(announcement_id, faculty_abbreviation)
+JOIN public.faculties f ON f.abbreviation = seeded.faculty_abbreviation
+ON CONFLICT (announcement_id, faculty_id) DO NOTHING;
 
 -- 11. COMPLAINTS
 INSERT INTO public.complaints (id, title, description, location_id, status, user_id) VALUES
