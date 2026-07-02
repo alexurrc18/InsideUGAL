@@ -78,7 +78,8 @@
     "errorTitle": "अरे! कुछ गलत हो गया...",
     "viewAll": "और देखें",
     "university": "विश्वविद्यालय",
-    "universityPlatform": "आपका विश्वविद्यालय प्लेटफ़ॉर्म"
+    "universityPlatform": "आपका विश्वविद्यालय प्लेटफ़ॉर्म",
+    "error": "त्रुटि"
   },
   "days": {
     "1": "सोमवार",
@@ -203,7 +204,11 @@
     "step3CompletedTitle": "हल किया गया",
     "step3CompletedDesc": "तकनीकी टीम ने मौके पर समस्या हल की।",
     "general": "सामान्य",
-    "exterior": "बाहरी"
+    "exterior": "बाहरी",
+    "detailsFallbackTitle": "रिपोर्ट विवरण",
+    "titlePlaceholder": "उदा: एम्फीथिएटर में हीटिंग खराब है",
+    "descPlaceholder": "सामने आई समस्या का विस्तार से वर्णन करें...",
+    "seoDescription": "कैंपस और छात्रावास की समस्याओं की रिपोर्ट करें और अपनी रिपोर्ट की स्थिति ट्रैक करें — InsideUGAL."
   },
   "auth": {
     "title": "लॉग इन",

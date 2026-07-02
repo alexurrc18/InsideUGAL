@@ -171,8 +171,8 @@ export default function SesizariScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <Seo
-        title="Sesizări"
-        description="Raportează probleme din campus și cămine și urmărește statusul sesizărilor — InsideUGAL."
+        title={t('reports.title')}
+        description={t('reports.seoDescription')}
       />
       <ScrollView
         style={{ flex: 1 }}

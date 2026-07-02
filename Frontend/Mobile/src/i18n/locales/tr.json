@@ -78,7 +78,8 @@
     "errorTitle": "Hata! Bir şeyler ters gitti...",
     "viewAll": "Daha fazla gör",
     "university": "Üniversite",
-    "universityPlatform": "Üniversite platformunuz"
+    "universityPlatform": "Üniversite platformunuz",
+    "error": "Hata"
   },
   "days": {
     "1": "Pazartesi",
@@ -203,7 +204,11 @@
     "step3CompletedTitle": "Çözüldü",
     "step3CompletedDesc": "Sorun teknik personel tarafından yerinde çözüldü.",
     "general": "Genel",
-    "exterior": "Dış alan"
+    "exterior": "Dış alan",
+    "detailsFallbackTitle": "Bildirim ayrıntıları",
+    "titlePlaceholder": "Örn: Amfitiyatroda kalorifer arızalı",
+    "descPlaceholder": "Karşılaştığın sorunu ayrıntılı olarak anlat...",
+    "seoDescription": "Kampüs ve yurt sorunlarını bildir ve bildirimlerinin durumunu takip et — InsideUGAL."
   },
   "auth": {
     "title": "Giriş yap",

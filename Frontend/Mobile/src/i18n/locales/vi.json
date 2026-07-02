@@ -78,7 +78,8 @@
     "errorTitle": "Ôi! Đã xảy ra sự cố...",
     "viewAll": "Xem thêm",
     "university": "Trường đại học",
-    "universityPlatform": "Nền tảng đại học của bạn"
+    "universityPlatform": "Nền tảng đại học của bạn",
+    "error": "Lỗi"
   },
   "days": {
     "1": "Thứ Hai",
@@ -203,7 +204,11 @@
     "step3CompletedTitle": "Đã giải quyết",
     "step3CompletedDesc": "Vấn đề đã được giải quyết tại chỗ bởi nhân viên kỹ thuật.",
     "general": "Chung",
-    "exterior": "Bên ngoài"
+    "exterior": "Bên ngoài",
+    "detailsFallbackTitle": "Chi tiết báo cáo",
+    "titlePlaceholder": "VD: Hệ thống sưởi bị hỏng ở giảng đường",
+    "descPlaceholder": "Mô tả chi tiết vấn đề bạn gặp phải...",
+    "seoDescription": "Báo cáo các vấn đề ở khuôn viên trường và ký túc xá, đồng thời theo dõi trạng thái báo cáo của bạn — InsideUGAL."
   },
   "auth": {
     "title": "Đăng nhập",

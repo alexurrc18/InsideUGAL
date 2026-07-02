@@ -78,7 +78,8 @@
     "errorTitle": "이런! 문제가 발생했습니다...",
     "viewAll": "더 보기",
     "university": "대학교",
-    "universityPlatform": "당신의 대학 플랫폼"
+    "universityPlatform": "당신의 대학 플랫폼",
+    "error": "오류"
   },
   "days": {
     "1": "월요일",
@@ -203,7 +204,11 @@
     "step3CompletedTitle": "해결됨",
     "step3CompletedDesc": "기술 직원이 현장에서 문제를 해결했습니다.",
     "general": "일반",
-    "exterior": "외부"
+    "exterior": "외부",
+    "detailsFallbackTitle": "신고 세부정보",
+    "titlePlaceholder": "예: 강당 난방 고장",
+    "descPlaceholder": "발생한 문제를 자세히 설명해 주세요...",
+    "seoDescription": "캠퍼스 및 기숙사 문제를 신고하고 신고 상태를 확인하세요 — InsideUGAL."
   },
   "auth": {
     "title": "로그인",

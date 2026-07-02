@@ -6,6 +6,7 @@ import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import AlertOctagonIcon from "@/assets/icons/svg/alert-octagon.svg";
 import { getFormattedDate } from "@/utils/date";
+import { useTranslation } from 'react-i18next';
 
 export interface Sesizare {
   id: string;
@@ -26,7 +27,8 @@ interface SesizareCardProps {
 export function SesizareCard({ item }: SesizareCardProps) {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
-  const statusLabel = item.status === "active" ? "Activă" : item.status === "respinse" ? "Respinsă" : "Soluționată";
+  const { t } = useTranslation();
+  const statusLabel = item.status === "active" ? t('reports.statusActive') : item.status === "respinse" ? t('reports.statusRejected') : t('reports.statusCompleted');
   const [imgErr, setImgErr] = React.useState(false);
 
   return (

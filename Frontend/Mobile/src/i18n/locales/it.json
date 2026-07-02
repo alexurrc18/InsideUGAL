@@ -78,7 +78,8 @@
     "errorTitle": "Ops! Qualcosa è andato storto...",
     "viewAll": "Vedi altro",
     "university": "Università",
-    "universityPlatform": "La tua piattaforma universitaria"
+    "universityPlatform": "La tua piattaforma universitaria",
+    "error": "Errore"
   },
   "days": {
     "1": "Lunedì",
@@ -203,7 +204,11 @@
     "step3CompletedTitle": "Risolta",
     "step3CompletedDesc": "Il problema è stato risolto in loco dal personale tecnico.",
     "general": "Generale",
-    "exterior": "Esterno"
+    "exterior": "Esterno",
+    "detailsFallbackTitle": "Dettagli segnalazione",
+    "titlePlaceholder": "Es.: Riscaldamento guasto nell'anfiteatro",
+    "descPlaceholder": "Descrivi in dettaglio il problema riscontrato...",
+    "seoDescription": "Segnala problemi del campus e dei collegi e monitora lo stato delle tue segnalazioni — InsideUGAL."
   },
   "auth": {
     "title": "Accedi",

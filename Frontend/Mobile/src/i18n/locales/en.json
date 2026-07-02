@@ -78,7 +78,8 @@
     "errorTitle": "Oops! Something went wrong...",
     "viewAll": "View all",
     "university": "University",
-    "universityPlatform": "Your university platform"
+    "universityPlatform": "Your university platform",
+    "error": "Error"
   },
   "days": {
     "1": "Monday",
@@ -203,7 +204,11 @@
     "step3CompletedTitle": "Resolved",
     "step3CompletedDesc": "The issue was resolved on-site by the technical staff.",
     "general": "General",
-    "exterior": "Exterior"
+    "exterior": "Exterior",
+    "detailsFallbackTitle": "Report details",
+    "titlePlaceholder": "E.g.: Broken heating in the amphitheater",
+    "descPlaceholder": "Describe the issue you encountered in detail...",
+    "seoDescription": "Report campus and dorm issues and track the status of your reports — InsideUGAL."
   },
   "auth": {
     "title": "Sign In",

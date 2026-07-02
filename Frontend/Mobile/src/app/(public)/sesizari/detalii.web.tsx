@@ -88,22 +88,22 @@ export default function SesizareDetaliiScreen() {
           const item = res.data;
           setReport({
             id: item.id.toString(),
-            title: item.title || "Titlu lipsă",
-            description: item.description || "Nicio descriere adăugată.",
-            category: "General",
-            location: locationMap.get(item.location_id) || "Locație nespecificată",
+            title: item.title || t('reports.missingTitle'),
+            description: item.description || t('reports.noDescription'),
+            category: t('reports.general'),
+            location: locationMap.get(item.location_id) || t('reports.unknownLocation'),
             status: mapApiStatus(item.status),
-            date: item.created_at || "Dată nespecificată",
+            date: item.created_at || t('common.unknownDate'),
             image: resolveImageUrl(item.image_url) || "",
           });
         } else {
-          setError("Sesizarea nu a putut fi găsită.");
+          setError(t('reports.notFound'));
         }
         setLoading(false);
       } catch (err: any) {
         setLoading(false);
         console.error("[API] Error fetching complaint detail web:", err);
-        setError(err.message || "A apărut o eroare la încărcarea sesizării.");
+        setError(err.message || t('reports.loadError'));
       }
     }
     loadComplaint();
@@ -111,11 +111,11 @@ export default function SesizareDetaliiScreen() {
 
   const title = report?.title || "";
   const description = report?.description || "";
-  const location = report?.location || "Locație nespecificată";
+  const location = report?.location || t('reports.unknownLocation');
   const status = report?.status || "active";
-  const date = report?.date || "Dată nespecificată";
+  const date = report?.date || t('common.unknownDate');
 
-  const statusLabel = status === "active" ? "Activă" : status === "respinse" ? "Respinsă" : "Soluționată";
+  const statusLabel = status === "active" ? t('reports.statusActive') : status === "respinse" ? t('reports.statusRejected') : t('reports.statusCompleted');
 
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<any>(null);
@@ -135,25 +135,25 @@ export default function SesizareDetaliiScreen() {
     switch (status) {
       case "active":
         return [
-          { title: "Sesizare înregistrată", desc: "Sesizarea a fost salvată în sistem.", completed: true, date },
-          { title: "În curs de analiză", desc: "Un administrator evaluează detaliile problemei.", active: true, completed: true },
-          { title: "Soluționare finalizată", desc: "Echipa va interveni pentru a remedia situația.", completed: false },
+          { title: t('reports.step1Title'), desc: t('reports.step1Desc'), completed: true, date },
+          { title: t('reports.step2ActiveTitle'), desc: t('reports.step2ActiveDesc'), active: true, completed: true },
+          { title: t('reports.step3ActiveTitle'), desc: t('reports.step3ActiveDesc'), completed: false },
         ];
       case "respinse":
         return [
-          { title: "Sesizare înregistrată", desc: "Sesizarea a fost salvată în sistem.", completed: true, date },
-          { title: "Respinsă", desc: "Solicitarea a fost respinsă de către echipa administrativă.", completed: true, isError: true },
+          { title: t('reports.step1Title'), desc: t('reports.step1Desc'), completed: true, date },
+          { title: t('reports.step2RejectedTitle'), desc: t('reports.step2RejectedDesc'), completed: true, isError: true },
         ];
       case "finalizate":
         return [
-          { title: "Sesizare înregistrată", desc: "Sesizarea a fost salvată în sistem.", completed: true, date },
-          { title: "În analiză administrativă", desc: "Problema a fost procesată cu succes.", completed: true },
-          { title: "Soluționată", desc: "Problema a fost rezolvată în teren de personalul tehnic.", completed: true, isSuccess: true },
+          { title: t('reports.step1Title'), desc: t('reports.step1Desc'), completed: true, date },
+          { title: t('reports.step2CompletedTitle'), desc: t('reports.step2CompletedDesc'), completed: true },
+          { title: t('reports.step3CompletedTitle'), desc: t('reports.step3CompletedDesc'), completed: true, isSuccess: true },
         ];
       default:
         return [];
     }
-  }, [status, date]);
+  }, [status, date, t]);
 
   if (loading) {
     return (
@@ -171,8 +171,8 @@ export default function SesizareDetaliiScreen() {
               <Breadcrumbs 
                 items={[
                   { label: t('common.home'), href: "/(public)/acasa" },
-                  { label: "Sesizări", href: "/(public)/sesizari" },
-                  { label: "Încărcare..." }
+                  { label: t('reports.title'), href: "/(public)/sesizari" },
+                  { label: t('common.loading') }
                 ]} 
               />
             </View>
@@ -201,13 +201,13 @@ export default function SesizareDetaliiScreen() {
               <Breadcrumbs 
                 items={[
                   { label: t('common.home'), href: "/(public)/acasa" },
-                  { label: "Sesizări", href: "/(public)/sesizari" },
-                  { label: "Eroare" }
-                ]} 
+                  { label: t('reports.title'), href: "/(public)/sesizari" },
+                  { label: t('common.error') }
+                ]}
               />
             </View>
-            <ErrorState 
-              message={error || "Sesizarea nu a putut fi găsită."} 
+            <ErrorState
+              message={error || t('reports.notFound')}
               onRetry={() => setRetryKey(prev => prev + 1)} 
               style={{ minHeight: 500, paddingVertical: Spacing.xl4 }}
             />
@@ -233,8 +233,8 @@ export default function SesizareDetaliiScreen() {
             <Breadcrumbs 
               items={[
                 { label: t('common.home'), href: "/(public)/acasa" },
-                { label: "Sesizări", href: "/(public)/sesizari" },
-                { label: title || "Detalii sesizare" }
+                { label: t('reports.title'), href: "/(public)/sesizari" },
+                { label: title || t('reports.detailsFallbackTitle') }
               ]} 
             />
           </View>
@@ -243,7 +243,7 @@ export default function SesizareDetaliiScreen() {
 
           <View style={{ paddingHorizontal: Spacing.lg, gap: Spacing.xxl, marginTop: Spacing.md }}>
             <View style={{ gap: Spacing.md }}>
-              <Text style={[Typography.Heading4, { color: theme.text }]}>Informații sesizare</Text>
+              <Text style={[Typography.Heading4, { color: theme.text }]}>{t('reports.infoTitle')}</Text>
 
               <View style={{ gap: Spacing.lg }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
@@ -264,7 +264,7 @@ export default function SesizareDetaliiScreen() {
             </View>
 
             <View style={{ gap: Spacing.md }}>
-              <Text style={[Typography.Heading4, { color: theme.text }]}>Descriere problemă</Text>
+              <Text style={[Typography.Heading4, { color: theme.text }]}>{t('reports.descSection')}</Text>
               <Text style={[Typography.Paragraph2, { color: theme.text, lineHeight: 25 }]}>{description}</Text>
             </View>
           </View>
@@ -290,7 +290,7 @@ export default function SesizareDetaliiScreen() {
           />
 
           <View style={{ paddingHorizontal: Spacing.lg, gap: Spacing.md }}>
-            <Text style={[Typography.Heading4, { color: theme.text }]}>Istoric progres</Text>
+            <Text style={[Typography.Heading4, { color: theme.text }]}>{t('reports.progressTitle')}</Text>
 
             <View style={{ marginTop: Spacing.xs }}>
               {steps.map((step, index) => {

@@ -75,12 +75,12 @@ function UserMessageBubble({ text, timestamp, theme }: UserMessageBubbleProps) {
           borderRadius: Spacing.md,
           paddingVertical: Spacing.sm,
           paddingHorizontal: Spacing.lg,
-          backgroundColor: theme.surface,
+          backgroundColor: theme.primary,
           borderBottomRightRadius: 4,
         }}
       >
-        <Text style={{ ...Typography.Paragraph2, lineHeight: 22, color: theme.text }}>
-          {renderFormattedText(text, { color: theme.text }, { fontWeight: '700', color: theme.text })}
+        <Text style={{ ...Typography.Paragraph2, lineHeight: 22, color: '#FFFFFF' }}>
+          {renderFormattedText(text, { color: '#FFFFFF' }, { fontWeight: '700', color: '#FFFFFF' })}
         </Text>
       </View>
     </View>

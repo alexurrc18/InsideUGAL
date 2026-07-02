@@ -78,7 +78,8 @@
     "errorTitle": "おっと！問題が発生しました...",
     "viewAll": "もっと見る",
     "university": "大学",
-    "universityPlatform": "あなたの大学プラットフォーム"
+    "universityPlatform": "あなたの大学プラットフォーム",
+    "error": "エラー"
   },
   "days": {
     "1": "月曜日",
@@ -203,7 +204,11 @@
     "step3CompletedTitle": "解決済み",
     "step3CompletedDesc": "技術スタッフが現場で問題を解決しました。",
     "general": "一般",
-    "exterior": "外部"
+    "exterior": "外部",
+    "detailsFallbackTitle": "報告の詳細",
+    "titlePlaceholder": "例：講堂の暖房が故障している",
+    "descPlaceholder": "発生した問題を詳しく説明してください...",
+    "seoDescription": "キャンパスや寮の問題を報告し、報告の状況を確認できます — InsideUGAL。"
   },
   "auth": {
     "title": "ログイン",

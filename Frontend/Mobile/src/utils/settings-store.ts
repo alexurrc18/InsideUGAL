@@ -1,14 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { getLocales } from 'expo-localization';
 
 const SUPPORTED_LANGS = ['ro', 'en', 'es', 'fr', 'de', 'it', 'el', 'tr', 'vi', 'uk', 'ru', 'ar', 'zh', 'ja', 'ko', 'hi'];
 const KEY_LANG = 'settings_lang';
 const KEY_THEME = 'settings_theme';
 
 function getDeviceLang(): string {
-  const locale = Intl.DateTimeFormat().resolvedOptions().locale;
-  const lang = locale.split('-')[0];
-  return SUPPORTED_LANGS.includes(lang) ? lang : 'en';
+  const lang = getLocales()[0]?.languageCode;
+  return lang && SUPPORTED_LANGS.includes(lang) ? lang : 'en';
 }
 
 function lsRead(key: string): string | null {

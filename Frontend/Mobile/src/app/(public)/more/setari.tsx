@@ -228,7 +228,7 @@ export default function SettingsScreen() {
                   opacity: pressed ? 0.6 : 1
                 })}
               >
-                <Text style={[Typography.Paragraph2, { color: "#E53935" }]}>{t('settings.clearCacheButton')}</Text>
+                <Text style={[Typography.Paragraph2, { color: theme.secondary }]}>{t('settings.clearCacheButton')}</Text>
               </Pressable>
             </View>
           </View>

@@ -78,7 +78,8 @@
     "errorTitle": "Oups ! Quelque chose s'est mal passé...",
     "viewAll": "Voir plus",
     "university": "Université",
-    "universityPlatform": "Votre plateforme universitaire"
+    "universityPlatform": "Votre plateforme universitaire",
+    "error": "Erreur"
   },
   "days": {
     "1": "Lundi",
@@ -203,7 +204,11 @@
     "step3CompletedTitle": "Résolu",
     "step3CompletedDesc": "Le problème a été résolu sur place par le personnel technique.",
     "general": "Général",
-    "exterior": "Extérieur"
+    "exterior": "Extérieur",
+    "detailsFallbackTitle": "Détails du signalement",
+    "titlePlaceholder": "Ex : Chauffage en panne dans l'amphithéâtre",
+    "descPlaceholder": "Décris en détail le problème rencontré...",
+    "seoDescription": "Signale les problèmes du campus et des résidences et suis le statut de tes signalements — InsideUGAL."
   },
   "auth": {
     "title": "Connexion",

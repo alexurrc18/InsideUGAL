@@ -78,7 +78,8 @@
     "errorTitle": "Ups! Etwas ist schiefgelaufen...",
     "viewAll": "Mehr anzeigen",
     "university": "Universität",
-    "universityPlatform": "Deine Universitätsplattform"
+    "universityPlatform": "Deine Universitätsplattform",
+    "error": "Fehler"
   },
   "days": {
     "1": "Montag",
@@ -203,7 +204,11 @@
     "step3CompletedTitle": "Gelöst",
     "step3CompletedDesc": "Das Problem wurde vor Ort vom technischen Personal behoben.",
     "general": "Allgemein",
-    "exterior": "Außenbereich"
+    "exterior": "Außenbereich",
+    "detailsFallbackTitle": "Meldungsdetails",
+    "titlePlaceholder": "Z. B.: Heizung im Hörsaal defekt",
+    "descPlaceholder": "Beschreibe das Problem im Detail...",
+    "seoDescription": "Melde Probleme auf dem Campus und in den Wohnheimen und verfolge den Status deiner Meldungen — InsideUGAL."
   },
   "auth": {
     "title": "Anmelden",

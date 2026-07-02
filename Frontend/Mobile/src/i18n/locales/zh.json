@@ -78,7 +78,8 @@
     "errorTitle": "哎呀！出了点问题...",
     "viewAll": "查看更多",
     "university": "大学",
-    "universityPlatform": "您的大学平台"
+    "universityPlatform": "您的大学平台",
+    "error": "错误"
   },
   "days": {
     "1": "星期一",
@@ -203,7 +204,11 @@
     "step3CompletedTitle": "已解决",
     "step3CompletedDesc": "技术人员已现场解决问题。",
     "general": "一般",
-    "exterior": "外部"
+    "exterior": "外部",
+    "detailsFallbackTitle": "报告详情",
+    "titlePlaceholder": "例如：阶梯教室暖气故障",
+    "descPlaceholder": "详细描述你遇到的问题...",
+    "seoDescription": "报告校园和宿舍问题，并跟踪你的报告状态 — InsideUGAL。"
   },
   "auth": {
     "title": "登录",

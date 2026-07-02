@@ -78,7 +78,8 @@
     "errorTitle": "¡Ups! Algo salió mal...",
     "viewAll": "Ver más",
     "university": "Universidad",
-    "universityPlatform": "Tu plataforma universitaria"
+    "universityPlatform": "Tu plataforma universitaria",
+    "error": "Error"
   },
   "days": {
     "1": "Lunes",
@@ -203,7 +204,11 @@
     "step3CompletedTitle": "Resuelta",
     "step3CompletedDesc": "El problema fue resuelto en el lugar por el personal técnico.",
     "general": "General",
-    "exterior": "Exterior"
+    "exterior": "Exterior",
+    "detailsFallbackTitle": "Detalles del reporte",
+    "titlePlaceholder": "Ej.: Calefacción averiada en el anfiteatro",
+    "descPlaceholder": "Describe en detalle el problema que encontraste...",
+    "seoDescription": "Reporta problemas del campus y las residencias y sigue el estado de tus reportes — InsideUGAL."
   },
   "auth": {
     "title": "Iniciar sesión",

@@ -78,7 +78,8 @@
     "errorTitle": "Ups! A intervenit o eroare...",
     "viewAll": "Vezi mai multe",
     "university": "Universitate",
-    "universityPlatform": "Platforma ta universitară"
+    "universityPlatform": "Platforma ta universitară",
+    "error": "Eroare"
   },
   "days": {
     "1": "Luni",
@@ -203,7 +204,11 @@
     "step3CompletedTitle": "Soluționată",
     "step3CompletedDesc": "Problema a fost rezolvată în teren de personalul tehnic.",
     "general": "General",
-    "exterior": "Exterior"
+    "exterior": "Exterior",
+    "detailsFallbackTitle": "Detalii sesizare",
+    "titlePlaceholder": "Ex: Încălzire defectă în amfiteatru",
+    "descPlaceholder": "Descrie în detaliu problema întâmpinată...",
+    "seoDescription": "Raportează probleme din campus și cămine și urmărește statusul sesizărilor — InsideUGAL."
   },
   "auth": {
     "title": "Autentificare",

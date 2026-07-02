@@ -258,7 +258,7 @@ export default function AdaugaSesizareScreen() {
                 setTitle(text);
                 if (errors.title) setErrors({ ...errors, title: undefined });
               }}
-              placeholder="Ex: Încălzire defectă în amfiteatru"
+              placeholder={t('reports.titlePlaceholder')}
               placeholderTextColor={theme.textSecondary}
               style={{ 
                 height: 56,
@@ -288,7 +288,7 @@ export default function AdaugaSesizareScreen() {
                 setDescription(text);
                 if (errors.description) setErrors({ ...errors, description: undefined });
               }}
-              placeholder="Descrie în detaliu problema întâmpinată..."
+              placeholder={t('reports.descPlaceholder')}
               placeholderTextColor={theme.textSecondary}
               multiline
               numberOfLines={4}

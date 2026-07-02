@@ -78,7 +78,8 @@
     "errorTitle": "عذراً! حدث خطأ ما...",
     "viewAll": "عرض المزيد",
     "university": "الجامعة",
-    "universityPlatform": "منصتك الجامعية"
+    "universityPlatform": "منصتك الجامعية",
+    "error": "خطأ"
   },
   "days": {
     "1": "الاثنين",
@@ -203,7 +204,11 @@
     "step3CompletedTitle": "محلولة",
     "step3CompletedDesc": "تم حل المشكلة في الموقع من قبل الفريق التقني.",
     "general": "عام",
-    "exterior": "خارجي"
+    "exterior": "خارجي",
+    "detailsFallbackTitle": "تفاصيل البلاغ",
+    "titlePlaceholder": "مثال: تدفئة معطلة في المدرج",
+    "descPlaceholder": "صف المشكلة التي واجهتها بالتفصيل...",
+    "seoDescription": "أبلغ عن مشاكل الحرم الجامعي والسكن الطلابي وتابع حالة بلاغاتك — InsideUGAL."
   },
   "auth": {
     "title": "تسجيل الدخول",
