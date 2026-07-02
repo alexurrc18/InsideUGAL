@@ -43,7 +43,7 @@ export default function FacilitiesPage() {
       header: "Imagine",
       key: "image_url",
       render: (item: FacilityItem) => (
-        <div className="w-12 h-12 relative rounded-lg overflow-hidden border bg-gray-50">
+        <div className="w-12 h-12 relative rounded-lg overflow-hidden bg-gray-50">
           {item.image_url ? (
             <Image src={item.image_url} alt={item.name} fill className="object-cover" sizes="48px" />
           ) : (
@@ -59,8 +59,8 @@ export default function FacilitiesPage() {
       key: "actions",
       render: (item: FacilityItem) => (
         <div className="flex space-x-3 text-xs">
-          <button type="button" className="text-blue-600 hover:underline" onClick={() => { setSelectedId(item.id); setForm(item); setActiveModal("edit"); }}>Editare</button>
-          <button type="button" className="text-red-500 hover:underline" onClick={async () => { if(confirm("Ștergi?")) { await deleteMutation.mutateAsync(item.id); refetch(); }}}>Ștergere</button>
+          <button type="button" className="text-blue-600 hover:underline font-semibold" onClick={() => { setSelectedId(item.id); setForm(item); setActiveModal("edit"); }}>Editare</button>
+          <button type="button" className="text-red-500 hover:underline font-semibold" onClick={async () => { if(confirm("Ștergi?")) { await deleteMutation.mutateAsync(item.id); refetch(); }}}>Ștergere</button>
         </div>
       ),
     },
@@ -70,8 +70,8 @@ export default function FacilitiesPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <button onClick={() => { setForm({}); setActiveModal("add"); }} className="bg-brand text-white px-5 py-2 rounded-xl text-sm font-bold">Adaugă Facilitate</button>
+      <div className="flex justify-end items-center">
+        <button onClick={() => { setForm({}); setActiveModal("add"); }} className="bg-brand text-white px-5 py-2 rounded-xl text-sm font-bold">Adaugă</button>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
@@ -86,6 +86,37 @@ export default function FacilitiesPage() {
           <button type="submit" className="w-full bg-brand text-white py-3 rounded-lg font-bold">Salvează</button>
         </form>
       </Modal>
+
+      <Modal
+  isOpen={viewModal !== null}
+  onClose={() => setViewModal(null)}
+  title={viewModal?.name ?? ""}
+>
+  {viewModal && (
+    <div className="space-y-5">
+      {viewModal.image_url && (
+        <div className="relative w-full h-64 rounded-xl overflow-hidden">
+          <Image
+            src={viewModal.image_url}
+            alt={viewModal.name}
+            fill
+            className="object-cover"
+          />
+        </div>
+      )}
+
+      <div>
+        <h2 className="text-xl font-bold">
+          {viewModal.name}
+        </h2>
+
+        <p className="mt-3 whitespace-pre-wrap text-gray-700 leading-relaxed">
+          {viewModal.description || "Nu există descriere."}
+        </p>
+      </div>
+    </div>
+  )}
+</Modal>
     </div>
   );
 }
