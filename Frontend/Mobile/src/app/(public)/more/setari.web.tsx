@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, Stack } from "expo-router";
 
 import { Colors, Spacing, WebSidePadding } from "@/constants/theme";
+import { Config } from "@/constants/config";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { Typography } from "@/constants/typography";
 import { CategoryHeader } from "@/components/ui/display/category-header";
@@ -211,7 +212,7 @@ export default function SettingsScreen() {
               {/* Subsol (App Version) */}
               <View style={{ alignItems: "center", marginTop: Spacing.md, gap: Spacing.xs, marginBottom: Spacing.xl }}>
                 <Text style={[Typography.Small1, { color: theme.textSecondary }]}>
-                  InsideUGAL v0.1.0
+                  InsideUGAL v{Config.APP_VERSION}
                 </Text>
                 <Text style={[Typography.Small2, { color: theme.textSecondary, textAlign: "center" }]}>
                   {t('settings.appSlogan')}

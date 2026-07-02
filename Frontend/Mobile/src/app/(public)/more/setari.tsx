@@ -7,6 +7,7 @@ import { useRouter, Stack } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 
 import { Colors, Spacing } from "@/constants/theme";
+import { Config } from "@/constants/config";
 import { Typography } from "@/constants/typography";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import { settingsStore } from "@/utils/settings-store";
@@ -125,10 +126,6 @@ export default function SettingsScreen() {
           
           {/* SECȚIUNEA 1: ASPECT & LIMBĂ */}
           <View style={{ gap: Spacing.md }}>
-            <Text style={[Typography.Heading4, { color: theme.text }]}>
-              {t('settings.appearanceLang')}
-            </Text>
-            
             <View style={{ gap: Spacing.lg, paddingVertical: Spacing.xs }}>
               {/* Opțiune Temă */}
               <View style={{ gap: Spacing.xs }}>
@@ -165,7 +162,6 @@ export default function SettingsScreen() {
 
               {/* Opțiune Limbă */}
               <View style={{ gap: Spacing.xs }}>
-                <Text style={[Typography.Paragraph2, { color: theme.text }]}>{t('language.title')}</Text>
 
                 {/* Buton navigare limbă - navighează la limba.tsx */}
                 <Pressable
@@ -189,7 +185,7 @@ export default function SettingsScreen() {
                     width={18} 
                     height={18} 
                     color={theme.textSecondary} 
-                    style={{ transform: [{ rotate: "180deg" }] }} // Points right as chevron-right
+                    style={{ transform: [{ rotate: "180deg" }] }}
                   />
                 </Pressable>
               </View>
@@ -234,7 +230,7 @@ export default function SettingsScreen() {
           {/* Subsol (App Version) */}
           <View style={{ alignItems: "center", marginTop: Spacing.xl, gap: Spacing.xs }}>
             <Text style={[Typography.Small1, { color: theme.textSecondary }]}>
-              InsideUGAL v0.1.0
+              InsideUGAL v{Config.APP_VERSION}
             </Text>
             <Text style={[Typography.Small2, { color: theme.textSecondary, textAlign: "center" }]}>
               {t('settings.appSlogan')}

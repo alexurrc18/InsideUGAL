@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Pressable, View, Text, Platform, ScrollView } from "react-native";
 import Animated, { useSharedValue, withTiming, useAnimatedStyle, interpolate, Extrapolation, Easing } from "react-native-reanimated";
 import { ColorScheme, Spacing, Colors } from "@/constants/theme";
+import { Config } from "@/constants/config";
 import { Typography } from "@/constants/typography";
 import { useThemeContext } from "@/contexts/theme-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -222,7 +223,7 @@ export function ThemeMenu({
           {[
             { label: t('theme.current'), value: themeLabel, sub: "tema" as const },
             { label: t('language.current'), value: langLabel, sub: "limba" as const },
-          ].map((item, i) => {
+          ].map((item) => {
             const isActive = subMenu === item.sub;
             return (
               <Pressable
@@ -236,8 +237,6 @@ export function ThemeMenu({
                     alignItems: "center",
                     paddingHorizontal: Spacing.lg,
                     paddingVertical: Spacing.md,
-                    borderTopWidth: i > 0 ? 1 : 0,
-                    borderTopColor: "rgba(0,0,0,0.08)",
                   },
                   (pressed || hovered || isActive) && { backgroundColor: "rgba(0,0,0,0.05)" },
                 ]}
@@ -261,6 +260,11 @@ export function ThemeMenu({
               </Pressable>
             );
           })}
+          <View style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm }}>
+            <Text style={{ color: theme.textSecondary, fontFamily: "InstrumentSans-Medium", fontSize: 13 }}>
+              InsideUGAL v{Config.APP_VERSION}
+            </Text>
+          </View>
         </View>
       </Animated.View>
     </View>
