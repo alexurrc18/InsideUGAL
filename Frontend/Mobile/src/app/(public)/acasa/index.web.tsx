@@ -62,7 +62,7 @@ export default function HomeScreen() {
               id: item.id.toString(),
               title: (i18n.language !== 'ro' && item.is_translated ? item.translated_title : null) || item.title || t('common.unknownTitle'),
               category: t('home.news'),
-              date: isoToRomanianDateStr(item.created_at) || t('common.unknownDate'),
+              date: item.created_at || '',
               author: item.author_name || "",
               image: item.image_url || undefined,
               content: (i18n.language !== 'ro' && item.is_translated ? item.translated_content : null) || item.content || t('common.unknownContent'),
@@ -75,7 +75,7 @@ export default function HomeScreen() {
               id: item.id.toString(),
               title: (i18n.language !== 'ro' && item.is_translated ? item.translated_title : null) || item.title || t('common.unknownTitle'),
               category: t('home.events'),
-              date: isoToRomanianDateStr(item.created_at) || t('common.unknownDate'),
+              date: item.created_at || '',
               date_start: isoToRomanianDateStr(item.start_date) || "",
               date_end: isoToRomanianDateStr(item.end_date) || "",
               time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
@@ -238,7 +238,7 @@ export default function HomeScreen() {
   });
   const latest4 = allAnnouncements.slice(0, 4).map((item) => ({
     ...item,
-    date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
+    date: item.created_at || '',
     date_start: undefined,
   }));
   const featuredItem = latest4[0];

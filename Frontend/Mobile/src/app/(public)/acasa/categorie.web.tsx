@@ -99,7 +99,7 @@ export default function CategoryScreen() {
             id: item.id.toString(),
             title: item.title || "Titlu necunoscut",
             category: categoryTitle,
-            date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
+            date: item.created_at || '',
             date_start: isoToRomanianDateStr(item.start_date) || "",
             date_end: isoToRomanianDateStr(item.end_date) || "",
             time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",

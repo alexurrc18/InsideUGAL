@@ -147,8 +147,8 @@ function VizualizareScreen() {
                                     date_end: isoToRomanianDateStr(item.end_date) || "",
                                     time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
                                     time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-                                    posted_at: isoToRomanianDateStr(item.created_at) || "",
-                                    date: isoToRomanianDateStr(item.start_date) || t('common.unknownDate'),
+                                    posted_at: item.created_at || "",
+                                    date: item.start_date || "",
                                     author: item.author_name || "",
                                     created_at: item.created_at,
                                     updated_at: item.updated_at,
@@ -233,12 +233,12 @@ function VizualizareScreen() {
             content: (i18n.language !== 'ro' && item.is_translated ? item.translated_content : null) || item.content || t('common.unknownContent'),
             image: item.image_url || "",
             location: item.location_name || t('common.unknownLocation'),
-            date_start: isoToRomanianDateStr(item.start_date) || "",
-            date_end: isoToRomanianDateStr(item.end_date) || "",
+            date_start: item.start_date || "",
+            date_end: item.end_date || "",
             time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
             time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-            posted_at: isoToRomanianDateStr(item.created_at) || "",
-            date: isoToRomanianDateStr(item.start_date) || t('common.unknownDate'),
+            posted_at: item.created_at || "",
+            date: item.start_date || "",
             author: item.author_name || "",
             created_at: item.created_at,
             updated_at: item.updated_at,
@@ -289,9 +289,7 @@ function VizualizareScreen() {
         }
     };
 
-    const displayDateValue = category === t('home.news')
-        ? (posted_at && posted_at !== t('common.unknownDate') ? posted_at : "")
-        : (date && date !== t('common.unknownDate') ? date : posted_at);
+    const displayDateValue = posted_at && posted_at !== t('common.unknownDate') ? posted_at : "";
 
     const formattedDate = getFormattedDate(displayDateValue as string);
     const readingTime = getReadingTime(content as string);
@@ -300,7 +298,7 @@ function VizualizareScreen() {
     const createdTime = itemData?.created_at ? new Date(itemData.created_at).getTime() : 0;
     const updatedTime = itemData?.updated_at ? new Date(itemData.updated_at).getTime() : 0;
     const isUpdated = createdTime > 0 && updatedTime > 0 && Math.abs(updatedTime - createdTime) > 60000;
-    const formattedUpdateDate = itemData?.updated_at ? getFormattedDate(isoToRomanianDateStr(itemData.updated_at)) : "";
+    const formattedUpdateDate = itemData?.updated_at ? getFormattedDate(itemData.updated_at) : "";
 
     if (loading && !itemData) {
         return (

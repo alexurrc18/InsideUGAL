@@ -105,7 +105,7 @@ export default function CategoryScreen() {
             id: item.id.toString(),
             title: (i18n.language !== 'ro' && item.is_translated ? item.translated_title : null) || item.title || t('common.unknownTitle'),
             category: displayTitle,
-            date: isoToRomanianDateStr(item.created_at) || t('common.unknownDate'),
+            date: item.created_at || '',
             date_start: isoToRomanianDateStr(item.start_date) || "",
             date_end: isoToRomanianDateStr(item.end_date) || "",
             time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",

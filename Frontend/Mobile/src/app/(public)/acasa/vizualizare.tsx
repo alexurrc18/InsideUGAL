@@ -131,8 +131,8 @@ function VizualizareScreen() {
                                     date_end: isoToRomanianDateStr(item.end_date) || "",
                                     time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
                                     time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-                                    posted_at: isoToRomanianDateStr(item.created_at) || "",
-                                    date: isoToRomanianDateStr(item.start_date) || "Dată necunoscută",
+                                    posted_at: item.created_at || "",
+                                    date: item.start_date || "",
                                     author: item.author_name || "",
                                     created_at: item.created_at,
                                     updated_at: item.updated_at,
@@ -193,7 +193,7 @@ function VizualizareScreen() {
                                 } else if (isFacility) {
                                     mappedItem = { id: match.id.toString(), type: "Facilitate", title: match.name || t('common.unknownTitle'), image: match.image_url || "", content: match.description || "", schedules: match.schedules || [] };
                                 } else {
-                                    mappedItem = { id: match.id.toString(), type: match.type === "NOUTATE" ? "Anunț" : "Eveniment", title: match.title || t('common.unknownTitle'), category: match.type === "NOUTATE" ? t('home.news') : t('home.events'), content: match.content || t('common.unknownContent'), image: match.image_url || "", location: match.location_name || t('common.unknownLocation'), date_start: isoToRomanianDateStr(match.start_date) || "", date_end: isoToRomanianDateStr(match.end_date) || "", time_start: match.start_date ? new Date(match.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "", time_end: match.end_date ? new Date(match.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "", posted_at: isoToRomanianDateStr(match.created_at) || "", date: isoToRomanianDateStr(match.start_date) || t('common.unknownDate'), author: match.author_name || "", created_at: match.created_at, updated_at: match.updated_at };
+                                    mappedItem = { id: match.id.toString(), type: match.type === "NOUTATE" ? "Anunț" : "Eveniment", title: match.title || t('common.unknownTitle'), category: match.type === "NOUTATE" ? t('home.news') : t('home.events'), content: match.content || t('common.unknownContent'), image: match.image_url || "", location: match.location_name || t('common.unknownLocation'), date_start: match.start_date || "", date_end: match.end_date || "", time_start: match.start_date ? new Date(match.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "", time_end: match.end_date ? new Date(match.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "", posted_at: match.created_at || "", date: match.start_date || "", author: match.author_name || "", created_at: match.created_at, updated_at: match.updated_at };
                                 }
                                 setItemData(mappedItem);
                                 setLoading(false);
@@ -271,7 +271,7 @@ function VizualizareScreen() {
     const createdTime = itemData?.created_at ? new Date(itemData.created_at).getTime() : 0;
     const updatedTime = itemData?.updated_at ? new Date(itemData.updated_at).getTime() : 0;
     const isUpdated = createdTime > 0 && updatedTime > 0 && Math.abs(updatedTime - createdTime) > 60000;
-    const formattedUpdateDate = itemData?.updated_at ? getFormattedDate(isoToRomanianDateStr(itemData.updated_at)) : "";
+    const formattedUpdateDate = itemData?.updated_at ? getFormattedDate(itemData.updated_at) : "";
 
     if (loading && !itemData) {
         return (

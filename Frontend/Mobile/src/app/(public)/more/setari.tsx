@@ -1,6 +1,6 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useState, useEffect } from "react";
-import { View, Text, Switch, Pressable, Linking, Platform } from "react-native";
+import { View, Text, Switch, Pressable, Linking, Platform, Alert } from "react-native";
 import Animated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, interpolate, Extrapolation } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, Stack } from "expo-router";
@@ -11,6 +11,8 @@ import { Typography } from "@/constants/typography";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import { settingsStore } from "@/utils/settings-store";
 import { useTranslation } from 'react-i18next';
+import { LANGUAGES } from '@/constants/languages';
+import { storage } from '@/services/api';
 
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import GlobeIcon from "@/assets/icons/svg/globe-europe.svg";
@@ -44,14 +46,19 @@ export default function SettingsScreen() {
     return unsubscribe;
   }, []);
   
-  const languages = [
-    { code: "ro", label: "Română" },
-    { code: "en", label: "English" },
-    { code: "es", label: "Español" },
-    { code: "fr", label: "Français" },
-    { code: "de", label: "Deutsch" },
-    { code: "it", label: "Italiano" }
-  ];
+  const languages = LANGUAGES;
+
+  const handleClearCache = () => {
+    Alert.alert("Șterge cache", "Se va reseta onboarding-ul. La repornire vei vedea din nou cererea de permisiuni.", [
+      { text: "Anulează", style: "cancel" },
+      {
+        text: "Șterge", style: "destructive", onPress: async () => {
+          await storage.removeItem("has_seen_onboarding");
+          Alert.alert("Gata", "Cache șters. Repornește aplicația.");
+        }
+      },
+    ]);
+  };
 
   const handleOpenWebsite = async () => {
     try {
@@ -199,7 +206,7 @@ export default function SettingsScreen() {
 
             <View style={{ gap: Spacing.md }}>
               {/* Link Site */}
-              <Pressable 
+              <Pressable
                 onPress={handleOpenWebsite}
                 style={({ pressed }) => ({
                   flexDirection: "row",
@@ -211,6 +218,17 @@ export default function SettingsScreen() {
               >
                 <Text style={[Typography.Paragraph2, { color: theme.text }]}>{t('settings.visitWebsite')}</Text>
                 <GlobeIcon width={22} height={22} color={theme.textSecondary} />
+              </Pressable>
+
+              {/* Șterge cache (dev) */}
+              <Pressable
+                onPress={handleClearCache}
+                style={({ pressed }) => ({
+                  paddingVertical: Spacing.sm,
+                  opacity: pressed ? 0.6 : 1
+                })}
+              >
+                <Text style={[Typography.Paragraph2, { color: "#E53935" }]}>Șterge cache</Text>
               </Pressable>
             </View>
           </View>
