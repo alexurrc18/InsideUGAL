@@ -5,14 +5,15 @@ import {
   announcementsSchema,
   coursesSchema,
   facultiesSchema,
-  facultySchema,
   notificationSchema,
   notificationsSchema,
   profileSchema,
   userSchema,
 } from "./api-schemas";
 import type { Announcement, ApiErrorBody, ApiRequestOptions } from "./api-types";
-import { FacilityItem } from "@/app/facilitati/page";
+
+import { FacilityItem } from "../types/facility"; // Ajustează calea dacă e nevoie
+import { facultySchema } from "./api-schemas";
 
 // 👉 REPARAT: Forțăm http în mod explicit pe local pentru a preveni ERR_SSL_PROTOCOL_ERROR
 // Chiar dacă în .env ai din greșeală "https", codul de mai jos se va asigura că rămâne "http" pe localhost.
