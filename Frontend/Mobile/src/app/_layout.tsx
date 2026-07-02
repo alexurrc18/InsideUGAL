@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { View } from 'react-native';
 import { AuthProvider } from '@/contexts/auth-context';
+import '@/i18n';
 
 SplashScreen.preventAutoHideAsync();
 

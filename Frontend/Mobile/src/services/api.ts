@@ -140,6 +140,7 @@ const api = axios.create({
   },
 });
 
+// eslint-disable-next-line import/no-named-as-default-member
 export const ace = axios.create({
   baseURL: `${Config.LLM_BASE_URL}/api/v1/campus-chat/stream`,
   timeout: 0,
@@ -391,6 +392,11 @@ function cleanErrorMessage(detail: string | undefined, defaultMsg: string, statu
     if (lowerMsg.includes(key)) {
       return value;
     }
+  }
+
+  // Server-side errors are not auth errors
+  if (status && status >= 500) {
+    return "Serverul este temporar indisponibil. Vă rugăm să reîncercați mai târziu.";
   }
 
   // Fallback for technical strings containing raw supabase or json information

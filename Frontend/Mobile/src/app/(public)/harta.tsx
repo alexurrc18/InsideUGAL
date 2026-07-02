@@ -8,6 +8,7 @@ import { CategoryHeader } from '@/components/ui/display/category-header';
 import api, { storage } from '@/services/api';
 import { ErrorState } from '@/components/ui/display/error-state';
 import * as Location from 'expo-location';
+import { useTranslation } from 'react-i18next';
 
 export default function HartaScreen() {
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
@@ -17,6 +18,7 @@ export default function HartaScreen() {
   const insets = useSafeAreaInsets();
   const themeName = (useColorScheme() ?? 'light') as keyof typeof Colors;
   const theme = Colors[themeName];
+  const { t, i18n } = useTranslation();
   const [hasError, setHasError] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -33,8 +35,8 @@ export default function HartaScreen() {
 
       // Fetch fresh data from API
       const [facsRes, locsRes] = await Promise.all([
-        api.get('/faculties/', { params: { page: 1, size: 50 } }),
-        api.get('/locations/', { params: { page: 1, size: 50 } })
+        api.get('/faculties/', { params: { page: 1, size: 50, lang: i18n.language } }),
+        api.get('/locations/', { params: { page: 1, size: 50, lang: i18n.language } })
       ]);
 
       if (facsRes.data?.items) {
@@ -49,7 +51,7 @@ export default function HartaScreen() {
       console.warn('[API] Error loading map screen data:', err);
       setHasError(true);
     }
-  }, []);
+  }, [i18n.language]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -76,14 +78,14 @@ export default function HartaScreen() {
 
   const facultyFilters = useMemo(() => {
     return [
-      { id: null, title: 'Toate locațiile' },
-      { id: 'f8', title: 'Facilități' },
+      { id: null, title: t('map.allLocations') },
+      { id: 'f8', title: t('map.facilities') },
       ...faculties.map(f => ({
         id: f.id.toString(),
         title: f.abbreviation || f.name
       }))
     ];
-  }, [faculties]);
+  }, [faculties, t]);
 
   const mappedBuildings = useMemo(() => {
     return locations.map((item: any) => ({
@@ -112,7 +114,7 @@ export default function HartaScreen() {
       paddingTop: insets.top + Spacing.md,
     }}>
       <CategoryHeader
-        title='Hartă'
+        title={t('map.title')}
         filters={facultyFilters}
         selectedFilterId={selectedFacultyId}
         onSelectFilter={handleSelectFilter}

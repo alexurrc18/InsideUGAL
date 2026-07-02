@@ -5,6 +5,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Typography } from "@/constants/typography";
 import { Colors, Spacing, ColorScheme } from "@/constants/theme";
+import { useTranslation } from "react-i18next";
 
 
 const DEFAULT_IMAGE = require("@/assets/images/campus-stiintei.png");
@@ -23,7 +24,8 @@ export interface NewsCardProps {
 }
 
 export function CategoryTag({ category }: { category: string }) {
-    const isEvent = category === "Evenimente";
+    const { t } = useTranslation();
+    const isEvent = category === t('home.events');
     return (
         <View style={{
             alignSelf: "flex-start",
@@ -60,7 +62,8 @@ export function NewsCard({
     const defaultWidth = variant === "list" ? SCREEN_WIDTH - Spacing.xl3 : (variant === "square" ? 180 : (width || SCREEN_WIDTH * 0.85));
     const defaultHeight = variant === "list" ? 100 : (variant === "square" ? 180 : (height || (defaultWidth as number) / (16 / 10)));
     
-    const cardImage = image || DEFAULT_IMAGE;
+    const [imgErr, setImgErr] = React.useState(false);
+    const cardImage = (image && !imgErr) ? image : DEFAULT_IMAGE;
 
     if (variant === "list") {
         return (
@@ -80,6 +83,7 @@ export function NewsCard({
             >
                 <Image
                     source={cardImage}
+                    onError={() => setImgErr(true)}
                     style={{ width: (height || defaultHeight) as any, height: (height || defaultHeight) as any, borderRadius: Spacing.lg, overflow: "hidden" }}
                     contentFit="cover"
                 />
@@ -115,6 +119,7 @@ export function NewsCard({
             >
                 <Image
                     source={cardImage}
+                    onError={() => setImgErr(true)}
                     style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, zIndex: 1 }}
                     contentFit="cover"
                 />
@@ -158,6 +163,7 @@ export function NewsCard({
         >
             <Image
                 source={cardImage}
+                onError={() => setImgErr(true)}
                 style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, zIndex: 1 }}
                 contentFit="cover"
             />

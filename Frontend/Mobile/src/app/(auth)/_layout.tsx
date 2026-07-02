@@ -1,6 +1,6 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Stack, useRouter } from 'expo-router';
-import { Pressable } from "react-native";
+import { Pressable, Platform } from "react-native";
 import { Colors, Spacing } from '@/constants/theme';
 import CloseIcon from "@/assets/icons/svg/x.svg";
 
@@ -14,7 +14,7 @@ export default function AuthLayout() {
       <Stack.Screen
         name="index"
         options={{
-          headerShown: true,
+          headerShown: Platform.OS !== 'web',
           headerShadowVisible: false,
           headerStyle: {
             backgroundColor: theme.background,

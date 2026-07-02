@@ -9,6 +9,7 @@ import { parseEventId, allEventParams } from "@/utils/article-url";
 import api from "@/services/api";
 import { isoToRomanianDateStr } from "@/utils/date";
 import { Colors, Spacing } from "@/constants/theme";
+import { useTranslation } from "react-i18next";
 
 // Pre-generează paginile la build
 export function generateStaticParams() {
@@ -16,6 +17,7 @@ export function generateStaticParams() {
 }
 
 export default function EvenimentScreen() {
+    const { t, i18n } = useTranslation();
     const params = useLocalSearchParams();
     const id = parseEventId(params.id);
     const [ev, setEv] = useState<any>(null);
@@ -36,7 +38,7 @@ export default function EvenimentScreen() {
             setHasError(false);
             setLoading(true);
             try {
-                const res = await api.get(`/announcements/${id}`);
+                const res = await api.get(`/announcements/${id}`, { params: { lang: i18n.language, include_untranslated: true } });
                 setEv(res.data);
             } catch (err) {
                 console.warn("[EvenimentScreen] Error loading event:", err);
@@ -46,7 +48,7 @@ export default function EvenimentScreen() {
             }
         };
         run();
-    }, [id, retryKey]);
+    }, [id, retryKey, i18n.language]);
 
     if (loading) {
         return (
@@ -67,8 +69,8 @@ export default function EvenimentScreen() {
         );
     }
 
-    const title = ev.title || "Eveniment";
-    const content = ev.content || "";
+    const title = (i18n.language !== 'ro' && ev.is_translated ? ev.translated_title : null) || ev.title || "Eveniment";
+    const content = (i18n.language !== 'ro' && ev.is_translated ? ev.translated_content : null) || ev.content || "";
     const image = ev.image_url || "";
     const location = ev.location_name || "";
     const date_start = isoToRomanianDateStr(ev.start_date) || "";
@@ -98,7 +100,7 @@ export default function EvenimentScreen() {
             <ArticleDetail
                 type="Eveniment"
                 title={title}
-                category="Evenimente"
+                category={t('home.events')}
                 content={content}
                 image={image}
                 location={location}
@@ -107,6 +109,7 @@ export default function EvenimentScreen() {
                 time_start={time_start}
                 time_end={time_end}
                 date={date}
+                files={ev.files || []}
             />
         </>
     );

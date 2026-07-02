@@ -3,6 +3,7 @@ import { ColorScheme, Spacing } from "@/constants/theme";
 import { useThemeContext } from "@/contexts/theme-context";
 import SunIcon from "@/assets/icons/svg/sun.svg";
 import MoonIcon from "@/assets/icons/svg/moon.svg";
+import { useTranslation } from "react-i18next";
 
 interface ThemeToggleProps {
   /** Culoarea iconitei. Implicit alb (pe gri-ul navbarului). */
@@ -21,6 +22,7 @@ interface ThemeToggleProps {
 export function ThemeToggle({ color = ColorScheme.white, backgroundColor = "#272727", borderColor, size = 24 }: ThemeToggleProps) {
   const { scheme, toggleTheme } = useThemeContext();
   const isDark = scheme === "dark";
+  const { t } = useTranslation();
 
   // In dark afisam soarele (apesi -> light); in light afisam luna.
   const Icon = isDark ? SunIcon : MoonIcon;
@@ -30,7 +32,7 @@ export function ThemeToggle({ color = ColorScheme.white, backgroundColor = "#272
       onPress={toggleTheme}
       hitSlop={8}
       accessibilityRole="button"
-      accessibilityLabel={isDark ? "Comuta pe tema deschisa" : "Comuta pe tema intunecata"}
+      accessibilityLabel={isDark ? t('theme.switchToLight') : t('theme.switchToDark')}
       style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
     >
       <View

@@ -23,9 +23,10 @@ import { CategoryHeader } from "@/components/ui/display/category-header";
 import { WebContainer, WEB_COMPACT_BREAKPOINT } from "@/components/ui/layout/web-container";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { Seo } from "@/components/seo";
-import api, { storage } from "@/services/api";
+import api from "@/services/api";
 import { ErrorState } from "@/components/ui/display/error-state";
 import { useNavigation } from "expo-router";
+import { useTranslation } from 'react-i18next';
 
 let lastKnownUserLocation: { lat: number; lng: number } | null = null;
 
@@ -38,6 +39,7 @@ export default function HartaScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const contentTop = useWebContentTop();
+  const { t, i18n } = useTranslation();
   const [hasError, setHasError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(lastKnownUserLocation);
@@ -98,31 +100,19 @@ export default function HartaScreen() {
     async function loadData() {
       try {
         if (active) setHasError(false);
-        // Load cached data first for immediate render
-        const [cachedFacs, cachedLocs] = await Promise.all([
-          storage.getItem('cached_faculties'),
-          storage.getItem('cached_facilities'),
-        ]);
-
-        if (active) {
-          if (cachedFacs) setFaculties(JSON.parse(cachedFacs));
-          if (cachedLocs) setLocations(JSON.parse(cachedLocs));
-        }
 
         // Fetch fresh data from API
         const [facsRes, locsRes] = await Promise.all([
-          api.get('/faculties/', { params: { page: 1, size: 50 } }),
-          api.get('/locations/', { params: { page: 1, size: 50 } })
+          api.get('/faculties/', { params: { page: 1, size: 50, lang: i18n.language } }),
+          api.get('/locations/', { params: { page: 1, size: 50, lang: i18n.language } })
         ]);
 
         if (active) {
           if (facsRes.data?.items) {
             setFaculties(facsRes.data.items);
-            await storage.setItem('cached_faculties', JSON.stringify(facsRes.data.items));
           }
           if (locsRes.data?.items) {
             setLocations(locsRes.data.items);
-            await storage.setItem('cached_facilities', JSON.stringify(locsRes.data.items));
           }
         }
       } catch (err) {
@@ -132,18 +122,18 @@ export default function HartaScreen() {
     }
     loadData();
     return () => { active = false; };
-  }, [retryKey]);
+  }, [retryKey, i18n.language]);
 
   const facultyFilters = useMemo(() => {
     return [
-      { id: null, title: "Toate locațiile" },
-      { id: "f8", title: "Facilități" },
+      { id: null, title: t('map.allLocations') },
+      { id: "f8", title: t('map.facilities') },
       ...faculties.map((f) => ({
         id: f.id.toString(),
         title: f.abbreviation || f.name
       }))
     ];
-  }, [faculties]);
+  }, [faculties, t]);
 
   const mappedBuildings = useMemo(() => {
     return locations.map((item: any) => ({
@@ -176,7 +166,7 @@ export default function HartaScreen() {
         />
         <WebContainer>
           <CategoryHeader
-            title="Hartă"
+            title={t('map.title')}
             filters={facultyFilters}
             selectedFilterId={selectedFacultyId}
             onSelectFilter={handleSelectFilter}
@@ -204,7 +194,7 @@ export default function HartaScreen() {
           "Hartă" are aceeasi marime ca "Cantina"/"Sesizări". Harta ramane in afara. */}
       <WebContainer>
         <CategoryHeader
-          title="Hartă"
+          title={t('map.title')}
           filters={facultyFilters}
           selectedFilterId={selectedFacultyId}
           onSelectFilter={handleSelectFilter}

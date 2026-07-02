@@ -9,6 +9,7 @@ import { Colors, ColorScheme, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { getFormattedDate, getReadingTime, isoToRomanianDateStr } from "@/utils/date";
 import api, { storage } from "@/services/api";
+import { useTranslation } from 'react-i18next';
 import { VizualizareSkeleton } from "@/components/ui/display/skeletons";
 import { ErrorState } from "@/components/ui/display/error-state";
 
@@ -19,9 +20,7 @@ import WebsiteIcon from "@/assets/icons/svg/globe-europe.svg";
 import { CategoryTag } from "@/components/ui/display/news-card";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 
-const DAY_NAMES = ["", "Luni", "Marți", "Miercuri", "Joi", "Vineri", "Sâmbătă", "Duminică"];
-
-function formatSchedules(schedules: any[]): string[] {
+function formatSchedules(schedules: any[], t: (key: string) => string): string[] {
     if (!schedules || schedules.length === 0) return [];
     const sorted = [...schedules].sort((a, b) => a.day_of_week - b.day_of_week);
     const groups: string[] = [];
@@ -39,8 +38,8 @@ function formatSchedules(schedules: any[]): string[] {
         const timeRange = `${start.open_time.slice(0, 5)} - ${start.close_time.slice(0, 5)}`;
         groups.push(
             j - i === 1
-                ? `${DAY_NAMES[start.day_of_week]}: ${timeRange}`
-                : `${DAY_NAMES[start.day_of_week]} - ${DAY_NAMES[end.day_of_week]}: ${timeRange}`
+                ? `${t(`days.${start.day_of_week}`)}: ${timeRange}`
+                : `${t(`days.${start.day_of_week}`)} - ${t(`days.${end.day_of_week}`)}: ${timeRange}`
         );
         i = j;
     }
@@ -52,12 +51,14 @@ function VizualizareScreen() {
     const id = params.id as string;
     const router = useRouter();
     const { width } = useWindowDimensions();
+    const { t, i18n } = useTranslation();
     const [scrolledPast, setScrolledPast] = useState(false);
     const [loading, setLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
     const [retryKey, setRetryKey] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
     const refreshStartRef = useRef(0);
+    const [imgErr, setImgErr] = useState(false);
 
     const initialItem = {
         title: (params.title as string) || "",
@@ -115,51 +116,51 @@ function VizualizareScreen() {
 
                     if (isNumeric) {
                         if (initialTipPagina === "Eveniment" || initialTipPagina === "Anunț") {
-                            const res = await api.get(`/announcements/${numericId}`);
+                            const res = await api.get(`/announcements/${numericId}`, { params: { lang: i18n.language, include_untranslated: true } });
                             if (res.data) {
                                 const item = res.data;
                                 fetchedItem = {
                                     id: item.id.toString(),
                                     type: item.type === "NOUTATE" ? "Anunț" : "Eveniment",
-                                    title: item.title || "Titlu necunoscut",
-                                    category: item.type === "NOUTATE" ? "Noutăți" : "Evenimente",
-                                    content: item.content || "Conținut necunoscut",
+                                    title: (i18n.language !== 'ro' && item.is_translated ? item.translated_title : null) || item.title || t('common.unknownTitle'),
+                                    category: item.type === "NOUTATE" ? t('home.news') : t('home.events'),
+                                    content: (i18n.language !== 'ro' && item.is_translated ? item.translated_content : null) || item.content || t('common.unknownContent'),
                                     image: item.image_url || "",
-                                    location: item.location_name || "Locație necunoscută",
+                                    location: item.location_name || t('common.unknownLocation'),
                                     date_start: isoToRomanianDateStr(item.start_date) || "",
                                     date_end: isoToRomanianDateStr(item.end_date) || "",
                                     time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
                                     time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-                                    posted_at: isoToRomanianDateStr(item.created_at) || "",
-                                    date: isoToRomanianDateStr(item.start_date) || "Dată necunoscută",
+                                    posted_at: item.created_at || "",
+                                    date: item.start_date || "",
                                     author: item.author_name || "",
                                     created_at: item.created_at,
                                     updated_at: item.updated_at,
                                 };
                             }
                         } else if (initialTipPagina === "Facultate") {
-                            const res = await api.get(`/faculties/${numericId}`);
+                            const res = await api.get(`/faculties/${numericId}`, { params: { lang: i18n.language } });
                             if (res.data) {
                                 const item = res.data;
                                 fetchedItem = {
                                     id: item.id.toString(),
                                     type: "Facultate",
-                                    title: item.name || "Titlu necunoscut",
-                                    image: item.image_url || "",
-                                    address: item.address || "Adresă necunoscută",
+                                    title: item.name || t('common.unknownTitle'),
+                                    image: item.logo_url || "",
+                                    address: item.address || t('common.unknownAddress'),
                                     phone: item.phone || "",
                                     website: item.website_url || "",
-                                    content: item.description || "Conținut necunoscut",
+                                    content: item.description || t('common.unknownContent'),
                                 };
                             }
                         } else if (initialTipPagina === "Facilitate") {
-                            const res = await api.get(`/facilities/${numericId}`);
+                            const res = await api.get(`/facilities/${numericId}`, { params: { lang: i18n.language } });
                             if (res.data) {
                                 const item = res.data;
                                 fetchedItem = {
                                     id: item.id.toString(),
                                     type: "Facilitate",
-                                    title: item.name || "Titlu necunoscut",
+                                    title: item.name || t('common.unknownTitle'),
                                     image: item.image_url || "",
                                     content: item.description || "",
                                     schedules: item.schedules || [],
@@ -187,11 +188,11 @@ function VizualizareScreen() {
                             if (match && isMounted) {
                                 let mappedItem: any = null;
                                 if (isFaculty) {
-                                    mappedItem = { id: match.id.toString(), type: "Facultate", title: match.name || "Titlu necunoscut", image: match.image_url || "", address: match.address || "Adresă necunoscută", phone: match.phone || "", website: match.website_url || "", content: match.description || "Conținut necunoscut" };
+                                    mappedItem = { id: match.id.toString(), type: "Facultate", title: match.name || t('common.unknownTitle'), image: match.logo_url || "", address: match.address || t('common.unknownAddress'), phone: match.phone || "", website: match.website_url || "", content: match.description || t('common.unknownContent') };
                                 } else if (isFacility) {
-                                    mappedItem = { id: match.id.toString(), type: "Facilitate", title: match.name || "Titlu necunoscut", image: match.image_url || "", content: match.description || "", schedules: match.schedules || [] };
+                                    mappedItem = { id: match.id.toString(), type: "Facilitate", title: match.name || t('common.unknownTitle'), image: match.image_url || "", content: match.description || "", schedules: match.schedules || [] };
                                 } else {
-                                    mappedItem = { id: match.id.toString(), type: match.type === "NOUTATE" ? "Anunț" : "Eveniment", title: match.title || "Titlu necunoscut", category: match.type === "NOUTATE" ? "Noutăți" : "Evenimente", content: match.content || "Conținut necunoscut", image: match.image_url || "", location: match.location_name || "Locație necunoscută", date_start: isoToRomanianDateStr(match.start_date) || "", date_end: isoToRomanianDateStr(match.end_date) || "", time_start: match.start_date ? new Date(match.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "", time_end: match.end_date ? new Date(match.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "", posted_at: isoToRomanianDateStr(match.created_at) || "", date: isoToRomanianDateStr(match.start_date) || "Dată necunoscută", author: match.author_name || "", created_at: match.created_at, updated_at: match.updated_at };
+                                    mappedItem = { id: match.id.toString(), type: match.type === "NOUTATE" ? "Anunț" : "Eveniment", title: (i18n.language !== 'ro' && match.is_translated ? match.translated_title : null) || match.title || t('common.unknownTitle'), category: match.type === "NOUTATE" ? t('home.news') : t('home.events'), content: (i18n.language !== 'ro' && match.is_translated ? match.translated_content : null) || match.content || t('common.unknownContent'), image: match.image_url || "", location: match.location_name || t('common.unknownLocation'), date_start: match.start_date || "", date_end: match.end_date || "", time_start: match.start_date ? new Date(match.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "", time_end: match.end_date ? new Date(match.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "", posted_at: match.created_at || "", date: match.start_date || "", author: match.author_name || "", created_at: match.created_at, updated_at: match.updated_at };
                                 }
                                 setItemData(mappedItem);
                                 setLoading(false);
@@ -211,7 +212,7 @@ function VizualizareScreen() {
                 interactionTask.cancel();
             }
         };
-    }, [id, initialTipPagina, retryKey]);
+    }, [id, initialTipPagina, retryKey, i18n.language, t]);
 
     const onRefresh = () => {
         setRefreshing(true);
@@ -249,11 +250,11 @@ function VizualizareScreen() {
 
     const handleCall = () => {
         Alert.alert(
-            tipPagina === "Facultate" ? "Contact Facultate" : "Contact Facilitate",
-            `Doriți să apelați numărul ${phone}?`,
+            tipPagina === "Facultate" ? t('detail.callFaculty') : t('detail.callFacility'),
+            t('detail.callConfirm', { phone }),
             [
-                { text: "Anulează", style: "cancel" },
-                { text: "Sună", onPress: () => Linking.openURL(`tel:${phone}`) }
+                { text: t('detail.cancel'), style: "cancel" },
+                { text: t('detail.call'), onPress: () => Linking.openURL(`tel:${phone}`) }
             ]
         );
     };
@@ -269,7 +270,7 @@ function VizualizareScreen() {
     const createdTime = itemData?.created_at ? new Date(itemData.created_at).getTime() : 0;
     const updatedTime = itemData?.updated_at ? new Date(itemData.updated_at).getTime() : 0;
     const isUpdated = createdTime > 0 && updatedTime > 0 && Math.abs(updatedTime - createdTime) > 60000;
-    const formattedUpdateDate = itemData?.updated_at ? getFormattedDate(isoToRomanianDateStr(itemData.updated_at)) : "";
+    const formattedUpdateDate = itemData?.updated_at ? getFormattedDate(itemData.updated_at) : "";
 
     if (loading && !itemData) {
         return (
@@ -297,7 +298,7 @@ function VizualizareScreen() {
                     }}
                 />
                 <ErrorState 
-                    message="Detaliile pentru această pagină nu au putut fi încărcate." 
+                    message={t('detail.loadError')}
                     onRetry={() => setRetryKey(prev => prev + 1)}
                 />
             </View>
@@ -320,7 +321,7 @@ function VizualizareScreen() {
                     ),
                     headerShadowVisible: false,
                     headerTintColor: scrolledPast ? theme.text : ColorScheme.white,
-                    headerTitle: scrolledPast ? (title || "Detalii") : "",
+                    headerTitle: scrolledPast ? (title || t('detail.details')) : "",
                     headerLeft: () => (
                         <TouchableOpacity 
                             onPress={() => router.back()} 
@@ -345,7 +346,8 @@ function VizualizareScreen() {
             >
                 <View style={{ width: "100%", height: 320 }}>
                     <Image
-                        source={image ? { uri: image as string } : require("@/assets/images/campus-stiintei.png")}
+                        source={image && !imgErr ? { uri: image as string } : require("@/assets/images/campus-stiintei.png")}
+                        onError={() => setImgErr(true)}
                         style={{ width: "100%", height: "100%", position: "absolute" }}
                         contentFit="cover"
                     />
@@ -360,7 +362,7 @@ function VizualizareScreen() {
                             <CategoryTag category={category} />
                         ) : (
                             <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
-                                {category || (tipPagina === "Facultate" ? "Facultate" : tipPagina === "Facilitate" ? "Facilitate" : "Categorie")}
+                                {category || (tipPagina === "Facultate" ? t('common.faculty') : tipPagina === "Facilitate" ? t('common.facility') : t('common.category'))}
                             </Text>
                         )}
                         <Text style={[Typography.Heading2, { color: ColorScheme.white }]}>
@@ -377,7 +379,7 @@ function VizualizareScreen() {
                             </Text>
                             {isUpdated && formattedUpdateDate ? (
                                 <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>
-                                    Actualizat: {formattedUpdateDate}
+                                    {t('detail.updated')} {formattedUpdateDate}
                                 </Text>
                             ) : null}
                         </View>
@@ -386,7 +388,7 @@ function VizualizareScreen() {
                     {tipPagina === "Eveniment" && (
                         <View style={{ gap: Spacing.md }}>
                             <Text style={[Typography.Heading4, { color: theme.text }]}>
-                                Informații eveniment
+                                {t('detail.eventInfo')}
                             </Text>
 
                             <View style={{ gap: Spacing.md }}>
@@ -394,10 +396,10 @@ function VizualizareScreen() {
                                     <CalendarIcon width={24} height={24} color={theme.primary} />
                                     <View>
                                         <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                            De pe {date_start || "Dată de început necunoscută"} {time_start || ""}
+                                            {t('detail.from')} {date_start || t('common.unknownStartDate')} {time_start || ""}
                                         </Text>
                                         <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                            Până la {date_end || "Dată de sfârșit necunoscută"} {time_end || ""}
+                                            {t('detail.until')} {date_end || t('common.unknownEndDate')} {time_end || ""}
                                         </Text>
                                     </View>
                                 </View>
@@ -416,16 +418,16 @@ function VizualizareScreen() {
                     {tipPagina === "Facultate" && (
                         <View style={{ gap: Spacing.md }}>
                             <Text style={[Typography.Heading4, { color: theme.text }]}>
-                                Contact și Locație
+                                {t('detail.contact')}
                             </Text>
 
                             <View style={{ gap: Spacing.lg }}>
                                 <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                     <LocationIcon width={24} height={24} color={theme.primary} />
                                     <View style={{ flex: 1 }}>
-                                        <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Adresă</Text>
+                                        <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>{t('detail.address')}</Text>
                                         <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                            {address || "Adresă necunoscută"}
+                                            {address || t('common.unknownAddress')}
                                         </Text>
                                     </View>
                                 </View>
@@ -434,7 +436,7 @@ function VizualizareScreen() {
                                     <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                         <PhoneIcon width={24} height={24} color={theme.primary} />
                                         <View style={{ flex: 1 }}>
-                                            <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Telefon</Text>
+                                            <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>{t('detail.phone')}</Text>
                                             <TouchableOpacity onPress={handleCall}>
                                                 <Text style={[Typography.Heading5, { color: theme.text }]}>
                                                     {phone}
@@ -448,7 +450,7 @@ function VizualizareScreen() {
                                     <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                         <WebsiteIcon width={24} height={24} color={theme.primary} />
                                         <View style={{ flex: 1 }}>
-                                            <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Website</Text>
+                                            <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>{t('detail.website')}</Text>
                                             <TouchableOpacity onPress={() => Linking.openURL(website as string)}>
                                                 <Text style={[Typography.Heading5, { color: theme.secondary }]}>
                                                     {website}
@@ -461,16 +463,17 @@ function VizualizareScreen() {
                         </View>
                     )}
 
-                    {tipPagina === "Facilitate" && formatSchedules(itemData?.schedules || []).length > 0 && (
+                    {tipPagina === "Facilitate" && formatSchedules(itemData?.schedules || [], t).length > 0 && (
                         <View style={{ gap: Spacing.md }}>
                             <Text style={[Typography.Heading4, { color: theme.text }]}>
-                                Informații facilitate
+                                {t('detail.facilityInfo')}
                             </Text>
                             <View style={{ gap: Spacing.md }}>
                                 <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                     <CalendarIcon width={24} height={24} color={theme.primary} />
                                     <View>
-                                        {formatSchedules(itemData.schedules).map((line: string, i: number) => (
+                                        <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>{t('detail.schedule')}</Text>
+                                        {formatSchedules(itemData.schedules, t).map((line: string, i: number) => (
                                             <Text key={i} style={[Typography.Heading5, { color: theme.text }]}>{line}</Text>
                                         ))}
                                     </View>
@@ -481,12 +484,13 @@ function VizualizareScreen() {
 
                     <View style={{ gap: Spacing.md }}>
                         <Text style={[Typography.Heading4, { color: theme.text }]}>
-                            {tipPagina === "Eveniment" ? "Despre eveniment" : tipPagina === "Facultate" ? "Despre facultate" : tipPagina === "Facilitate" ? "Despre facilitate" : "Detalii"}
+                            {tipPagina === "Eveniment" ? t('detail.aboutEvent') : tipPagina === "Facultate" ? t('detail.aboutFaculty') : tipPagina === "Facilitate" ? t('detail.aboutFacility') : t('detail.details')}
                         </Text>
                         <Text style={[Typography.Paragraph2, { color: theme.text, lineHeight: 25 }]}>
                             {content || "Conținut necunoscut"}
                         </Text>
                     </View>
+
                 </View>
             </ScrollView>
         </View>

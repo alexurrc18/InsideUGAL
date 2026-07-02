@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Platform } from 'react-native';
 import { useTheme } from '@/hooks/use-theme';
 import { ColorScheme } from '@/constants/theme';
-import { getBuildingLetter, getFacilityStatus } from '@/utils/map-helper';
+import { getFacilityStatus } from '@/utils/map-helper';
 
 import ForkKnifeIcon from '@/assets/icons/svg/fork-knife.svg';
 import BookIcon from '@/assets/icons/svg/book.svg';

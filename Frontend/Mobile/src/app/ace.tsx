@@ -23,6 +23,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { NewsCard } from '@/components/ui/display/news-card';
 import { ace } from '@/services/api';
+import { useTranslation } from 'react-i18next';
 
 import CloseIcon from '@/assets/icons/svg/x.svg';
 import MessagePlusIcon from '@/assets/icons/svg/message-plus.svg';
@@ -74,12 +75,12 @@ function UserMessageBubble({ text, timestamp, theme }: UserMessageBubbleProps) {
           borderRadius: Spacing.md,
           paddingVertical: Spacing.sm,
           paddingHorizontal: Spacing.lg,
-          backgroundColor: theme.surface,
+          backgroundColor: theme.primary,
           borderBottomRightRadius: 4,
         }}
       >
-        <Text style={{ ...Typography.Paragraph2, lineHeight: 22, color: theme.text }}>
-          {renderFormattedText(text, { color: theme.text }, { fontWeight: '700', color: theme.text })}
+        <Text style={{ ...Typography.Paragraph2, lineHeight: 22, color: '#FFFFFF' }}>
+          {renderFormattedText(text, { color: '#FFFFFF' }, { fontWeight: '700', color: '#FFFFFF' })}
         </Text>
       </View>
     </View>
@@ -120,6 +121,7 @@ interface ChatInputProps {
 
 function ChatInput({ onSend, theme, themeWhite }: ChatInputProps) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [inputText, setInputText] = useState('');
   const bottomPad = useSharedValue(Math.max(insets.bottom, Spacing.md));
   const padStyle = useAnimatedStyle(() => ({ paddingBottom: bottomPad.value }));
@@ -180,7 +182,7 @@ function ChatInput({ onSend, theme, themeWhite }: ChatInputProps) {
           <TextInput
             value={inputText}
             onChangeText={setInputText}
-            placeholder="Pune o întrebare..."
+            placeholder={t('ace.placeholder')}
             placeholderTextColor={theme.textSecondary}
             style={{
               flex: 1,
@@ -233,7 +235,7 @@ function ChatInput({ onSend, theme, themeWhite }: ChatInputProps) {
           <TextInput
             value={inputText}
             onChangeText={setInputText}
-            placeholder="Pune o întrebare..."
+            placeholder={t('ace.placeholder')}
             placeholderTextColor={theme.textSecondary}
             style={{
               flex: 1,
@@ -312,6 +314,7 @@ function GradientSpinner() {
 
 export default function AceScreen() {
   const theme = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const headerMiddleRatio = (insets.top + 36) / (72 + insets.top + 50);
   const router = useRouter();
@@ -407,7 +410,7 @@ export default function AceScreen() {
             const parsed = JSON.parse(payload);
             if (parsed.error) {
               setIsTyping(false);
-              setMessages(prev => [...prev, { id: generateMsgId(), text: typeof parsed.error === 'string' ? parsed.error : 'Eroare la asistent.', sender: 'ai', timestamp: new Date() }]);
+              setMessages(prev => [...prev, { id: generateMsgId(), text: typeof parsed.error === 'string' ? parsed.error : t('ace.assistantError'), sender: 'ai', timestamp: new Date() }]);
               return;
             }
             const tok = parsed.token ?? parsed.content ?? '';
@@ -417,7 +420,7 @@ export default function AceScreen() {
 
         if (tokens.length === 0) {
           setIsTyping(false);
-          setMessages(prev => [...prev, { id: generateMsgId(), text: 'Nu am primit un răspuns valid.', sender: 'ai', timestamp: new Date() }]);
+          setMessages(prev => [...prev, { id: generateMsgId(), text: t('ace.noValidResponse'), sender: 'ai', timestamp: new Date() }]);
           return;
         }
 
@@ -439,7 +442,7 @@ export default function AceScreen() {
       })
       .catch(() => {
         setIsTyping(false);
-        setMessages(prev => [...prev, { id: generateMsgId(), text: 'A apărut o eroare. Vă rugăm să încercați din nou.', sender: 'ai', timestamp: new Date() }]);
+        setMessages(prev => [...prev, { id: generateMsgId(), text: t('ace.errorOccurred'), sender: 'ai', timestamp: new Date() }]);
         scrollToBottom();
       });
   };
@@ -579,10 +582,10 @@ export default function AceScreen() {
                 style={{ marginBottom: Spacing.xs }}
               />
               <Text style={{ ...Typography.Heading3, color: theme.text, textAlign: 'center' }}>
-                Cu ce te pot ajuta azi?
+                {t('ace.howCanIHelp')}
               </Text>
               <Text style={{ ...Typography.Paragraph2, color: theme.textSecondary, textAlign: 'center', marginTop: Spacing.xs }}>
-                Întreabă-mă despre evenimente, cantină, hartă sau sesizări.
+                {t('ace.promptSuggestion')}
               </Text>
             </Animated.View>
           ) : null}

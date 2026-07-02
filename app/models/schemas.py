@@ -195,13 +195,27 @@ class FacilityBase(BaseModel):
 
 
 class FacilityCreate(FacilityBase):
-    pass
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "name": "Cantina Corp J",
+            "description": "Program: 12-15",
+            "image_url": "link.jpg",
+        }
+    })
 
 
 class FacilityUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     image_url: Optional[str] = None
+
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "name": "Cantina Corp J",
+            "description": "Program: 12-15",
+            "image_url": "link.jpg",
+        }
+    })
 
 
 class FacilityResponse(FacilityBase):

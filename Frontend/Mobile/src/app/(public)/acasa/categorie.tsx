@@ -11,6 +11,7 @@ import { CategoryHeader, FilterItem } from "@/components/ui/display/category-hea
 import { getFormattedDate, isoToRomanianDateStr } from "@/utils/date";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import api from "@/services/api";
+import { useTranslation } from 'react-i18next';
 import { NewsListSkeleton } from "@/components/ui/display/skeletons";
 import { ErrorState } from "@/components/ui/display/error-state";
 
@@ -25,6 +26,13 @@ export default function CategoryScreen() {
   const headerTitleStyle = useAnimatedStyle(() => ({
     opacity: interpolate(scrollY.value, [50, 90], [0, 1], Extrapolation.CLAMP),
   }));
+
+  const { t, i18n } = useTranslation();
+  const displayTitle = categoryTitle === "Noutăți" ? t('home.news')
+    : categoryTitle === "Evenimente" ? t('home.events')
+    : categoryTitle === "Facultăți" ? t('home.faculties')
+    : categoryTitle === "Facilități" ? t('home.facilities')
+    : (categoryTitle as string) || t('category.fallback');
 
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
   const [data, setData] = useState<any[]>([]);
@@ -41,7 +49,7 @@ export default function CategoryScreen() {
     setHasError(false);
     const success = await fetchData(1, true);
     if (!success && data.length > 0) {
-      Alert.alert("Eroare la actualizare", "Nu s-au putut reîmprospăta datele pentru această categorie. Te rugăm să verifici conexiunea la internet.");
+      Alert.alert(t('common.updateError'), t('category.refreshError'));
     }
     setPage(1);
     setRefreshing(false);
@@ -52,7 +60,7 @@ export default function CategoryScreen() {
     const fetchFaculties = async () => {
       try {
         const response = await api.get("/faculties/", {
-          params: { page: 1, size: 50 }
+          params: { page: 1, size: 50, lang: i18n.language }
         });
         if (response.data && response.data.items) {
           setFaculties(response.data.items);
@@ -62,10 +70,10 @@ export default function CategoryScreen() {
       }
     };
     fetchFaculties();
-  }, []);
+  }, [i18n.language]);
 
   const facultyFilters: FilterItem[] = [
-    { id: null, title: "Toate Facultățile", abbreviation: "Toate" },
+    { id: null, title: t('category.allFaculties'), abbreviation: t('category.all') },
     ...faculties.map(f => ({
       id: f.id.toString(),
       title: f.name,
@@ -85,26 +93,31 @@ export default function CategoryScreen() {
         response = await api.get("/announcements/", {
           params: {
             page: pageToFetch,
-            size: 20,
+            size: selectedFacultyId ? 200 : 20,
             announcement_type: type,
-            faculty_id: selectedFacultyId || undefined
+            lang: i18n.language,
+            include_untranslated: true,
           }
         });
-        
+
         if (response.data && response.data.items) {
-          newItems = response.data.items.map((item: any) => ({
+          const rawItems = selectedFacultyId
+            ? response.data.items.filter((item: any) =>
+                (item.faculties ?? []).some((f: any) => f.id.toString() === selectedFacultyId))
+            : response.data.items;
+          newItems = rawItems.map((item: any) => ({
             id: item.id.toString(),
-            title: item.title || "Titlu necunoscut",
-            category: categoryTitle,
-            date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
+            title: (i18n.language !== 'ro' && item.is_translated ? item.translated_title : null) || item.title || t('common.unknownTitle'),
+            category: displayTitle,
+            date: item.created_at || '',
             date_start: isoToRomanianDateStr(item.start_date) || "",
             date_end: isoToRomanianDateStr(item.end_date) || "",
             time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
             time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
             author: item.author_name || "",
             image: item.image_url || undefined,
-            content: item.content || "Conținut necunoscut",
-            location: item.location_name || "Locație necunoscută",
+            content: (i18n.language !== 'ro' && item.is_translated ? item.translated_content : null) || item.content || t('common.unknownContent'),
+            location: item.location_name || t('common.unknownLocation'),
             created_at: item.created_at,
             updated_at: item.updated_at,
           }));
@@ -113,38 +126,40 @@ export default function CategoryScreen() {
         response = await api.get("/faculties/", {
           params: {
             page: pageToFetch,
-            size: 20
+            size: 20,
+            lang: i18n.language,
           }
         });
         if (response.data && response.data.items) {
           newItems = response.data.items.map((item: any) => ({
             id: item.id.toString(),
-            title: item.name || "Titlu necunoscut",
-            image: item.image_url || undefined,
-            address: item.address || "Adresă necunoscută",
+            title: item.name || t('common.unknownTitle'),
+            image: item.logo_url || undefined,
+            address: item.address || t('common.unknownAddress'),
             phone: item.phone || "",
             website: item.website_url || "",
-            content: item.description || "Conținut necunoscut",
+            content: item.description || t('common.unknownContent'),
           }));
         }
       } else if (categoryTitle === "Facilități") {
         response = await api.get("/facilities/", {
           params: {
             page: pageToFetch,
-            size: 20
+            size: 20,
+            lang: i18n.language,
           }
         });
         if (response.data && response.data.items) {
           newItems = response.data.items.map((item: any) => ({
             id: item.id.toString(),
-            title: item.name || "Titlu necunoscut",
+            title: item.name || t('common.unknownTitle'),
             image: item.image_url || undefined,
             content: item.description || "",
           }));
         }
       }
       
-      if (newItems.length < 20) {
+      if (selectedFacultyId || newItems.length < 20) {
         setHasMore(false);
       }
       
@@ -171,7 +186,7 @@ export default function CategoryScreen() {
     }, 0);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFacultyId, categoryTitle]);
+  }, [selectedFacultyId, categoryTitle, i18n.language]);
 
   const handlePress = (item: any) => {
     let type: string | undefined = undefined;
@@ -237,7 +252,7 @@ export default function CategoryScreen() {
                 ]}
                 numberOfLines={1}
               >
-                {(categoryTitle as string) || "Categorie"}
+                {displayTitle}
               </Text>
             </Animated.View>
           ),
@@ -258,7 +273,7 @@ export default function CategoryScreen() {
       >
         <View style={{ marginBottom: Spacing.lg }}>
             <CategoryHeader 
-                title={(categoryTitle as string) || "Categorie"}
+                title={displayTitle}
                 filters={categoryTitle === "Facultăți" || categoryTitle === "Facilități" ? undefined : facultyFilters}
                 selectedFilterId={selectedFacultyId}
                 onSelectFilter={setSelectedFacultyId}
@@ -293,7 +308,7 @@ export default function CategoryScreen() {
 
             {data.length === 0 && !loading && (
                 <Text style={[Typography.Paragraph1, { color: theme.text, textAlign: "center", marginTop: 40 }]}>
-                    Nu există elemente în această categorie.
+                    {t('category.empty')}
                 </Text>
             )}
           </>

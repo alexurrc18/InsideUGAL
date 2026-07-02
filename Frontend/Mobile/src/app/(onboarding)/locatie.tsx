@@ -7,6 +7,7 @@ import { Spacing, ColorScheme, Colors } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { storage } from "@/services/api";
+import { useTranslation } from 'react-i18next';
 import * as Location from "expo-location";
 import LocationSvg from "@/assets/instructions/location.svg";
 
@@ -15,6 +16,8 @@ export default function LocatieScreen() {
   const insets = useSafeAreaInsets();
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
+
+  const { t } = useTranslation();
 
   const handleContinue = async () => {
     await Location.requestForegroundPermissionsAsync();
@@ -42,10 +45,10 @@ export default function LocatieScreen() {
       }}>
         <View style={{ flex: 1, justifyContent: "flex-end", gap: Spacing.md, alignItems: "center", paddingBottom: Spacing.xl3 }}>
           <Text style={[Typography.Heading2, { color: theme.textOnDark, textAlign: "center" }]}>
-            Explorează campusul
+            {t('onboarding.exploreTitle')}
           </Text>
           <Text style={[Typography.Paragraph1, { color: theme.textOnDark, textAlign: "center" }]}>
-            Descoperă clădirile și facilitățile campusului universitar direct pe hartă.
+            {t('onboarding.exploreDesc')}
           </Text>
         </View>
 
@@ -65,7 +68,7 @@ export default function LocatieScreen() {
             })}
             onPress={handleContinue}
           >
-            <Text style={[Typography.Heading5, { color: ColorScheme.white }]}>Continuă</Text>
+            <Text style={[Typography.Heading5, { color: ColorScheme.white }]}>{t('onboarding.continue')}</Text>
           </Pressable>
 
           <View style={{ flexDirection: "row", gap: Spacing.sm, alignSelf: "center", alignItems: "center" }}>

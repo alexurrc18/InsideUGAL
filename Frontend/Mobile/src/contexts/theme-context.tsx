@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { useColorScheme as useSystemColorScheme } from "react-native";
+import { settingsStore } from "@/utils/settings-store";
 
 type Scheme = "light" | "dark";
 export type ThemeMode = "light" | "dark" | "system";
@@ -16,24 +17,30 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 /**
  * Sursa de adevar pentru tema (DOAR pe web).
  *
- * Porneste din tema sistemului; dupa prima comutare foloseste alegerea
- * utilizatorului. Alegerea nu e salvata intre restarturi (deocamdata).
- * Fisierul e importat exclusiv din fisiere .web — mobilul nu il atinge.
+ * Sincronizată cu settingsStore pentru a menține tema unitară între
+ * interfața web generală și setările din interiorul modulului mobil.
  */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const system = useSystemColorScheme();
-  const [themeMode, setThemeModeState] = useState<ThemeMode>("system");
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(() => settingsStore.getTheme());
+
+  useEffect(() => {
+    const unsubscribe = settingsStore.subscribe(() => {
+      setThemeModeState(settingsStore.getTheme());
+    });
+    return unsubscribe;
+  }, []);
 
   const scheme: Scheme = themeMode === "system"
     ? (system === "dark" ? "dark" : "light")
     : themeMode;
 
   const setThemeMode = (mode: ThemeMode) => {
-    setThemeModeState(mode);
+    settingsStore.setTheme(mode);
   };
 
   const toggleTheme = () => {
-    setThemeModeState(scheme === "dark" ? "light" : "dark");
+    settingsStore.setTheme(scheme === "dark" ? "light" : "dark");
   };
 
   return (

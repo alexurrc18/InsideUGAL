@@ -24,11 +24,10 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useNavbarScrolled } from "@/contexts/web-scroll-context";
 import { WebContainer, WEB_COMPACT_BREAKPOINT } from "@/components/ui/layout/web-container";
 import { ThemeMenu } from "@/components/ui/navigation/theme-menu";
-import { ThemeToggle } from "@/components/ui/navigation/theme-toggle";
 import { ProfileMenu, DASHBOARD_URL } from "@/components/ui/navigation/profile-menu";
-import { NotificationMenu } from "@/components/ui/navigation/notification-menu";
 import ChevronIcon from "@/assets/icons/svg/chevron-left.svg";
 import api, { getAuthToken, logout } from "@/services/api";
+import { useTranslation } from 'react-i18next';
 
 export const NAVBAR_HEIGHT = 72;
 
@@ -39,27 +38,27 @@ const LOGO = require("@/assets/images/logo.png");
 // `exact` -> activ doar pe potrivire exacta (Acasă, ca sa nu se aprinda si pe
 // sub-paginile /acasa/...). `dropdown` -> element cu sub-meniu la hover (Anunțuri).
 type NavItem = {
-  label: string;
+  labelKey: string;
   href?: string;
   match: string;
   exact?: boolean;
-  dropdown?: { label: string; href: string }[];
+  dropdown?: { labelKey: string; href: string }[];
 };
 
 const LINKS: NavItem[] = [
-  { label: "Acasă", href: "/(public)/acasa", match: "/acasa", exact: true },
+  { labelKey: "nav.home", href: "/(public)/acasa", match: "/acasa", exact: true },
   {
-    label: "Anunțuri",
+    labelKey: "navbar.announcements",
     match: "/acasa/categorie",
     dropdown: [
-      { label: "Noutăți", href: "/(public)/acasa/categorie?title=Noutăți" },
-      { label: "Evenimente", href: "/(public)/acasa/categorie?title=Evenimente" },
+      { labelKey: "navbar.news", href: "/(public)/acasa/categorie?title=Noutăți" },
+      { labelKey: "navbar.events", href: "/(public)/acasa/categorie?title=Evenimente" },
     ],
   },
-  { label: "Hartă", href: "/(public)/harta", match: "/harta" },
-  { label: "Cantină", href: "/(public)/cantina", match: "/cantina" },
-  { label: "Sesizări", href: "/(public)/sesizari", match: "/sesizari" },
-  { label: "Mai multe", href: "/(public)/more", match: "/more" },
+  { labelKey: "nav.map", href: "/(public)/harta", match: "/harta" },
+  { labelKey: "nav.canteen", href: "/(public)/cantina", match: "/cantina" },
+  { labelKey: "nav.reports", href: "/(public)/sesizari", match: "/sesizari" },
+  { labelKey: "nav.more", href: "/(public)/more", match: "/more" },
 ];
 
 // Activ daca pathname-ul se potriveste cu segmentul link-ului.
@@ -88,6 +87,7 @@ export function WebNavbar() {
   const pathname = usePathname();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const isCompact = width < WEB_COMPACT_BREAKPOINT;
 
   // Pe ecrane late WebContainer-ul scaleaza continutul (zoom), deci bara e vizual
@@ -95,7 +95,7 @@ export function WebNavbar() {
   const zoom = width > WebContentMaxWidth ? Math.min(width / WebContentMaxWidth, WebMaxScale) : 1;
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [activeMenu, setActiveMenu] = useState<"theme" | "profile" | "notifications" | null>(null);
+  const [activeMenu, setActiveMenu] = useState<"theme" | "profile" | null>(null);
   // Hide-on-scroll: bara ascunsa la scroll in jos, vizibila la scroll in sus.
   const [hidden, setHidden] = useState(false);
   // Pozitia de scroll de la ultimul event (ref, ca sa o putem reseta la navigare).
@@ -170,7 +170,7 @@ export function WebNavbar() {
   }
 
   // Doar pagina de acasa (index) are hero -> transparent pana la scroll.
-  const isHome = pathname === "/acasa" || pathname === "/";
+  const isHome = pathname === "/acasa" || pathname === "/" || pathname === "/(auth)" || pathname.startsWith("/auth");
   // Bara e solida daca: nu suntem pe hero / s-a derulat / panoul hamburger e deschis.
   const solid = !isHome || scrolled || (isCompact && menuOpen);
 
@@ -276,23 +276,15 @@ export function WebNavbar() {
           <Pressable
             onPress={() => router.push("/(public)/acasa")}
             accessibilityRole="link"
-            accessibilityLabel="InsideUGAL — Acasă"
+            accessibilityLabel={"InsideUGAL — " + t('navbar.home')}
             style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
           >
             <Image source={LOGO} style={styles.logo} contentFit="contain" />
           </Pressable>
 
           {isCompact ? (
-            /* Ecran ingust: clopotel de notificari + buton hamburger. */
+            /* Ecran ingust: buton hamburger. */
             <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.xs, height: NAVBAR_HEIGHT }}>
-              <NotificationMenu
-                open={activeMenu === "notifications"}
-                onToggle={() => {
-                  setMenuOpen(false); // nu tinem ambele panouri deschise simultan
-                  setActiveMenu(activeMenu === "notifications" ? null : "notifications");
-                }}
-                onClose={() => activeMenu === "notifications" && setActiveMenu(null)}
-              />
               <Pressable
                 onPress={() => {
                   setActiveMenu(null); // inchide panoul de notificari la deschiderea meniului
@@ -300,7 +292,7 @@ export function WebNavbar() {
                 }}
                 hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel={menuOpen ? "Închide meniul" : "Deschide meniul"}
+                accessibilityLabel={menuOpen ? t('navbar.closeMenu') : t('navbar.openMenu')}
                 style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, padding: Spacing.xs })}
               >
                 <HamburgerIcon open={menuOpen} />
@@ -316,7 +308,7 @@ export function WebNavbar() {
                 if (link.dropdown) {
                   return (
                     <View
-                      key={link.label}
+                      key={link.labelKey}
                       {...({ dataSet: { navdropdown: "true" } } as any)}
                       style={{ position: "relative", justifyContent: "center", height: NAVBAR_HEIGHT }}
                     >
@@ -332,7 +324,7 @@ export function WebNavbar() {
                           gap: 2,
                         })}
                       >
-                        <Text style={[Typography.Heading5, { color: ColorScheme.white }]}>{link.label}</Text>
+                        <Text style={[Typography.Heading5, { color: ColorScheme.white }]}>{t(link.labelKey)}</Text>
                         <View style={{ transform: [{ rotate: "-90deg" }] }}>
                           <ChevronIcon width={20} height={20} fill={ColorScheme.white} color={ColorScheme.white} />
                         </View>
@@ -359,7 +351,7 @@ export function WebNavbar() {
                                   { color: (pressed || hovered) ? theme.primary : ColorScheme.black },
                                 ]}
                               >
-                                {sub.label}
+                                {t(sub.labelKey)}
                               </Text>
                             )}
                           </Pressable>
@@ -378,17 +370,12 @@ export function WebNavbar() {
                     {...({ dataSet: { navlink: "true", active: isActive ? "true" : "false" } } as any)}
                     style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, alignItems: "center", justifyContent: "center" })}
                   >
-                    <Text style={[Typography.Heading5, { color: ColorScheme.white }]}>{link.label}</Text>
+                    <Text style={[Typography.Heading5, { color: ColorScheme.white }]}>{t(link.labelKey)}</Text>
                   </Pressable>
                 );
               })}
 
               <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.xs, marginLeft: Spacing.xl3, height: NAVBAR_HEIGHT }}>
-                <NotificationMenu
-                  open={activeMenu === "notifications"}
-                  onToggle={() => setActiveMenu(activeMenu === "notifications" ? null : "notifications")}
-                  onClose={() => activeMenu === "notifications" && setActiveMenu(null)}
-                />
                 <ThemeMenu
                   solid={solid}
                   open={activeMenu === "theme"}
@@ -406,7 +393,7 @@ export function WebNavbar() {
         </View>
       </WebContainer>
 
-      {/* Panou hamburger (doar ecran ingust): lista verticala de link-uri + tema. */}
+      {/* Panou hamburger (doar ecran ingust): lista verticala de link-uri + Setări. */}
       {isCompact && (
         <Animated.View
           pointerEvents={menuOpen ? "auto" : "none"}
@@ -421,7 +408,7 @@ export function WebNavbar() {
               // Pe mobil, elementul cu dropdown (Anunțuri) se desfasoara in sub-link-uri.
               if (link.dropdown) {
                 return (
-                  <View key={link.label}>
+                  <View key={link.labelKey}>
                     {link.dropdown.map((sub) => (
                       <Pressable
                         key={sub.href}
@@ -432,8 +419,8 @@ export function WebNavbar() {
                         accessibilityRole="link"
                         style={({ pressed }) => [styles.panelLink, { opacity: pressed ? 0.6 : 1 }]}
                       >
-                        <Text style={[Typography.Heading3, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
-                          {sub.label}
+                        <Text style={[Typography.Paragraph1, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
+                          {t(sub.labelKey)}
                         </Text>
                       </Pressable>
                     ))}
@@ -454,32 +441,41 @@ export function WebNavbar() {
                 >
                   <Text
                     style={[
-                      Typography.Heading3,
+                      Typography.Paragraph1,
                       { color: ColorScheme.white, fontFamily: isActive ? "InstrumentSans-SemiBold" : "InstrumentSans-Medium" },
                     ]}
                   >
-                    {link.label}
+                    {t(link.labelKey)}
                   </Text>
                 </Pressable>
               );
             })}
 
-            {/* Rand de tema: eticheta + comutator soare/luna. */}
-            <View style={styles.panelThemeRow}>
-              <Text style={[Typography.Heading3, { color: ColorScheme.white }]}>Temă</Text>
-              <ThemeToggle
-                size={20}
-                backgroundColor="rgba(255,255,255,0.15)"
-                borderColor={ColorScheme.white}
-                color={ColorScheme.white}
-              />
-            </View>
+            {/* Buton Setări */}
+            <Pressable
+              onPress={() => {
+                setMenuOpen(false);
+                router.push("/(public)/more/setari");
+              }}
+              style={styles.panelLink}
+            >
+              <Text
+                style={[
+                  Typography.Paragraph1,
+                  { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" },
+                ]}
+              >
+                {t('settings.title')}
+              </Text>
+            </Pressable>
 
             {/* Profil (mobil): cine e conectat + Dashboard (daca are acces) + Deconectare. */}
             <View style={styles.panelProfile}>
-              <Text style={[Typography.Heading3, { color: ColorScheme.white }]} numberOfLines={1}>
-                {isAuthenticated ? (user?.name || "Utilizator") : "Neautentificat"}
-              </Text>
+              {isAuthenticated ? (
+                <Text style={[Typography.Paragraph1, { color: ColorScheme.white }]} numberOfLines={1}>
+                  {user?.name || t("common.user")}
+                </Text>
+              ) : null}
               {isAuthenticated && user?.email ? (
                 <Text style={[Typography.Small1, { color: "rgba(255,255,255,0.7)" }]} numberOfLines={1}>
                   {user.email}
@@ -494,7 +490,7 @@ export function WebNavbar() {
                 }}
                 style={({ pressed }) => [styles.panelLink, { opacity: pressed ? 0.6 : 1 }]}
               >
-                <Text style={[Typography.Heading3, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
+                <Text style={[Typography.Paragraph1, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
                   Dashboard
                 </Text>
               </Pressable>
@@ -510,8 +506,8 @@ export function WebNavbar() {
                 }}
                 style={({ pressed }) => [styles.panelLink, { opacity: pressed ? 0.6 : 1 }]}
               >
-                <Text style={[Typography.Heading3, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
-                  Deconectare
+                <Text style={[Typography.Paragraph1, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
+                  {t('navbar.logout')}
                 </Text>
               </Pressable>
             ) : (
@@ -522,8 +518,8 @@ export function WebNavbar() {
                 }}
                 style={({ pressed }) => [styles.panelLink, { opacity: pressed ? 0.6 : 1 }]}
               >
-                <Text style={[Typography.Heading3, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
-                  Autentificare
+                <Text style={[Typography.Paragraph1, { color: ColorScheme.white, fontFamily: "InstrumentSans-Medium" }]}>
+                  {t('navbar.login')}
                 </Text>
               </Pressable>
             )}
@@ -609,6 +605,13 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "rgba(255,255,255,0.25)",
+  },
+  panelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xs,
   },
   panelProfile: {
     paddingHorizontal: Spacing.lg,

@@ -9,6 +9,7 @@ import { CategoryHeader } from "@/components/ui/display/category-header";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import { Typography } from "@/constants/typography";
 import api from "@/services/api";
+import { useTranslation } from 'react-i18next';
 
 // Import local SVGs
 import BusIcon from "@/assets/icons/svg/bus.svg";
@@ -24,10 +25,11 @@ export default function MoreScreen() {
   const insets = useSafeAreaInsets();
   const contentTop = useWebContentTop();
   const router = useRouter();
+  const { t, i18n } = useTranslation();
   const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
-    api.get('/city-guide/categories')
+    api.get('/city-guide/categories', { params: { lang: i18n.language } })
       .then(res => {
         const data = res.data;
         if (data && Array.isArray(data)) {
@@ -41,7 +43,7 @@ export default function MoreScreen() {
       .catch(() => {
         setCategories([]);
       });
-  }, []);
+  }, [i18n.language]);
 
   const renderIcon = (iconName: string, color: string) => {
     switch (iconName) {
@@ -76,13 +78,13 @@ export default function MoreScreen() {
         }}
       >
         <WebContainer>
-          <CategoryHeader title="Mai multe" />
+          <CategoryHeader title={t('more.title')} />
 
 
 
           {/* Section Title */}
           <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.xl3, marginBottom: Spacing.sm }}>
-            <Text style={[Typography.Heading4, { color: theme.text }]}>Vizitează Galați</Text>
+            <Text style={[Typography.Heading4, { color: theme.text }]}>{t('more.visitGalati')}</Text>
           </View>
 
           {/* Categories Grid - 3 items per row */}
