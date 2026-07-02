@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import AlertIcon from "@/assets/icons/svg/alert-octagon.svg";
+import { useTranslation } from "react-i18next";
 
 interface ErrorStateProps {
   message?: string;
@@ -17,6 +18,7 @@ export function ErrorState({ title, message, onRetry, style }: ErrorStateProps) 
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   return (
     <View style={[{ 
@@ -30,10 +32,10 @@ export function ErrorState({ title, message, onRetry, style }: ErrorStateProps) 
     }, style]}>
       <AlertIcon width={64} height={64} color={theme.secondary} style={{ marginBottom: Spacing.lg }} />
       <Text style={[Typography.Heading3, { color: theme.text, textAlign: "center", marginBottom: Spacing.md }]}>
-        {title || "Ups! A intervenit o eroare..."}
+        {title || t('common.errorTitle')}
       </Text>
       <Text style={[Typography.Paragraph1, { color: theme.textSecondary, textAlign: "center", lineHeight: 22 }]}>
-        {message || "Nu s-a putut realiza conexiunea cu serverul. Te rugăm să încerci din nou."}
+        {message || t('common.connectionError')}
       </Text>
       {onRetry && (
         <Pressable 
@@ -49,7 +51,7 @@ export function ErrorState({ title, message, onRetry, style }: ErrorStateProps) 
             }
           ]}
         >
-          <Text style={{ color: "white", fontWeight: "bold" }}>Reîncearcă</Text>
+          <Text style={{ color: "white", fontWeight: "bold" }}>{t('common.retry')}</Text>
         </Pressable>
       )}
     </View>

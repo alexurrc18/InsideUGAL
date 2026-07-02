@@ -12,19 +12,12 @@ import { SesizariListSkeleton } from "@/components/ui/display/skeletons";
 import { Seo } from "@/components/seo";
 import { SesizareCard, Sesizare } from "@/components/ui/display/sesizare-card";
 import PlusIcon from "@/assets/icons/svg/plus.svg";
-import api, { storage, resolveImageUrl } from "@/services/api";
+import api, { resolveImageUrl } from "@/services/api";
 import { useAuth } from "@/contexts/auth-context";
 import { ErrorState } from "@/components/ui/display/error-state";
+import { useTranslation } from 'react-i18next';
 
 type FilterType = "toate" | "mele" | "active" | "respinse" | "finalizate";
-
-const filters: FilterItem[] = [
-  { id: "toate", title: "Toate sesizările" },
-  { id: "mele", title: "Sesizările mele" },
-  { id: "active", title: "Active" },
-  { id: "respinse", title: "Respinse" },
-  { id: "finalizate", title: "Finalizate" },
-];
 
 function mapApiStatus(apiStatus: string): "active" | "respinse" | "finalizate" {
   switch (apiStatus) {
@@ -46,6 +39,15 @@ export default function SesizariScreen() {
   const router = useRouter();
 
   const { isAuthenticated, user, isLoading: authLoading } = useAuth();
+  const { t, i18n } = useTranslation();
+
+  const filters: FilterItem[] = [
+    { id: "toate" as const, title: t('reports.all') },
+    { id: "mele" as const, title: t('reports.mine') },
+    { id: "active" as const, title: t('reports.active') },
+    { id: "respinse" as const, title: t('reports.rejected') },
+    { id: "finalizate" as const, title: t('reports.completed') },
+  ];
 
   const [reports, setReports] = useState<Sesizare[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,15 +64,10 @@ export default function SesizariScreen() {
       }
       // 1. Fetch/load locations to build a map of id -> name
       let locationsData: any[] = [];
-      const cachedLocs = await storage.getItem('cached_facilities');
-      if (cachedLocs) {
-        locationsData = JSON.parse(cachedLocs);
-      }
       try {
-        const locsRes = await api.get('/locations/', { params: { page: 1, size: 50 } });
+        const locsRes = await api.get('/locations/', { params: { page: 1, size: 50, lang: i18n.language } });
         if (locsRes.data?.items) {
           locationsData = locsRes.data.items;
-          await storage.setItem('cached_facilities', JSON.stringify(locsRes.data.items));
         }
       } catch (locError) {
         console.warn('[API] Could not fetch fresh locations for complaints:', locError);
@@ -87,30 +84,30 @@ export default function SesizariScreen() {
       // 3. Fetch complaints based on activeFilter
       let apiItems: any[] = [];
       if (activeFilter === "toate") {
-        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50 } });
+        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50, lang: i18n.language } });
         console.log('[API] Fetched all complaints (web):', complaintsRes.data);
         apiItems = complaintsRes.data?.items || [];
       } else if (activeFilter === "mele") {
-        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50 } });
+        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50, lang: i18n.language } });
         console.log('[API] Fetched my complaints (web):', complaintsRes.data);
         const allItems = complaintsRes.data?.items || [];
         apiItems = myProfileId ? allItems.filter((item: any) => item.user_id === myProfileId) : [];
       } else if (activeFilter === "active") {
         const [resPending, resWorking] = await Promise.all([
-          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_asteptare' } }),
-          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_lucru' } })
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_asteptare', lang: i18n.language } }),
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_lucru', lang: i18n.language } })
         ]);
         console.log('[API] Fetched active complaints (web):', { pending: resPending.data, working: resWorking.data });
         apiItems = [...(resPending.data?.items || []), ...(resWorking.data?.items || [])];
         apiItems.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       } else if (activeFilter === "respinse") {
-        const res = await api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'respins' } });
+        const res = await api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'respins', lang: i18n.language } });
         console.log('[API] Fetched rejected complaints (web):', res.data);
         apiItems = res.data?.items || [];
       } else if (activeFilter === "finalizate") {
         const [resFinalized, resSolved] = await Promise.all([
-          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'finalizat' } }),
-          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'solutionat' } })
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'finalizat', lang: i18n.language } }),
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'solutionat', lang: i18n.language } })
         ]);
         console.log('[API] Fetched finalized complaints (web):', { finalized: resFinalized.data, solved: resSolved.data });
         apiItems = [...(resFinalized.data?.items || []), ...(resSolved.data?.items || [])];
@@ -121,10 +118,10 @@ export default function SesizariScreen() {
         id: item.id.toString(),
         title: item.title,
         description: item.description,
-        category: "General",
+        category: t('reports.general'),
         status: mapApiStatus(item.status),
         date: item.created_at,
-        location: locationMap.get(item.location_id) || "Locație nespecificată",
+        location: locationMap.get(item.location_id) || t('reports.unknownLocation'),
         isUserReport: myProfileId ? item.user_id === myProfileId : false,
         image: resolveImageUrl(item.image_url) || undefined,
       }));
@@ -133,7 +130,7 @@ export default function SesizariScreen() {
     } catch (err: any) {
       setLoading(false);
       console.warn('[API] Error fetching complaints:', err);
-      setError(err.message || "A apărut o eroare la încărcarea sesizărilor.");
+      setError(err.message || t('reports.loadErrorGeneral'));
     }
   };
 
@@ -143,7 +140,7 @@ export default function SesizariScreen() {
     useCallback(() => {
       loadData();
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeFilter])
+    }, [activeFilter, i18n.language])
   );
 
   useEffect(() => {
@@ -174,8 +171,8 @@ export default function SesizariScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <Seo
-        title="Sesizări"
-        description="Raportează probleme din campus și cămine și urmărește statusul sesizărilor — InsideUGAL."
+        title={t('reports.title')}
+        description={t('reports.seoDescription')}
       />
       <ScrollView
         style={{ flex: 1 }}
@@ -187,7 +184,7 @@ export default function SesizariScreen() {
       >
         <WebContainer>
           <CategoryHeader
-            title="Sesizări"
+            title={t('reports.title')}
             filters={filters}
             selectedFilterId={activeFilter}
             onSelectFilter={(id) => setActiveFilter((id as FilterType) || "mele")}
@@ -214,16 +211,16 @@ export default function SesizariScreen() {
             {!isAuthenticated ? (
               <View style={{ paddingVertical: 64, justifyContent: "center", alignItems: "center", gap: Spacing.md }}>
                 <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs, textAlign: "center" }]}>
-                  Trebuie să fii conectat
+                  {t('reports.loginRequired')}
                 </Text>
                 <Text style={[Typography.Paragraph2, { color: theme.textSecondary, textAlign: "center", marginBottom: Spacing.md }]}>
-                  Conectează-te pentru a trimite sau vizualiza sesizările tale.
+                  {t('reports.loginDesc')}
                 </Text>
                 <Pressable
                   onPress={() => router.push("/(auth)")}
                   style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}
                 >
-                  <Text style={{ color: "white", fontWeight: "bold" }}>Conectare</Text>
+                  <Text style={{ color: "white", fontWeight: "bold" }}>{t('reports.login')}</Text>
                 </Pressable>
               </View>
             ) : loading && reports.length === 0 ? (
@@ -245,10 +242,10 @@ export default function SesizariScreen() {
                  {filteredData.length === 0 && (
                   <View style={{ alignItems: "center", justifyContent: "center", paddingVertical: 64 }}>
                     <Text style={[Typography.Heading5, { color: theme.text, marginBottom: Spacing.xs }]}>
-                      Nicio sesizare în această secțiune
+                      {t('reports.empty')}
                     </Text>
                     <Text style={[Typography.Paragraph3, { color: theme.textSecondary, textAlign: "center" }]}>
-                      Momentan nu există înregistrări.
+                      {t('reports.emptyDesc')}
                     </Text>
                   </View>
                 )}

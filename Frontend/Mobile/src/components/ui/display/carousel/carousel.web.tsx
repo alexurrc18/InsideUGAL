@@ -5,11 +5,13 @@ import { Typography } from "@/constants/typography";
 import { Colors, Spacing } from "@/constants/theme";
 import { CAROUSEL_CARD_WIDTH, CAROUSEL_CARD_MARGIN, CarouselProps } from "./carousel.shared";
 import ChevronIcon from "@/assets/icons/svg/chevron-left.svg";
+import { useTranslation } from "react-i18next";
 
 export function Carousel<T>({ data, renderItem, keyExtractor, title, viewAllHref }: CarouselProps<T>) {
     const router = useRouter();
     const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
     const theme = Colors[themeName];
+    const { t } = useTranslation();
 
     // Fisier doar pentru web: pe ecran lat aratam bara de scroll (stilizata in global.css)
     const { width: windowWidth } = useWindowDimensions();
@@ -36,7 +38,7 @@ export function Carousel<T>({ data, renderItem, keyExtractor, title, viewAllHref
                                 opacity: pressed ? 0.7 : 1,
                             })}
                         >
-                            <Text style={[Typography.Paragraph2, { color: theme.primary }]}>Vezi mai multe</Text>
+                            <Text style={[Typography.Paragraph2, { color: theme.primary }]}>{t('common.viewAll')}</Text>
                             <View style={{ transform: [{ rotate: "180deg" }] }}>
                                 <ChevronIcon width={16} height={16} fill={theme.primary} color={theme.primary} />
                             </View>

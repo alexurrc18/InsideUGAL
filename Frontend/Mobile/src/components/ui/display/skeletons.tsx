@@ -268,6 +268,11 @@ const styles = StyleSheet.create({
   },
 });
 
+// ── Harta ────────────────────────────────────────────────────────────────────────
+export function MapSkeleton() {
+  return <Skeleton width="100%" height="100%" radius={16} />;
+}
+
 // ── Vizualizare (pagina de detalii) ─────────────────────────────────────────────
 export function VizualizareSkeleton() {
   return (

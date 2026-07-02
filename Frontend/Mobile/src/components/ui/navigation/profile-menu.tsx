@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Linking, Pressable, Text, View } from "react-native";
+import { useEffect, useState, useRef } from "react";
+import { Linking, Pressable, Text, View, Platform } from "react-native";
 import Animated, { useSharedValue, withTiming, useAnimatedStyle, interpolate, Extrapolation, Easing } from "react-native-reanimated";
 import { useRouter } from "expo-router";
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
@@ -8,6 +8,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import UserIcon from "@/assets/icons/svg/user.svg";
 import { useAuth } from "@/contexts/auth-context";
 import { Config } from "@/constants/config";
+import { useTranslation } from "react-i18next";
 
 export const DASHBOARD_URL = Config.DASHBOARD_URL || "";
 
@@ -20,10 +21,12 @@ export function ProfileMenu({
   onToggle?: () => void;
   onClose?: () => void;
 }) {
+  const containerRef = useRef<any>(null);
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const router = useRouter();
   const { isAuthenticated, user, logout } = useAuth();
+  const { t } = useTranslation();
 
   const [localOpen, setLocalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : localOpen;
@@ -52,12 +55,30 @@ export function ProfileMenu({
     }));
   }, [open, anim]);
 
-  // Inchide meniul la scroll (ca meniul de tema).
+  // Inchide meniul la scroll si la click in afara (pe web).
   useEffect(() => {
     if (!open) return;
     const onScroll = () => close();
     document.addEventListener("scroll", onScroll, true);
-    return () => document.removeEventListener("scroll", onScroll, true);
+
+    let onClickOutside: any;
+    if (Platform.OS === 'web') {
+      onClickOutside = (e: MouseEvent) => {
+        if (containerRef.current && typeof containerRef.current.contains === 'function') {
+          if (!containerRef.current.contains(e.target as Node)) {
+            close();
+          }
+        }
+      };
+      document.addEventListener("click", onClickOutside, true);
+    }
+
+    return () => {
+      document.removeEventListener("scroll", onScroll, true);
+      if (Platform.OS === 'web' && onClickOutside) {
+        document.removeEventListener("click", onClickOutside, true);
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -96,13 +117,13 @@ export function ProfileMenu({
   ];
 
   return (
-    <View style={{ position: "relative", height: "100%", justifyContent: "center" }}>
+    <View ref={containerRef} style={{ position: "relative", height: "100%", justifyContent: "center" }}>
       {/* Trigger: iconita user, fara border, cu fundal plin cand e deschis (ca rotita). */}
       <Pressable
         onPress={handleProfilePress}
         hitSlop={8}
         accessibilityRole="link"
-        accessibilityLabel="Autentificare"
+        accessibilityLabel={isAuthenticated ? t('more.profileTitle') : t('navbar.login')}
         style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
       >
         <View
@@ -147,7 +168,7 @@ export function ProfileMenu({
           {/* Antet: cine e conectat (nume + email). */}
           <View style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: 2 }}>
             <Text style={[Typography.Heading5, { color: ColorScheme.black }]} numberOfLines={1}>
-              {isAuthenticated ? (user?.name || "Utilizator") : "Neautentificat"}
+              {isAuthenticated ? (user?.name || t('common.user')) : t('navbar.unauthenticated')}
             </Text>
             {isAuthenticated && user?.email ? (
               <Text style={[Typography.Small2, { color: ColorScheme.gray }]} numberOfLines={1}>
@@ -170,11 +191,11 @@ export function ProfileMenu({
 
           {isAuthenticated ? (
             <Pressable onPress={handleLogout} accessibilityRole="button" style={rowStyle}>
-              <Text style={[Typography.Heading5, { color: ColorScheme.red }]}>Deconectare</Text>
+              <Text style={[Typography.Heading5, { color: ColorScheme.red }]}>{t('navbar.logout')}</Text>
             </Pressable>
           ) : (
             <Pressable onPress={handleLogin} accessibilityRole="button" style={rowStyle}>
-              <Text style={[Typography.Heading5, { color: theme.primary }]}>Autentificare</Text>
+              <Text style={[Typography.Heading5, { color: theme.primary }]}>{t('navbar.login')}</Text>
             </Pressable>
           )}
         </View>

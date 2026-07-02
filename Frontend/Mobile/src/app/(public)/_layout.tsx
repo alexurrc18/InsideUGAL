@@ -6,12 +6,14 @@ import { Colors } from '@/constants/theme';
 import { useNavigation } from 'expo-router';
 import { Ace } from '@/components/ui/layout/ace';
 import { Typography } from '@/constants/typography';
+import { useTranslation } from 'react-i18next';
 
 export default function TabLayout() {
     const navigation = useNavigation<any>();
     const themeName = (useColorScheme() ?? 'light') as keyof typeof Colors;
     const theme = Colors[themeName];
     const activeColor = theme.primary;
+    const { t } = useTranslation();
 
     return (
         <View style={{ flex: 1 }}>
@@ -52,7 +54,7 @@ export default function TabLayout() {
                         }}
                         renderingMode='template'
                     />
-                    <NativeTabs.Trigger.Label>Acasă</NativeTabs.Trigger.Label>
+                    <NativeTabs.Trigger.Label>{t('nav.home')}</NativeTabs.Trigger.Label>
                 </NativeTabs.Trigger>
 
                 <NativeTabs.Trigger name='harta'>
@@ -63,7 +65,7 @@ export default function TabLayout() {
                         }}
                         renderingMode='template'
                     />
-                    <NativeTabs.Trigger.Label>Hartă</NativeTabs.Trigger.Label>
+                    <NativeTabs.Trigger.Label>{t('nav.map')}</NativeTabs.Trigger.Label>
                 </NativeTabs.Trigger>
 
                 <NativeTabs.Trigger name='cantina'>
@@ -74,7 +76,7 @@ export default function TabLayout() {
                         }}
                         renderingMode='template'
                     />
-                    <NativeTabs.Trigger.Label>Cantină</NativeTabs.Trigger.Label>
+                    <NativeTabs.Trigger.Label>{t('nav.canteen')}</NativeTabs.Trigger.Label>
                 </NativeTabs.Trigger>
 
                 <NativeTabs.Trigger name='sesizari'>
@@ -85,7 +87,7 @@ export default function TabLayout() {
                         }}
                         renderingMode='template'
                     />
-                    <NativeTabs.Trigger.Label>Sesizări</NativeTabs.Trigger.Label>
+                    <NativeTabs.Trigger.Label>{t('nav.reports')}</NativeTabs.Trigger.Label>
                 </NativeTabs.Trigger>
 
                 <NativeTabs.Trigger name='more'>
@@ -96,7 +98,7 @@ export default function TabLayout() {
                         }}
                         renderingMode='template'
                     />
-                    <NativeTabs.Trigger.Label>Mai multe</NativeTabs.Trigger.Label>
+                    <NativeTabs.Trigger.Label>{t('nav.more')}</NativeTabs.Trigger.Label>
                 </NativeTabs.Trigger>
             </NativeTabs>
             <Ace />

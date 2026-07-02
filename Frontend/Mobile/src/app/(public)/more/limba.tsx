@@ -9,6 +9,9 @@ import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import { settingsStore } from "@/utils/settings-store";
+import { useTranslation } from 'react-i18next';
+
+import { LANGUAGES } from '@/constants/languages';
 
 import CloseIcon from "@/assets/icons/svg/x.svg";
 
@@ -27,17 +30,10 @@ export default function LanguageScreen() {
     opacity: interpolate(scrollY.value, [50, 90], [0, 1], Extrapolation.CLAMP),
   }));
 
-  // Read current selected language from settings store
-  const currentLang = settingsStore.getLang();
+  const { t, i18n } = useTranslation();
+  const currentLang = i18n.language;
 
-  const languages = [
-    { code: "ro", label: "Română" },
-    { code: "en", label: "English" },
-    { code: "es", label: "Español" },
-    { code: "fr", label: "Français" },
-    { code: "de", label: "Deutsch" },
-    { code: "it", label: "Italiano" }
-  ];
+  const languages = LANGUAGES;
 
   const handleSelectLanguage = (code: string) => {
     settingsStore.setLang(code);
@@ -78,7 +74,7 @@ export default function LanguageScreen() {
                 ]}
                 numberOfLines={1}
               >
-                Limbă aplicație
+                {t('language.title')}
               </Text>
             </Animated.View>
           ),
@@ -94,11 +90,11 @@ export default function LanguageScreen() {
         onScroll={scrollHandler}
         scrollEventThrottle={16}
       >
-        <CategoryHeader title="Limbă" />
+        <CategoryHeader title={t('language.header')} />
 
         <View style={{ paddingHorizontal: Spacing.lg, gap: Spacing.md, marginTop: Spacing.md }}>
           <Text style={[Typography.Heading4, { color: theme.text }]}>
-            Selectează limba
+            {t('language.select')}
           </Text>
 
           <View style={{ gap: Spacing.sm, marginTop: Spacing.xs }}>
@@ -133,7 +129,7 @@ export default function LanguageScreen() {
                         fontSize: 16
                       }}
                     >
-                      (Selectat)
+                      {t('language.selected')}
                     </Text>
                   )}
                 </Pressable>

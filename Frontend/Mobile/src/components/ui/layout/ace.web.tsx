@@ -27,6 +27,7 @@ import { Spacing, ColorScheme } from '@/constants/theme';
 import { Typography } from '@/constants/typography';
 import { NewsCard } from '@/components/ui/display/news-card';
 import { streamAce } from '@/services/ace-stream';
+import { useTranslation } from 'react-i18next';
 
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 
@@ -107,6 +108,7 @@ export function Ace() {
   const theme = useTheme();
   const router = useRouter();
   const { width, height } = useWindowDimensions();
+  const { t } = useTranslation();
 
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -192,7 +194,7 @@ export function Ace() {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === aiMsgId && !m.text
-              ? { ...m, text: '⚠️ Asistentul nu a returnat niciun răspuns. Încearcă din nou mai târziu.' }
+              ? { ...m, text: t('ace.noResponse') }
               : m
           )
         );
@@ -364,7 +366,7 @@ export function Ace() {
             <SparkleIcon width={24} height={24} color={theme.primary} />
             <View>
               <Text style={{ ...Typography.Heading5, color: theme.primary }}>Ace</Text>
-              <Text style={{ ...Typography.Small2, color: theme.textSecondary }}>Asistent virtual</Text>
+              <Text style={{ ...Typography.Small2, color: theme.textSecondary }}>{t('ace.virtualAssistant')}</Text>
             </View>
           </View>
 
@@ -372,7 +374,7 @@ export function Ace() {
             <Pressable
               onPress={handleClearChat}
               accessibilityRole="button"
-              accessibilityLabel="Conversație nouă"
+              accessibilityLabel={t('ace.newConversation')}
               hitSlop={8}
               style={({ pressed }: any) => ({ opacity: pressed ? 0.6 : 1, padding: Spacing.xs })}
             >
@@ -381,7 +383,7 @@ export function Ace() {
             <Pressable
               onPress={() => setOpen(false)}
               accessibilityRole="button"
-              accessibilityLabel="Închide chat-ul"
+              accessibilityLabel={t('ace.closeChat')}
               hitSlop={8}
               style={({ pressed }: any) => ({ opacity: pressed ? 0.6 : 1, padding: Spacing.xs })}
             >
@@ -405,10 +407,10 @@ export function Ace() {
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xl4 }}>
               <SparkleIcon width={40} height={40} color={theme.primary} />
               <Text style={{ ...Typography.Heading5, color: theme.text, textAlign: 'center' }}>
-                Cu ce te pot ajuta azi?
+                {t('ace.howCanIHelp')}
               </Text>
               <Text style={{ ...Typography.Paragraph4, color: theme.textSecondary, textAlign: 'center' }}>
-                Întreabă-mă despre evenimente, cantină, hartă sau sesizări.
+                {t('ace.promptSuggestion')}
               </Text>
             </View>
           ) : (
@@ -434,7 +436,7 @@ export function Ace() {
           <TextInput
             value={inputText}
             onChangeText={setInputText}
-            placeholder="Pune o întrebare..."
+            placeholder={t('ace.placeholder')}
             placeholderTextColor={theme.textSecondary}
             onSubmitEditing={handleSend}
             returnKeyType="send"
@@ -456,7 +458,7 @@ export function Ace() {
             onPress={handleSend}
             disabled={!inputText.trim()}
             accessibilityRole="button"
-            accessibilityLabel="Trimite mesajul"
+            accessibilityLabel={t('ace.sendMessage')}
             style={({ pressed }: any) => ({
               width: 44,
               height: 44,
@@ -476,7 +478,7 @@ export function Ace() {
       <Pressable
         onPress={() => setOpen((v) => !v)}
         accessibilityRole="button"
-        accessibilityLabel={open ? 'Închide asistentul Ace' : 'Deschide asistentul Ace'}
+        accessibilityLabel={open ? t('ace.closeAssistant') : t('ace.openAssistant')}
         style={({ pressed }: any) => ({
           width: FAB_SIZE,
           height: FAB_SIZE,

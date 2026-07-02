@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, Linking, TouchableOpacity, Alert, useWindowDimensions, StyleSheet, type LayoutChangeEvent, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, Linking, TouchableOpacity, useWindowDimensions, StyleSheet, type LayoutChangeEvent, ActivityIndicator } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -14,6 +14,7 @@ import { CompactCard } from "@/components/ui/display/home-highlights";
 import { NewsCard, CategoryTag } from "@/components/ui/display/news-card";
 import { Seo } from "@/components/seo";
 import api from "@/services/api";
+import { useTranslation } from 'react-i18next';
 import { ErrorState } from "@/components/ui/display/error-state";
 
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
@@ -21,9 +22,7 @@ import LocationIcon from "@/assets/icons/svg/location.svg";
 import PhoneIcon from "@/assets/icons/svg/phone.svg";
 import WebsiteIcon from "@/assets/icons/svg/globe-europe.svg";
 
-const DAY_NAMES = ["", "Luni", "Marți", "Miercuri", "Joi", "Vineri", "Sâmbătă", "Duminică"];
-
-function formatSchedules(schedules: any[]): string[] {
+function formatSchedules(schedules: any[], t: (key: string) => string): string[] {
     if (!schedules || schedules.length === 0) return [];
     const sorted = [...schedules].sort((a, b) => a.day_of_week - b.day_of_week);
     const groups: string[] = [];
@@ -41,8 +40,8 @@ function formatSchedules(schedules: any[]): string[] {
         const timeRange = `${start.open_time.slice(0, 5)} - ${start.close_time.slice(0, 5)}`;
         groups.push(
             j - i === 1
-                ? `${DAY_NAMES[start.day_of_week]}: ${timeRange}`
-                : `${DAY_NAMES[start.day_of_week]} - ${DAY_NAMES[end.day_of_week]}: ${timeRange}`
+                ? `${t(`days.${start.day_of_week}`)}: ${timeRange}`
+                : `${t(`days.${start.day_of_week}`)} - ${t(`days.${end.day_of_week}`)}: ${timeRange}`
         );
         i = j;
     }
@@ -57,9 +56,11 @@ const TWO_COL_BREAKPOINT = 900;
 function VizualizareScreen() {
     const params = useLocalSearchParams();
     const id = params.id as string;
+    const { t, i18n } = useTranslation();
     const [loading, setLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
     const [retryKey, setRetryKey] = useState(0);
+    const [imgErr, setImgErr] = useState(false);
 
     const initialItem = {
         title: (params.title as string) || "",
@@ -100,14 +101,14 @@ function VizualizareScreen() {
         const loadRelated = async () => {
             if (initialTipPagina === "Facilitate") {
                 try {
-                    const res = await api.get('/facilities/', { params: { page: 1, size: 50 } });
+                    const res = await api.get('/facilities/', { params: { page: 1, size: 50, lang: i18n.language } });
                     if (res.data?.items && isMounted) setFacilityPool(res.data.items);
                 } catch (err) {
                     console.warn('[API] Error loading related facilities:', err);
                 }
             } else {
                 try {
-                    const res = await api.get('/announcements/', { params: { page: 1, size: 20 } });
+                    const res = await api.get('/announcements/', { params: { page: 1, size: 20, lang: i18n.language, include_untranslated: true } });
                     if (res.data?.items && isMounted) setRelatedPool(res.data.items);
                 } catch (err) {
                     console.warn('[API] Error loading related announcements:', err);
@@ -132,51 +133,51 @@ function VizualizareScreen() {
                 if (isNumeric) {
                     try {
                         if (initialTipPagina === "Eveniment" || initialTipPagina === "Anunț") {
-                            const res = await api.get(`/announcements/${numericId}`);
+                            const res = await api.get(`/announcements/${numericId}`, { params: { lang: i18n.language, include_untranslated: true } });
                             if (res.data) {
                                 const item = res.data;
                                 fetchedItem = {
                                     id: item.id.toString(),
                                     type: item.type === "NOUTATE" ? "Anunț" : "Eveniment",
-                                    title: item.title || "Titlu necunoscut",
-                                    category: item.type === "NOUTATE" ? "Noutăți" : "Evenimente",
-                                    content: item.content || "Conținut necunoscut",
+                                    title: (i18n.language !== 'ro' && item.is_translated ? item.translated_title : null) || item.title || t('common.unknownTitle'),
+                                    category: item.type === "NOUTATE" ? t('home.news') : t('home.events'),
+                                    content: (i18n.language !== 'ro' && item.is_translated ? item.translated_content : null) || item.content || t('common.unknownContent'),
                                     image: item.image_url || "",
-                                    location: item.location_name || "Locație necunoscută",
+                                    location: item.location_name || t('common.unknownLocation'),
                                     date_start: isoToRomanianDateStr(item.start_date) || "",
                                     date_end: isoToRomanianDateStr(item.end_date) || "",
                                     time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
                                     time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-                                    posted_at: isoToRomanianDateStr(item.created_at) || "",
-                                    date: isoToRomanianDateStr(item.start_date) || "Dată necunoscută",
+                                    posted_at: item.created_at || "",
+                                    date: item.start_date || "",
                                     author: item.author_name || "",
                                     created_at: item.created_at,
                                     updated_at: item.updated_at,
                                 };
                             }
                         } else if (initialTipPagina === "Facultate") {
-                            const res = await api.get(`/faculties/${numericId}`);
+                            const res = await api.get(`/faculties/${numericId}`, { params: { lang: i18n.language } });
                             if (res.data) {
                                 const item = res.data;
                                 fetchedItem = {
                                     id: item.id.toString(),
                                     type: "Facultate",
-                                    title: item.name || "Titlu necunoscut",
-                                    image: item.image_url || "",
-                                    address: item.address || "Adresă necunoscută",
+                                    title: item.name || t('common.unknownTitle'),
+                                    image: item.logo_url || "",
+                                    address: item.address || t('common.unknownAddress'),
                                     phone: item.phone || "",
                                     website: item.website_url || "",
-                                    content: item.description || "Conținut necunoscut",
+                                    content: item.description || t('common.unknownContent'),
                                 };
                             }
                         } else if (initialTipPagina === "Facilitate") {
-                            const res = await api.get(`/facilities/${numericId}`);
+                            const res = await api.get(`/facilities/${numericId}`, { params: { lang: i18n.language } });
                             if (res.data) {
                                 const item = res.data;
                                 fetchedItem = {
                                     id: item.id.toString(),
                                     type: "Facilitate",
-                                    title: item.name || "Titlu necunoscut",
+                                    title: item.name || t('common.unknownTitle'),
                                     image: item.image_url || "",
                                     content: item.description || "",
                                     schedules: item.schedules || [],
@@ -203,7 +204,7 @@ function VizualizareScreen() {
         return () => {
             isMounted = false;
         };
-    }, [id, initialTipPagina, retryKey]);
+    }, [id, initialTipPagina, retryKey, i18n.language, t]);
 
     const title = itemData?.title || "";
     const category = itemData?.category || "";
@@ -218,7 +219,6 @@ function VizualizareScreen() {
     const address = itemData?.address || "";
     const phone = itemData?.phone || "";
     const website = itemData?.website || "";
-    const date = itemData?.date || "";
 
     // Anunturi inrudite: prioritizam aceeasi categorie ca articolul curent, apoi
     // completam cu restul. Excludem articolul curent (dupa titlu). Sidebar-ul ia
@@ -228,17 +228,17 @@ function VizualizareScreen() {
         .map((item: any) => ({
             id: item.id.toString(),
             type: item.type === "NOUTATE" ? "Anunț" : "Eveniment",
-            title: item.title || "Titlu necunoscut",
-            category: item.type === "NOUTATE" ? "Noutăți" : "Evenimente",
-            content: item.content || "Conținut necunoscut",
+            title: (i18n.language !== 'ro' && item.is_translated ? item.translated_title : null) || item.title || t('common.unknownTitle'),
+            category: item.type === "NOUTATE" ? t('home.news') : t('home.events'),
+            content: (i18n.language !== 'ro' && item.is_translated ? item.translated_content : null) || item.content || t('common.unknownContent'),
             image: item.image_url || "",
-            location: item.location_name || "Locație necunoscută",
-            date_start: isoToRomanianDateStr(item.start_date) || "",
-            date_end: isoToRomanianDateStr(item.end_date) || "",
+            location: item.location_name || t('common.unknownLocation'),
+            date_start: item.start_date || "",
+            date_end: item.end_date || "",
             time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
             time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
-            posted_at: isoToRomanianDateStr(item.created_at) || "",
-            date: isoToRomanianDateStr(item.start_date) || "Dată necunoscută",
+            posted_at: item.created_at || "",
+            date: item.start_date || "",
             author: item.author_name || "",
             created_at: item.created_at,
             updated_at: item.updated_at,
@@ -260,7 +260,7 @@ function VizualizareScreen() {
         .slice(0, 3)
         .map((f: any) => ({
             id: f.id.toString(),
-            title: f.name || "Titlu necunoscut",
+            title: f.name || t('common.unknownTitle'),
             image: f.image_url || "",
         }));
 
@@ -278,34 +278,27 @@ function VizualizareScreen() {
             pathname: "/(public)/acasa/vizualizare",
             params: {
                 id: item.id,
-                type: item.category === "Evenimente" ? "Eveniment" : "Anunț",
+                type: item.category === t('home.events') ? "Eveniment" : "Anunț",
             },
         });
     };
 
     const handleCall = () => {
-        Alert.alert(
-            "Contact Facultate",
-            `Doriți să apelați numărul ${phone}?`,
-            [
-                { text: "Anulează", style: "cancel" },
-                { text: "Sună", onPress: () => Linking.openURL(`tel:${phone}`) },
-            ]
-        );
+        if (window.confirm(t('detail.callConfirm', { phone }))) {
+            Linking.openURL(`tel:${phone}`);
+        }
     };
 
-    const displayDateValue = category === "Noutăți"
-        ? (posted_at && posted_at !== "Dată necunoscută" ? posted_at : "")
-        : (date && date !== "Dată necunoscută" ? date : posted_at);
+    const displayDateValue = posted_at && posted_at !== t('common.unknownDate') ? posted_at : "";
 
     const formattedDate = getFormattedDate(displayDateValue as string);
     const readingTime = getReadingTime(content as string);
-    const dateDisplay = category === "Noutăți" ? (formattedDate ? `${formattedDate} | ${readingTime}` : "Dată necunoscută") : (formattedDate || "Dată necunoscută");
+    const dateDisplay = category === t('home.news') ? (formattedDate ? `${formattedDate} | ${readingTime}` : t('common.unknownDate')) : (formattedDate || t('common.unknownDate'));
 
     const createdTime = itemData?.created_at ? new Date(itemData.created_at).getTime() : 0;
     const updatedTime = itemData?.updated_at ? new Date(itemData.updated_at).getTime() : 0;
     const isUpdated = createdTime > 0 && updatedTime > 0 && Math.abs(updatedTime - createdTime) > 60000;
-    const formattedUpdateDate = itemData?.updated_at ? getFormattedDate(isoToRomanianDateStr(itemData.updated_at)) : "";
+    const formattedUpdateDate = itemData?.updated_at ? getFormattedDate(itemData.updated_at) : "";
 
     if (loading && !itemData) {
         return (
@@ -319,7 +312,7 @@ function VizualizareScreen() {
         return (
             <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: "center", alignItems: "center", padding: Spacing.xl, height: 400 }}>
                 <ErrorState 
-                    message="Detaliile nu au putut fi găsite." 
+                    message={t('detail.notFound')}
                     onRetry={() => setRetryKey(prev => prev + 1)} 
                 />
             </View>
@@ -329,12 +322,17 @@ function VizualizareScreen() {
     // Breadcrumbs: Acasă / [categorie sau tip] / [titlu]. Segmentul de categorie
     // duce la lista categoriei respective; ultimul (titlul) nu e clickabil.
     const crumbCategory = (category as string) || (tipPagina as string);
+    const TIP_LABELS: Record<string, string> = {
+        "Facultate": t('common.faculty'),
+        "Facilitate": t('common.facility'),
+    };
+    const crumbLabel = TIP_LABELS[crumbCategory] || crumbCategory;
     const crumbs: Crumb[] = [
-        { label: "Acasă", href: "/(public)/acasa" },
+        { label: t('common.home'), href: "/(public)/acasa" },
         ...(crumbCategory
-            ? [{ label: crumbCategory, href: `/(public)/acasa/categorie?title=${encodeURIComponent(crumbCategory)}` }]
+            ? [{ label: crumbLabel, href: `/(public)/acasa/categorie?title=${encodeURIComponent(crumbCategory)}` }]
             : []),
-        { label: (title as string) || "Titlu necunoscut" },
+        { label: (title as string) || t('common.unknownTitle') },
     ];
 
     // SEO: descriere din continut + date structurate (Event / NewsArticle).
@@ -363,7 +361,7 @@ function VizualizareScreen() {
 
     return (
         <View style={{ flex: 1, backgroundColor: theme.background }}>
-            <Seo title={(title as string) || "Articol"} description={seoDescription}>
+            <Seo title={(title as string) || t('common.article')} description={seoDescription}>
                 {jsonLd ? (
                     <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
                 ) : null}
@@ -372,7 +370,8 @@ function VizualizareScreen() {
                 {/* Banner full-bleed: ramane pe toata latimea, in afara canvas-ului scalat */}
                 <View style={{ width: "100%", height: 320 }}>
                     <Image
-                        source={image ? { uri: image as string } : require("@/assets/images/campus-stiintei.png")}
+                        source={image && !imgErr ? { uri: image as string } : require("@/assets/images/campus-stiintei.png")}
+                        onError={() => setImgErr(true)}
                         accessibilityLabel={(title as string) || "Imagine articol"}
                         style={{ width: "100%", height: "100%", position: "absolute" }}
                         contentFit="cover"
@@ -394,7 +393,7 @@ function VizualizareScreen() {
                                 <CategoryTag category={category} />
                             ) : (
                                 <Text style={[Typography.Paragraph2, { color: ColorScheme.white }]}>
-                                    {category || (tipPagina === "Facultate" ? "Facultate" : "Categorie")}
+                                    {category || TIP_LABELS[tipPagina] || t('common.category')}
                                 </Text>
                             )}
                             <Text
@@ -402,7 +401,7 @@ function VizualizareScreen() {
                                 {...({ "aria-level": 1 } as any)}
                                 style={[Typography.Heading2, { color: ColorScheme.white }]}
                             >
-                                {title || "Titlu necunoscut"}
+                                {title || t('common.unknownTitle')}
                             </Text>
                         </WebContainer>
                     </View>
@@ -424,7 +423,7 @@ function VizualizareScreen() {
                                     </Text>
                                     {isUpdated && formattedUpdateDate ? (
                                         <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>
-                                            Actualizat: {formattedUpdateDate}
+                                            {t('detail.updated')} {formattedUpdateDate}
                                         </Text>
                                     ) : null}
                                 </View>
@@ -432,16 +431,16 @@ function VizualizareScreen() {
 
                             {tipPagina === "Eveniment" && (
                                 <View style={{ gap: Spacing.md }}>
-                                    <Text style={[Typography.Heading4, { color: theme.text, fontFamily: "InstrumentSans-SemiBold", fontWeight: "600" }]}>Informații eveniment</Text>
+                                    <Text style={[Typography.Heading4, { color: theme.text, fontFamily: "InstrumentSans-SemiBold", fontWeight: "600" }]}>{t('detail.eventInfo')}</Text>
                                     <View style={{ gap: Spacing.md }}>
                                         <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                             <CalendarIcon width={24} height={24} color={theme.primary} />
                                             <View>
                                                 <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                                    De pe {date_start || "Dată de început necunoscută"} {time_start || ""}
+                                                    {t('detail.from')} {date_start || t('common.unknownStartDate')} {time_start || ""}
                                                 </Text>
                                                 <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                                    Până la {date_end || "Dată de sfârșit necunoscută"} {time_end || ""}
+                                                    {t('detail.until')} {date_end || t('common.unknownEndDate')} {time_end || ""}
                                                 </Text>
                                             </View>
                                         </View>
@@ -449,7 +448,7 @@ function VizualizareScreen() {
                                             <LocationIcon width={24} height={24} color={theme.primary} />
                                             <View>
                                                 <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                                    {location || "Locație necunoscută"}
+                                                    {location || t('common.unknownLocation')}
                                                 </Text>
                                             </View>
                                         </View>
@@ -459,14 +458,14 @@ function VizualizareScreen() {
 
                             {tipPagina === "Facultate" && (
                                 <View style={{ gap: Spacing.md }}>
-                                    <Text style={[Typography.Heading4, { color: theme.text }]}>Contact și Locație</Text>
+                                    <Text style={[Typography.Heading4, { color: theme.text }]}>{t('detail.contact')}</Text>
                                     <View style={{ gap: Spacing.lg }}>
                                         <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                             <LocationIcon width={24} height={24} color={theme.primary} />
                                             <View style={{ flex: 1 }}>
-                                                <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Adresă</Text>
+                                                <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>{t('detail.address')}</Text>
                                                 <Text style={[Typography.Heading5, { color: theme.text }]}>
-                                                    {address || "Adresă necunoscută"}
+                                                    {address || t('common.unknownAddress')}
                                                 </Text>
                                             </View>
                                         </View>
@@ -475,7 +474,7 @@ function VizualizareScreen() {
                                             <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                                 <PhoneIcon width={24} height={24} color={theme.primary} />
                                                 <View style={{ flex: 1 }}>
-                                                    <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Telefon</Text>
+                                                    <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>{t('detail.phone')}</Text>
                                                     <TouchableOpacity onPress={handleCall}>
                                                         <Text style={[Typography.Heading5, { color: theme.text }]}>{phone}</Text>
                                                     </TouchableOpacity>
@@ -487,7 +486,7 @@ function VizualizareScreen() {
                                             <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                                 <WebsiteIcon width={24} height={24} color={theme.primary} />
                                                 <View style={{ flex: 1 }}>
-                                                    <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>Website</Text>
+                                                    <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>{t('detail.website')}</Text>
                                                     <TouchableOpacity onPress={() => Linking.openURL(website as string)}>
                                                         <Text style={[Typography.Heading5, { color: theme.secondary }]}>{website}</Text>
                                                     </TouchableOpacity>
@@ -498,16 +497,17 @@ function VizualizareScreen() {
                                 </View>
                             )}
 
-                            {tipPagina === "Facilitate" && formatSchedules(itemData?.schedules || []).length > 0 && (
+                            {tipPagina === "Facilitate" && formatSchedules(itemData?.schedules || [], t).length > 0 && (
                                 <View style={{ gap: Spacing.md }}>
                                     <Text style={[Typography.Heading4, { color: theme.text, fontFamily: "InstrumentSans-SemiBold", fontWeight: "600" }]}>
-                                        Informații facilitate
+                                        {t('detail.facilityInfo')}
                                     </Text>
                                     <View style={{ gap: Spacing.md }}>
                                         <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
                                             <CalendarIcon width={24} height={24} color={theme.primary} />
                                             <View>
-                                                {formatSchedules(itemData.schedules).map((line: string, i: number) => (
+                                                <Text style={[Typography.Paragraph3, { color: theme.textSecondary }]}>{t('detail.schedule')}</Text>
+                                                {formatSchedules(itemData.schedules, t).map((line: string, i: number) => (
                                                     <Text key={i} style={[Typography.Heading5, { color: theme.text }]}>{line}</Text>
                                                 ))}
                                             </View>
@@ -518,10 +518,10 @@ function VizualizareScreen() {
 
                             <View style={{ gap: Spacing.md }}>
                                 <Text style={[Typography.Heading4, { color: theme.text, fontFamily: "InstrumentSans-SemiBold", fontWeight: "600" }]}>
-                                    {tipPagina === "Eveniment" ? "Despre eveniment" : tipPagina === "Facultate" ? "Despre facultate" : tipPagina === "Facilitate" ? "Despre facilitate" : "Detalii"}
+                                    {tipPagina === "Eveniment" ? t('detail.aboutEvent') : tipPagina === "Facultate" ? t('detail.aboutFaculty') : tipPagina === "Facilitate" ? t('detail.aboutFacility') : t('detail.details')}
                                 </Text>
                                 <Text style={[Typography.Paragraph2, { color: theme.text, lineHeight: 25 }]}>
-                                    {content || "Conținut necunoscut"}
+                                    {content || t('common.unknownContent')}
                                 </Text>
                             </View>
                         </View>
@@ -529,7 +529,7 @@ function VizualizareScreen() {
                         {/* Dreapta: 3 carduri Noutăți, una sub alta. */}
                         {sidebarItems.length > 0 && (
                             <View style={{ width: twoCol ? SIDEBAR_WIDTH : "100%", gap: Spacing.lg }}>
-                                <Text style={[Typography.Heading2, { color: theme.text }]}>Articole similare</Text>
+                                <Text style={[Typography.Heading2, { color: theme.text }]}>{t('detail.relatedArticles')}</Text>
                                 {sidebarItems.map((item) => (
                                     <CompactCard key={item.id} item={item} onPress={() => openItem(item)} />
                                 ))}
@@ -539,8 +539,8 @@ function VizualizareScreen() {
 
                     {/* Jos, sub tot: 3 carduri pe un rand. */}
                     {bottomItems.length > 0 && (
-                        <View style={{ gap: Spacing.lg, marginTop: Spacing.xl3 }}>
-                            <Text style={[Typography.Heading2, { color: theme.text }]}>Mai multe</Text>
+                        <View style={{ gap: Spacing.lg, marginTop: Spacing.xl4 }}>
+                            <Text style={[Typography.Heading2, { color: theme.text }]}>{t('detail.more')}</Text>
                             <View style={{ flexDirection: "row", gap: Spacing.lg }} onLayout={onRowLayout}>
                                 {bottomCardWidth > 0 && bottomItems.map((item: any) => (
                                     tipPagina === "Facilitate" ? (

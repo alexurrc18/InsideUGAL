@@ -9,6 +9,7 @@ import { parseEventId, allAnuntParams } from "@/utils/article-url";
 import api from "@/services/api";
 import { isoToRomanianDateStr } from "@/utils/date";
 import { Colors, Spacing } from "@/constants/theme";
+import { useTranslation } from "react-i18next";
 
 // Pre-generează paginile la build
 export function generateStaticParams() {
@@ -16,6 +17,7 @@ export function generateStaticParams() {
 }
 
 export default function AnuntScreen() {
+    const { t, i18n } = useTranslation();
     const params = useLocalSearchParams();
     const id = parseEventId(params.id);
     const [item, setItem] = useState<any>(null);
@@ -36,7 +38,7 @@ export default function AnuntScreen() {
             setHasError(false);
             setLoading(true);
             try {
-                const res = await api.get(`/announcements/${id}`);
+                const res = await api.get(`/announcements/${id}`, { params: { lang: i18n.language, include_untranslated: true } });
                 setItem(res.data);
             } catch (err) {
                 console.warn("[AnuntScreen] Error loading announcement:", err);
@@ -46,7 +48,7 @@ export default function AnuntScreen() {
             }
         };
         run();
-    }, [id, retryKey]);
+    }, [id, retryKey, i18n.language]);
 
     if (loading) {
         return (
@@ -67,8 +69,8 @@ export default function AnuntScreen() {
         );
     }
 
-    const title = item.title || "Anunț";
-    const content = item.content || "";
+    const title = (i18n.language !== 'ro' && item.is_translated ? item.translated_title : null) || item.title || "Anunț";
+    const content = (i18n.language !== 'ro' && item.is_translated ? item.translated_content : null) || item.content || "";
     const image = item.image_url || "";
     const date = isoToRomanianDateStr(item.created_at) || "";
     const author = item.author_name || "";
@@ -90,12 +92,13 @@ export default function AnuntScreen() {
             <ArticleDetail
                 type="Anunț"
                 title={title}
-                category="Noutăți"
+                category={t('home.news')}
                 content={content}
                 image={image}
                 date={date}
                 posted_at={date}
                 author={author}
+                files={item.files || []}
             />
         </>
     );

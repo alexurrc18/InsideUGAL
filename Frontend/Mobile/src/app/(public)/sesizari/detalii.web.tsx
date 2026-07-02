@@ -12,8 +12,9 @@ import { CAROUSEL_CARD_MARGIN } from "@/components/ui/display/carousel/carousel.
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import { WebContainer } from "@/components/ui/layout/web-container";
 import { Breadcrumbs } from "@/components/ui/navigation/breadcrumbs";
-import api, { storage, resolveImageUrl } from "@/services/api";
+import api, { resolveImageUrl } from "@/services/api";
 import { ErrorState } from "@/components/ui/display/error-state";
+import { useTranslation } from 'react-i18next';
 
 import LocationIcon from "@/assets/icons/svg/location.svg";
 import CalendarIcon from "@/assets/icons/svg/calendar.svg";
@@ -49,6 +50,7 @@ export default function SesizareDetaliiScreen() {
   const insets = useSafeAreaInsets();
 
   const id = params.id as string;
+  const { t, i18n } = useTranslation();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,17 +67,12 @@ export default function SesizareDetaliiScreen() {
         setLoading(true);
         setError(null);
         
-        // 1. Fetch locations for mapping (using cached first)
+        // 1. Fetch locations for mapping
         let locationsData: any[] = [];
-        const cachedLocs = await storage.getItem('cached_facilities');
-        if (cachedLocs) {
-          locationsData = JSON.parse(cachedLocs);
-        }
         try {
-          const locsRes = await api.get('/locations/', { params: { page: 1, size: 50 } });
+          const locsRes = await api.get('/locations/', { params: { page: 1, size: 50, lang: i18n.language } });
           if (locsRes.data?.items) {
             locationsData = locsRes.data.items;
-            await storage.setItem('cached_facilities', JSON.stringify(locsRes.data.items));
           }
         } catch (locError) {
           console.warn('[API] Could not fetch fresh locations for complaint detail web:', locError);
@@ -86,39 +83,39 @@ export default function SesizareDetaliiScreen() {
         });
 
         // 2. Fetch the specific complaint
-        const res = await api.get(`/complaints/${id}`);
+        const res = await api.get(`/complaints/${id}`, { params: { lang: i18n.language } });
         if (res.data) {
           const item = res.data;
           setReport({
             id: item.id.toString(),
-            title: item.title || "Titlu lipsă",
-            description: item.description || "Nicio descriere adăugată.",
-            category: "General",
-            location: locationMap.get(item.location_id) || "Locație nespecificată",
+            title: item.title || t('reports.missingTitle'),
+            description: item.description || t('reports.noDescription'),
+            category: t('reports.general'),
+            location: locationMap.get(item.location_id) || t('reports.unknownLocation'),
             status: mapApiStatus(item.status),
-            date: item.created_at || "Dată nespecificată",
+            date: item.created_at || t('common.unknownDate'),
             image: resolveImageUrl(item.image_url) || "",
           });
         } else {
-          setError("Sesizarea nu a putut fi găsită.");
+          setError(t('reports.notFound'));
         }
         setLoading(false);
       } catch (err: any) {
         setLoading(false);
         console.error("[API] Error fetching complaint detail web:", err);
-        setError(err.message || "A apărut o eroare la încărcarea sesizării.");
+        setError(err.message || t('reports.loadError'));
       }
     }
     loadComplaint();
-  }, [id, retryKey]);
+  }, [id, retryKey, i18n.language, t]);
 
   const title = report?.title || "";
   const description = report?.description || "";
-  const location = report?.location || "Locație nespecificată";
+  const location = report?.location || t('reports.unknownLocation');
   const status = report?.status || "active";
-  const date = report?.date || "Dată nespecificată";
+  const date = report?.date || t('common.unknownDate');
 
-  const statusLabel = status === "active" ? "Activă" : status === "respinse" ? "Respinsă" : "Soluționată";
+  const statusLabel = status === "active" ? t('reports.statusActive') : status === "respinse" ? t('reports.statusRejected') : t('reports.statusCompleted');
 
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<any>(null);
@@ -138,25 +135,25 @@ export default function SesizareDetaliiScreen() {
     switch (status) {
       case "active":
         return [
-          { title: "Sesizare înregistrată", desc: "Sesizarea a fost salvată în sistem.", completed: true, date },
-          { title: "În curs de analiză", desc: "Un administrator evaluează detaliile problemei.", active: true, completed: true },
-          { title: "Soluționare finalizată", desc: "Echipa va interveni pentru a remedia situația.", completed: false },
+          { title: t('reports.step1Title'), desc: t('reports.step1Desc'), completed: true, date },
+          { title: t('reports.step2ActiveTitle'), desc: t('reports.step2ActiveDesc'), active: true, completed: true },
+          { title: t('reports.step3ActiveTitle'), desc: t('reports.step3ActiveDesc'), completed: false },
         ];
       case "respinse":
         return [
-          { title: "Sesizare înregistrată", desc: "Sesizarea a fost salvată în sistem.", completed: true, date },
-          { title: "Respinsă", desc: "Solicitarea a fost respinsă de către echipa administrativă.", completed: true, isError: true },
+          { title: t('reports.step1Title'), desc: t('reports.step1Desc'), completed: true, date },
+          { title: t('reports.step2RejectedTitle'), desc: t('reports.step2RejectedDesc'), completed: true, isError: true },
         ];
       case "finalizate":
         return [
-          { title: "Sesizare înregistrată", desc: "Sesizarea a fost salvată în sistem.", completed: true, date },
-          { title: "În analiză administrativă", desc: "Problema a fost procesată cu succes.", completed: true },
-          { title: "Soluționată", desc: "Problema a fost rezolvată în teren de personalul tehnic.", completed: true, isSuccess: true },
+          { title: t('reports.step1Title'), desc: t('reports.step1Desc'), completed: true, date },
+          { title: t('reports.step2CompletedTitle'), desc: t('reports.step2CompletedDesc'), completed: true },
+          { title: t('reports.step3CompletedTitle'), desc: t('reports.step3CompletedDesc'), completed: true, isSuccess: true },
         ];
       default:
         return [];
     }
-  }, [status, date]);
+  }, [status, date, t]);
 
   if (loading) {
     return (
@@ -173,9 +170,9 @@ export default function SesizareDetaliiScreen() {
             <View style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm }}>
               <Breadcrumbs 
                 items={[
-                  { label: "Acasă", href: "/(public)/acasa" },
-                  { label: "Sesizări", href: "/(public)/sesizari" },
-                  { label: "Încărcare..." }
+                  { label: t('common.home'), href: "/(public)/acasa" },
+                  { label: t('reports.title'), href: "/(public)/sesizari" },
+                  { label: t('common.loading') }
                 ]} 
               />
             </View>
@@ -203,14 +200,14 @@ export default function SesizareDetaliiScreen() {
             <View style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm }}>
               <Breadcrumbs 
                 items={[
-                  { label: "Acasă", href: "/(public)/acasa" },
-                  { label: "Sesizări", href: "/(public)/sesizari" },
-                  { label: "Eroare" }
-                ]} 
+                  { label: t('common.home'), href: "/(public)/acasa" },
+                  { label: t('reports.title'), href: "/(public)/sesizari" },
+                  { label: t('common.error') }
+                ]}
               />
             </View>
-            <ErrorState 
-              message={error || "Sesizarea nu a putut fi găsită."} 
+            <ErrorState
+              message={error || t('reports.notFound')}
               onRetry={() => setRetryKey(prev => prev + 1)} 
               style={{ minHeight: 500, paddingVertical: Spacing.xl4 }}
             />
@@ -235,9 +232,9 @@ export default function SesizareDetaliiScreen() {
           <View style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm }}>
             <Breadcrumbs 
               items={[
-                { label: "Acasă", href: "/(public)/acasa" },
-                { label: "Sesizări", href: "/(public)/sesizari" },
-                { label: title || "Detalii sesizare" }
+                { label: t('common.home'), href: "/(public)/acasa" },
+                { label: t('reports.title'), href: "/(public)/sesizari" },
+                { label: title || t('reports.detailsFallbackTitle') }
               ]} 
             />
           </View>
@@ -246,7 +243,7 @@ export default function SesizareDetaliiScreen() {
 
           <View style={{ paddingHorizontal: Spacing.lg, gap: Spacing.xxl, marginTop: Spacing.md }}>
             <View style={{ gap: Spacing.md }}>
-              <Text style={[Typography.Heading4, { color: theme.text }]}>Informații sesizare</Text>
+              <Text style={[Typography.Heading4, { color: theme.text }]}>{t('reports.infoTitle')}</Text>
 
               <View style={{ gap: Spacing.lg }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
@@ -267,7 +264,7 @@ export default function SesizareDetaliiScreen() {
             </View>
 
             <View style={{ gap: Spacing.md }}>
-              <Text style={[Typography.Heading4, { color: theme.text }]}>Descriere problemă</Text>
+              <Text style={[Typography.Heading4, { color: theme.text }]}>{t('reports.descSection')}</Text>
               <Text style={[Typography.Paragraph2, { color: theme.text, lineHeight: 25 }]}>{description}</Text>
             </View>
           </View>
@@ -293,7 +290,7 @@ export default function SesizareDetaliiScreen() {
           />
 
           <View style={{ paddingHorizontal: Spacing.lg, gap: Spacing.md }}>
-            <Text style={[Typography.Heading4, { color: theme.text }]}>Istoric progres</Text>
+            <Text style={[Typography.Heading4, { color: theme.text }]}>{t('reports.progressTitle')}</Text>
 
             <View style={{ marginTop: Spacing.xs }}>
               {steps.map((step, index) => {

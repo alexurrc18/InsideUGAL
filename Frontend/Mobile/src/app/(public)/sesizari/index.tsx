@@ -10,6 +10,7 @@ import api, { storage, resolveImageUrl } from "@/services/api";
 import { useAuth } from "@/contexts/auth-context";
 import { SesizariListSkeleton } from "@/components/ui/display/skeletons";
 import { ErrorState } from "@/components/ui/display/error-state";
+import { useTranslation } from 'react-i18next';
 
 type FilterType = "toate" | "mele" | "active" | "respinse" | "finalizate";
 
@@ -34,6 +35,7 @@ export default function SesizariScreen() {
   const params = useLocalSearchParams();
 
   const { isAuthenticated, user, isLoading: authLoading } = useAuth();
+  const { t, i18n } = useTranslation();
 
   const [reports, setReports] = useState<Sesizare[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +47,7 @@ export default function SesizariScreen() {
     setRefreshing(true);
     const success = await loadData();
     if (!success && reports.length > 0) {
-      Alert.alert("Eroare la actualizare", "Nu s-au putut reîmprospăta sesizările. Te rugăm să verifici conexiunea la internet.");
+      Alert.alert(t('common.updateError'), t('reports.updateError'));
     }
     setRefreshing(false);
   };
@@ -64,7 +66,7 @@ export default function SesizariScreen() {
         locationsData = JSON.parse(cachedLocs);
       }
       try {
-        const locsRes = await api.get('/locations/', { params: { page: 1, size: 50 } });
+        const locsRes = await api.get('/locations/', { params: { page: 1, size: 50, lang: i18n.language } });
         if (locsRes.data?.items) {
           locationsData = locsRes.data.items;
           await storage.setItem('cached_facilities', JSON.stringify(locsRes.data.items));
@@ -83,30 +85,30 @@ export default function SesizariScreen() {
       // 3. Fetch complaints based on activeFilter
       let apiItems: any[] = [];
       if (activeFilter === "toate") {
-        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50 } });
+        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50, lang: i18n.language } });
         console.log('[API] Fetched all complaints:', complaintsRes.data);
         apiItems = complaintsRes.data?.items || [];
       } else if (activeFilter === "mele") {
-        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50 } });
+        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50, lang: i18n.language } });
         console.log('[API] Fetched my complaints:', complaintsRes.data);
         const allItems = complaintsRes.data?.items || [];
         apiItems = myProfileId ? allItems.filter((item: any) => item.user_id === myProfileId) : [];
       } else if (activeFilter === "active") {
         const [resPending, resWorking] = await Promise.all([
-          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_asteptare' } }),
-          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_lucru' } })
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_asteptare', lang: i18n.language } }),
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_lucru', lang: i18n.language } })
         ]);
         console.log('[API] Fetched active complaints:', { pending: resPending.data, working: resWorking.data });
         apiItems = [...(resPending.data?.items || []), ...(resWorking.data?.items || [])];
         apiItems.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       } else if (activeFilter === "respinse") {
-        const res = await api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'respins' } });
+        const res = await api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'respins', lang: i18n.language } });
         console.log('[API] Fetched rejected complaints:', res.data);
         apiItems = res.data?.items || [];
       } else if (activeFilter === "finalizate") {
         const [resFinalized, resSolved] = await Promise.all([
-          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'finalizat' } }),
-          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'solutionat' } })
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'finalizat', lang: i18n.language } }),
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'solutionat', lang: i18n.language } })
         ]);
         console.log('[API] Fetched finalized complaints:', { finalized: resFinalized.data, solved: resSolved.data });
         apiItems = [...(resFinalized.data?.items || []), ...(resSolved.data?.items || [])];
@@ -117,10 +119,10 @@ export default function SesizariScreen() {
         id: item.id.toString(),
         title: item.title,
         description: item.description,
-        category: "General",
+        category: t('reports.general'),
         status: mapApiStatus(item.status),
         date: item.created_at,
-        location: locationMap.get(item.location_id) || "Locație nespecificată",
+        location: locationMap.get(item.location_id) || t('reports.unknownLocation'),
         isUserReport: myProfileId ? item.user_id === myProfileId : false,
         image: resolveImageUrl(item.image_url) || undefined,
       }));
@@ -130,7 +132,7 @@ export default function SesizariScreen() {
     } catch (err: any) {
       setLoading(false);
       console.warn('[API] Error fetching complaints:', err);
-      setError(err.message || "A apărut o eroare la încărcarea sesizărilor.");
+      setError(err.message || t('reports.loadErrorGeneral'));
       return false;
     }
   };
@@ -142,7 +144,7 @@ export default function SesizariScreen() {
     });
     return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigation, activeFilter]);
+  }, [navigation, activeFilter, i18n.language]);
 
   const filteredData = reports.filter(item => {
     if (activeFilter === "toate") return true;
@@ -196,16 +198,16 @@ export default function SesizariScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: "center", alignItems: "center", padding: Spacing.xl }}>
         <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs, textAlign: "center", width: "100%" }]}>
-          Trebuie să fii conectat
+          {t('reports.loginRequired')}
         </Text>
         <Text style={[Typography.Paragraph2, { color: theme.textSecondary, textAlign: "center", marginBottom: Spacing.md, width: "100%" }]}>
-          Conectează-te pentru a trimite sau vizualiza sesizările tale.
+          {t('reports.loginDesc')}
         </Text>
         <Pressable
           onPress={() => router.push("/(auth)")}
           style={{ backgroundColor: theme.primary, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Spacing.md }}
         >
-          <Text style={{ color: "white", fontWeight: "bold" }}>Conectare</Text>
+          <Text style={{ color: "white", fontWeight: "bold" }}>{t('reports.login')}</Text>
         </Pressable>
       </View>
     );
@@ -229,10 +231,10 @@ export default function SesizariScreen() {
         ListEmptyComponent={
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 64, paddingHorizontal: Spacing.xl }}>
             <Text style={[Typography.Heading5, { color: theme.text, marginBottom: Spacing.xs }]}>
-              Nicio sesizare în această secțiune
+              {t('reports.empty')}
             </Text>
             <Text style={[Typography.Paragraph3, { color: theme.textSecondary, textAlign: "center" }]}>
-              Momentan nu există înregistrări.
+              {t('reports.emptyDesc')}
             </Text>
           </View>
         }

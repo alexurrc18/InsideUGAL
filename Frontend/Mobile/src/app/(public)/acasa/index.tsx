@@ -1,73 +1,30 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, ScrollView, RefreshControl, Platform, Pressable, Alert, StyleSheet } from "react-native";
-import Animated, { useSharedValue, withTiming, useAnimatedStyle, useAnimatedProps, interpolateColor } from "react-native-reanimated";
+import React, { useState, useEffect } from "react";
+import { View, Text, ScrollView, RefreshControl, Alert } from "react-native";
+import Animated, { useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter, useFocusEffect } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
-import { MOCK_NOTIFICARI } from "./notificari";
+import { useRouter } from "expo-router";
 
-import { Colors, ColorScheme, Spacing } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { Carousel } from "@/components/ui/display/carousel/carousel";
 import { CAROUSEL_CARD_MARGIN } from "@/components/ui/display/carousel/carousel.shared";
 import { NewsCard } from "@/components/ui/display/news-card";
-import { HeroSlideshow, HERO_HEIGHT } from "@/components/ui/display/hero-slideshow";
+import { HeroSlideshow } from "@/components/ui/display/hero-slideshow";
 import { getFormattedDate, parseRomanianDate, isoToRomanianDateStr, getTodayRomanianDate } from "@/utils/date";
 import api, { storage } from "@/services/api";
+import { useTranslation } from 'react-i18next';
 import { ErrorState } from "@/components/ui/display/error-state";
 import { HomeSkeleton, CarouselSkeleton } from "@/components/ui/display/skeletons";
-import { InteractiveGlass } from "@/components/ui/layout/interactive-glass";
-import BellIcon from "@/assets/icons/svg/bell.svg";
-
-const AnimatedBell = Animated.createAnimatedComponent(BellIcon);
-
-function hexToRgba(hex: string, alpha: number) {
-  const cleanHex = hex.replace("#", "");
-  let r = 0, g = 0, b = 0;
-  if (cleanHex.length === 3) {
-    r = parseInt(cleanHex[0] + cleanHex[0], 16);
-    g = parseInt(cleanHex[1] + cleanHex[1], 16);
-    b = parseInt(cleanHex[2] + cleanHex[2], 16);
-  } else if (cleanHex.length === 6) {
-    r = parseInt(cleanHex.substring(0, 2), 16);
-    g = parseInt(cleanHex.substring(2, 4), 16);
-    b = parseInt(cleanHex.substring(4, 6), 16);
-  }
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
 
 
 export default function HomeScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
-  const headerBgColor = themeName === "light" ? ColorScheme.pureBlack : ColorScheme.pureWhite;
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  useFocusEffect(
-    useCallback(() => {
-      storage.getItem('read_notification_ids').then((val) => {
-        let readSet = new Set<string>();
-        if (val) {
-          try {
-            const ids = JSON.parse(val);
-            if (Array.isArray(ids)) {
-              readSet = new Set(ids);
-            }
-          } catch (e) {
-            console.error(e);
-          }
-        }
-        const count = MOCK_NOTIFICARI.filter(n => !readSet.has(n.id)).length;
-        setUnreadCount(count);
-      });
-    }, [])
-  );
-
+  const { t, i18n } = useTranslation();
   const [noutati, setNoutati] = useState<any[]>([]);
   const [evenimente, setEvenimente] = useState<any[]>([]);
   const [facultati, setFacultati] = useState<any[]>([]);
@@ -75,28 +32,11 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const headerAnim = useSharedValue(0);
   const scrollY = useSharedValue(0);
-  const isPastThreshold = React.useRef(false);
-
-  const headerFadeStyle = useAnimatedStyle(() => ({
-    opacity: headerAnim.value,
-  }));
-  const bellAnimatedProps = useAnimatedProps(() => ({
-    color: interpolateColor(headerAnim.value, [0, 1], [ColorScheme.white, theme.text]),
-  }));
 
   const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     scrollY.set(offsetY);
-    const headerHeight = insets.top + 56;
-    const threshold = HERO_HEIGHT - headerHeight;
-    const isPast = offsetY >= threshold;
-
-    if (isPast !== isPastThreshold.current) {
-      isPastThreshold.current = isPast;
-      headerAnim.set(withTiming(isPast ? 1 : 0, { duration: 250 }));
-    }
   };
 
   const fetchApiData = async () => {
@@ -109,24 +49,26 @@ export default function HomeScreen() {
             page: 1,
             size: 50,
             announcement_type: undefined,
-            faculty_id: undefined
+            faculty_id: undefined,
+            lang: i18n.language,
+            include_untranslated: true,
           }
         });
         if (response.data && response.data.items) {
           const apiItems = response.data.items;
-          
+
           await storage.setItem('cached_announcements', JSON.stringify(apiItems));
 
           const apiNoutati = apiItems
             .filter((item: any) => item.type === "NOUTATE")
             .map((item: any) => ({
               id: item.id.toString(),
-              title: item.title || "Titlu necunoscut",
-              category: "Noutăți",
-              date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
+              title: (i18n.language !== 'ro' && item.is_translated ? item.translated_title : null) || item.title || t('common.unknownTitle'),
+              category: t('home.news'),
+              date: item.created_at || '',
               author: item.author_name || "",
               image: item.image_url || undefined,
-              content: item.content || "Conținut necunoscut",
+              content: (i18n.language !== 'ro' && item.is_translated ? item.translated_content : null) || item.content || t('common.unknownContent'),
               created_at: item.created_at,
             }));
 
@@ -134,17 +76,17 @@ export default function HomeScreen() {
             .filter((item: any) => item.type === "EVENIMENT")
             .map((item: any) => ({
               id: item.id.toString(),
-              title: item.title || "Titlu necunoscut",
-              category: "Evenimente",
-              date: isoToRomanianDateStr(item.created_at) || "Dată necunoscută",
+              title: (i18n.language !== 'ro' && item.is_translated ? item.translated_title : null) || item.title || t('common.unknownTitle'),
+              category: t('home.events'),
+              date: item.created_at || '',
               date_start: isoToRomanianDateStr(item.start_date) || "",
               date_end: isoToRomanianDateStr(item.end_date) || "",
               time_start: item.start_date ? new Date(item.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
               time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
               author: item.author_name || "",
               image: item.image_url || undefined,
-              content: item.content || "Conținut necunoscut",
-              location: item.location_name || "Locație necunoscută",
+              content: (i18n.language !== 'ro' && item.is_translated ? item.translated_content : null) || item.content || t('common.unknownContent'),
+              location: item.location_name || t('common.unknownLocation'),
               created_at: item.created_at,
             }));
 
@@ -159,12 +101,12 @@ export default function HomeScreen() {
           if (cached) {
             const apiItems = JSON.parse(cached);
             setNoutati(apiItems.filter((i: any) => i.type === "NOUTATE").map((i: any) => ({
-              id: i.id.toString(), title: i.title || "Titlu necunoscut", category: "Noutăți",
+              id: i.id.toString(), title: i.title || t('common.unknownTitle'), category: t('home.news'),
               date: isoToRomanianDateStr(i.created_at) || "Dată necunoscută", author: i.author_name || "",
               image: i.image_url || undefined, content: i.content || "Conținut necunoscut", created_at: i.created_at,
             })));
             setEvenimente(apiItems.filter((i: any) => i.type === "EVENIMENT").map((i: any) => ({
-              id: i.id.toString(), title: i.title || "Titlu necunoscut", category: "Evenimente",
+              id: i.id.toString(), title: i.title || t('common.unknownTitle'), category: t('home.events'),
               date: isoToRomanianDateStr(i.created_at) || "Dată necunoscută",
               date_start: isoToRomanianDateStr(i.start_date) || "", date_end: isoToRomanianDateStr(i.end_date) || "",
               time_start: i.start_date ? new Date(i.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
@@ -182,7 +124,8 @@ export default function HomeScreen() {
         const response = await api.get("/faculties/", {
           params: {
             page: 1,
-            size: 50
+            size: 50,
+            lang: i18n.language,
           }
         });
         if (response.data && response.data.items) {
@@ -222,7 +165,8 @@ export default function HomeScreen() {
         const response = await api.get("/facilities/", {
           params: {
             page: 1,
-            size: 50
+            size: 50,
+            lang: i18n.language,
           }
         });
         if (response.data && response.data.items) {
@@ -268,7 +212,7 @@ export default function HomeScreen() {
     
     const isPageEmpty = noutati.length === 0 && evenimente.length === 0 && facultati.length === 0 && facilitati.length === 0;
     if (!success && !isPageEmpty) {
-      Alert.alert("Eroare la actualizare", "Nu s-au putut reîmprospăta datele de pe ecranul principal. Te rugăm să verifici conexiunea la internet.");
+      Alert.alert(t('common.updateError'), t('home.refreshError'));
     }
     
     const elapsed = Date.now() - start;
@@ -282,23 +226,23 @@ export default function HomeScreen() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchApiData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [i18n.language]);
 
-  const announcementsForHero = [...noutati]
+  const announcementsForHero = [...noutati, ...evenimente]
     .sort((a, b) => parseRomanianDate(b.date).getTime() - parseRomanianDate(a.date).getTime())
     .slice(0, 3)
     .map(item => ({
       ...item,
-      category: item.category || "Noutăți"
+      category: item.category || t('home.news')
     }));
 
   const heroItems = announcementsForHero.length > 0 ? announcementsForHero : [
     {
       id: "default_hero",
       title: "InsideUGAL",
-      category: "Universitate",
+      category: t('common.university'),
       date: getTodayRomanianDate(),
-      author: "Platforma ta universitară",
+      author: t('common.universityPlatform'),
       image: null
     }
   ];
@@ -333,12 +277,8 @@ export default function HomeScreen() {
     });
   };
 
-  const handleNotificationsPress = () => {
-    router.push("/(public)/acasa/notificari");
-  };
-
-  const activeNoutati = noutati;
-  const activeEvenimente = evenimente;
+  const activeNoutati = noutati.slice(0, 3);
+  const activeEvenimente = evenimente.slice(0, 3);
   const activeFacultati = facultati;
   const activeFacilitati = facilitati;
 
@@ -360,110 +300,6 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      {/* Fixed Header */}
-      <Animated.View 
-        style={{ 
-          position: "absolute", 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          paddingTop: insets.top + Spacing.sm, 
-          paddingBottom: Spacing.sm,
-          paddingHorizontal: Spacing.lg, 
-          flexDirection: "row", 
-          justifyContent: "flex-end", 
-          alignItems: "center", 
-          zIndex: 100,
-        }}
-      >
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            headerFadeStyle,
-          ]}
-        >
-          <LinearGradient
-            colors={[
-              hexToRgba(headerBgColor, 0.5),
-              hexToRgba(headerBgColor, 0.0)
-            ]}
-            style={StyleSheet.absoluteFill}
-          />
-        </Animated.View>
-
-
-
-        {Platform.OS === 'ios' ? (
-          <Pressable
-            onPress={handleNotificationsPress}
-            style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
-          >
-            <InteractiveGlass size={45} style={{ shadowColor: theme.text, shadowOpacity: 0.2, shadowRadius: 5 }}>
-              <AnimatedBell width={25} height={25} animatedProps={bellAnimatedProps} />
-            </InteractiveGlass>
-            {unreadCount > 0 && (
-              <View
-                style={{
-                  position: "absolute",
-                  top: -4,
-                  right: -4,
-                  minWidth: 20,
-                  height: 20,
-                  borderRadius: 10,
-                  backgroundColor: theme.secondary,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  paddingHorizontal: 3,
-                }}
-              >
-                <Text style={{ color: ColorScheme.white, fontSize: 11, fontFamily: "InstrumentSans-SemiBold", lineHeight: 13 }}>
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </Text>
-              </View>
-            )}
-          </Pressable>
-        ) : (
-          <Pressable
-            onPress={handleNotificationsPress}
-            style={({ pressed }) => [
-              { 
-                opacity: pressed ? 0.85 : 1,
-                width: 45,
-                height: 45,
-                borderRadius: 22.5,
-                backgroundColor: theme.primary,
-                alignItems: "center",
-                justifyContent: "center"
-              }
-            ]}
-          >
-            <AnimatedBell width={26} height={26} color="#FFFFFF" />
-            {unreadCount > 0 && (
-              <View
-                style={{
-                  position: "absolute",
-                  top: -4,
-                  right: -4,
-                  minWidth: 20,
-                  height: 20,
-                  borderRadius: 10,
-                  backgroundColor: theme.secondary,
-                  borderWidth: 1.5,
-                  borderColor: theme.primary,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  paddingHorizontal: 2,
-                }}
-              >
-                <Text style={{ color: ColorScheme.white, fontSize: 11, fontFamily: "InstrumentSans-SemiBold", lineHeight: 13 }}>
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </Text>
-              </View>
-            )}
-          </Pressable>
-        )}
-      </Animated.View>
-
       <Animated.ScrollView 
         style={{ flex: 1 }} 
         contentContainerStyle={{ flexGrow: 1 }}
@@ -494,15 +330,15 @@ export default function HomeScreen() {
             <>
               {activeNoutati.length === 0 ? (
                 <View style={{ marginVertical: Spacing.lg, paddingHorizontal: Spacing.lg }}>
-                  <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs }]}>Noutăți</Text>
-                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>Nu s-au putut găsi noutăți.</Text>
+                  <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs }]}>{t('home.news')}</Text>
+                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>{t('home.noNews')}</Text>
                 </View>
               ) : (
                 <Carousel
-                  title="Noutăți"
+                  title={t('home.news')}
                   data={activeNoutati}
                   keyExtractor={(item) => item.id}
-                  viewAllHref="/(public)/acasa/categorie?title=Noutăți"
+                  viewAllHref={`/(public)/acasa/categorie?title=Noutăți`}
                   renderItem={({ item, index }) => (
                     <NewsCard
                       title={item.title}
@@ -519,12 +355,12 @@ export default function HomeScreen() {
 
               {activeEvenimente.length === 0 ? (
                 <View style={{ marginVertical: Spacing.lg, paddingHorizontal: Spacing.lg }}>
-                  <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs }]}>Evenimente</Text>
-                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>Nu s-au putut găsi evenimente.</Text>
+                  <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs }]}>{t('home.events')}</Text>
+                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>{t('home.noEvents')}</Text>
                 </View>
               ) : (
                 <Carousel
-                  title="Evenimente"
+                  title={t('home.events')}
                   data={activeEvenimente}
                   keyExtractor={(item) => item.id}
                   viewAllHref="/(public)/acasa/categorie?title=Evenimente"
@@ -544,12 +380,12 @@ export default function HomeScreen() {
 
               {activeFacultati.length === 0 ? (
                 <View style={{ marginVertical: Spacing.lg, paddingHorizontal: Spacing.lg }}>
-                  <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs }]}>Facultăți</Text>
-                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>Nu s-au putut găsi facultăți.</Text>
+                  <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs }]}>{t('home.faculties')}</Text>
+                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>{t('home.noFaculties')}</Text>
                 </View>
               ) : (
                 <Carousel
-                  title="Facultăți"
+                  title={t('home.faculties')}
                   data={activeFacultati}
                   keyExtractor={(item) => item.id}
                   viewAllHref="/(public)/acasa/categorie?title=Facultăți"
@@ -567,12 +403,12 @@ export default function HomeScreen() {
 
               {activeFacilitati.length === 0 ? (
                 <View style={{ marginVertical: Spacing.lg, paddingHorizontal: Spacing.lg }}>
-                  <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs }]}>Facilități</Text>
-                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>Nu s-au putut găsi facilități.</Text>
+                  <Text style={[Typography.Heading3, { color: theme.text, marginBottom: Spacing.xs }]}>{t('home.facilities')}</Text>
+                  <Text style={[Typography.Paragraph2, { color: theme.textSecondary }]}>{t('home.noFacilities')}</Text>
                 </View>
               ) : (
                 <Carousel
-                  title="Facilități"
+                  title={t('home.facilities')}
                   data={activeFacilitati}
                   keyExtractor={(item) => item.id}
                   viewAllHref="/(public)/acasa/categorie?title=Facilități"

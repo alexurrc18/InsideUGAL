@@ -6,6 +6,7 @@ import { cleanMapStyle } from '@/utils/map-helper';
 import { createRoot, flushSync } from 'react-dom/client';
 import { MapPin } from './map-pin';
 import { UserLocationPin } from './user-location-pin';
+import { MapSkeleton } from '@/components/ui/display/skeletons';
 
 interface MapProps {
   themeName: 'light' | 'dark';
@@ -80,7 +81,7 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
       map.current = null;
       setMapLoaded(false);
     };
-  }, [mapStyle]);
+  }, [mapStyle, onMapClick]);
 
   useEffect(() => {
     if (!map.current || !defaultCenter || cameraInitialized.current) return;
@@ -204,6 +205,8 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
         userMarkerRef.current = marker;
       }
     }
+    // userLocation e citit doar la focus (nu vrem sa rulam la fiecare update GPS - de asta e deja tratat de efectul de mai sus).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusKey, mapLoaded]);
 
   useEffect(() => {
@@ -221,11 +224,7 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
   }, []);
 
   if (!mapStyle) {
-    return (
-      <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8F9FA', borderRadius: '16px' }}>
-        <span style={{ color: '#121212' }}>Se încarcă harta...</span>
-      </div>
-    );
+    return <MapSkeleton />;
   }
 
   return (
