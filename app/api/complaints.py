@@ -50,7 +50,13 @@ async def read_complaints(
         location_id=location_id,
         user_id=user_id,
     )
-    items = await translate_with_model_cache(items, lang, session, COMPLAINT_TRANSLATION)
+    try:
+        items = await translate_with_model_cache(items, lang, session, COMPLAINT_TRANSLATION)
+    except Exception as exc:
+        # Importă logging sau folosește un print dacă nu e configurat, pentru a nu pierde eroarea în loguri
+        print(f"Eroare cache traduceri complaints: {exc}")
+        # Lăsăm items neschimbat (în română), fără să dăm raise la eroare!
+        pass
     return paginated_response(items, total, pagination)
 
 
@@ -66,7 +72,12 @@ async def read_complaint(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Complaint not found.")
     if complaint.user_id != str(profile.id) and not is_role(profile, staff_roles):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Nu ai permisiuni suficiente.")
-    return await translate_with_model_cache(complaint, lang, session, COMPLAINT_TRANSLATION)
+    try:
+        complaint = await translate_with_model_cache(complaint, lang, session, COMPLAINT_TRANSLATION)
+    except Exception as exc:
+        print(f"Eroare cache traducere complaint individual: {exc}")
+        pass
+    return complaint
 
 
 @router.post("/", response_model=schemas.ComplaintResponse, status_code=status.HTTP_201_CREATED)
