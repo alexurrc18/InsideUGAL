@@ -5,3 +5,6 @@ create table if not exists public.semantic_cache (
     answer text not null,
     created_at timestamptz default now()
 );
+
+alter table public.semantic_cache enable row level security;
+
