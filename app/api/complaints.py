@@ -4,12 +4,13 @@ from pathlib import Path
 from urllib.parse import quote
 
 import httpx
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, Query, Request, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import get_current_user_with_token, get_current_profile, is_role, get_current_user
 from app.api.crud import ensure_exists
+from app.api.model_translation_cache import COMPLAINT_TRANSLATION, pretranslate_model_cache, translate_with_model_cache
 from app.api.pagination import PaginationParams, paginated_response
 from app.db.database import get_db
 from app.models import models, schemas
@@ -34,6 +35,7 @@ async def validate_complaint_refs(payload: BaseModel, db: AsyncSession, user_id:
 async def read_complaints(
     complaint_status: schemas.ComplaintStatus | None = None,
     location_id: int | None = None,
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
     pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_db),
     profile=Depends(get_current_profile),
@@ -48,12 +50,20 @@ async def read_complaints(
         location_id=location_id,
         user_id=user_id,
     )
+    try:
+        items = await translate_with_model_cache(items, lang, session, COMPLAINT_TRANSLATION)
+    except Exception as exc:
+        # Importă logging sau folosește un print dacă nu e configurat, pentru a nu pierde eroarea în loguri
+        print(f"Eroare cache traduceri complaints: {exc}")
+        # Lăsăm items neschimbat (în română), fără să dăm raise la eroare!
+        pass
     return paginated_response(items, total, pagination)
 
 
 @router.get("/{complaint_id}", response_model=schemas.ComplaintResponse)
 async def read_complaint(
     complaint_id: int,
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
     session: AsyncSession = Depends(get_db),
     profile=Depends(get_current_profile),
 ):
@@ -62,17 +72,25 @@ async def read_complaint(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Complaint not found.")
     if complaint.user_id != str(profile.id) and not is_role(profile, staff_roles):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Nu ai permisiuni suficiente.")
+    try:
+        complaint = await translate_with_model_cache(complaint, lang, session, COMPLAINT_TRANSLATION)
+    except Exception as exc:
+        print(f"Eroare cache traducere complaint individual: {exc}")
+        pass
     return complaint
 
 
 @router.post("/", response_model=schemas.ComplaintResponse, status_code=status.HTTP_201_CREATED)
 async def create_complaint(
     complaint_in: schemas.ComplaintCreate,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db),
     current_user: str = Depends(get_current_user),
 ):
     await validate_complaint_refs(complaint_in, session, user_id=current_user)
-    return await repo.create_for_user(session, complaint_in, user_id=current_user)
+    complaint = await repo.create_for_user(session, complaint_in, user_id=current_user)
+    background_tasks.add_task(pretranslate_model_cache, complaint.id, COMPLAINT_TRANSLATION)
+    return complaint
 
 
 @router.post("/upload-image/")
@@ -115,6 +133,7 @@ async def upload_complaint_image(
 async def update_complaint(
     complaint_id: int,
     complaint_in: schemas.ComplaintUpdate,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db),
     current_user: str = Depends(get_current_user),
     profile=Depends(get_current_profile),
@@ -128,7 +147,15 @@ async def update_complaint(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only staff can change complaint status.")
 
     await validate_complaint_refs(complaint_in, session)
-    return await repo.update(session, complaint, complaint_in)
+    updated_complaint = await repo.update(session, complaint, complaint_in)
+    if complaint_in.title is not None or complaint_in.description is not None:
+        background_tasks.add_task(
+            pretranslate_model_cache,
+            updated_complaint.id,
+            COMPLAINT_TRANSLATION,
+            refresh_existing=True,
+        )
+    return updated_complaint
 
 
 @router.delete("/{complaint_id}", status_code=status.HTTP_204_NO_CONTENT)

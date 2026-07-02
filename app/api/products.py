@@ -1,7 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_roles
+from app.api.model_translation_cache import (
+    PRODUCT_CATEGORY_TRANSLATION,
+    PRODUCT_TRANSLATION,
+    pretranslate_model_cache,
+    translate_with_model_cache,
+)
 from app.api.pagination import PaginationParams, paginated_response
 from app.db.database import get_db
 from app.models import schemas
@@ -16,43 +22,73 @@ manage_products = require_roles(
 )
 
 
+async def translate_product_response(payload, lang: str, session: AsyncSession):
+    payload = await translate_with_model_cache(payload, lang, session, PRODUCT_TRANSLATION)
+    items = payload if isinstance(payload, list) else [payload]
+    categories = [
+        item.get("category")
+        for item in items
+        if isinstance(item, dict) and isinstance(item.get("category"), dict)
+    ]
+    if categories:
+        await translate_with_model_cache(categories, lang, session, PRODUCT_CATEGORY_TRANSLATION)
+    return payload
+
+
 @router.get("/", response_model=schemas.PaginatedResponse[schemas.ProductResponse])
 async def read_products(
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
     pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_db),
 ):
     items, total = await repo.get_page(session, limit=pagination.size, offset=pagination.offset)
+    items = await translate_product_response(items, lang, session)
     return paginated_response(items, total, pagination)
 
 
 @router.get("/{product_id}", response_model=schemas.ProductResponse)
-async def read_product(product_id: int, session: AsyncSession = Depends(get_db)):
+async def read_product(
+    product_id: int,
+    lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
+    session: AsyncSession = Depends(get_db),
+):
     product = await repo.get_by_id(session, product_id)
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found.")
-    return product
+    return await translate_product_response(product, lang, session)
 
 
 @router.post("/", response_model=schemas.ProductResponse, status_code=status.HTTP_201_CREATED)
 async def create_product(
     product_in: schemas.ProductCreate,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db),
     current_profile=Depends(manage_products),
 ):
-    return await repo.create(session, product_in)
+    product = await repo.create(session, product_in)
+    background_tasks.add_task(pretranslate_model_cache, product.id, PRODUCT_TRANSLATION)
+    return product
 
 
 @router.patch("/{product_id}", response_model=schemas.ProductResponse)
 async def update_product(
     product_id: int,
     product_in: schemas.ProductUpdate,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db),
     current_profile=Depends(manage_products),
 ):
     product = await repo.get_by_id(session, product_id)
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found.")
-    return await repo.update(session, product, product_in)
+    updated_product = await repo.update(session, product, product_in)
+    background_tasks.add_task(
+        pretranslate_model_cache,
+        updated_product.id,
+        PRODUCT_TRANSLATION,
+        refresh_existing=True,
+    )
+    return updated_product
 
 
 @router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
