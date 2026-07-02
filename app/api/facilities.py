@@ -1,7 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.faculties import manage_faculties
+from app.api.auth_deps import require_roles
 from app.api.model_translation_cache import (
     FACILITY_TRANSLATION,
     LOCATION_TRANSLATION,
@@ -17,6 +17,11 @@ from app.repositories.facility_schedule_repo import FacilityScheduleRepository
 router = APIRouter(prefix="/facilities", tags=["Facilities"])
 repo = FacilityRepository()
 schedule_repo = FacilityScheduleRepository()
+manage_facilities = require_roles(
+    schemas.UserRole.HEAD_ADMIN,
+    schemas.UserRole.HEAD_FACULTATI,
+    schemas.UserRole.HEAD_CANTINA,
+)
 
 
 async def translate_facility_response(payload, lang: str, session: AsyncSession):
@@ -67,7 +72,7 @@ async def create_facility(
     facility_in: schemas.FacilityCreate,
     background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db),
-    current_profile=Depends(manage_faculties),
+    current_profile=Depends(manage_facilities),
 ):
     facility = await repo.create(session, facility_in)
     background_tasks.add_task(pretranslate_model_cache, facility.id, FACILITY_TRANSLATION)
@@ -80,7 +85,7 @@ async def update_facility(
     facility_in: schemas.FacilityUpdate,
     background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db),
-    current_profile=Depends(manage_faculties),
+    current_profile=Depends(manage_facilities),
 ):
     facility = await repo.get_by_id(session, facility_id)
     if not facility:
@@ -99,7 +104,7 @@ async def update_facility(
 async def delete_facility(
     facility_id: int,
     session: AsyncSession = Depends(get_db),
-    current_profile=Depends(manage_faculties),
+    current_profile=Depends(manage_facilities),
 ):
     facility = await repo.get_by_id(session, facility_id)
     if not facility:
@@ -116,7 +121,7 @@ async def create_facility_schedule(
     facility_id: int,
     schedule_in: schemas.FacilityScheduleCreate,
     session: AsyncSession = Depends(get_db),
-    current_profile=Depends(manage_faculties),
+    current_profile=Depends(manage_facilities),
 ):
     facility = await repo.get_by_id(session, facility_id)
     if not facility:
@@ -129,7 +134,7 @@ async def update_facility_schedule(
     schedule_id: int,
     schedule_in: schemas.FacilityScheduleUpdate,
     session: AsyncSession = Depends(get_db),
-    current_profile=Depends(manage_faculties),
+    current_profile=Depends(manage_facilities),
 ):
     schedule = await schedule_repo.get_by_id(session, schedule_id)
     if not schedule:
@@ -141,7 +146,7 @@ async def update_facility_schedule(
 async def delete_facility_schedule(
     schedule_id: int,
     session: AsyncSession = Depends(get_db),
-    current_profile=Depends(manage_faculties),
+    current_profile=Depends(manage_facilities),
 ):
     schedule = await schedule_repo.get_by_id(session, schedule_id)
     if not schedule:
