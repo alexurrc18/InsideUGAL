@@ -51,6 +51,7 @@ export default function HomeScreen() {
             announcement_type: undefined,
             faculty_id: undefined,
             lang: i18n.language,
+            include_untranslated: true,
           }
         });
         if (response.data && response.data.items) {

@@ -5,12 +5,12 @@ import Animated, { useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
-import { Colors, ColorScheme, Spacing } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { Carousel } from "@/components/ui/display/carousel/carousel";
 import { CAROUSEL_CARD_MARGIN } from "@/components/ui/display/carousel/carousel.shared";
 import { NewsCard } from "@/components/ui/display/news-card";
-import { HeroSlideshow, HERO_HEIGHT } from "@/components/ui/display/hero-slideshow";
+import { HeroSlideshow } from "@/components/ui/display/hero-slideshow";
 import { getFormattedDate, parseRomanianDate, isoToRomanianDateStr, getTodayRomanianDate } from "@/utils/date";
 import api, { storage } from "@/services/api";
 import { useTranslation } from 'react-i18next';
@@ -51,6 +51,7 @@ export default function HomeScreen() {
             announcement_type: undefined,
             faculty_id: undefined,
             lang: i18n.language,
+            include_untranslated: true,
           }
         });
         if (response.data && response.data.items) {

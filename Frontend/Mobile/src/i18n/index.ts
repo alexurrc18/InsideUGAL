@@ -19,6 +19,7 @@ import ja from './locales/ja.json';
 import ko from './locales/ko.json';
 import hi from './locales/hi.json';
 
+// eslint-disable-next-line import/no-named-as-default-member
 i18n.use(initReactI18next).init({
   resources: {
     ro: { translation: ro },

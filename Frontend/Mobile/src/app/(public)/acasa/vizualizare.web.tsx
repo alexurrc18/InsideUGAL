@@ -108,7 +108,7 @@ function VizualizareScreen() {
                 }
             } else {
                 try {
-                    const res = await api.get('/announcements/', { params: { page: 1, size: 20, lang: i18n.language } });
+                    const res = await api.get('/announcements/', { params: { page: 1, size: 20, lang: i18n.language, include_untranslated: true } });
                     if (res.data?.items && isMounted) setRelatedPool(res.data.items);
                 } catch (err) {
                     console.warn('[API] Error loading related announcements:', err);
@@ -133,7 +133,7 @@ function VizualizareScreen() {
                 if (isNumeric) {
                     try {
                         if (initialTipPagina === "Eveniment" || initialTipPagina === "Anunț") {
-                            const res = await api.get(`/announcements/${numericId}`, { params: { lang: i18n.language } });
+                            const res = await api.get(`/announcements/${numericId}`, { params: { lang: i18n.language, include_untranslated: true } });
                             if (res.data) {
                                 const item = res.data;
                                 fetchedItem = {
@@ -204,7 +204,7 @@ function VizualizareScreen() {
         return () => {
             isMounted = false;
         };
-    }, [id, initialTipPagina, retryKey, i18n.language]);
+    }, [id, initialTipPagina, retryKey, i18n.language, t]);
 
     const title = itemData?.title || "";
     const category = itemData?.category || "";
@@ -219,7 +219,6 @@ function VizualizareScreen() {
     const address = itemData?.address || "";
     const phone = itemData?.phone || "";
     const website = itemData?.website || "";
-    const date = itemData?.date || "";
 
     // Anunturi inrudite: prioritizam aceeasi categorie ca articolul curent, apoi
     // completam cu restul. Excludem articolul curent (dupa titlu). Sidebar-ul ia
@@ -540,7 +539,7 @@ function VizualizareScreen() {
 
                     {/* Jos, sub tot: 3 carduri pe un rand. */}
                     {bottomItems.length > 0 && (
-                        <View style={{ gap: Spacing.lg, marginTop: Spacing.xl3 }}>
+                        <View style={{ gap: Spacing.lg, marginTop: Spacing.xl4 }}>
                             <Text style={[Typography.Heading2, { color: theme.text }]}>{t('detail.more')}</Text>
                             <View style={{ flexDirection: "row", gap: Spacing.lg }} onLayout={onRowLayout}>
                                 {bottomCardWidth > 0 && bottomItems.map((item: any) => (

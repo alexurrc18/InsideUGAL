@@ -29,7 +29,7 @@ export default function SplashScreen() {
       try {
         await Promise.all([
           api.get("/announcements/", {
-            params: { page: 1, size: 50, lang: i18n.language }
+            params: { page: 1, size: 50, lang: i18n.language, include_untranslated: true }
           }).then(res => {
             if (res.data && res.data.items) {
               return storage.setItem('cached_announcements', JSON.stringify(res.data.items));

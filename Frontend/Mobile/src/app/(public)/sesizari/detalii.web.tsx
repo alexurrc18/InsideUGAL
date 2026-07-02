@@ -107,7 +107,7 @@ export default function SesizareDetaliiScreen() {
       }
     }
     loadComplaint();
-  }, [id, retryKey, i18n.language]);
+  }, [id, retryKey, i18n.language, t]);
 
   const title = report?.title || "";
   const description = report?.description || "";

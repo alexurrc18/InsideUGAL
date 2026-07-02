@@ -38,7 +38,7 @@ export default function MoreCategoryScreen() {
       .catch(() => {
         setItems([]);
       });
-  }, [categoryId]);
+  }, [categoryId, i18n.language]);
 
   const scrollY = useSharedValue(0);
   const scrollHandler = useAnimatedScrollHandler((event) => {

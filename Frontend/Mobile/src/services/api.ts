@@ -140,6 +140,7 @@ const api = axios.create({
   },
 });
 
+// eslint-disable-next-line import/no-named-as-default-member
 export const ace = axios.create({
   baseURL: `${Config.LLM_BASE_URL}/api/v1/campus-chat/stream`,
   timeout: 0,

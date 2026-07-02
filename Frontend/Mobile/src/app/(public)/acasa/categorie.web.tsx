@@ -64,10 +64,10 @@ export default function CategoryScreen() {
       }
     };
     fetchFaculties();
-  }, []);
+  }, [i18n.language]);
 
   const facultyFilters: FilterItem[] = [
-    { id: null, title: "Toate Facultățile", abbreviation: "Toate" },
+    { id: null, title: t('category.allFaculties'), abbreviation: t('category.all') },
     ...faculties.map(f => ({
       id: f.id.toString(),
       title: f.name,
@@ -91,6 +91,7 @@ export default function CategoryScreen() {
             size: selectedFacultyId ? 200 : 20,
             announcement_type: type,
             lang: i18n.language,
+            include_untranslated: true,
           }
         });
 
@@ -101,7 +102,7 @@ export default function CategoryScreen() {
             : response.data.items;
           newItems = rawItems.map((item: any) => ({
             id: item.id.toString(),
-            title: item.title || "Titlu necunoscut",
+            title: (i18n.language !== 'ro' && item.is_translated ? item.translated_title : null) || item.title || t('common.unknownTitle'),
             category: categoryTitle,
             date: item.created_at || '',
             date_start: isoToRomanianDateStr(item.start_date) || "",
@@ -110,8 +111,8 @@ export default function CategoryScreen() {
             time_end: item.end_date ? new Date(item.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
             author: item.author_name || "",
             image: item.image_url || undefined,
-            content: item.content || "Conținut necunoscut",
-            location: item.location_name || "Locație necunoscută",
+            content: (i18n.language !== 'ro' && item.is_translated ? item.translated_content : null) || item.content || t('common.unknownContent'),
+            location: item.location_name || t('common.unknownLocation'),
             created_at: item.created_at,
             updated_at: item.updated_at,
           }));
@@ -127,12 +128,12 @@ export default function CategoryScreen() {
         if (response.data && response.data.items) {
           newItems = response.data.items.map((item: any) => ({
             id: item.id.toString(),
-            title: item.name || "Titlu necunoscut",
+            title: item.name || t('common.unknownTitle'),
             image: item.logo_url || undefined,
-            address: item.address || "Adresă necunoscută",
+            address: item.address || t('common.unknownAddress'),
             phone: item.phone || "",
             website: item.website_url || "",
-            content: item.description || "Conținut necunoscut",
+            content: item.description || t('common.unknownContent'),
           }));
         }
       } else if (categoryTitle === "Facilități") {
@@ -146,7 +147,7 @@ export default function CategoryScreen() {
         if (response.data && response.data.items) {
           newItems = response.data.items.map((item: any) => ({
             id: item.id.toString(),
-            title: item.name || "Titlu necunoscut",
+            title: item.name || t('common.unknownTitle'),
             image: item.image_url || undefined,
             content: item.description || "",
           }));
@@ -219,8 +220,8 @@ export default function CategoryScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <Seo
-        title={(categoryTitle as string) || "Categorie"}
-        description={`${(categoryTitle as string) || "Anunțuri"} — InsideUGAL, platforma studenților Universității „Dunărea de Jos” din Galați.`}
+        title={categoryLabel}
+        description={`${categoryLabel} — InsideUGAL, platforma studenților Universității „Dunărea de Jos” din Galați.`}
       />
       <Stack.Screen
         options={{
@@ -255,7 +256,7 @@ export default function CategoryScreen() {
                 ]}
                 numberOfLines={1}
               >
-                {(categoryTitle as string) || "Categorie"}
+                {categoryLabel}
               </Text>
             </Animated.View>
           ),
@@ -283,7 +284,7 @@ export default function CategoryScreen() {
 
           <View style={{ marginBottom: Spacing.lg, marginTop: Spacing.lg }}>
               <CategoryHeader
-                  title={(categoryTitle as string) || "Categorie"}
+                  title={categoryLabel}
                   filters={categoryTitle === "Facultăți" || categoryTitle === "Facilități" ? undefined : facultyFilters}
                   selectedFilterId={selectedFacultyId}
                   onSelectFilter={setSelectedFacultyId}
@@ -318,7 +319,7 @@ export default function CategoryScreen() {
 
               {data.length === 0 && !loading && (
                   <Text style={[Typography.Paragraph1, { color: theme.text, textAlign: "center", marginTop: 40 }]}>
-                      Nu există elemente în această categorie.
+                      {t('category.empty')}
                   </Text>
               )}
             </>

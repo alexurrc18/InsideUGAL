@@ -108,7 +108,7 @@ export default function SesizareDetaliiScreen() {
       console.error("[API] Error fetching complaint detail:", err);
       setError(err.message || t('reports.loadError'));
     }
-  }, [id, i18n.language]);
+  }, [id, i18n.language, t]);
 
   useEffect(() => {
     const timer = setTimeout(() => {

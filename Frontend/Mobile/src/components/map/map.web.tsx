@@ -81,7 +81,7 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
       map.current = null;
       setMapLoaded(false);
     };
-  }, [mapStyle]);
+  }, [mapStyle, onMapClick]);
 
   useEffect(() => {
     if (!map.current || !defaultCenter || cameraInitialized.current) return;
@@ -205,6 +205,8 @@ export default function Map({ themeName, selectedFacultyId, onFacultySelect, bui
         userMarkerRef.current = marker;
       }
     }
+    // userLocation e citit doar la focus (nu vrem sa rulam la fiecare update GPS - de asta e deja tratat de efectul de mai sus).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusKey, mapLoaded]);
 
   useEffect(() => {

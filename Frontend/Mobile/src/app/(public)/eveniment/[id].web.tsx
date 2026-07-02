@@ -38,7 +38,7 @@ export default function EvenimentScreen() {
             setHasError(false);
             setLoading(true);
             try {
-                const res = await api.get(`/announcements/${id}`, { params: { lang: i18n.language } });
+                const res = await api.get(`/announcements/${id}`, { params: { lang: i18n.language, include_untranslated: true } });
                 setEv(res.data);
             } catch (err) {
                 console.warn("[EvenimentScreen] Error loading event:", err);

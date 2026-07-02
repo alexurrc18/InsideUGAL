@@ -53,10 +53,17 @@ export function ThemeMenu({
   const toggle = () => onToggle ? onToggle() : setLocalOpen((v) => !v);
   const close = () => {
     setSubMenu(null);
-    onClose ? onClose() : setLocalOpen(false);
+    if (onClose) onClose(); else setLocalOpen(false);
   };
 
-  useEffect(() => { if (!open) setSubMenu(null); }, [open]);
+  // Reseteaza submeniul cand "open" trece la false (inclusiv cand parintele
+  // il inchide direct, fara sa treaca prin close()) - ajustare de stare in
+  // timpul randarii, nu intr-un efect, ca sa evitam randari in cascada.
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (!open) setSubMenu(null);
+  }
 
   useEffect(() => {
     anim.set(withTiming(open ? 1 : 0, { duration: open ? 280 : 200, easing: Easing.out(Easing.cubic) }));

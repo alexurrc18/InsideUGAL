@@ -7,7 +7,6 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 import { Spacing } from './spacing';
-import { ThemeProvider } from '@/contexts/theme-context';
 
 export { Spacing };
 

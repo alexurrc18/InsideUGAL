@@ -24,7 +24,6 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useNavbarScrolled } from "@/contexts/web-scroll-context";
 import { WebContainer, WEB_COMPACT_BREAKPOINT } from "@/components/ui/layout/web-container";
 import { ThemeMenu } from "@/components/ui/navigation/theme-menu";
-import { ThemeToggle } from "@/components/ui/navigation/theme-toggle";
 import { ProfileMenu, DASHBOARD_URL } from "@/components/ui/navigation/profile-menu";
 import ChevronIcon from "@/assets/icons/svg/chevron-left.svg";
 import api, { getAuthToken, logout } from "@/services/api";

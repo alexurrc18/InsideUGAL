@@ -3,7 +3,7 @@ import { View, Text, Pressable, TextInput, KeyboardAvoidingView, ScrollView, Act
 import { Image } from "expo-image";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useRouter } from "expo-router";
-import { Colors, Spacing, WebSidePadding } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useAuth } from "@/contexts/auth-context";

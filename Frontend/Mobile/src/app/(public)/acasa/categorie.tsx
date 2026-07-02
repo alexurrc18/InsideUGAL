@@ -70,7 +70,7 @@ export default function CategoryScreen() {
       }
     };
     fetchFaculties();
-  }, []);
+  }, [i18n.language]);
 
   const facultyFilters: FilterItem[] = [
     { id: null, title: t('category.allFaculties'), abbreviation: t('category.all') },
@@ -96,6 +96,7 @@ export default function CategoryScreen() {
             size: selectedFacultyId ? 200 : 20,
             announcement_type: type,
             lang: i18n.language,
+            include_untranslated: true,
           }
         });
 

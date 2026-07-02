@@ -5,6 +5,6 @@ import { View } from "react-native";
 
 export default function NotificariScreen() {
   const router = useRouter();
-  useEffect(() => { router.replace("/(onboarding)/locatie" as any); }, []);
+  useEffect(() => { router.replace("/(onboarding)/locatie" as any); }, [router]);
   return <View />;
 }

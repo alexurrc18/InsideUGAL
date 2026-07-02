@@ -1,6 +1,6 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useState, useEffect } from "react";
-import { View, Text, Switch, Pressable, Linking, Platform, Alert } from "react-native";
+import { View, Text, Pressable, Linking, Alert } from "react-native";
 import Animated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, interpolate, Extrapolation } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, Stack } from "expo-router";
@@ -34,14 +34,12 @@ export default function SettingsScreen() {
 
   const { t, i18n } = useTranslation();
 
-  // Local settings states driven by settingsStore
+  // Local settings state driven by settingsStore
   const [selectedTheme, setSelectedTheme] = useState(() => settingsStore.getTheme());
-  const [selectedLang, setSelectedLang] = useState(() => settingsStore.getLang());
 
   useEffect(() => {
     const unsubscribe = settingsStore.subscribe(() => {
       setSelectedTheme(settingsStore.getTheme());
-      setSelectedLang(settingsStore.getLang());
     });
     return unsubscribe;
   }, []);

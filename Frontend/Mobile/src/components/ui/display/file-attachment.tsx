@@ -1,5 +1,5 @@
 import { Platform, Linking, TouchableOpacity, View, Text } from "react-native";
-import { Colors, ColorScheme, Spacing } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import FileIcon from "@/assets/icons/svg/file.svg";

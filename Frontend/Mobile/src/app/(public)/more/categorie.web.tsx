@@ -41,7 +41,7 @@ export default function MoreCategoryScreen() {
       .catch(() => {
         setItems([]);
       });
-  }, [categoryId]);
+  }, [categoryId, i18n.language]);
 
   const handlePress = (item: any) => {
     if (item.website) {

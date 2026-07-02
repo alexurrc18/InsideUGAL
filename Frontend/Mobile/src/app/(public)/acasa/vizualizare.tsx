@@ -116,7 +116,7 @@ function VizualizareScreen() {
 
                     if (isNumeric) {
                         if (initialTipPagina === "Eveniment" || initialTipPagina === "Anunț") {
-                            const res = await api.get(`/announcements/${numericId}`, { params: { lang: i18n.language } });
+                            const res = await api.get(`/announcements/${numericId}`, { params: { lang: i18n.language, include_untranslated: true } });
                             if (res.data) {
                                 const item = res.data;
                                 fetchedItem = {
@@ -212,7 +212,7 @@ function VizualizareScreen() {
                 interactionTask.cancel();
             }
         };
-    }, [id, initialTipPagina, retryKey, i18n.language]);
+    }, [id, initialTipPagina, retryKey, i18n.language, t]);
 
     const onRefresh = () => {
         setRefreshing(true);

@@ -38,7 +38,7 @@ export default function AnuntScreen() {
             setHasError(false);
             setLoading(true);
             try {
-                const res = await api.get(`/announcements/${id}`, { params: { lang: i18n.language } });
+                const res = await api.get(`/announcements/${id}`, { params: { lang: i18n.language, include_untranslated: true } });
                 setItem(res.data);
             } catch (err) {
                 console.warn("[AnuntScreen] Error loading announcement:", err);

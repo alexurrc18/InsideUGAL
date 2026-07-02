@@ -47,7 +47,7 @@ export default function MoreScreen() {
       .catch(() => {
         setCategories([]);
       });
-  }, []);
+  }, [i18n.language]);
 
   const renderIcon = (iconName: string, color: string) => {
     switch (iconName) {

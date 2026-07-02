@@ -91,7 +91,7 @@ export function ArticleDetail({
         let isMounted = true;
         const loadRelated = async () => {
             try {
-                const res = await api.get('/announcements/', { params: { page: 1, size: 20, lang: i18n.language } });
+                const res = await api.get('/announcements/', { params: { page: 1, size: 20, lang: i18n.language, include_untranslated: true } });
                 if (res.data?.items && isMounted) {
                     setRelatedPool(res.data.items);
                 }
