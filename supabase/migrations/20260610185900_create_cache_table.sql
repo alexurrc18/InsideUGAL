@@ -7,4 +7,6 @@ CREATE TABLE IF NOT EXISTS llm_cache (
 );
 
 ALTER TABLE public.llm_cache ENABLE ROW LEVEL SECURITY;
+REVOKE ALL PRIVILEGES ON TABLE public.llm_cache FROM authenticated, anon;
+
 

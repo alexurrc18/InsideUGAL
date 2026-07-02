@@ -221,7 +221,17 @@ services:
     volumes:
       - ./supabase/post-init/ensure_storage_buckets.sql:/tmp/ensure_storage_buckets.sql:ro
     command: >
-      sh -c "psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -v ON_ERROR_STOP=1 -f /tmp/ensure_storage_buckets.sql"
+      sh -c "for i in $$(seq 1 90); do
+      if psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -tAc \"select to_regproc('public.current_user_role') is not null\" | grep -q t; then
+      echo \"Database migrations are ready; applying storage buckets SQL\";
+      psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -v ON_ERROR_STOP=1 -f /tmp/ensure_storage_buckets.sql;
+      exit $$?;
+      fi;
+      echo \"waiting for public.current_user_role ($$i/90)\";
+      sleep 2;
+      done;
+      echo \"database migrations were not ready after 180s; exiting\";
+      exit 3"
     networks:
       - internal
   supabase-storage-assets:

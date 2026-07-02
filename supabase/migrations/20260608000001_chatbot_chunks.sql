@@ -9,6 +9,7 @@ create table if not exists chatbot_chunks (
 );
 
 alter table chatbot_chunks enable row level security;
+revoke all privileges on table chatbot_chunks from authenticated, anon;
 
 create index on chatbot_chunks using hnsw (embedding vector_cosine_ops);
 

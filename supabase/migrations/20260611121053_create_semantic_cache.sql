@@ -7,4 +7,6 @@ create table if not exists public.semantic_cache (
 );
 
 alter table public.semantic_cache enable row level security;
+revoke all privileges on table public.semantic_cache from authenticated, anon;
+
 

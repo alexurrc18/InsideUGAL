@@ -95,13 +95,3 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated, anon;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO authenticated, anon;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO authenticated, anon;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO authenticated, anon;
-
--- Revoke access entirely for authenticated and anon roles from chatbot-specific internal tables
--- (these do not need client-side access and are queried exclusively by service_role in the backend)
-REVOKE ALL PRIVILEGES ON TABLE public.chatbot_chunks FROM authenticated, anon;
-REVOKE ALL PRIVILEGES ON TABLE public.semantic_cache FROM authenticated, anon;
-REVOKE ALL PRIVILEGES ON TABLE public.llm_cache FROM authenticated, anon;
-REVOKE ALL PRIVILEGES ON TABLE public.llm_calls FROM authenticated, anon;
-REVOKE ALL PRIVILEGES ON TABLE public.document_chunks FROM authenticated, anon;
-
-
