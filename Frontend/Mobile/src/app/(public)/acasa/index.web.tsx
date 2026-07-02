@@ -168,8 +168,8 @@ export default function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [i18n.language]);
 
-  // Ultimele 3 anunturi (Noutăți), cele mai recente primele, pentru hero.
-  const announcementsForHero = [...noutati]
+  // Ultimele 3 postari (Noutăți + Evenimente), cele mai recente primele, pentru hero.
+  const announcementsForHero = [...noutati, ...evenimente]
     .sort((a, b) => parseRomanianDate(b.date).getTime() - parseRomanianDate(a.date).getTime())
     .slice(0, 3);
 

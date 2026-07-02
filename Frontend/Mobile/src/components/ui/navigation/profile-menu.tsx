@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Linking, Pressable, Text, View } from "react-native";
+import { useEffect, useState, useRef } from "react";
+import { Linking, Pressable, Text, View, Platform } from "react-native";
 import Animated, { useSharedValue, withTiming, useAnimatedStyle, interpolate, Extrapolation, Easing } from "react-native-reanimated";
 import { useRouter } from "expo-router";
 import { Colors, ColorScheme, Spacing } from "@/constants/theme";
@@ -21,6 +21,7 @@ export function ProfileMenu({
   onToggle?: () => void;
   onClose?: () => void;
 }) {
+  const containerRef = useRef<any>(null);
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const router = useRouter();
@@ -54,12 +55,30 @@ export function ProfileMenu({
     }));
   }, [open, anim]);
 
-  // Inchide meniul la scroll (ca meniul de tema).
+  // Inchide meniul la scroll si la click in afara (pe web).
   useEffect(() => {
     if (!open) return;
     const onScroll = () => close();
     document.addEventListener("scroll", onScroll, true);
-    return () => document.removeEventListener("scroll", onScroll, true);
+
+    let onClickOutside: any;
+    if (Platform.OS === 'web') {
+      onClickOutside = (e: MouseEvent) => {
+        if (containerRef.current && typeof containerRef.current.contains === 'function') {
+          if (!containerRef.current.contains(e.target as Node)) {
+            close();
+          }
+        }
+      };
+      document.addEventListener("click", onClickOutside, true);
+    }
+
+    return () => {
+      document.removeEventListener("scroll", onScroll, true);
+      if (Platform.OS === 'web' && onClickOutside) {
+        document.removeEventListener("click", onClickOutside, true);
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -98,7 +117,7 @@ export function ProfileMenu({
   ];
 
   return (
-    <View style={{ position: "relative", height: "100%", justifyContent: "center" }}>
+    <View ref={containerRef} style={{ position: "relative", height: "100%", justifyContent: "center" }}>
       {/* Trigger: iconita user, fara border, cu fundal plin cand e deschis (ca rotita). */}
       <Pressable
         onPress={handleProfilePress}

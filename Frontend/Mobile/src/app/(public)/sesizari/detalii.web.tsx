@@ -50,7 +50,7 @@ export default function SesizareDetaliiScreen() {
   const insets = useSafeAreaInsets();
 
   const id = params.id as string;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +70,7 @@ export default function SesizareDetaliiScreen() {
         // 1. Fetch locations for mapping
         let locationsData: any[] = [];
         try {
-          const locsRes = await api.get('/locations/', { params: { page: 1, size: 50 } });
+          const locsRes = await api.get('/locations/', { params: { page: 1, size: 50, lang: i18n.language } });
           if (locsRes.data?.items) {
             locationsData = locsRes.data.items;
           }
@@ -83,7 +83,7 @@ export default function SesizareDetaliiScreen() {
         });
 
         // 2. Fetch the specific complaint
-        const res = await api.get(`/complaints/${id}`);
+        const res = await api.get(`/complaints/${id}`, { params: { lang: i18n.language } });
         if (res.data) {
           const item = res.data;
           setReport({
@@ -107,7 +107,7 @@ export default function SesizareDetaliiScreen() {
       }
     }
     loadComplaint();
-  }, [id, retryKey]);
+  }, [id, retryKey, i18n.language]);
 
   const title = report?.title || "";
   const description = report?.description || "";

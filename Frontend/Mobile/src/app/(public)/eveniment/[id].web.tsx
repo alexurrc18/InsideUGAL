@@ -17,7 +17,7 @@ export function generateStaticParams() {
 }
 
 export default function EvenimentScreen() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const params = useLocalSearchParams();
     const id = parseEventId(params.id);
     const [ev, setEv] = useState<any>(null);
@@ -38,7 +38,7 @@ export default function EvenimentScreen() {
             setHasError(false);
             setLoading(true);
             try {
-                const res = await api.get(`/announcements/${id}`);
+                const res = await api.get(`/announcements/${id}`, { params: { lang: i18n.language } });
                 setEv(res.data);
             } catch (err) {
                 console.warn("[EvenimentScreen] Error loading event:", err);
@@ -48,7 +48,7 @@ export default function EvenimentScreen() {
             }
         };
         run();
-    }, [id, retryKey]);
+    }, [id, retryKey, i18n.language]);
 
     if (loading) {
         return (
@@ -69,8 +69,8 @@ export default function EvenimentScreen() {
         );
     }
 
-    const title = ev.title || "Eveniment";
-    const content = ev.content || "";
+    const title = (i18n.language !== 'ro' && ev.is_translated ? ev.translated_title : null) || ev.title || "Eveniment";
+    const content = (i18n.language !== 'ro' && ev.is_translated ? ev.translated_content : null) || ev.content || "";
     const image = ev.image_url || "";
     const location = ev.location_name || "";
     const date_start = isoToRomanianDateStr(ev.start_date) || "";

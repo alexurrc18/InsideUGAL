@@ -17,7 +17,7 @@ export function generateStaticParams() {
 }
 
 export default function AnuntScreen() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const params = useLocalSearchParams();
     const id = parseEventId(params.id);
     const [item, setItem] = useState<any>(null);
@@ -38,7 +38,7 @@ export default function AnuntScreen() {
             setHasError(false);
             setLoading(true);
             try {
-                const res = await api.get(`/announcements/${id}`);
+                const res = await api.get(`/announcements/${id}`, { params: { lang: i18n.language } });
                 setItem(res.data);
             } catch (err) {
                 console.warn("[AnuntScreen] Error loading announcement:", err);
@@ -48,7 +48,7 @@ export default function AnuntScreen() {
             }
         };
         run();
-    }, [id, retryKey]);
+    }, [id, retryKey, i18n.language]);
 
     if (loading) {
         return (
@@ -69,8 +69,8 @@ export default function AnuntScreen() {
         );
     }
 
-    const title = item.title || "Anunț";
-    const content = item.content || "";
+    const title = (i18n.language !== 'ro' && item.is_translated ? item.translated_title : null) || item.title || "Anunț";
+    const content = (i18n.language !== 'ro' && item.is_translated ? item.translated_content : null) || item.content || "";
     const image = item.image_url || "";
     const date = isoToRomanianDateStr(item.created_at) || "";
     const author = item.author_name || "";

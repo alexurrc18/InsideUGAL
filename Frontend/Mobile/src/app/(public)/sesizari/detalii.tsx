@@ -50,7 +50,7 @@ export default function SesizareDetaliiScreen() {
   const insets = useSafeAreaInsets();
 
   const id = params.id as string;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +72,7 @@ export default function SesizareDetaliiScreen() {
         locationsData = JSON.parse(cachedLocs);
       }
       try {
-        const locsRes = await api.get('/locations/', { params: { page: 1, size: 50 } });
+        const locsRes = await api.get('/locations/', { params: { page: 1, size: 50, lang: i18n.language } });
         if (locsRes.data?.items) {
           locationsData = locsRes.data.items;
           await storage.setItem('cached_facilities', JSON.stringify(locsRes.data.items));
@@ -86,7 +86,7 @@ export default function SesizareDetaliiScreen() {
       });
 
       // 2. Fetch the specific complaint
-      const res = await api.get(`/complaints/${id}`);
+      const res = await api.get(`/complaints/${id}`, { params: { lang: i18n.language } });
       if (res.data) {
         const item = res.data;
         setReport({
@@ -108,7 +108,7 @@ export default function SesizareDetaliiScreen() {
       console.error("[API] Error fetching complaint detail:", err);
       setError(err.message || t('reports.loadError'));
     }
-  }, [id]);
+  }, [id, i18n.language]);
 
   useEffect(() => {
     const timer = setTimeout(() => {

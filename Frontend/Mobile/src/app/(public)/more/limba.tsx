@@ -11,6 +11,8 @@ import { CategoryHeader } from "@/components/ui/display/category-header";
 import { settingsStore } from "@/utils/settings-store";
 import { useTranslation } from 'react-i18next';
 
+import { LANGUAGES } from '@/constants/languages';
+
 import CloseIcon from "@/assets/icons/svg/x.svg";
 
 export default function LanguageScreen() {
@@ -31,14 +33,7 @@ export default function LanguageScreen() {
   const { t, i18n } = useTranslation();
   const currentLang = i18n.language;
 
-  const languages = [
-    { code: "ro", label: "Română" },
-    { code: "en", label: "English" },
-    { code: "es", label: "Español" },
-    { code: "fr", label: "Français" },
-    { code: "de", label: "Deutsch" },
-    { code: "it", label: "Italiano" }
-  ];
+  const languages = LANGUAGES;
 
   const handleSelectLanguage = (code: string) => {
     settingsStore.setLang(code);

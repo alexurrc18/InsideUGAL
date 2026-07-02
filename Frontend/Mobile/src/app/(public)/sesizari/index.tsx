@@ -35,7 +35,7 @@ export default function SesizariScreen() {
   const params = useLocalSearchParams();
 
   const { isAuthenticated, user, isLoading: authLoading } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [reports, setReports] = useState<Sesizare[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +66,7 @@ export default function SesizariScreen() {
         locationsData = JSON.parse(cachedLocs);
       }
       try {
-        const locsRes = await api.get('/locations/', { params: { page: 1, size: 50 } });
+        const locsRes = await api.get('/locations/', { params: { page: 1, size: 50, lang: i18n.language } });
         if (locsRes.data?.items) {
           locationsData = locsRes.data.items;
           await storage.setItem('cached_facilities', JSON.stringify(locsRes.data.items));
@@ -85,30 +85,30 @@ export default function SesizariScreen() {
       // 3. Fetch complaints based on activeFilter
       let apiItems: any[] = [];
       if (activeFilter === "toate") {
-        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50 } });
+        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50, lang: i18n.language } });
         console.log('[API] Fetched all complaints:', complaintsRes.data);
         apiItems = complaintsRes.data?.items || [];
       } else if (activeFilter === "mele") {
-        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50 } });
+        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50, lang: i18n.language } });
         console.log('[API] Fetched my complaints:', complaintsRes.data);
         const allItems = complaintsRes.data?.items || [];
         apiItems = myProfileId ? allItems.filter((item: any) => item.user_id === myProfileId) : [];
       } else if (activeFilter === "active") {
         const [resPending, resWorking] = await Promise.all([
-          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_asteptare' } }),
-          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_lucru' } })
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_asteptare', lang: i18n.language } }),
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_lucru', lang: i18n.language } })
         ]);
         console.log('[API] Fetched active complaints:', { pending: resPending.data, working: resWorking.data });
         apiItems = [...(resPending.data?.items || []), ...(resWorking.data?.items || [])];
         apiItems.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       } else if (activeFilter === "respinse") {
-        const res = await api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'respins' } });
+        const res = await api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'respins', lang: i18n.language } });
         console.log('[API] Fetched rejected complaints:', res.data);
         apiItems = res.data?.items || [];
       } else if (activeFilter === "finalizate") {
         const [resFinalized, resSolved] = await Promise.all([
-          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'finalizat' } }),
-          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'solutionat' } })
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'finalizat', lang: i18n.language } }),
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'solutionat', lang: i18n.language } })
         ]);
         console.log('[API] Fetched finalized complaints:', { finalized: resFinalized.data, solved: resSolved.data });
         apiItems = [...(resFinalized.data?.items || []), ...(resSolved.data?.items || [])];
@@ -144,7 +144,7 @@ export default function SesizariScreen() {
     });
     return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigation, activeFilter]);
+  }, [navigation, activeFilter, i18n.language]);
 
   const filteredData = reports.filter(item => {
     if (activeFilter === "toate") return true;

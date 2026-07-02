@@ -194,7 +194,7 @@ export default function HartaScreen() {
           "Hartă" are aceeasi marime ca "Cantina"/"Sesizări". Harta ramane in afara. */}
       <WebContainer>
         <CategoryHeader
-          title="Hartă"
+          title={t('map.title')}
           filters={facultyFilters}
           selectedFilterId={selectedFacultyId}
           onSelectFilter={handleSelectFilter}

@@ -37,7 +37,7 @@ export default function CantinaScreen() {
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
   const contentTop = useWebContentTop();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [menuData, setMenuData] = useState<any[]>([]);
   const [categoriesList, setCategoriesList] = useState<any[]>([]);
 
@@ -83,8 +83,8 @@ export default function CantinaScreen() {
         if (active) setHasError(false);
 
         const [menusRes, catsRes] = await Promise.all([
-          api.get('/daily-menus/', { params: { page: 1, size: 50 } }),
-          api.get('/product_categories/', { params: { page: 1, size: 50 } }),
+          api.get('/daily-menus/', { params: { page: 1, size: 50, lang: i18n.language } }),
+          api.get('/product_categories/', { params: { page: 1, size: 50, lang: i18n.language } }),
         ]);
 
         if (active) {
@@ -106,7 +106,7 @@ export default function CantinaScreen() {
     }
     loadData();
     return () => { active = false; };
-  }, [retryKey]);
+  }, [retryKey, i18n.language]);
 
   const currentMenu = useMemo(() => {
     const dayNum = getDayNumber(selectedDay);

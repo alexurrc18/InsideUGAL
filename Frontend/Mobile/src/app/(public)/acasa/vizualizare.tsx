@@ -19,7 +19,6 @@ import PhoneIcon from "@/assets/icons/svg/phone.svg";
 import WebsiteIcon from "@/assets/icons/svg/globe-europe.svg";
 import { CategoryTag } from "@/components/ui/display/news-card";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
-import { FileAttachments } from "@/components/ui/display/file-attachment";
 
 function formatSchedules(schedules: any[], t: (key: string) => string): string[] {
     if (!schedules || schedules.length === 0) return [];
@@ -136,7 +135,6 @@ function VizualizareScreen() {
                                     author: item.author_name || "",
                                     created_at: item.created_at,
                                     updated_at: item.updated_at,
-                                    files: item.files || [],
                                 };
                             }
                         } else if (initialTipPagina === "Facultate") {
@@ -193,7 +191,7 @@ function VizualizareScreen() {
                                 } else if (isFacility) {
                                     mappedItem = { id: match.id.toString(), type: "Facilitate", title: match.name || t('common.unknownTitle'), image: match.image_url || "", content: match.description || "", schedules: match.schedules || [] };
                                 } else {
-                                    mappedItem = { id: match.id.toString(), type: match.type === "NOUTATE" ? "Anunț" : "Eveniment", title: match.title || t('common.unknownTitle'), category: match.type === "NOUTATE" ? t('home.news') : t('home.events'), content: match.content || t('common.unknownContent'), image: match.image_url || "", location: match.location_name || t('common.unknownLocation'), date_start: match.start_date || "", date_end: match.end_date || "", time_start: match.start_date ? new Date(match.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "", time_end: match.end_date ? new Date(match.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "", posted_at: match.created_at || "", date: match.start_date || "", author: match.author_name || "", created_at: match.created_at, updated_at: match.updated_at };
+                                    mappedItem = { id: match.id.toString(), type: match.type === "NOUTATE" ? "Anunț" : "Eveniment", title: (i18n.language !== 'ro' && match.is_translated ? match.translated_title : null) || match.title || t('common.unknownTitle'), category: match.type === "NOUTATE" ? t('home.news') : t('home.events'), content: (i18n.language !== 'ro' && match.is_translated ? match.translated_content : null) || match.content || t('common.unknownContent'), image: match.image_url || "", location: match.location_name || t('common.unknownLocation'), date_start: match.start_date || "", date_end: match.end_date || "", time_start: match.start_date ? new Date(match.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "", time_end: match.end_date ? new Date(match.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "", posted_at: match.created_at || "", date: match.start_date || "", author: match.author_name || "", created_at: match.created_at, updated_at: match.updated_at };
                                 }
                                 setItemData(mappedItem);
                                 setLoading(false);
@@ -491,9 +489,6 @@ function VizualizareScreen() {
                         </Text>
                     </View>
 
-                    {(tipPagina === "Anunț" || tipPagina === "Eveniment") && (
-                        <FileAttachments files={itemData?.files} />
-                    )}
                 </View>
             </ScrollView>
         </View>

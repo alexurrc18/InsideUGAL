@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-const SUPPORTED_LANGS = ['ro', 'en'];
+const SUPPORTED_LANGS = ['ro', 'en', 'es', 'fr', 'de', 'it', 'el', 'tr', 'vi', 'uk', 'ru', 'ar', 'zh', 'ja', 'ko', 'hi'];
 const KEY_LANG = 'settings_lang';
 const KEY_THEME = 'settings_theme';
 

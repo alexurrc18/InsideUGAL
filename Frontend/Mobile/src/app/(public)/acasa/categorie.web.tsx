@@ -88,14 +88,17 @@ export default function CategoryScreen() {
         response = await api.get("/announcements/", {
           params: {
             page: pageToFetch,
-            size: 20,
+            size: selectedFacultyId ? 200 : 20,
             announcement_type: type,
-            faculty_id: selectedFacultyId || undefined
           }
         });
-        
+
         if (response.data && response.data.items) {
-          newItems = response.data.items.map((item: any) => ({
+          const rawItems = selectedFacultyId
+            ? response.data.items.filter((item: any) =>
+                (item.faculties ?? []).some((f: any) => f.id.toString() === selectedFacultyId))
+            : response.data.items;
+          newItems = rawItems.map((item: any) => ({
             id: item.id.toString(),
             title: item.title || "Titlu necunoscut",
             category: categoryTitle,
@@ -147,7 +150,7 @@ export default function CategoryScreen() {
         }
       }
       
-      if (newItems.length < 20) {
+      if (selectedFacultyId || newItems.length < 20) {
         setHasMore(false);
       }
       

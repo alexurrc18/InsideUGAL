@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Pressable, View, Text } from "react-native";
+import { useEffect, useState, useRef } from "react";
+import { Pressable, View, Text, Platform, ScrollView } from "react-native";
 import Animated, { useSharedValue, withTiming, useAnimatedStyle, interpolate, Extrapolation, Easing } from "react-native-reanimated";
 import { ColorScheme, Spacing, Colors } from "@/constants/theme";
 import { Typography } from "@/constants/typography";
@@ -9,20 +9,12 @@ import { settingsStore } from "@/utils/settings-store";
 import CogIcon from "@/assets/icons/svg/cog.svg";
 import ChevronIcon from "@/assets/icons/svg/chevron-left.svg";
 import { useTranslation } from "react-i18next";
+import { LANGUAGES } from "@/constants/languages";
 
 const THEMES = [
   { id: "system" as const, label: "Sistem" },
   { id: "light" as const, label: "Luminos" },
   { id: "dark" as const, label: "Întunecat" },
-];
-
-const LANGUAGES = [
-  { code: "ro", label: "Română" },
-  { code: "en", label: "English" },
-  { code: "es", label: "Español" },
-  { code: "fr", label: "Français" },
-  { code: "de", label: "Deutsch" },
-  { code: "it", label: "Italiano" },
 ];
 
 const SHADOW = {
@@ -43,6 +35,7 @@ export function ThemeMenu({
   onToggle?: () => void;
   onClose?: () => void;
 }) {
+  const containerRef = useRef<any>(null);
   const [localOpen, setLocalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : localOpen;
   const [subMenu, setSubMenu] = useState<"tema" | "limba" | null>(null);
@@ -75,9 +68,34 @@ export function ThemeMenu({
 
   useEffect(() => {
     if (!open) return;
-    const closeOnScroll = () => close();
+    const closeOnScroll = (e: Event) => {
+      if (containerRef.current && typeof containerRef.current.contains === 'function') {
+        if (containerRef.current.contains(e.target as Node)) {
+          return;
+        }
+      }
+      close();
+    };
     document.addEventListener("scroll", closeOnScroll, true);
-    return () => document.removeEventListener("scroll", closeOnScroll, true);
+
+    let onClickOutside: any;
+    if (Platform.OS === 'web') {
+      onClickOutside = (e: MouseEvent) => {
+        if (containerRef.current && typeof containerRef.current.contains === 'function') {
+          if (!containerRef.current.contains(e.target as Node)) {
+            close();
+          }
+        }
+      };
+      document.addEventListener("click", onClickOutside, true);
+    }
+
+    return () => {
+      document.removeEventListener("scroll", closeOnScroll, true);
+      if (Platform.OS === 'web' && onClickOutside) {
+        document.removeEventListener("click", onClickOutside, true);
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -97,7 +115,7 @@ export function ThemeMenu({
   const langLabel = LANGUAGES.find((l) => l.code === selectedLang)?.label ?? selectedLang;
 
   return (
-    <View style={{ position: "relative", height: "100%", justifyContent: "center" }}>
+    <View ref={containerRef} style={{ position: "relative", height: "100%", justifyContent: "center" }}>
       <Pressable
         onPress={toggle}
         hitSlop={8}
@@ -132,35 +150,63 @@ export function ThemeMenu({
           style={[{ position: "absolute", top: "100%", right: 0, minWidth: 260, marginTop: Spacing.xs }, subStyle]}
         >
           <View style={{ backgroundColor: theme.surface, overflow: "hidden", paddingVertical: Spacing.xs, ...SHADOW }}>
-            {(subMenu === "tema" ? THEMES : LANGUAGES).map((opt: any) => {
-              const isSelected = subMenu === "tema" ? themeMode === opt.id : selectedLang === opt.code;
-              return (
-                <Pressable
-                  key={opt.id ?? opt.code}
-                  onPress={() => {
-                    if (subMenu === "tema") setThemeMode(opt.id);
-                    else settingsStore.setLang(opt.code);
-                    setSubMenu(null);
-                  }}
-                  accessibilityRole="button"
-                  style={({ pressed, hovered }: any) => [
-                    { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-                    (pressed || hovered || isSelected) && { backgroundColor: "rgba(0,0,0,0.05)" },
-                  ]}
-                >
-                  {({ pressed, hovered }: any) => (
-                    <Text style={[Typography.Heading5, {
-                      color: (pressed || hovered || isSelected) ? theme.primary : theme.text,
-                      fontFamily: isSelected ? "InstrumentSans-SemiBold" : "InstrumentSans-Medium",
-                    }]}>
-                      {subMenu === "tema"
-                        ? (opt.id === "system" ? t('theme.system') : opt.id === "light" ? t('theme.light') : opt.id === "dark" ? t('theme.dark') : opt.label)
-                        : opt.label}
-                    </Text>
-                  )}
-                </Pressable>
-              );
-            })}
+            {subMenu === "tema" ? (
+              THEMES.map((opt: any) => {
+                const isSelected = themeMode === opt.id;
+                return (
+                  <Pressable
+                    key={opt.id}
+                    onPress={() => {
+                      setThemeMode(opt.id);
+                      setSubMenu(null);
+                    }}
+                    accessibilityRole="button"
+                    style={({ pressed, hovered }: any) => [
+                      { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+                      (pressed || hovered || isSelected) && { backgroundColor: "rgba(0,0,0,0.05)" },
+                    ]}
+                  >
+                    {({ pressed, hovered }: any) => (
+                      <Text style={[Typography.Heading5, {
+                        color: (pressed || hovered || isSelected) ? theme.primary : theme.text,
+                        fontFamily: isSelected ? "InstrumentSans-SemiBold" : "InstrumentSans-Medium",
+                      }]}>
+                        {opt.id === "system" ? t('theme.system') : opt.id === "light" ? t('theme.light') : opt.id === "dark" ? t('theme.dark') : opt.label}
+                      </Text>
+                    )}
+                  </Pressable>
+                );
+              })
+            ) : (
+              <ScrollView style={{ maxHeight: 250 }}>
+                {LANGUAGES.map((opt: any) => {
+                  const isSelected = selectedLang === opt.code;
+                  return (
+                    <Pressable
+                      key={opt.code}
+                      onPress={() => {
+                        settingsStore.setLang(opt.code);
+                        setSubMenu(null);
+                      }}
+                      accessibilityRole="button"
+                      style={({ pressed, hovered }: any) => [
+                        { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+                        (pressed || hovered || isSelected) && { backgroundColor: "rgba(0,0,0,0.05)" },
+                      ]}
+                    >
+                      {({ pressed, hovered }: any) => (
+                        <Text style={[Typography.Heading5, {
+                          color: (pressed || hovered || isSelected) ? theme.primary : theme.text,
+                          fontFamily: isSelected ? "InstrumentSans-SemiBold" : "InstrumentSans-Medium",
+                        }]}>
+                          {opt.label}
+                        </Text>
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            )}
           </View>
         </Animated.View>
 

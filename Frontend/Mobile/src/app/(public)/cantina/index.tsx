@@ -33,7 +33,7 @@ export default function CantinaScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [menuData, setMenuData] = useState<any[]>([]);
   const [categoriesList, setCategoriesList] = useState<any[]>([]);
 
@@ -73,8 +73,8 @@ export default function CantinaScreen() {
     setHasError(false);
     try {
       const [menusRes, catsRes] = await Promise.all([
-        api.get('/daily-menus/', { params: { page: 1, size: 50 } }),
-        api.get('/product_categories/', { params: { page: 1, size: 50 } }),
+        api.get('/daily-menus/', { params: { page: 1, size: 50, lang: i18n.language } }),
+        api.get('/product_categories/', { params: { page: 1, size: 50, lang: i18n.language } }),
       ]);
 
       if (menusRes.data?.items) {
@@ -101,15 +101,15 @@ export default function CantinaScreen() {
       }
       setLoading(false);
     }
-  }, []);
+  }, [i18n.language]);
 
   const onRefresh = async () => {
     setRefreshing(true);
     setHasError(false);
     try {
       const [menusRes, catsRes] = await Promise.all([
-        api.get('/daily-menus/', { params: { page: 1, size: 50 } }),
-        api.get('/product_categories/', { params: { page: 1, size: 50 } }),
+        api.get('/daily-menus/', { params: { page: 1, size: 50, lang: i18n.language } }),
+        api.get('/product_categories/', { params: { page: 1, size: 50, lang: i18n.language } }),
       ]);
 
       if (menusRes.data?.items) {

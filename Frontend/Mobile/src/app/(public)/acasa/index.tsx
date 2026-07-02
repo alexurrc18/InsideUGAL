@@ -225,7 +225,7 @@ export default function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [i18n.language]);
 
-  const announcementsForHero = [...noutati]
+  const announcementsForHero = [...noutati, ...evenimente]
     .sort((a, b) => parseRomanianDate(b.date).getTime() - parseRomanianDate(a.date).getTime())
     .slice(0, 3)
     .map(item => ({

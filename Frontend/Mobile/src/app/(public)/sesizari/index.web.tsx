@@ -39,14 +39,14 @@ export default function SesizariScreen() {
   const router = useRouter();
 
   const { isAuthenticated, user, isLoading: authLoading } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const filters: FilterItem[] = [
-    { id: "toate", title: t('reports.all') },
-    { id: "mele", title: t('reports.mine') },
-    { id: "active", title: t('reports.active') },
-    { id: "respinse", title: t('reports.rejected') },
-    { id: "finalizate", title: t('reports.completed') },
+    { id: "toate" as const, title: t('reports.all') },
+    { id: "mele" as const, title: t('reports.mine') },
+    { id: "active" as const, title: t('reports.active') },
+    { id: "respinse" as const, title: t('reports.rejected') },
+    { id: "finalizate" as const, title: t('reports.completed') },
   ];
 
   const [reports, setReports] = useState<Sesizare[]>([]);
@@ -65,7 +65,7 @@ export default function SesizariScreen() {
       // 1. Fetch/load locations to build a map of id -> name
       let locationsData: any[] = [];
       try {
-        const locsRes = await api.get('/locations/', { params: { page: 1, size: 50 } });
+        const locsRes = await api.get('/locations/', { params: { page: 1, size: 50, lang: i18n.language } });
         if (locsRes.data?.items) {
           locationsData = locsRes.data.items;
         }
@@ -84,30 +84,30 @@ export default function SesizariScreen() {
       // 3. Fetch complaints based on activeFilter
       let apiItems: any[] = [];
       if (activeFilter === "toate") {
-        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50 } });
+        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50, lang: i18n.language } });
         console.log('[API] Fetched all complaints (web):', complaintsRes.data);
         apiItems = complaintsRes.data?.items || [];
       } else if (activeFilter === "mele") {
-        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50 } });
+        const complaintsRes = await api.get('/complaints/', { params: { page: 1, size: 50, lang: i18n.language } });
         console.log('[API] Fetched my complaints (web):', complaintsRes.data);
         const allItems = complaintsRes.data?.items || [];
         apiItems = myProfileId ? allItems.filter((item: any) => item.user_id === myProfileId) : [];
       } else if (activeFilter === "active") {
         const [resPending, resWorking] = await Promise.all([
-          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_asteptare' } }),
-          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_lucru' } })
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_asteptare', lang: i18n.language } }),
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'in_lucru', lang: i18n.language } })
         ]);
         console.log('[API] Fetched active complaints (web):', { pending: resPending.data, working: resWorking.data });
         apiItems = [...(resPending.data?.items || []), ...(resWorking.data?.items || [])];
         apiItems.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       } else if (activeFilter === "respinse") {
-        const res = await api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'respins' } });
+        const res = await api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'respins', lang: i18n.language } });
         console.log('[API] Fetched rejected complaints (web):', res.data);
         apiItems = res.data?.items || [];
       } else if (activeFilter === "finalizate") {
         const [resFinalized, resSolved] = await Promise.all([
-          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'finalizat' } }),
-          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'solutionat' } })
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'finalizat', lang: i18n.language } }),
+          api.get('/complaints/', { params: { page: 1, size: 50, complaint_status: 'solutionat', lang: i18n.language } })
         ]);
         console.log('[API] Fetched finalized complaints (web):', { finalized: resFinalized.data, solved: resSolved.data });
         apiItems = [...(resFinalized.data?.items || []), ...(resSolved.data?.items || [])];
@@ -140,7 +140,7 @@ export default function SesizariScreen() {
     useCallback(() => {
       loadData();
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeFilter])
+    }, [activeFilter, i18n.language])
   );
 
   useEffect(() => {
