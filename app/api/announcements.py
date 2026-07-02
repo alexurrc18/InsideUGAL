@@ -188,11 +188,15 @@ def assert_can_manage_announcement(profile, announcement: models.Announcement | 
 async def read_announcements(
     announcement_type: schemas.PostType | None = None,
     lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
+    include_untranslated: bool = Query(
+        default=False,
+        description="Include announcements that do not have all configured pretranslations yet.",
+    ),
     pagination: PaginationParams = Depends(),
     session: AsyncSession = Depends(get_db),
 ):
     type_value = announcement_type.value if announcement_type else None
-    required_languages = announcement_pretranslate_languages()
+    required_languages = () if include_untranslated else announcement_pretranslate_languages()
     items, total = await repo.get_page(
         session,
         limit=pagination.size,
@@ -243,9 +247,13 @@ async def backfill_announcement_translations(
 async def read_announcement(
     announcement_id: int,
     lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
+    include_untranslated: bool = Query(
+        default=False,
+        description="Return the announcement even if it does not have all configured pretranslations yet.",
+    ),
     session: AsyncSession = Depends(get_db),
 ):
-    required_languages = announcement_pretranslate_languages()
+    required_languages = () if include_untranslated else announcement_pretranslate_languages()
     announcement = await repo.get_by_id(
         session,
         announcement_id,
