@@ -6,6 +6,9 @@ import httpx
 from fastapi import HTTPException, status
 from fastapi.encoders import jsonable_encoder
 
+from app.api.translation_languages import normalize_language as _normalize_language
+from app.api.translation_languages import validate_translation_language
+
 LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://llm:8000")
 LLM_TRANSLATION_TIMEOUT_SECONDS = float(os.getenv("LLM_TRANSLATION_TIMEOUT_SECONDS", "120"))
 
@@ -21,11 +24,11 @@ DEFAULT_TRANSLATABLE_FIELDS = {
 
 
 def normalize_language(lang: str | None) -> str:
-    return lang.strip().lower() if lang else "ro"
+    return _normalize_language(lang)
 
 
 def should_translate(lang: str | None) -> bool:
-    return normalize_language(lang) != "ro"
+    return validate_translation_language(lang) != "ro"
 
 
 def _extract_translatable(value: Any, fields: set[str]) -> tuple[Any, bool]:
@@ -88,7 +91,7 @@ async def translate_payload(
     *,
     fields: set[str] | None = None,
 ) -> Any:
-    language_code = normalize_language(lang)
+    language_code = validate_translation_language(lang)
     if language_code == "ro":
         return payload
 

@@ -1,0 +1,36 @@
+{
+  "default_language": "ro",
+  "supported_languages": [
+    "ar",
+    "de",
+    "el",
+    "es",
+    "fr",
+    "hi",
+    "it",
+    "ja",
+    "ko",
+    "ro",
+    "ru",
+    "tr",
+    "uk",
+    "vi",
+    "zh"
+  ],
+  "announcement_pretranslate_languages": [
+    "ar",
+    "de",
+    "el",
+    "es",
+    "fr",
+    "hi",
+    "it",
+    "ja",
+    "ko",
+    "ru",
+    "tr",
+    "uk",
+    "vi",
+    "zh"
+  ]
+}

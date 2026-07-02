@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import time
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -12,6 +11,8 @@ from google.genai import types as genai_types
 from pydantic import BaseModel, Field
 from supabase import Client, create_client
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+
+from src.translation_service.languages import validate_translation_language
 
 logger = logging.getLogger("translation-service")
 
@@ -563,7 +564,7 @@ class TranslationService:
 
     @staticmethod
     def _normalize_language(target_language: str) -> str:
-        lang = target_language.strip().lower()
+        lang = validate_translation_language(target_language)
         # ISO 639-1 code mapping for common languages to help the LLM
         iso_map = {
             "ro": "Romanian",
@@ -578,9 +579,12 @@ class TranslationService:
             "uk": "Ukrainian",
             "zh": "Chinese",
             "ja": "Japanese",
+            "ko": "Korean",
             "ar": "Arabic",
             "bg": "Bulgarian",
-            "el": "Greek"
+            "el": "Greek",
+            "hi": "Hindi",
+            "vi": "Vietnamese",
         }
         return iso_map.get(lang, lang)
 

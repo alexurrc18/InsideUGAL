@@ -6,7 +6,8 @@ from sqlalchemy import Column, DateTime, Integer, MetaData, String, Table, Text,
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.translation_utils import normalize_language, translate_payload
+from app.api.translation_languages import validate_translation_language
+from app.api.translation_utils import translate_payload
 
 
 @dataclass(frozen=True)
@@ -124,7 +125,7 @@ async def translate_with_model_cache(
     session: AsyncSession,
     config: TranslationCacheConfig,
 ) -> Any:
-    language_code = normalize_language(lang)
+    language_code = validate_translation_language(lang)
     if language_code == "ro":
         return payload
 
