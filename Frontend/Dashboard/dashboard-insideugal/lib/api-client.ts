@@ -13,7 +13,6 @@ import {
 import type { Announcement, ApiErrorBody, ApiRequestOptions } from "./api-types";
 
 import { FacilityItem } from "../types/facility"; // Ajustează calea dacă e nevoie
-
 import { facultySchema } from "./api-schemas";
 
 // 👉 REPARAT: Forțăm http în mod explicit pe local pentru a preveni ERR_SSL_PROTOCOL_ERROR
