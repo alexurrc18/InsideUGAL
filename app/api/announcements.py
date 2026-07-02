@@ -184,7 +184,14 @@ async def read_announcements(
     session: AsyncSession = Depends(get_db),
 ):
     type_value = announcement_type.value if announcement_type else None
-    items, total = await repo.get_page(session, limit=pagination.size, offset=pagination.offset, announcement_type=type_value)
+    required_languages = announcement_pretranslate_languages()
+    items, total = await repo.get_page(
+        session,
+        limit=pagination.size,
+        offset=pagination.offset,
+        announcement_type=type_value,
+        required_translation_languages=required_languages,
+    )
     
     language_code = validate_translation_language(lang)
     if language_code != "ro":
@@ -200,7 +207,12 @@ async def read_announcement(
     lang: str = Query(default="ro", description="Language code for translation (ro, en, fr, etc.)"),
     session: AsyncSession = Depends(get_db),
 ):
-    announcement = await repo.get_by_id(session, announcement_id)
+    required_languages = announcement_pretranslate_languages()
+    announcement = await repo.get_by_id(
+        session,
+        announcement_id,
+        required_translation_languages=required_languages,
+    )
     if not announcement:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Announcement not found.")
     

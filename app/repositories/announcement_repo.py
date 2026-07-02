@@ -28,6 +28,19 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
             selectinload(Announcement.faculties),
         )
 
+    @staticmethod
+    def _with_complete_translations(query, required_languages: tuple[str, ...]):
+        if not required_languages:
+            return query
+
+        ready_announcements = (
+            select(AnnouncementTranslation.announcement_id)
+            .where(AnnouncementTranslation.language_code.in_(required_languages))
+            .group_by(AnnouncementTranslation.announcement_id)
+            .having(func.count(func.distinct(AnnouncementTranslation.language_code)) == len(required_languages))
+        )
+        return query.where(Announcement.id.in_(ready_announcements))
+
     async def _load_faculties(self, session: AsyncSession, faculty_ids: list[int]) -> list[Faculty]:
         if not faculty_ids:
             return []
@@ -45,10 +58,12 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         self,
         session: AsyncSession,
         announcement_type: str | None = None,
+        required_translation_languages: tuple[str, ...] = (),
     ) -> list[Announcement]:
         query = self._base_select().order_by(Announcement.created_at.desc())
         if announcement_type is not None:
             query = query.where(Announcement.type == announcement_type)
+        query = self._with_complete_translations(query, required_translation_languages)
 
         result = await session.execute(query)
         return [self._with_author_name(announcement) for announcement in result.scalars().all()]
@@ -60,10 +75,12 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         limit: int,
         offset: int,
         announcement_type: str | None = None,
+        required_translation_languages: tuple[str, ...] = (),
     ) -> tuple[list[Announcement], int]:
         query = self._base_select().order_by(Announcement.created_at.desc())
         if announcement_type is not None:
             query = query.where(Announcement.type == announcement_type)
+        query = self._with_complete_translations(query, required_translation_languages)
 
         total_result = await session.execute(select(func.count()).select_from(query.order_by(None).subquery()))
         total = total_result.scalar_one()
@@ -75,8 +92,11 @@ class AnnouncementRepository(CRUDRepository[Announcement]):
         self,
         session: AsyncSession,
         entity_id: int,
+        required_translation_languages: tuple[str, ...] = (),
     ) -> Announcement | None:
-        result = await session.execute(self._base_select().where(Announcement.id == entity_id))
+        query = self._base_select().where(Announcement.id == entity_id)
+        query = self._with_complete_translations(query, required_translation_languages)
+        result = await session.execute(query)
         announcement = result.scalars().first()
         return self._with_author_name(announcement) if announcement else None
 
