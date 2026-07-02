@@ -6,6 +6,9 @@ import {
   coursesSchema,
   facultiesSchema,
   facultySchema,
+  notificationSchema,
+  notificationsSchema,
+  profileSchema,
   userSchema,
 } from "./api-schemas";
 import type { Announcement, ApiErrorBody, ApiRequestOptions } from "./api-types";
@@ -381,4 +384,30 @@ export const apiClient = {
   getFaculties: () => apiRequest("/faculties", facultiesSchema),
   getFaculty: (id: number) => apiRequest(`/faculties/${id}`, facultySchema),
   getCurrentUser: () => apiRequest("/users/me", userSchema),
+  getCurrentProfile: () => apiRequest("/profiles/me", profileSchema),
+  getNotifications: (params?: { faculty_id?: number; page?: number; size?: number }) => {
+    const query = params
+      ? "?" + new URLSearchParams(
+          Object.fromEntries(
+            Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
+          )
+        ).toString()
+      : "";
+    return apiRequest(`/notifications/${query}`, notificationsSchema);
+  },
+  getMyNotifications: (params?: { page?: number; size?: number }) => {
+    const query = params
+      ? "?" + new URLSearchParams(
+          Object.fromEntries(
+            Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
+          )
+        ).toString()
+      : "";
+    return apiRequest(`/notifications/me${query}`, notificationsSchema);
+  },
+  sendNotification: (data: { title: string; body: string; action?: string; faculty_id?: number | null }) =>
+    apiRequest("/notifications/send", notificationSchema, {
+      method: "POST",
+      body: data,
+    }),
 };

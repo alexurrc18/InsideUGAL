@@ -44,6 +44,15 @@ location_faculties = Table(
 )
 
 
+announcement_faculties = Table(
+    "announcement_faculties",
+    Base.metadata,
+    Column("announcement_id", Integer, ForeignKey("public.announcements.id", ondelete="CASCADE"), primary_key=True),
+    Column("faculty_id", Integer, ForeignKey("public.faculties.id", ondelete="CASCADE"), primary_key=True),
+    schema="public",
+)
+
+
 class Profile(Base, TimestampMixin):
     __tablename__ = "profiles"
     __table_args__ = {"schema": "public"}
@@ -81,6 +90,7 @@ class Faculty(Base, TimestampMixin):
 
     locations = relationship("Location", secondary=location_faculties, back_populates="faculties")
     profiles = relationship("Profile", back_populates="faculty")
+    announcements = relationship("Announcement", secondary=announcement_faculties, back_populates="faculties")
 
 
 class Category(Base):
@@ -232,12 +242,12 @@ class Announcement(Base, TimestampMixin):
     image_url = Column(Text)
     event_link = Column(String(500))
     files = Column(JSONB, nullable=False, server_default="[]")
-    faculties = Column(JSONB, nullable=False, server_default="[]")
     location_name = Column(String(255))
     start_date = Column(DateTime(timezone=True))
     end_date = Column(DateTime(timezone=True))
 
     creator = relationship("Profile", back_populates="announcements")
+    faculties = relationship("Faculty", secondary=announcement_faculties, back_populates="announcements", lazy="selectin")
     translations = relationship(
         "AnnouncementTranslation",
         back_populates="announcement",

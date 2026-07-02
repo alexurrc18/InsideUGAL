@@ -138,15 +138,15 @@ async def pretranslate_announcement(announcement_id: int, refresh_existing: bool
 
 
 async def validate_announcement_refs(payload: BaseModel, db: AsyncSession) -> None:
-    faculties = getattr(payload, "faculties", None)
+    faculty_ids = getattr(payload, "faculty_ids", None)
 
-    if faculties:
-        for abbr in faculties:
-            result = await db.execute(select(models.Faculty).where(models.Faculty.abbreviation == abbr))
+    if faculty_ids:
+        for faculty_id in faculty_ids:
+            result = await db.execute(select(models.Faculty).where(models.Faculty.id == faculty_id))
             if not result.scalars().first():
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=f"Faculty abbreviation '{abbr}' not found.",
+                    detail=f"Faculty id '{faculty_id}' not found.",
                 )
 
 
