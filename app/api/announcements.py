@@ -35,15 +35,15 @@ LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://llm:8000")
 
 
 async def validate_announcement_refs(payload: BaseModel, db: AsyncSession) -> None:
-    faculties = getattr(payload, "faculties", None)
+    faculty_ids = getattr(payload, "faculty_ids", None)
 
-    if faculties:
-        for abbr in faculties:
-            result = await db.execute(select(models.Faculty).where(models.Faculty.abbreviation == abbr))
+    if faculty_ids:
+        for faculty_id in faculty_ids:
+            result = await db.execute(select(models.Faculty).where(models.Faculty.id == faculty_id))
             if not result.scalars().first():
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=f"Faculty abbreviation '{abbr}' not found.",
+                    detail=f"Faculty id '{faculty_id}' not found.",
                 )
 
 
@@ -170,7 +170,10 @@ async def create_announcement(
 ):
     await validate_announcement_refs(announcement_in, session)
     validate_announcement_dates(announcement_in)
-    return await repo.create_for_user(session, announcement_in, user_id=profile.id)
+    try:
+        return await repo.create_for_user(session, announcement_in, user_id=profile.id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
 
 @router.post("/upload-image/")
