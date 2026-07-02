@@ -71,7 +71,6 @@ export default function FacilitiesPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Gestionare Facilități</h1>
         <button onClick={() => { setForm({}); setActiveModal("add"); }} className="bg-brand text-white px-5 py-2 rounded-xl text-sm font-bold">Adaugă Facilitate</button>
       </div>
 

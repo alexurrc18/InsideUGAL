@@ -1,14 +1,16 @@
 import { z } from "zod";
 
 import {
-  announcementSchema,
-  announcementsSchema,
-  coursesSchema,
-  facultiesSchema,
-  notificationSchema,
-  notificationsSchema,
-  profileSchema,
-  userSchema,
+    announcementSchema,
+    announcementsSchema,
+    coursesSchema,
+    facultiesSchema,
+    facilitySchema,
+    facilitiesSchema,
+    notificationSchema,
+    notificationsSchema,
+    profileSchema,
+    userSchema,
 } from "./api-schemas";
 import type { Announcement, ApiErrorBody, ApiRequestOptions } from "./api-types";
 
@@ -386,14 +388,25 @@ export const apiClient = {
     getFaculties: () => apiRequest("/faculties", facultiesSchema),
   getFaculty: (id: number) => apiRequest(`/faculties/${id}`, facultySchema),
   
-  createFacility: (data: Partial<{ name: string; description: string; logoUrl?: string }>) => 
-    apiRequest("/faculties/", facultySchema, { method: "POST", body: data }),
-    
-  updateFacility: (id: number, data: Partial<FacilityItem>) =>
-  apiRequest(`/facilities/${id}/`, facultySchema, { method: "PATCH", body: data }),
-    
-  deleteFacility: (id: number) =>
-    apiRequest(`/faculties/${id}`, z.unknown(), { method: "DELETE" }),
+  getFacilities: () =>
+    apiRequest("/facilities", facilitiesSchema),
+
+createFacility: (data: Partial<FacilityItem>) =>
+    apiRequest("/facilities/", facilitySchema, {
+        method: "POST",
+        body: data,
+    }),
+
+updateFacility: (id: number, data: Partial<FacilityItem>) =>
+    apiRequest(`/facilities/${id}`, facilitySchema, {
+        method: "PATCH",
+        body: data,
+    }),
+
+deleteFacility: (id: number) =>
+    apiRequest(`/facilities/${id}`, z.unknown(), {
+        method: "DELETE",
+    }),
 
   // Restul metodelor (getCourses, getNotifications etc.) rămân mai jos...
   getCourses: () => apiRequest("/courses", coursesSchema),

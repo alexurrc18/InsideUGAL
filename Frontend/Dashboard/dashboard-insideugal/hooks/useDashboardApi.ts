@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod"; // Adăugat pentru validarea schemei generice
-
+import { apiClient } from "@/lib/api-client";
 import { useApiMutation } from "@/hooks/useApiMutation";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { announcementsService } from "@/lib/announcements-service";
@@ -90,55 +90,35 @@ export function useComplaints() {
   });
 }
 
-// Adaugă acestea în src/hooks/useDashboardApi.ts
+import type { FacilityItem } from "@/types/facility";
+
 export function useFacilities() {
-  return useApiQuery({
-    path: "/facilities",
+  return useQuery({
     queryKey: ["facilities"],
-    // Presupunând că ai un schema pentru facilități sau folosești una generică
-    schema: z.object({ items: z.array(z.unknown()), total: z.number() }).passthrough(),
+    queryFn: () => apiClient.getFacilities(),
   });
 }
 
-// În hooks/useDashboardApi.ts
 export function useCreateFacility() {
-  const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8002";
-  
-  return useApiMutation<any, any>({
-    mutationFn: (data) => 
-      fetch(`${apiUrl}/facilities/`, { // Adaugă URL-ul complet aici
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      }).then((res) => {
-        if (!res.ok) throw new Error("Eroare la salvare");
-        return res.json();
-      }),
+  return useApiMutation<FacilityItem, Partial<FacilityItem>>({
+    mutationFn: (data) => apiClient.createFacility(data),
     invalidateKeys: [["facilities"]],
   });
 }
 
 export function useUpdateFacility() {
-  return useApiMutation<any, { id: number; data: any }>({
-    mutationFn: ({ id, data }) => fetch(`/facilities/${id}`, { method: "PATCH", body: JSON.stringify(data) }).then(res => res.json()),
+  return useApiMutation<
+    FacilityItem,
+    { id: number; data: Partial<FacilityItem> }
+  >({
+    mutationFn: ({ id, data }) => apiClient.updateFacility(id, data),
     invalidateKeys: [["facilities"]],
   });
 }
 
-// În hooks/useDashboardApi.ts
 export function useDeleteFacility() {
-  const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8002";
-  
   return useApiMutation<unknown, number>({
-    mutationFn: (id) => 
-      fetch(`${apiUrl}/facilities/${id}`, { // Adaugă URL-ul complet aici
-        method: "DELETE",
-      }).then((res) => {
-        if (!res.ok) throw new Error("Eroare la ștergere");
-        return res;
-      }),
+    mutationFn: (id) => apiClient.deleteFacility(id),
     invalidateKeys: [["facilities"]],
   });
 }

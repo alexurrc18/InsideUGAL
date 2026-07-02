@@ -178,3 +178,13 @@ export const profileSchema = z.object({
   updated_at: isoDateSchema,
 });
 
+export const facilitySchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  description: z.string().nullable().optional(),
+  image_url: z.string().nullable().optional(),
+  created_at: isoDateSchema,
+  updated_at: isoDateSchema,
+});
+
+export const facilitiesSchema = createPaginatedResponseSchema(facilitySchema);
