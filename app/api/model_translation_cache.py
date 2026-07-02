@@ -146,6 +146,7 @@ async def translate_with_model_cache(
         return payload
 
     await ensure_translation_table(session, config)
+    encoded_payload: Any
     if isinstance(payload, dict) or (
         isinstance(payload, list) and all(isinstance(item, dict) for item in payload)
     ):
@@ -153,8 +154,13 @@ async def translate_with_model_cache(
     else:
         encoded_payload = jsonable_encoder(payload)
     is_list = isinstance(encoded_payload, list)
-    items = encoded_payload if is_list else [encoded_payload]
-    items = [item for item in items if isinstance(item, dict)]
+    items: list[dict[str, Any]]
+    if isinstance(encoded_payload, list):
+        items = [item for item in encoded_payload if isinstance(item, dict)]
+    elif isinstance(encoded_payload, dict):
+        items = [encoded_payload]
+    else:
+        items = []
     if not items:
         return encoded_payload
 

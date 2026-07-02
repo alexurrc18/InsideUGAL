@@ -61,20 +61,20 @@ def _merge_translated(original: Any, translated: Any) -> Any:
     if isinstance(original, list):
         if not isinstance(translated, list):
             return original
-        merged = []
+        merged_items = []
         for index, item in enumerate(original):
             translated_item = translated[index] if index < len(translated) else None
-            merged.append(_merge_translated(item, translated_item))
-        return merged
+            merged_items.append(_merge_translated(item, translated_item))
+        return merged_items
 
     if isinstance(original, dict):
         if not isinstance(translated, dict):
             return original
-        merged = dict(original)
+        merged_dict = dict(original)
         for key, translated_child in translated.items():
-            if key in merged:
-                merged[key] = _merge_translated(merged[key], translated_child)
-        return merged
+            if key in merged_dict:
+                merged_dict[key] = _merge_translated(merged_dict[key], translated_child)
+        return merged_dict
 
     if isinstance(original, str) and isinstance(translated, str):
         return translated
