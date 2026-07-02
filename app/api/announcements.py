@@ -35,6 +35,10 @@ manage_announcements_with_token = require_roles_with_token(
     schemas.UserRole.PROFESOR,
     schemas.UserRole.STUDENT_RESPONSABIL
 )
+backfill_announcements = require_roles(
+    schemas.UserRole.HEAD_ADMIN,
+    schemas.UserRole.HEAD_FACULTATI,
+)
 
 LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://llm:8000")
 LLM_TRANSLATION_TIMEOUT_SECONDS = float(os.getenv("LLM_TRANSLATION_TIMEOUT_SECONDS", "120"))
@@ -108,8 +112,12 @@ async def translate_announcement_if_needed(
     return announcement
 
 
-async def pretranslate_announcement(announcement_id: int, refresh_existing: bool = False) -> None:
-    languages = announcement_pretranslate_languages()
+async def pretranslate_announcement(
+    announcement_id: int,
+    refresh_existing: bool = False,
+    languages: tuple[str, ...] | None = None,
+) -> None:
+    languages = languages or announcement_pretranslate_languages()
     if not languages:
         return
 
@@ -199,6 +207,36 @@ async def read_announcements(
             await translate_announcement_if_needed(item, language_code, session)
     
     return paginated_response(items, total, pagination)
+
+
+@router.post("/backfill-translations", status_code=status.HTTP_202_ACCEPTED)
+async def backfill_announcement_translations(
+    background_tasks: BackgroundTasks,
+    lang: str | None = Query(default=None, description="Optional single language code to backfill."),
+    refresh_existing: bool = Query(default=False, description="Regenerate translations that already exist."),
+    session: AsyncSession = Depends(get_db),
+    profile=Depends(backfill_announcements),
+):
+    if lang is None:
+        languages = announcement_pretranslate_languages()
+    else:
+        language_code = validate_translation_language(lang)
+        languages = () if language_code == "ro" else (language_code,)
+
+    if not languages:
+        return {"scheduled": 0, "languages": []}
+
+    result = await session.execute(select(models.Announcement.id))
+    announcement_ids = list(result.scalars().all())
+    for announcement_id in announcement_ids:
+        background_tasks.add_task(
+            pretranslate_announcement,
+            announcement_id,
+            refresh_existing,
+            languages,
+        )
+
+    return {"scheduled": len(announcement_ids), "languages": list(languages)}
 
 
 @router.get("/{announcement_id}", response_model=schemas.AnnouncementResponse)
