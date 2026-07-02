@@ -232,8 +232,9 @@ async def pretranslate_model_cache(
     config: TranslationCacheConfig,
     *,
     refresh_existing: bool = False,
+    languages: tuple[str, ...] | None = None,
 ) -> None:
-    languages = pretranslate_languages()
+    languages = pretranslate_languages() if languages is None else languages
     if not languages:
         return
 

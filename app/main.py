@@ -28,6 +28,7 @@ import app.api.locations as locations
 import app.api.products as products
 import app.api.product_categories as product_categories
 import app.api.profiles as profiles
+import app.api.translation_backfill as translation_backfill
 import app.api.uploads as uploads
 from app.api.errors import (
     global_exception_handler,
@@ -151,5 +152,6 @@ app.include_router(notifications.router)
 app.include_router(auth.router)
 app.include_router(llm.router)
 app.include_router(llm_stream.router)
+app.include_router(translation_backfill.router)
 app.include_router(uploads.router)
 app.include_router(dashboard.router)
