@@ -22,13 +22,15 @@ export type GenerateBannerResult = z.infer<typeof generateBannerSchema>;
 
 export const announcementsService = {
   list: (params?: { announcement_type?: string; faculty_id?: number }) => {
-  const query = params
-    ? "?" + new URLSearchParams(
-        Object.fromEntries(
-          Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
-        )
-      ).toString()
-    : "";
+  const baseParams: Record<string, string> = { include_untranslated: "true" }; // ← adăugat
+  
+  if (params) {
+    Object.entries(params)
+      .filter(([, v]) => v !== undefined)
+      .forEach(([k, v]) => { baseParams[k] = String(v); });
+  }
+
+  const query = "?" + new URLSearchParams(baseParams).toString();
   return apiRequest(`/announcements/${query}`, announcementsSchema);
 },
 

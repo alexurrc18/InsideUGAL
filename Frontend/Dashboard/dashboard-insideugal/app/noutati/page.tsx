@@ -12,9 +12,10 @@ import {
   useCreateAnnouncement, 
   useUpdateAnnouncement, 
   useDeleteAnnouncement,
-  useGenerateAiBanner
+  useGenerateAiBanner,
+  useFaculties
 } from '@/hooks/useDashboardApi';
-import { Announcement as BackendAnnouncement } from '@/lib/api-types';
+import { Announcement as BackendAnnouncement, Faculty } from '@/lib/api-types';
 import { canAccessContent, useRequireDashboardAccess } from '@/lib/dashboard-auth';
 
 type ExtendedAnnouncement = Announcement & { 
@@ -39,6 +40,9 @@ const formatToDatetimeLocal = (dateString?: string) => {
 function AnnouncementsContent() {
   const access = useRequireDashboardAccess(canAccessContent);
   const { data: backendData, isLoading: isLoadingAnnouncements, isError: isErrorAnnouncements, refetch } = useAnnouncements();
+
+  // NOU: lista reală de facultăți din backend
+  const { data: facultiesData } = useFaculties();
   
   const createMutation = useCreateAnnouncement();
   const updateMutation = useUpdateAnnouncement();
@@ -49,11 +53,14 @@ function AnnouncementsContent() {
   const [selectedItem, setSelectedItem] = useState<ExtendedAnnouncement | null>(null);
   const [formState, setFormState] = useState<Partial<ExtendedAnnouncement>>({});
   const [selectedType, setSelectedType] = useState<string>('TOATE'); 
+  const [selectedFaculty, setSelectedFaculty] = useState<string>('TOATE'); // NOU: filtru facultate
   const [searchQuery, setSearchQuery] = useState<string>('');
   
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState<boolean>(false);
+  const [isFacultyDropdownOpen, setIsFacultyDropdownOpen] = useState<boolean>(false); // NOU
 
   const typeDropdownRef = useRef<HTMLDivElement>(null);
+  const facultyDropdownRef = useRef<HTMLDivElement>(null); // NOU
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const searchParams = useSearchParams();
@@ -71,9 +78,11 @@ function AnnouncementsContent() {
       const validType: 'NOUTATE' | 'EVENIMENT' = (rawType === 'EVENIMENT' || rawType === 'NOUTATE') ? rawType : 'NOUTATE';
 
       let announcementFaculties: string[] = [];
-      if (Array.isArray(itemRaw.faculties)) {
-        announcementFaculties = itemRaw.faculties as string[];
-      }
+if (Array.isArray(itemRaw.faculties)) {
+  announcementFaculties = (itemRaw.faculties as Array<{ name: string }>).map(f =>
+    typeof f === 'string' ? f : f.name
+  );
+}
 
       let backendFiles: PdfFile[] = [];
       if (Array.isArray(itemRaw.files)) {
@@ -110,17 +119,23 @@ function AnnouncementsContent() {
     });
   }, [backendData]);
 
-  // Facultățile disponibile sunt derivate direct din coloana "faculties" a
-  // anunțurilor existente în baza de date (nu mai există un endpoint separat / listă hardcodată).
-  const availableFacultiesFromSystem = useMemo(() => {
-    const facultySet = new Set<string>();
-    data.forEach(item => {
-      item.faculties?.forEach(f => {
-        if (f) facultySet.add(f);
-      });
-    });
-    return Array.from(facultySet).sort((a, b) => a.localeCompare(b));
-  }, [data]);
+  // Facultățile vin din /faculties/ via useFaculties(); răspunsul poate fi
+  // un array direct sau un obiect paginat { items: [...] }.
+  const facultyList = useMemo((): Faculty[] => {
+    const raw = facultiesData;
+    const list =
+      raw && typeof raw === 'object' && 'items' in (raw as object)
+        ? (raw as { items: unknown[] }).items
+        : raw;
+
+    if (!list || !Array.isArray(list)) return [];
+
+    return (list as Faculty[])
+      .filter((f) => !!f.name)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [facultiesData]);
+
+  const facultyNames = useMemo(() => facultyList.map((f) => f.name), [facultyList]);
 
   useEffect(() => {
     let timerId: NodeJS.Timeout;
@@ -149,6 +164,9 @@ function AnnouncementsContent() {
     if (selectedType !== 'TOATE') {
       result = result.filter(item => item.type === selectedType);
     }
+    if (selectedFaculty !== 'TOATE') { // NOU: filtrare după facultate
+      result = result.filter(item => item.faculties?.includes(selectedFaculty));
+    }
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
       result = result.filter(item => 
@@ -157,12 +175,15 @@ function AnnouncementsContent() {
       );
     }
     return result;
-  }, [data, selectedType, searchQuery]);
+  }, [data, selectedType, selectedFaculty, searchQuery]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (typeDropdownRef.current && !typeDropdownRef.current.contains(event.target as Node)) {
         setIsTypeDropdownOpen(false);
+      }
+      if (facultyDropdownRef.current && !facultyDropdownRef.current.contains(event.target as Node)) { // NOU
+        setIsFacultyDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -231,6 +252,27 @@ function AnnouncementsContent() {
         </span>
       )
     },
+    { 
+  header: 'Facultate',
+  key: 'faculties',
+  render: (item) => (
+    <div className="flex flex-wrap gap-1 max-w-[180px]">
+      {item.faculties && item.faculties.length > 0 ? (
+        item.faculties.map((f) => {
+          const match = facultyList.find(fac => fac.name === f);
+          const label = match?.abbreviation ?? f; // fallback la name dacă nu găsește
+          return (
+            <span key={f} className="text-[10px] px-1.5 py-0.5 rounded-md bg-blue-50 text-brand border border-blue-100 font-bold whitespace-nowrap">
+              {label}
+            </span>
+          );
+        })
+      ) : (
+        <span className="text-[10px] text-slate-400 italic">General</span>
+      )}
+    </div>
+  )
+},
     { 
       header: 'Descriere', 
       key: 'description', 
@@ -302,30 +344,32 @@ function AnnouncementsContent() {
   };
 
   const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    const isEveniment = formState.type === 'EVENIMENT';
-    
-    const backendPayload: Record<string, unknown> = {
-      type: formState.type || 'NOUTATE', 
-      title: formState.title || '',
-      content: formState.description || '', 
-      image_url: formState.image_url || formState.thumbnail || null,
-      faculties: formState.faculties && formState.faculties.length > 0 ? formState.faculties : [], 
-      event_link: formState.eventLink && formState.eventLink.trim() !== '' ? formState.eventLink : null, 
-      location_name: isEveniment && formState.locationName && formState.locationName.trim() !== '' ? formState.locationName : null,
-      start_date: isEveniment && formState.startDate && formState.startDate.trim() !== '' ? new Date(formState.startDate).toISOString() : null,
-      end_date: isEveniment && formState.endDate && formState.endDate.trim() !== '' ? new Date(formState.endDate).toISOString() : null
-    };
+  e.preventDefault();
+  const isEveniment = formState.type === 'EVENIMENT';
 
-    if (activeModal === 'edit' && selectedItem) {
-      updateMutation.mutate({ id: Number(selectedItem.id), data: backendPayload }, { onSuccess: () => setActiveModal(null) });
-    } else {
-      createMutation.mutate(backendPayload, { onSuccess: () => setActiveModal(null) });
-    }
+  // Convertim numele facultății la ID-ul din facultyList
+  const faculty_ids = (formState.faculties ?? [])
+    .map(name => facultyList.find(f => f.name === name)?.id)
+    .filter((id): id is number => id !== undefined);
+
+  const backendPayload: Record<string, unknown> = {
+    type: formState.type || 'NOUTATE',
+    title: formState.title || '',
+    content: formState.description || '',
+    image_url: formState.image_url || formState.thumbnail || null,
+    faculty_ids,  // ← în loc de faculties: [...]
+    event_link: formState.eventLink?.trim() || null,
+    location_name: isEveniment && formState.locationName?.trim() ? formState.locationName : null,
+    start_date: isEveniment && formState.startDate?.trim() ? new Date(formState.startDate).toISOString() : null,
+    end_date: isEveniment && formState.endDate?.trim() ? new Date(formState.endDate).toISOString() : null,
   };
 
-  if (access.loading || !access.allowed) return null;
-
+  if (activeModal === 'edit' && selectedItem) {
+    updateMutation.mutate({ id: Number(selectedItem.id), data: backendPayload }, { onSuccess: () => setActiveModal(null) });
+  } else {
+    createMutation.mutate(backendPayload, { onSuccess: () => setActiveModal(null) });
+  }
+};
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 w-full bg-card p-4 border border-border rounded-2xl shadow-xs">
@@ -373,6 +417,45 @@ function AnnouncementsContent() {
               </div>
             )}
           </div>
+
+          {/* NOU: Filtru Facultate */}
+          <div className="flex items-center gap-2 relative" ref={facultyDropdownRef}>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Facultate:</span>
+            <button
+              type="button"
+              onClick={() => setIsFacultyDropdownOpen(!isFacultyDropdownOpen)}
+              className="flex items-center justify-between min-w-[160px] border border-border px-3 py-2 rounded-xl bg-card text-sm font-semibold shadow-xs hover:border-slate-300 transition-all outline-none cursor-pointer text-foreground"
+            >
+             <span className="truncate max-w-[140px]">
+  {selectedFaculty === 'TOATE'
+    ? 'Toate'
+    : facultyList.find(f => f.name === selectedFaculty)?.abbreviation ?? selectedFaculty}
+</span>
+              <svg className={`w-4 h-4 ml-1 shrink-0 text-slate-400 transition-transform duration-200 ${isFacultyDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {isFacultyDropdownOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-56 max-h-64 overflow-y-auto bg-card border border-border rounded-xl shadow-lg py-1 z-50">
+                <div
+                  onClick={() => { setSelectedFaculty('TOATE'); setIsFacultyDropdownOpen(false); }}
+                  className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedFaculty === 'TOATE' ? 'bg-blue-50 text-blue-600 font-bold' : 'text-muted hover:bg-slate-50'}`}
+                >
+                  <span>Toate</span>
+                </div>
+                {facultyNames.map(name => (
+                  <div
+                    key={name}
+                    onClick={() => { setSelectedFaculty(name); setIsFacultyDropdownOpen(false); }}
+                    className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedFaculty === name ? 'bg-blue-50 text-blue-600 font-bold' : 'text-muted hover:bg-slate-50'}`}
+                  >
+                    <span className="truncate">{name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <button 
@@ -380,7 +463,7 @@ function AnnouncementsContent() {
           onClick={() => { setFormState({ faculties: [], pdfFiles: [], type: 'NOUTATE', eventLink: '', locationName: '', startDate: '', endDate: '' }); setActiveModal('add'); }} 
           className="bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-bold cursor-pointer hover:opacity-90 transition-all shadow-md w-full lg:w-auto text-center"
         >
-          + Adaugă Anunț
+          Adaugă
         </button>
       </div>
         
@@ -490,6 +573,28 @@ function AnnouncementsContent() {
               </select>
             </div>
 
+            {/* Dropdown-ul de Facultate rămâne sub "Tip Anunț", acum populat din /faculties/ */}
+            <div>
+              <label htmlFor="ann-faculty-select" className="block text-xs font-semibold text-foreground mb-1">Facultate asociată anunțului</label>
+              <select
+                id="ann-faculty-select"
+                value={formState.faculties?.[0] || ""}
+                onChange={e => setFormState({ ...formState, faculties: e.target.value ? [e.target.value] : [] })}
+                className="w-full border border-border p-2 rounded-lg bg-background text-sm cursor-pointer font-medium"
+              >
+                <option value="">General / Toate facultățile</option>
+{facultyList.map(fac => (
+  <div
+    key={fac.name}
+    onClick={() => { setSelectedFaculty(fac.name); setIsFacultyDropdownOpen(false); }}
+    className={`flex items-center justify-between px-4 py-2 text-sm cursor-pointer transition-colors ${selectedFaculty === fac.name ? 'bg-blue-50 text-blue-600 font-bold' : 'text-muted hover:bg-slate-50'}`}
+  >
+    <span>{fac.abbreviation}</span>
+  </div>
+))}
+              </select>
+            </div>
+
             {formState.type === 'EVENIMENT' && (
               <div className="p-4 bg-slate-50/60 border border-border rounded-xl space-y-3">
                 <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Detalii Logistice Eveniment</span>
@@ -509,21 +614,6 @@ function AnnouncementsContent() {
                 </div>
               </div>
             )}
-
-            <div>
-              <label htmlFor="ann-faculty-select" className="block text-xs font-semibold text-foreground mb-1">Facultate asociată anunțului</label>
-              <select
-                id="ann-faculty-select"
-                value={formState.faculties?.[0] || ""}
-                onChange={e => setFormState({ ...formState, faculties: e.target.value ? [e.target.value] : [] })}
-                className="w-full border border-border p-2 rounded-lg bg-background text-sm cursor-pointer font-medium"
-              >
-                <option value="">General / Toate facultățile</option>
-                {availableFacultiesFromSystem.map(fac => (
-                  <option key={fac} value={fac}>{fac}</option>
-                ))}
-              </select>
-            </div>
 
             <div>
               <span className="block text-xs font-semibold text-foreground mb-1">Thumbnail imagine</span>
