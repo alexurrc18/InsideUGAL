@@ -1,7 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.model_translation_cache import PRODUCT_CATEGORY_TRANSLATION, translate_with_model_cache
+from app.api.model_translation_cache import (
+    PRODUCT_CATEGORY_TRANSLATION,
+    pretranslate_model_cache,
+    translate_with_model_cache,
+)
 from app.api.pagination import PaginationParams, paginated_response
 from app.api.products import manage_products
 from app.db.database import get_db
@@ -38,23 +42,34 @@ async def read_product_category(
 @router.post("/", response_model=schemas.ProductCategoryResponse, status_code=status.HTTP_201_CREATED)
 async def create_product_category(
     category_in: schemas.ProductCategoryCreate,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db),
     current_profile=Depends(manage_products),
 ):
-    return await repo.create(session, category_in)
+    category = await repo.create(session, category_in)
+    background_tasks.add_task(pretranslate_model_cache, category.id, PRODUCT_CATEGORY_TRANSLATION)
+    return category
 
 
 @router.patch("/{category_id}", response_model=schemas.ProductCategoryResponse)
 async def update_product_category(
     category_id: int,
     category_in: schemas.ProductCategoryUpdate,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db),
     current_profile=Depends(manage_products),
 ):
     category = await repo.get_by_id(session, category_id)
     if not category:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product category not found.")
-    return await repo.update(session, category, category_in)
+    updated_category = await repo.update(session, category, category_in)
+    background_tasks.add_task(
+        pretranslate_model_cache,
+        updated_category.id,
+        PRODUCT_CATEGORY_TRANSLATION,
+        refresh_existing=True,
+    )
+    return updated_category
 
 
 @router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)

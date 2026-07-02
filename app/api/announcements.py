@@ -60,9 +60,11 @@ async def translate_announcement_if_needed(
     announcement: models.Announcement,
     language_code: str,
     session: AsyncSession,
+    *,
+    refresh_existing: bool = False,
 ) -> models.Announcement:
     translation = await repo.get_translation(session, announcement.id, language_code)
-    if translation:
+    if translation and not refresh_existing:
         announcement.translated_title = translation.translated_title
         announcement.translated_content = translation.translated_content
         announcement.is_translated = True
@@ -106,7 +108,7 @@ async def translate_announcement_if_needed(
     return announcement
 
 
-async def pretranslate_announcement(announcement_id: int) -> None:
+async def pretranslate_announcement(announcement_id: int, refresh_existing: bool = False) -> None:
     languages = announcement_pretranslate_languages()
     if not languages:
         return
@@ -119,7 +121,12 @@ async def pretranslate_announcement(announcement_id: int) -> None:
 
         for language_code in languages:
             try:
-                await translate_announcement_if_needed(announcement, language_code, session)
+                await translate_announcement_if_needed(
+                    announcement,
+                    language_code,
+                    session,
+                    refresh_existing=refresh_existing,
+                )
             except Exception as exc:
                 logger.warning(
                     "Announcement %s pretranslation failed for language %s: %s",
@@ -258,6 +265,7 @@ async def upload_announcement_image(
 async def update_announcement(
     announcement_id: int,
     announcement_in: schemas.AnnouncementUpdate,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db),
     profile=Depends(manage_announcements),
 ):
@@ -267,9 +275,12 @@ async def update_announcement(
     assert_can_manage_announcement(profile, announcement)
     await validate_announcement_refs(announcement_in, session)
     try:
-        return await repo.update(session, announcement, announcement_in)
+        updated_announcement = await repo.update(session, announcement, announcement_in)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+    if announcement_in.title is not None or announcement_in.content is not None:
+        background_tasks.add_task(pretranslate_announcement, updated_announcement.id, True)
+    return updated_announcement
 
 
 @router.delete("/{announcement_id}", status_code=status.HTTP_204_NO_CONTENT)

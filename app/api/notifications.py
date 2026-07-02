@@ -1,13 +1,13 @@
 import logging
 from typing import List
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from app.api.auth_deps import require_roles, get_current_profile
-from app.api.model_translation_cache import NOTIFICATION_TRANSLATION, translate_with_model_cache
+from app.api.model_translation_cache import NOTIFICATION_TRANSLATION, pretranslate_model_cache, translate_with_model_cache
 from app.api.pagination import PaginationParams, paginated_response
 from app.db.database import get_db
 from app.models.models import Profile, PushToken
@@ -41,6 +41,7 @@ async def _send_push(token: str, title: str, body: str, action: str | None) -> N
 @router.post("/send", response_model=NotificationResponse, status_code=status.HTTP_201_CREATED)
 async def send_notification(
     payload: NotificationCreate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     profile: Profile = Depends(send_notifications),
 ):
@@ -70,6 +71,7 @@ async def send_notification(
         db, payload, user_id=str(profile.id), recipient_count=sent_count
     )
     await db.refresh(notification, attribute_names=["sent_by_profile", "faculty"])
+    background_tasks.add_task(pretranslate_model_cache, notification.id, NOTIFICATION_TRANSLATION)
     return notification
 
 

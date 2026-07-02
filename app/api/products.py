@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth_deps import require_roles
 from app.api.model_translation_cache import (
     PRODUCT_CATEGORY_TRANSLATION,
     PRODUCT_TRANSLATION,
+    pretranslate_model_cache,
     translate_with_model_cache,
 )
 from app.api.pagination import PaginationParams, paginated_response
@@ -60,23 +61,34 @@ async def read_product(
 @router.post("/", response_model=schemas.ProductResponse, status_code=status.HTTP_201_CREATED)
 async def create_product(
     product_in: schemas.ProductCreate,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db),
     current_profile=Depends(manage_products),
 ):
-    return await repo.create(session, product_in)
+    product = await repo.create(session, product_in)
+    background_tasks.add_task(pretranslate_model_cache, product.id, PRODUCT_TRANSLATION)
+    return product
 
 
 @router.patch("/{product_id}", response_model=schemas.ProductResponse)
 async def update_product(
     product_id: int,
     product_in: schemas.ProductUpdate,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db),
     current_profile=Depends(manage_products),
 ):
     product = await repo.get_by_id(session, product_id)
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found.")
-    return await repo.update(session, product, product_in)
+    updated_product = await repo.update(session, product, product_in)
+    background_tasks.add_task(
+        pretranslate_model_cache,
+        updated_product.id,
+        PRODUCT_TRANSLATION,
+        refresh_existing=True,
+    )
+    return updated_product
 
 
 @router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.faculties import manage_faculties
 from app.api.model_translation_cache import (
     FACILITY_TRANSLATION,
     LOCATION_TRANSLATION,
+    pretranslate_model_cache,
     translate_with_model_cache,
 )
 from app.api.pagination import PaginationParams, paginated_response
@@ -64,10 +65,12 @@ async def read_facility(
 @router.post("/", response_model=schemas.FacilityResponse, status_code=status.HTTP_201_CREATED)
 async def create_facility(
     facility_in: schemas.FacilityCreate,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db),
     current_profile=Depends(manage_faculties),
 ):
     facility = await repo.create(session, facility_in)
+    background_tasks.add_task(pretranslate_model_cache, facility.id, FACILITY_TRANSLATION)
     return await repo.get_by_id(session, facility.id)
 
 
@@ -75,6 +78,7 @@ async def create_facility(
 async def update_facility(
     facility_id: int,
     facility_in: schemas.FacilityUpdate,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db),
     current_profile=Depends(manage_faculties),
 ):
@@ -82,6 +86,12 @@ async def update_facility(
     if not facility:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Facility not found.")
     updated_facility = await repo.update(session, facility, facility_in)
+    background_tasks.add_task(
+        pretranslate_model_cache,
+        updated_facility.id,
+        FACILITY_TRANSLATION,
+        refresh_existing=True,
+    )
     return await repo.get_by_id(session, updated_facility.id)
 
 

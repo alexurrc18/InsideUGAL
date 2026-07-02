@@ -25,7 +25,7 @@ def supported_translation_languages() -> set[str]:
     return {str(language).strip().lower() for language in languages if str(language).strip()}
 
 
-def announcement_pretranslate_languages() -> tuple[str, ...]:
+def pretranslate_languages() -> tuple[str, ...]:
     configured_languages = _language_config().get("announcement_pretranslate_languages", [])
     if not isinstance(configured_languages, list):
         return ()
@@ -37,6 +37,10 @@ def announcement_pretranslate_languages() -> tuple[str, ...]:
         for language in (str(item).strip().lower() for item in configured_languages)
         if language and language != default_language and language in supported_languages
     )
+
+
+def announcement_pretranslate_languages() -> tuple[str, ...]:
+    return pretranslate_languages()
 
 
 def validate_translation_language(lang: str | None) -> str:

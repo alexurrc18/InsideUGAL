@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+import logging
+from asyncio import sleep
 from typing import Any
 
 from fastapi.encoders import jsonable_encoder
@@ -6,8 +8,11 @@ from sqlalchemy import Column, DateTime, Integer, MetaData, String, Table, Text,
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.translation_languages import validate_translation_language
+from app.api.translation_languages import pretranslate_languages, validate_translation_language
 from app.api.translation_utils import translate_payload
+from app.db.database import AsyncSessionLocal
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -119,11 +124,23 @@ def _translation_table(config: TranslationCacheConfig) -> Table:
     )
 
 
+def _source_table(config: TranslationCacheConfig) -> Table:
+    return Table(
+        config.source_table,
+        MetaData(),
+        Column("id", _id_column_type(config), nullable=False),
+        *(Column(field, Text()) for field in config.fields),
+        schema="public",
+    )
+
+
 async def translate_with_model_cache(
     payload: Any,
     lang: str | None,
     session: AsyncSession,
     config: TranslationCacheConfig,
+    *,
+    refresh_existing: bool = False,
 ) -> Any:
     language_code = validate_translation_language(lang)
     if language_code == "ro":
@@ -153,19 +170,20 @@ async def translate_with_model_cache(
 
     cached_by_entity: dict[Any, dict[str, str]] = {}
     translation_table = _translation_table(config)
-    entity_column = translation_table.c[config.id_column]
-    query = (
-        select(
-            entity_column.label("entity_id"),
-            translation_table.c.field_name,
-            translation_table.c.translated_text,
+    if not refresh_existing:
+        entity_column = translation_table.c[config.id_column]
+        query = (
+            select(
+                entity_column.label("entity_id"),
+                translation_table.c.field_name,
+                translation_table.c.translated_text,
+            )
+            .where(translation_table.c.language_code == language_code)
+            .where(entity_column.in_(entity_ids))
         )
-        .where(translation_table.c.language_code == language_code)
-        .where(entity_column.in_(entity_ids))
-    )
-    result = await session.execute(query)
-    for row in result.mappings():
-        cached_by_entity.setdefault(row["entity_id"], {})[row["field_name"]] = row["translated_text"]
+        result = await session.execute(query)
+        for row in result.mappings():
+            cached_by_entity.setdefault(row["entity_id"], {})[row["field_name"]] = row["translated_text"]
 
     missing_payloads: list[dict[str, str]] = []
     missing_items: list[tuple[dict[str, Any], list[str]]] = []
@@ -207,6 +225,53 @@ async def translate_with_model_cache(
             await session.commit()
 
     return encoded_payload if is_list else encoded_payload
+
+
+async def pretranslate_model_cache(
+    entity_id: Any,
+    config: TranslationCacheConfig,
+    *,
+    refresh_existing: bool = False,
+) -> None:
+    languages = pretranslate_languages()
+    if not languages:
+        return
+
+    async with AsyncSessionLocal() as session:
+        source_table = _source_table(config)
+        columns = [source_table.c.id, *(source_table.c[field] for field in config.fields)]
+        result = await session.execute(
+            select(*columns).where(source_table.c.id == entity_id)
+        )
+        row = result.mappings().first()
+        if row is None:
+            logger.warning(
+                "Could not pretranslate %s %s: source row was not found.",
+                config.source_table,
+                entity_id,
+            )
+            return
+
+        payload = {"id": row["id"]}
+        payload.update({field: row[field] for field in config.fields})
+        for language_code in languages:
+            try:
+                await translate_with_model_cache(
+                    payload.copy(),
+                    language_code,
+                    session,
+                    config,
+                    refresh_existing=refresh_existing,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Pretranslation failed for %s %s in %s: %s",
+                    config.source_table,
+                    entity_id,
+                    language_code,
+                    exc,
+                )
+            await sleep(0)
 
 
 async def _save_field_translation(
