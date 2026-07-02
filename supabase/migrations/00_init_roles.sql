@@ -75,3 +75,33 @@ GRANT USAGE, CREATE ON SCHEMA public TO supabase_auth_admin;
 GRANT USAGE, CREATE ON SCHEMA public TO supabase_admin;
 GRANT USAGE ON SCHEMA public TO supabase_storage_admin;
 
+-- ==========================================================
+-- 3. SECURE TABLE & FUNCTION PRIVILEGES (Supabase standard)
+-- ==========================================================
+
+-- Grant ALL PRIVILEGES to postgres and service_role (backend-only administration)
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres, service_role;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres, service_role;
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO postgres, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO postgres, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO postgres, service_role;
+
+-- Grant standard DML privileges (SELECT, INSERT, UPDATE, DELETE) to authenticated and anon
+-- so that their Row Level Security (RLS) policies can be evaluated on the tables.
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated, anon;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated, anon;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated, anon;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO authenticated, anon;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO authenticated, anon;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO authenticated, anon;
+
+-- Revoke access entirely for authenticated and anon roles from chatbot-specific internal tables
+-- (these do not need client-side access and are queried exclusively by service_role in the backend)
+REVOKE ALL PRIVILEGES ON TABLE public.chatbot_chunks FROM authenticated, anon;
+REVOKE ALL PRIVILEGES ON TABLE public.semantic_cache FROM authenticated, anon;
+REVOKE ALL PRIVILEGES ON TABLE public.llm_cache FROM authenticated, anon;
+REVOKE ALL PRIVILEGES ON TABLE public.llm_calls FROM authenticated, anon;
+REVOKE ALL PRIVILEGES ON TABLE public.document_chunks FROM authenticated, anon;
+
+
