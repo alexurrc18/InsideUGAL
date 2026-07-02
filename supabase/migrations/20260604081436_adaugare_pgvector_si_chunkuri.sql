@@ -12,6 +12,7 @@ create table if not exists document_chunks (
 
 -- Securitate: Activăm Row Level Security (RLS) pentru a bloca accesul direct din frontend
 alter table document_chunks enable row level security;
+revoke all privileges on table document_chunks from authenticated, anon;
 
 -- 3. Adăugăm un index pentru căutări ultra-rapide
 create index on document_chunks using hnsw (embedding vector_cosine_ops);

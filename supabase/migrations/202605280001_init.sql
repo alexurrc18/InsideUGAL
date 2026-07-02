@@ -158,7 +158,9 @@ CREATE TABLE IF NOT EXISTS public.llm_calls (
     duration_ms integer
 );
 
--- Tabela actualizată conform noilor cerințe arhitecturale LLM
+-- Securitate: Blochează accesul direct din client la logurile LLM
+REVOKE ALL PRIVILEGES ON TABLE public.llm_calls FROM authenticated, anon;
+
 CREATE TABLE IF NOT EXISTS public.questions_history (
     id bigserial PRIMARY KEY, 
     created_at timestamptz DEFAULT now() NOT NULL, 
@@ -345,6 +347,9 @@ ALTER TABLE public.complaints ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_calls ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.questions_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.push_tokens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+
 
 -- ==========================================================
 -- 6. POLITICI POLICIES (RLS)

@@ -140,6 +140,7 @@ services:
     - ./supabase/migrations/20260604081436_adaugare_pgvector_si_chunkuri.sql:/docker-entrypoint-initdb.d/02_pgvector_document_chunks.sql:ro
     - ./supabase/migrations/20260608000001_chatbot_chunks.sql:/docker-entrypoint-initdb.d/04_chatbot_chunks.sql:ro
     - ./supabase/migrations/20260610185900_create_cache_table.sql:/docker-entrypoint-initdb.d/05_llm_cache.sql:ro
+    - ./supabase/migrations/20260611121053_create_semantic_cache.sql:/docker-entrypoint-initdb.d/05a_semantic_cache.sql:ro
     - ./supabase/migrations/202606280001_announcements_extended.sql:/docker-entrypoint-initdb.d/06_announcements_extended.sql:ro
     - ./supabase/migrations/202606280002_announcement_translations.sql:/docker-entrypoint-initdb.d/07_announcement_translations.sql:ro
     - ./supabase/migrations/202607010001_model_translations.sql:/docker-entrypoint-initdb.d/08_model_translations.sql:ro
@@ -220,7 +221,17 @@ services:
     volumes:
       - ./supabase/post-init/ensure_storage_buckets.sql:/tmp/ensure_storage_buckets.sql:ro
     command: >
-      sh -c "psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -v ON_ERROR_STOP=1 -f /tmp/ensure_storage_buckets.sql"
+      sh -c "for i in $$(seq 1 90); do
+      if psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -tAc \"select to_regproc('public.current_user_role') is not null\" | grep -q t; then
+      echo \"Database migrations are ready; applying storage buckets SQL\";
+      psql -h supabase-db -U postgres -d ${POSTGRES_DB:-postgres} -v ON_ERROR_STOP=1 -f /tmp/ensure_storage_buckets.sql;
+      exit $$?;
+      fi;
+      echo \"waiting for public.current_user_role ($$i/90)\";
+      sleep 2;
+      done;
+      echo \"database migrations were not ready after 180s; exiting\";
+      exit 3"
     networks:
       - internal
   supabase-storage-assets:

@@ -5,3 +5,8 @@ CREATE TABLE IF NOT EXISTS llm_cache (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
+
+ALTER TABLE public.llm_cache ENABLE ROW LEVEL SECURITY;
+REVOKE ALL PRIVILEGES ON TABLE public.llm_cache FROM authenticated, anon;
+
+

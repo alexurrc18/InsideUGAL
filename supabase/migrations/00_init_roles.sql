@@ -74,3 +74,15 @@ GRANT USAGE ON SCHEMA public TO authenticator;
 GRANT USAGE, CREATE ON SCHEMA public TO supabase_auth_admin;
 GRANT USAGE, CREATE ON SCHEMA public TO supabase_admin;
 GRANT USAGE ON SCHEMA public TO supabase_storage_admin;
+
+-- ==========================================================
+-- 3. SECURE TABLE & FUNCTION PRIVILEGES (Supabase standard)
+-- ==========================================================
+
+-- Grant ALL PRIVILEGES to postgres and service_role (backend-only administration)
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres, service_role;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres, service_role;
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO postgres, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO postgres, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO postgres, service_role;
