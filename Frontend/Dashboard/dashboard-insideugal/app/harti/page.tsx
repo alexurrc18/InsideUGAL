@@ -94,10 +94,6 @@ function CladireForm({
           <label className="block text-xs font-bold text-muted uppercase mb-1">Denumire</label>
           <input value={formState.name} onChange={(event) => setFormState({ ...formState, name: event.target.value })} className="w-full p-2 rounded-lg border border-border bg-background text-sm" />
         </div>
-        <div>
-          <label className="block text-xs font-bold text-muted uppercase mb-1">Faculty IDs</label>
-          <input value={formState.faculty_ids} onChange={(event) => setFormState({ ...formState, faculty_ids: event.target.value })} placeholder="Ex: 1, 4, 10" className="w-full p-2 rounded-lg border border-border bg-background text-sm" />
-        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-muted uppercase mb-1">Latitudine</label>
@@ -114,8 +110,8 @@ function CladireForm({
       </div>
 
       <div className="flex justify-end gap-2 pt-4 bg-card border-t border-border flex-shrink-0">
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-muted hover:text-foreground">Anuleaza</button>
-        <button type="button" onClick={onSave} className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-medium hover:opacity-90">Salveaza</button>
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-muted hover:text-foreground">Anulează</button>
+        <button type="button" onClick={onSave} className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-medium hover:opacity-90">Salvează</button>
       </div>
     </div>
   );
@@ -254,7 +250,7 @@ export default function HartiPage() {
 
   const columns: Column<Cladire>[] = [
     {
-      header: "Cladire",
+      header: "Clădire",
       key: "name",
       render: (item) => (
         <div className="flex flex-col">
@@ -275,12 +271,12 @@ export default function HartiPage() {
       ),
     },
     {
-      header: "Actiuni",
+      header: "Acțiuni",
       key: "id",
       render: (item) => (
         <div className="flex items-center gap-3">
           <button type="button" onClick={() => handleEditOpen(item)} className="text-blue-600 hover:text-blue-700 text-xs font-medium">Editare</button>
-          <button type="button" onClick={() => void handleDelete(item.id)} className="text-rose-600 hover:text-rose-700 text-xs font-medium">Stergere</button>
+          <button type="button" onClick={() => void handleDelete(item.id)} className="text-rose-600 hover:text-rose-700 text-xs font-medium">Ștergere</button>
         </div>
       ),
     },
@@ -292,23 +288,11 @@ export default function HartiPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div className="flex gap-2 p-1 bg-background border border-border rounded-xl">
-          <button type="button" onClick={() => setTab("locatii")} className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${tab === "locatii" ? "bg-sidebar text-white" : "text-muted hover:text-foreground"}`}>Locatii</button>
-          <button type="button" onClick={() => setTab("harta")} className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${tab === "harta" ? "bg-sidebar text-white" : "text-muted hover:text-foreground"}`}>Harta</button>
-        </div>
-        {tab === "harta" && (
-          <select
-            value={selectedFacultyId}
-            onChange={(event) => setSelectedFacultyId(event.target.value)}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-          >
-            <option value="">Toate facultatile</option>
-            <option value="facilities">Facilitati</option>
-            {facultyFilterOptions.map((facultyId) => (
-              <option key={facultyId} value={facultyId}>Facultatea {facultyId}</option>
-            ))}
-          </select>
-        )}
-        <button type="button" onClick={() => { setAddForm(emptyForm); setShowAddModal(true); }} className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-medium hover:opacity-90">+ Adauga cladire</button>
+  <button type="button" onClick={() => setTab("locatii")} className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${tab === "locatii" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>Locații</button>
+  <button type="button" onClick={() => setTab("harta")} className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${tab === "harta" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>Hartă</button>
+</div>
+        
+        <button type="button" onClick={() => { setAddForm(emptyForm); setShowAddModal(true); }} className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-medium hover:opacity-90">Adaugă clădire</button>
       </div>
 
       {errorMessage && (
@@ -335,11 +319,11 @@ export default function HartiPage() {
         </div>
       )}
 
-      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Adauga cladire" className="max-w-lg">
+      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Adaugă clădire" className="max-w-lg">
         <CladireForm formState={addForm} setFormState={setAddForm} onSave={() => void handleAdd()} onCancel={() => setShowAddModal(false)} />
       </Modal>
 
-      <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Editare cladire" className="max-w-lg">
+      <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Editare clădire" className="max-w-lg">
         <CladireForm formState={editForm} setFormState={setEditForm} onSave={() => void handleEditSave()} onCancel={() => setShowEditModal(false)} />
       </Modal>
     </div>

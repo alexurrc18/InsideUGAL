@@ -459,7 +459,7 @@ export default function ConturiPage() {
               setIsModalOpen(true);
             }}
           >
-            Modifică
+            Editează
           </button>
           <button
             type="button"
@@ -505,7 +505,7 @@ export default function ConturiPage() {
             }}
             className="bg-brand text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:opacity-90 cursor-pointer shadow-xs whitespace-nowrap h-[42px] flex items-center flex-shrink-0"
           >
-            + Adaugă Cont Nou
+            Adaugă Cont Nou
           </button>
         </div>
 
@@ -646,7 +646,7 @@ export default function ConturiPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-foreground mb-1">Facultate / Departament</label>
+                  <label className="block text-xs font-semibold text-foreground mb-1">Facultate/Departament</label>
                   <select
                     required
                     disabled={isSaving}

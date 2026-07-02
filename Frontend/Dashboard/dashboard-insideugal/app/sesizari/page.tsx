@@ -8,7 +8,7 @@ import { apiBaseUrl, getAuthHeaders } from "@/lib/api-client";
 import { canAccessComplaints, useRequireDashboardAccess } from "@/lib/dashboard-auth";
 
 type ComplaintStatus = "in_asteptare" | "in_lucru" | "finalizat" | "respins" | "solutionat";
-type TicketStatus = "In asteptare" | "In lucru" | "Respins" | "Inchis";
+type TicketStatus = "În așteptare" | "În lucru" | "Respins" | "Închis";
 type TicketTab = "all" | "active" | "closed";
 
 type PaginatedResponse<T> = {
@@ -69,11 +69,11 @@ const emptyForm: TicketFormState = {
 };
 
 const statusOptions: Array<{ value: ComplaintStatus; label: TicketStatus }> = [
-  { value: "in_asteptare", label: "In asteptare" },
-  { value: "in_lucru", label: "In lucru" },
+  { value: "in_asteptare", label: "În așteptare" },
+  { value: "in_lucru", label: "În lucru" },
   { value: "respins", label: "Respins" },
-  { value: "finalizat", label: "Inchis" },
-  { value: "solutionat", label: "Inchis" },
+  { value: "finalizat", label: "Închis" },
+  { value: "solutionat", label: "Închis" },
 ];
 
 function itemsFromResponse<T>(payload: PaginatedResponse<T> | T[]): T[] {
@@ -81,21 +81,21 @@ function itemsFromResponse<T>(payload: PaginatedResponse<T> | T[]): T[] {
 }
 
 function statusToLabel(status: ComplaintStatus): TicketStatus {
-  if (status === "in_lucru") return "In lucru";
+  if (status === "in_lucru") return "În lucru";
   if (status === "respins") return "Respins";
-  if (status === "finalizat" || status === "solutionat") return "Inchis";
-  return "In asteptare";
+  if (status === "finalizat" || status === "solutionat") return "Închis";
+  return "În așteptare";
 }
 
 function getStatusClass(status: TicketStatus) {
   switch (status) {
-    case "In asteptare":
+    case "În așteptare":
       return "bg-amber-50 text-amber-700 border-amber-100";
-    case "In lucru":
+    case "În lucru":
       return "bg-blue-50 text-blue-700 border-blue-100";
     case "Respins":
       return "bg-red-50 text-red-700 border-red-100";
-    case "Inchis":
+    case "Închis":
       return "bg-background text-muted border-border";
   }
 }
@@ -188,9 +188,9 @@ export default function SesizariPage() {
   const filteredTickets = useMemo(() => {
     switch (activeTab) {
       case "active":
-        return tickets.filter((t) => t.status === "In asteptare" || t.status === "In lucru");
+        return tickets.filter((t) => t.status === "În așteptare" || t.status === "În lucru");
       case "closed":
-        return tickets.filter((t) => t.status === "Inchis" || t.status === "Respins");
+        return tickets.filter((t) => t.status === "Închis" || t.status === "Respins");
       default:
         return tickets;
     }
@@ -295,7 +295,7 @@ export default function SesizariPage() {
       header: "Titlu",
       key: "title",
       render: (item) => {
-        const isClosed = item.status === "Inchis" || item.status === "Respins";
+        const isClosed = item.status === "Închis" || item.status === "Respins";
         return (
           <div className={`space-y-1 ${isClosed ? "opacity-50 text-slate-400" : ""}`}>
             <p className="font-semibold text-foreground">{item.title}</p>
@@ -305,7 +305,7 @@ export default function SesizariPage() {
       },
     },
     {
-      header: "Locatie Cladire",
+      header: "Locație Clădire",
       key: "building",
       render: (item) => <span className="text-foreground font-medium">{item.building}</span>,
     },
@@ -329,7 +329,7 @@ export default function SesizariPage() {
       ),
     },
     {
-      header: "Actiuni",
+      header: "Acțiuni",
       key: "actions",
       render: (item) => (
         <div className="flex space-x-3 text-xs" onClick={(e) => e.stopPropagation()}>
@@ -337,7 +337,7 @@ export default function SesizariPage() {
             Editare
           </button>
           <button type="button" className="text-red-500 hover:text-red-700 font-medium hover:underline" onClick={() => void handleDelete(item.id)}>
-            Stergere
+            Ștergere
           </button>
         </div>
       ),
@@ -361,7 +361,7 @@ export default function SesizariPage() {
             >
               {tab === "all" && "Toate"}
               {tab === "active" && "Active"}
-              {tab === "closed" && "Inchise"}
+              {tab === "closed" && "Închise"}
             </button>
           ))}
         </div>
@@ -371,7 +371,7 @@ export default function SesizariPage() {
           onClick={handleOpenAddModal}
           className="bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-bold cursor-pointer hover:opacity-90 transition-all shadow-md self-end md:self-auto"
         >
-          Adauga Sesizare
+          Adaugă Sesizare
         </button>
       </div>
 
@@ -392,7 +392,7 @@ export default function SesizariPage() {
       <Modal
         isOpen={activeModal !== null}
         onClose={() => setActiveModal(null)}
-        title={activeModal === "edit" ? "Editare Sesizare" : "Adauga Sesizare"}
+        title={activeModal === "edit" ? "Editare Sesizare" : "Adaugă Sesizare"}
       >
         <form onSubmit={handleSave} className="space-y-4 text-sm max-h-[80vh] flex flex-col justify-between">
           <div className="space-y-4 overflow-y-auto pr-1 pb-4">
@@ -410,7 +410,7 @@ export default function SesizariPage() {
 
             {activeModal === "edit" && (
               <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">Modifica Status</label>
+                <label className="block text-xs font-semibold text-foreground mb-1">Modifică Status</label>
                 <select
                   value={ticketForm.status}
                   onChange={(e) => setTicketForm({ ...ticketForm, status: e.target.value as ComplaintStatus })}
@@ -426,14 +426,14 @@ export default function SesizariPage() {
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-foreground mb-1">Selecteaza Cladirea / Corpul</label>
+              <label className="block text-xs font-semibold text-foreground mb-1">Selectează Clădirea/Corpul</label>
               <select
                 value={ticketForm.locationId}
                 onChange={(e) => setTicketForm({ ...ticketForm, locationId: e.target.value })}
                 className="w-full border border-border p-2 rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-brand text-sm font-medium text-foreground"
                 disabled={activeModal === "edit"}
               >
-                <option value="">Fara locatie</option>
+                <option value="">Fără locație</option>
                 {locations.map((loc) => (
                   <option key={loc.id} value={loc.id}>
                     {loc.name}
@@ -443,7 +443,7 @@ export default function SesizariPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-foreground mb-1">Descriere detaliata</label>
+              <label className="block text-xs font-semibold text-foreground mb-1">Descriere detaliată</label>
               <textarea
                 value={ticketForm.description}
                 onChange={(e) => setTicketForm({ ...ticketForm, description: e.target.value })}
@@ -455,7 +455,7 @@ export default function SesizariPage() {
 
             {/* Secțiunea imagine — apare în ambele modaluri */}
             <div>
-              <label className="block text-xs font-semibold text-foreground mb-2">Imagine (opțional)</label>
+              <label className="block text-xs font-semibold text-foreground mb-2">Imagine(opțional)</label>
               <div className="flex flex-col gap-3 p-3 border border-dashed border-border rounded-lg bg-background/50">
                 <input
                   type="file"
@@ -508,10 +508,10 @@ export default function SesizariPage() {
 
           <div className="sticky bottom-0 bg-background pt-4 border-t border-border z-10 flex justify-end space-x-2">
             <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-border rounded-lg text-muted text-xs hover:bg-background">
-              Anuleaza
+              Anulează
             </button>
             <button type="submit" className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold hover:opacity-90">
-              Salveaza
+              Salvează
             </button>
           </div>
         </form>
