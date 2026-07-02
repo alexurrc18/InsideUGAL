@@ -173,7 +173,7 @@ export default function SettingsScreen() {
                       })}
                     >
                       <Text style={{ color: theme.text, fontFamily: "InstrumentSans-Medium", fontSize: 16 }}>
-                        {t('settings.currentLang')} <Text style={{ color: theme.primary, fontFamily: "InstrumentSans-Bold" }}>{languages.find((l) => l.code === i18n.language)?.label || "Română"}</Text>
+                        {t('settings.currentLang')} <Text style={{ color: theme.primary, fontFamily: "InstrumentSans-Bold" }}>{languages.find((l) => l.code === i18n.language)?.label || i18n.language}</Text>
                       </Text>
                       <BackIcon 
                         width={18} 

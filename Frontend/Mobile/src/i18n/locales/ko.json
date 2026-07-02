@@ -112,7 +112,8 @@
     "profileTitle": "내 프로필",
     "profileLoggedIn": "이미 로그인되어 있습니다. 로그아웃하시겠습니까?",
     "cancel": "취소",
-    "logout": "로그아웃"
+    "logout": "로그아웃",
+    "guideFallback": "가이드"
   },
   "settings": {
     "title": "설정",
@@ -122,7 +123,13 @@
     "currentLang": "현재 언어:",
     "supportInfo": "도움말 및 정보",
     "visitWebsite": "UGAL 웹사이트 방문",
-    "appSlogan": "Galați «Dunărea de Jos» 대학교 학생들을 위해 만들어졌습니다"
+    "appSlogan": "Galați «Dunărea de Jos» 대학교 학생들을 위해 만들어졌습니다",
+    "clearCacheButton": "캐시 지우기",
+    "clearCacheTitle": "캐시 지우기",
+    "clearCacheMessage": "온보딩이 초기화됩니다. 다음 실행 시 권한 요청이 다시 표시됩니다.",
+    "clearCacheConfirm": "지우기",
+    "clearCacheDoneTitle": "완료",
+    "clearCacheDoneMessage": "캐시가 삭제되었습니다. 앱을 재시작하세요."
   },
   "theme": {
     "title": "앱 테마",

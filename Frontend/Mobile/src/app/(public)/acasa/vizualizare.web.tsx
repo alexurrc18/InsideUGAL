@@ -60,6 +60,7 @@ function VizualizareScreen() {
     const [loading, setLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
     const [retryKey, setRetryKey] = useState(0);
+    const [imgErr, setImgErr] = useState(false);
 
     const initialItem = {
         title: (params.title as string) || "",
@@ -100,7 +101,7 @@ function VizualizareScreen() {
         const loadRelated = async () => {
             if (initialTipPagina === "Facilitate") {
                 try {
-                    const res = await api.get('/facilities/', { params: { page: 1, size: 50 } });
+                    const res = await api.get('/facilities/', { params: { page: 1, size: 50, lang: i18n.language } });
                     if (res.data?.items && isMounted) setFacilityPool(res.data.items);
                 } catch (err) {
                     console.warn('[API] Error loading related facilities:', err);
@@ -155,7 +156,7 @@ function VizualizareScreen() {
                                 };
                             }
                         } else if (initialTipPagina === "Facultate") {
-                            const res = await api.get(`/faculties/${numericId}`);
+                            const res = await api.get(`/faculties/${numericId}`, { params: { lang: i18n.language } });
                             if (res.data) {
                                 const item = res.data;
                                 fetchedItem = {
@@ -170,7 +171,7 @@ function VizualizareScreen() {
                                 };
                             }
                         } else if (initialTipPagina === "Facilitate") {
-                            const res = await api.get(`/facilities/${numericId}`);
+                            const res = await api.get(`/facilities/${numericId}`, { params: { lang: i18n.language } });
                             if (res.data) {
                                 const item = res.data;
                                 fetchedItem = {
@@ -370,7 +371,8 @@ function VizualizareScreen() {
                 {/* Banner full-bleed: ramane pe toata latimea, in afara canvas-ului scalat */}
                 <View style={{ width: "100%", height: 320 }}>
                     <Image
-                        source={image ? { uri: image as string } : require("@/assets/images/campus-stiintei.png")}
+                        source={image && !imgErr ? { uri: image as string } : require("@/assets/images/campus-stiintei.png")}
+                        onError={() => setImgErr(true)}
                         accessibilityLabel={(title as string) || "Imagine articol"}
                         style={{ width: "100%", height: "100%", position: "absolute" }}
                         contentFit="cover"

@@ -112,7 +112,8 @@
     "profileTitle": "Profilul tău",
     "profileLoggedIn": "Ești deja conectat în cont. Vrei să te deconectezi?",
     "cancel": "Anulează",
-    "logout": "Deconectare"
+    "logout": "Deconectare",
+    "guideFallback": "Ghid"
   },
   "settings": {
     "title": "Setări",
@@ -122,7 +123,13 @@
     "currentLang": "Limbă curentă:",
     "supportInfo": "Asistență & Info",
     "visitWebsite": "Vizitează Website UGAL",
-    "appSlogan": "Creat pentru studenții Universității „Dunărea de Jos” din Galați"
+    "appSlogan": "Creat pentru studenții Universității „Dunărea de Jos” din Galați",
+    "clearCacheButton": "Șterge cache",
+    "clearCacheTitle": "Șterge cache",
+    "clearCacheMessage": "Se va reseta onboarding-ul. La repornire vei vedea din nou cererea de permisiuni.",
+    "clearCacheConfirm": "Șterge",
+    "clearCacheDoneTitle": "Gata",
+    "clearCacheDoneMessage": "Cache șters. Repornește aplicația."
   },
   "theme": {
     "title": "Temă aplicație",

@@ -11,6 +11,7 @@ import { WebContainer } from "@/components/ui/layout/web-container";
 import { useWebContentTop } from "@/hooks/use-web-content-top";
 import BackIcon from "@/assets/icons/svg/chevron-left.svg";
 import api from "@/services/api";
+import { useTranslation } from 'react-i18next';
 
 export default function MoreCategoryScreen() {
   const { categoryId, title: categoryTitle } = useLocalSearchParams();
@@ -19,13 +20,14 @@ export default function MoreCategoryScreen() {
   const insets = useSafeAreaInsets();
   const contentTop = useWebContentTop();
   const router = useRouter();
+  const { t, i18n } = useTranslation();
 
   const [scrollY] = useState(() => new Animated.Value(0));
   const [items, setItems] = useState<any[]>([]);
 
   useEffect(() => {
     if (!categoryId) return;
-    api.get('/city-guide', { params: { category_id: categoryId } })
+    api.get('/city-guide', { params: { category_id: categoryId, lang: i18n.language } })
       .then(res => {
         const data = res.data;
         if (data && Array.isArray(data)) {
@@ -98,7 +100,7 @@ export default function MoreCategoryScreen() {
                 ]}
                 numberOfLines={1}
               >
-                {(categoryTitle as string) || "Ghid"}
+                {(categoryTitle as string) || t('more.guideFallback')}
               </Text>
             </Animated.View>
           ),
@@ -120,7 +122,7 @@ export default function MoreCategoryScreen() {
         <WebContainer>
           <View style={{ marginBottom: Spacing.lg }}>
             <CategoryHeader
-              title={(categoryTitle as string) || "Ghid"}
+              title={(categoryTitle as string) || t('more.guideFallback')}
             />
           </View>
 
@@ -139,7 +141,7 @@ export default function MoreCategoryScreen() {
 
           {items.length === 0 && (
             <Text style={[Typography.Paragraph1, { color: theme.text, textAlign: "center", marginTop: 40 }]}>
-              Nu există elemente în această categorie.
+              {t('category.empty')}
             </Text>
           )}
         </WebContainer>

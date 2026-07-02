@@ -4,6 +4,7 @@ import { StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import api, { storage } from "@/services/api";
+import i18n from "@/i18n";
 
 export default function SplashScreen() {
   useEffect(() => {
@@ -28,21 +29,21 @@ export default function SplashScreen() {
       try {
         await Promise.all([
           api.get("/announcements/", {
-            params: { page: 1, size: 50 }
+            params: { page: 1, size: 50, lang: i18n.language }
           }).then(res => {
             if (res.data && res.data.items) {
               return storage.setItem('cached_announcements', JSON.stringify(res.data.items));
             }
           }),
           api.get("/faculties/", {
-            params: { page: 1, size: 50 }
+            params: { page: 1, size: 50, lang: i18n.language }
           }).then(res => {
             if (res.data && res.data.items) {
               return storage.setItem('cached_faculties', JSON.stringify(res.data.items));
             }
           }),
           api.get("/locations/", {
-            params: { page: 1, size: 50 }
+            params: { page: 1, size: 50, lang: i18n.language }
           }).then(res => {
             if (res.data && res.data.items) {
               return storage.setItem('cached_facilities', JSON.stringify(res.data.items));

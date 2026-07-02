@@ -112,7 +112,8 @@
     "profileTitle": "ملفك الشخصي",
     "profileLoggedIn": "أنت مسجل الدخول بالفعل. هل تريد تسجيل الخروج؟",
     "cancel": "إلغاء",
-    "logout": "تسجيل الخروج"
+    "logout": "تسجيل الخروج",
+    "guideFallback": "دليل"
   },
   "settings": {
     "title": "الإعدادات",
@@ -122,7 +123,13 @@
     "currentLang": "اللغة الحالية:",
     "supportInfo": "المساعدة والمعلومات",
     "visitWebsite": "زيارة موقع UGAL",
-    "appSlogan": "تم إنشاؤه لطلاب جامعة «Dunărea de Jos» في Galați"
+    "appSlogan": "تم إنشاؤه لطلاب جامعة «Dunărea de Jos» في Galați",
+    "clearCacheButton": "مسح ذاكرة التخزين المؤقت",
+    "clearCacheTitle": "مسح ذاكرة التخزين المؤقت",
+    "clearCacheMessage": "سيتم إعادة ضبط عملية الإعداد. عند إعادة التشغيل سترى طلب الأذونات مرة أخرى.",
+    "clearCacheConfirm": "مسح",
+    "clearCacheDoneTitle": "تم",
+    "clearCacheDoneMessage": "تم مسح ذاكرة التخزين المؤقت. أعد تشغيل التطبيق."
   },
   "theme": {
     "title": "مظهر التطبيق",

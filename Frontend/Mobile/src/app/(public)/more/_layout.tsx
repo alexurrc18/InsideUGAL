@@ -4,6 +4,7 @@ import { View } from "react-native";
 import { Colors, Spacing } from "@/constants/theme";
 import { CategoryHeader } from "@/components/ui/display/category-header";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from 'react-i18next';
 
 export const unstable_settings = {
   initialRouteName: "index",
@@ -13,6 +14,7 @@ export default function MoreLayout() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   return (
     <Stack screenOptions={{
@@ -33,7 +35,7 @@ export default function MoreLayout() {
           headerShown: true,
           header: () => (
             <View style={{ backgroundColor: theme.background, paddingTop: insets.top + Spacing.md }}>
-              <CategoryHeader title="Mai multe" />
+              <CategoryHeader title={t('more.title')} />
             </View>
           ),
         }}

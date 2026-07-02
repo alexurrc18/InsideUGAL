@@ -21,7 +21,7 @@ import { useTranslation } from "react-i18next";
 
 export default function CategoryScreen() {
   const { title: categoryTitle } = useLocalSearchParams();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
@@ -54,7 +54,7 @@ export default function CategoryScreen() {
     const fetchFaculties = async () => {
       try {
         const response = await api.get("/faculties/", {
-          params: { page: 1, size: 50 }
+          params: { page: 1, size: 50, lang: i18n.language }
         });
         if (response.data && response.data.items) {
           setFaculties(response.data.items);
@@ -90,6 +90,7 @@ export default function CategoryScreen() {
             page: pageToFetch,
             size: selectedFacultyId ? 200 : 20,
             announcement_type: type,
+            lang: i18n.language,
           }
         });
 
@@ -119,7 +120,8 @@ export default function CategoryScreen() {
         response = await api.get("/faculties/", {
           params: {
             page: pageToFetch,
-            size: 20
+            size: 20,
+            lang: i18n.language,
           }
         });
         if (response.data && response.data.items) {
@@ -137,7 +139,8 @@ export default function CategoryScreen() {
         response = await api.get("/facilities/", {
           params: {
             page: pageToFetch,
-            size: 20
+            size: 20,
+            lang: i18n.language,
           }
         });
         if (response.data && response.data.items) {

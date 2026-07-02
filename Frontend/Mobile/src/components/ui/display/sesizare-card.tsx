@@ -27,12 +27,14 @@ export function SesizareCard({ item }: SesizareCardProps) {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const statusLabel = item.status === "active" ? "Activă" : item.status === "respinse" ? "Respinsă" : "Soluționată";
+  const [imgErr, setImgErr] = React.useState(false);
 
   return (
     <View style={styles.card}>
       <View style={{ flexDirection: "row", gap: Spacing.md }}>
         <Image
-          source={item.image ? { uri: item.image } : require("@/assets/images/campus-stiintei.png")}
+          source={item.image && !imgErr ? { uri: item.image } : require("@/assets/images/campus-stiintei.png")}
+          onError={() => setImgErr(true)}
           style={{ width: 100, height: 100, borderRadius: 10 }}
           contentFit="cover"
         />

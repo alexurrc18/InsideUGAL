@@ -54,7 +54,7 @@ export default function AdaugaSesizareScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [locations, setLocations] = useState<any[]>([]);
   const [title, setTitle] = useState("");
@@ -67,7 +67,7 @@ export default function AdaugaSesizareScreen() {
   useEffect(() => {
     async function loadLocations() {
       try {
-        const res = await api.get('/locations/', { params: { page: 1, size: 50 } });
+        const res = await api.get('/locations/', { params: { page: 1, size: 50, lang: i18n.language } });
         if (res.data?.items) {
           setLocations(res.data.items);
           if (res.data.items.length > 0) {
@@ -79,7 +79,7 @@ export default function AdaugaSesizareScreen() {
       }
     }
     loadLocations();
-  }, []);
+  }, [i18n.language]);
 
   const buildingsList = useMemo(() => {
     const list = locations.map(loc => loc.name);

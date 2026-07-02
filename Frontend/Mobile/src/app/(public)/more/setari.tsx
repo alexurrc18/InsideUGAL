@@ -49,12 +49,12 @@ export default function SettingsScreen() {
   const languages = LANGUAGES;
 
   const handleClearCache = () => {
-    Alert.alert("Șterge cache", "Se va reseta onboarding-ul. La repornire vei vedea din nou cererea de permisiuni.", [
-      { text: "Anulează", style: "cancel" },
+    Alert.alert(t('settings.clearCacheTitle'), t('settings.clearCacheMessage'), [
+      { text: t('more.cancel'), style: "cancel" },
       {
-        text: "Șterge", style: "destructive", onPress: async () => {
+        text: t('settings.clearCacheConfirm'), style: "destructive", onPress: async () => {
           await storage.removeItem("has_seen_onboarding");
-          Alert.alert("Gata", "Cache șters. Repornește aplicația.");
+          Alert.alert(t('settings.clearCacheDoneTitle'), t('settings.clearCacheDoneMessage'));
         }
       },
     ]);
@@ -185,7 +185,7 @@ export default function SettingsScreen() {
                   })}
                 >
                   <Text style={{ color: theme.text, fontFamily: "InstrumentSans-Medium", fontSize: 16 }}>
-                    {t('settings.currentLang')} <Text style={{ color: theme.primary, fontFamily: "InstrumentSans-Bold" }}>{languages.find((l) => l.code === i18n.language)?.label || "Română"}</Text>
+                    {t('settings.currentLang')} <Text style={{ color: theme.primary, fontFamily: "InstrumentSans-Bold" }}>{languages.find((l) => l.code === i18n.language)?.label || i18n.language}</Text>
                   </Text>
                   <BackIcon 
                     width={18} 
@@ -228,7 +228,7 @@ export default function SettingsScreen() {
                   opacity: pressed ? 0.6 : 1
                 })}
               >
-                <Text style={[Typography.Paragraph2, { color: "#E53935" }]}>Șterge cache</Text>
+                <Text style={[Typography.Paragraph2, { color: "#E53935" }]}>{t('settings.clearCacheButton')}</Text>
               </Pressable>
             </View>
           </View>

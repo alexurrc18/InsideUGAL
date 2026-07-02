@@ -60,7 +60,7 @@ export default function CategoryScreen() {
     const fetchFaculties = async () => {
       try {
         const response = await api.get("/faculties/", {
-          params: { page: 1, size: 50 }
+          params: { page: 1, size: 50, lang: i18n.language }
         });
         if (response.data && response.data.items) {
           setFaculties(response.data.items);
@@ -125,7 +125,8 @@ export default function CategoryScreen() {
         response = await api.get("/faculties/", {
           params: {
             page: pageToFetch,
-            size: 20
+            size: 20,
+            lang: i18n.language,
           }
         });
         if (response.data && response.data.items) {
@@ -143,7 +144,8 @@ export default function CategoryScreen() {
         response = await api.get("/facilities/", {
           params: {
             page: pageToFetch,
-            size: 20
+            size: 20,
+            lang: i18n.language,
           }
         });
         if (response.data && response.data.items) {

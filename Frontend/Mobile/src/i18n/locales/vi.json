@@ -112,7 +112,8 @@
     "profileTitle": "Hồ sơ của bạn",
     "profileLoggedIn": "Bạn đã đăng nhập. Bạn có muốn đăng xuất không?",
     "cancel": "Hủy",
-    "logout": "Đăng xuất"
+    "logout": "Đăng xuất",
+    "guideFallback": "Hướng dẫn"
   },
   "settings": {
     "title": "Cài đặt",
@@ -122,7 +123,13 @@
     "currentLang": "Ngôn ngữ hiện tại:",
     "supportInfo": "Trợ giúp & Thông tin",
     "visitWebsite": "Truy cập trang web UGAL",
-    "appSlogan": "Được tạo cho sinh viên Trường Đại học «Dunărea de Jos» tại Galați"
+    "appSlogan": "Được tạo cho sinh viên Trường Đại học «Dunărea de Jos» tại Galați",
+    "clearCacheButton": "Xóa bộ nhớ đệm",
+    "clearCacheTitle": "Xóa bộ nhớ đệm",
+    "clearCacheMessage": "Quá trình giới thiệu sẽ được đặt lại. Khi khởi động lại, bạn sẽ thấy lại yêu cầu quyền.",
+    "clearCacheConfirm": "Xóa",
+    "clearCacheDoneTitle": "Xong",
+    "clearCacheDoneMessage": "Đã xóa bộ nhớ đệm. Hãy khởi động lại ứng dụng."
   },
   "theme": {
     "title": "Giao diện ứng dụng",

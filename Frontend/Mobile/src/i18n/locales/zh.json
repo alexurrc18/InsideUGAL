@@ -112,7 +112,8 @@
     "profileTitle": "您的个人资料",
     "profileLoggedIn": "您已登录。是否要退出？",
     "cancel": "取消",
-    "logout": "登出"
+    "logout": "登出",
+    "guideFallback": "指南"
   },
   "settings": {
     "title": "设置",
@@ -122,7 +123,13 @@
     "currentLang": "当前语言：",
     "supportInfo": "帮助与信息",
     "visitWebsite": "访问 UGAL 官网",
-    "appSlogan": "专为加拉茨「Dunărea de Jos」大学学生创建"
+    "appSlogan": "专为加拉茨「Dunărea de Jos」大学学生创建",
+    "clearCacheButton": "清除缓存",
+    "clearCacheTitle": "清除缓存",
+    "clearCacheMessage": "引导流程将被重置。下次启动时你将再次看到权限请求。",
+    "clearCacheConfirm": "清除",
+    "clearCacheDoneTitle": "完成",
+    "clearCacheDoneMessage": "缓存已清除。请重启应用。"
   },
   "theme": {
     "title": "应用主题",

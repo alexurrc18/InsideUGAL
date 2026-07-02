@@ -28,7 +28,7 @@ import CalendarIcon from "@/assets/icons/svg/calendar.svg";
 import LocationIcon from "@/assets/icons/svg/location.svg";
 import PhoneIcon from "@/assets/icons/svg/phone.svg";
 import WebsiteIcon from "@/assets/icons/svg/globe-europe.svg";
-import { FileAttachments, type FileItem } from "@/components/ui/display/file-attachment";
+import { type FileItem } from "@/components/ui/display/file-attachment";
 
 // Latimea coloanei din dreapta (sidebar) cand layout-ul e pe doua coloane.
 const SIDEBAR_WIDTH = 340;
@@ -85,6 +85,7 @@ export function ArticleDetail({
     const tipPagina = type || "Eveniment";
 
     const [relatedPool, setRelatedPool] = useState<any[]>([]);
+    const [imgErr, setImgErr] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -201,7 +202,8 @@ export function ArticleDetail({
                 {/* Banner full-bleed: ramane pe toata latimea, in afara canvas-ului scalat */}
                 <View style={{ width: "100%", height: 320 }}>
                     <Image
-                        source={image ? { uri: image } : require("@/assets/images/campus-stiintei.png")}
+                        source={(image && !imgErr) ? { uri: image } : require("@/assets/images/campus-stiintei.png")}
+                        onError={() => setImgErr(true)}
                         accessibilityLabel={title || t('common.article')}
                         style={{ width: "100%", height: "100%", position: "absolute" }}
                         contentFit="cover"
@@ -329,9 +331,7 @@ export function ArticleDetail({
                                 </Text>
                             </View>
 
-                            {(tipPagina === "Anunț" || tipPagina === "Eveniment") && (
-                                <FileAttachments files={files} />
-                            )}
+
                         </View>
 
                         {/* Dreapta: 3 carduri Noutăți, una sub alta. */}

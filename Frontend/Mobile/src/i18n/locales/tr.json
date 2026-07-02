@@ -112,7 +112,8 @@
     "profileTitle": "Profiliniz",
     "profileLoggedIn": "Zaten giriş yaptınız. Çıkış yapmak istiyor musunuz?",
     "cancel": "İptal",
-    "logout": "Çıkış yap"
+    "logout": "Çıkış yap",
+    "guideFallback": "Rehber"
   },
   "settings": {
     "title": "Ayarlar",
@@ -122,7 +123,13 @@
     "currentLang": "Mevcut dil:",
     "supportInfo": "Yardım ve Bilgi",
     "visitWebsite": "UGAL web sitesini ziyaret et",
-    "appSlogan": "Galați «Dunărea de Jos» Üniversitesi öğrencileri için oluşturuldu"
+    "appSlogan": "Galați «Dunărea de Jos» Üniversitesi öğrencileri için oluşturuldu",
+    "clearCacheButton": "Önbelleği temizle",
+    "clearCacheTitle": "Önbelleği temizle",
+    "clearCacheMessage": "Katılım süreci sıfırlanacak. Yeniden başlattığında izin isteğini tekrar göreceksin.",
+    "clearCacheConfirm": "Temizle",
+    "clearCacheDoneTitle": "Tamam",
+    "clearCacheDoneMessage": "Önbellek temizlendi. Uygulamayı yeniden başlat."
   },
   "theme": {
     "title": "Uygulama teması",

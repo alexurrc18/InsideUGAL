@@ -30,6 +30,7 @@ interface HeroSlideshowProps {
 export function HeroSlideshow({ slides, onPressItem, scrollY }: HeroSlideshowProps) {
   const { width: windowWidth } = useWindowDimensions();
   const [active, setActive] = useState(0);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const scrollRef = useRef<ScrollView>(null);
   const autoRotateTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -84,48 +85,52 @@ export function HeroSlideshow({ slides, onPressItem, scrollY }: HeroSlideshowPro
         onScrollBeginDrag={stopAutoRotate}
         onScrollEndDrag={startAutoRotate}
       >
-        {slides.map((slide) => (
-          <Pressable
-            key={slide.id}
-            style={{ width: windowWidth, height: HERO_HEIGHT, overflow: "hidden" }}
-            onPress={() => onPressItem(slide)}
-          >
-            <Animated.View style={[StyleSheet.absoluteFill, heroImageStyle]}>
-              <Image
-                source={slide.image ? { uri: slide.image } : require("@/assets/images/campus-stiintei.png")}
+        {slides.map((slide) => {
+          const hasError = failedImages[slide.id];
+          return (
+            <Pressable
+              key={slide.id}
+              style={{ width: windowWidth, height: HERO_HEIGHT, overflow: "hidden" }}
+              onPress={() => onPressItem(slide)}
+            >
+              <Animated.View style={[StyleSheet.absoluteFill, heroImageStyle]}>
+                <Image
+                  source={(slide.image && !hasError) ? { uri: slide.image } : require("@/assets/images/campus-stiintei.png")}
+                  onError={() => setFailedImages(prev => ({ ...prev, [slide.id]: true }))}
+                  style={StyleSheet.absoluteFill}
+                  contentFit="cover"
+                />
+              </Animated.View>
+
+              <LinearGradient
+                colors={["transparent", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.8)"]}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
                 style={StyleSheet.absoluteFill}
-                contentFit="cover"
               />
-            </Animated.View>
 
-            <LinearGradient
-              colors={["transparent", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.8)"]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
+              <View style={styles.content}>
+                <View style={{ paddingHorizontal: Spacing.lg, paddingBottom: 40 }}>
+                  {!!slide.category && <CategoryTag category={slide.category} />}
 
-            <View style={styles.content}>
-              <View style={{ paddingHorizontal: Spacing.lg, paddingBottom: 40 }}>
-                {!!slide.category && <CategoryTag category={slide.category} />}
+                  <Text
+                    style={[
+                      Typography.Heading2,
+                      { color: ColorScheme.white, marginTop: Spacing.xs }
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {slide.title}
+                  </Text>
 
-                <Text
-                  style={[
-                    Typography.Heading2,
-                    { color: ColorScheme.white, marginTop: Spacing.xs }
-                  ]}
-                  numberOfLines={2}
-                >
-                  {slide.title}
-                </Text>
-
-                <Text style={[Typography.Paragraph2, { color: ColorScheme.white, opacity: 0.8, marginTop: Spacing.xxs }]}>
-                  {[getFormattedDate(slide.date), slide.author].filter(Boolean).join("  ·  ")}
-                </Text>
+                  <Text style={[Typography.Paragraph2, { color: ColorScheme.white, opacity: 0.8, marginTop: Spacing.xxs }]}>
+                    {[getFormattedDate(slide.date), slide.author].filter(Boolean).join("  ·  ")}
+                  </Text>
+                </View>
               </View>
-            </View>
-          </Pressable>
-        ))}
+            </Pressable>
+          );
+        })}
       </ScrollView>
 
       <View style={styles.dotsWrap} pointerEvents="none">

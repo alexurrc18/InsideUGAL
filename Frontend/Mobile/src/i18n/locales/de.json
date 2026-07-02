@@ -112,7 +112,8 @@
     "profileTitle": "Dein Profil",
     "profileLoggedIn": "Du bist bereits angemeldet. Möchtest du dich abmelden?",
     "cancel": "Abbrechen",
-    "logout": "Abmelden"
+    "logout": "Abmelden",
+    "guideFallback": "Leitfaden"
   },
   "settings": {
     "title": "Einstellungen",
@@ -122,7 +123,13 @@
     "currentLang": "Aktuelle Sprache:",
     "supportInfo": "Hilfe & Info",
     "visitWebsite": "UGAL-Website besuchen",
-    "appSlogan": "Erstellt für die Studierenden der Universität «Dunărea de Jos» in Galați"
+    "appSlogan": "Erstellt für die Studierenden der Universität «Dunărea de Jos» in Galați",
+    "clearCacheButton": "Cache leeren",
+    "clearCacheTitle": "Cache leeren",
+    "clearCacheMessage": "Das Onboarding wird zurückgesetzt. Beim nächsten Start siehst du erneut die Berechtigungsanfrage.",
+    "clearCacheConfirm": "Leeren",
+    "clearCacheDoneTitle": "Fertig",
+    "clearCacheDoneMessage": "Cache gelöscht. Starte die App neu."
   },
   "theme": {
     "title": "App-Design",

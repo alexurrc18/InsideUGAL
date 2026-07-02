@@ -18,7 +18,7 @@ export default function HartaScreen() {
   const insets = useSafeAreaInsets();
   const themeName = (useColorScheme() ?? 'light') as keyof typeof Colors;
   const theme = Colors[themeName];
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [hasError, setHasError] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -35,8 +35,8 @@ export default function HartaScreen() {
 
       // Fetch fresh data from API
       const [facsRes, locsRes] = await Promise.all([
-        api.get('/faculties/', { params: { page: 1, size: 50 } }),
-        api.get('/locations/', { params: { page: 1, size: 50 } })
+        api.get('/faculties/', { params: { page: 1, size: 50, lang: i18n.language } }),
+        api.get('/locations/', { params: { page: 1, size: 50, lang: i18n.language } })
       ]);
 
       if (facsRes.data?.items) {
@@ -51,7 +51,7 @@ export default function HartaScreen() {
       console.warn('[API] Error loading map screen data:', err);
       setHasError(true);
     }
-  }, []);
+  }, [i18n.language]);
 
   useEffect(() => {
     const timer = setTimeout(() => {

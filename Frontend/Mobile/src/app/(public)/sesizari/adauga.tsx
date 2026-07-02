@@ -71,7 +71,7 @@ export default function AdaugaSesizareScreen() {
   const router = useRouter();
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [locations, setLocations] = useState<any[]>([]);
   const [location, setLocation] = useState(t('reports.exterior'));
@@ -92,7 +92,7 @@ export default function AdaugaSesizareScreen() {
             setLocation(parsed[0].name);
           }
         }
-        const res = await api.get('/locations/', { params: { page: 1, size: 50 } });
+        const res = await api.get('/locations/', { params: { page: 1, size: 50, lang: i18n.language } });
         if (res.data?.items) {
           setLocations(res.data.items);
           await storage.setItem('cached_facilities', JSON.stringify(res.data.items));
@@ -105,7 +105,7 @@ export default function AdaugaSesizareScreen() {
       }
     }
     loadLocations();
-  }, []);
+  }, [i18n.language]);
 
   const buildingsList = useMemo(() => {
     const list = locations.map(loc => loc.name);

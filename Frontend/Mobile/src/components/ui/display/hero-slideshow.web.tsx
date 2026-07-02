@@ -44,6 +44,7 @@ export function HeroSlideshow({ slides, onPressItem }: HeroSlideshowProps) {
   const { width: windowWidth } = useWindowDimensions();
   const isMobile = windowWidth < 768;
   const [active, setActive] = useState(0);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   // Cate o valoare de opacitate per slide (primul vizibil, restul ascunse).
   const [opacities] = useState(() => slides.map((_, i) => new Animated.Value(i === 0 ? 1 : 0)));
@@ -86,7 +87,8 @@ export function HeroSlideshow({ slides, onPressItem }: HeroSlideshowProps) {
           pointerEvents="none"
         >
           <Image
-            source={slide.image ? { uri: slide.image } : require("@/assets/images/campus-stiintei.png")}
+            source={slide.image && !failedImages[slide.id] ? { uri: slide.image } : require("@/assets/images/campus-stiintei.png")}
+            onError={() => setFailedImages(prev => ({ ...prev, [slide.id]: true }))}
             accessibilityLabel={slide.title}
             style={StyleSheet.absoluteFill}
             contentFit="cover"

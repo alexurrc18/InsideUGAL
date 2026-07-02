@@ -112,7 +112,8 @@
     "profileTitle": "Το προφίλ σας",
     "profileLoggedIn": "Είστε ήδη συνδεδεμένοι. Θέλετε να αποσυνδεθείτε;",
     "cancel": "Ακύρωση",
-    "logout": "Αποσύνδεση"
+    "logout": "Αποσύνδεση",
+    "guideFallback": "Οδηγός"
   },
   "settings": {
     "title": "Ρυθμίσεις",
@@ -122,7 +123,13 @@
     "currentLang": "Τρέχουσα γλώσσα:",
     "supportInfo": "Βοήθεια & Πληροφορίες",
     "visitWebsite": "Επίσκεψη ιστότοπου UGAL",
-    "appSlogan": "Δημιουργήθηκε για τους φοιτητές του Πανεπιστημίου «Dunărea de Jos» του Galați"
+    "appSlogan": "Δημιουργήθηκε για τους φοιτητές του Πανεπιστημίου «Dunărea de Jos» του Galați",
+    "clearCacheButton": "Εκκαθάριση cache",
+    "clearCacheTitle": "Εκκαθάριση cache",
+    "clearCacheMessage": "Η εισαγωγή θα επαναφερθεί. Στην επόμενη εκκίνηση θα δεις ξανά το αίτημα δικαιωμάτων.",
+    "clearCacheConfirm": "Εκκαθάριση",
+    "clearCacheDoneTitle": "Έτοιμο",
+    "clearCacheDoneMessage": "Η cache διαγράφηκε. Επανεκκίνησε την εφαρμογή."
   },
   "theme": {
     "title": "Θέμα εφαρμογής",

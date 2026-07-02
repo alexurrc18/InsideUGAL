@@ -112,7 +112,8 @@
     "profileTitle": "Ваш профіль",
     "profileLoggedIn": "Ви вже увійшли. Бажаєте вийти?",
     "cancel": "Скасувати",
-    "logout": "Вийти"
+    "logout": "Вийти",
+    "guideFallback": "Гід"
   },
   "settings": {
     "title": "Налаштування",
@@ -122,7 +123,13 @@
     "currentLang": "Поточна мова:",
     "supportInfo": "Допомога та Інформація",
     "visitWebsite": "Відвідати сайт UGAL",
-    "appSlogan": "Створено для студентів Університету «Dunărea de Jos» у Galați"
+    "appSlogan": "Створено для студентів Університету «Dunărea de Jos» у Galați",
+    "clearCacheButton": "Очистити кеш",
+    "clearCacheTitle": "Очистити кеш",
+    "clearCacheMessage": "Онбординг буде скинуто. Під час наступного запуску ти знову побачиш запит дозволів.",
+    "clearCacheConfirm": "Очистити",
+    "clearCacheDoneTitle": "Готово",
+    "clearCacheDoneMessage": "Кеш очищено. Перезапусти застосунок."
   },
   "theme": {
     "title": "Тема додатку",

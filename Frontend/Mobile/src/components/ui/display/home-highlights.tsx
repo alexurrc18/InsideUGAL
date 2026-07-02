@@ -5,6 +5,7 @@
 //   - stanga: 3 carduri compacte (poza mica + titlu/data), stil Sesizari, dar mai mic;
 //   - dreapta: un card mare "featured" (imagine full + gradient + titlu).
 // Pe ecrane inguste (<768px) coloanele se stivuiesc vertical.
+import { useState } from "react";
 import { View, Text, Pressable, StyleSheet, useWindowDimensions } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -56,14 +57,16 @@ export function CompactCard({ item, onPress }: { item: HighlightItem; onPress: (
 
 /** Card mare "featured": imagine full-bleed + gradient + text jos. */
 function FeaturedCard({ item, onPress }: { item: HighlightItem; onPress: () => void }) {
+  const [imgErr, setImgErr] = useState(false);
   return (
-    <Pressable 
-      onPress={onPress} 
+    <Pressable
+      onPress={onPress}
       style={({ pressed }) => [styles.featured, { opacity: pressed ? 0.92 : 1 }]}
       {...({ dataSet: { card: "true" } } as any)}
     >
       <Image
-        source={item.image ? { uri: item.image } : FALLBACK_IMAGE}
+        source={item.image && !imgErr ? { uri: item.image } : FALLBACK_IMAGE}
+        onError={() => setImgErr(true)}
         accessibilityLabel={item.title}
         style={[StyleSheet.absoluteFill, { zIndex: 1, overflow: "hidden" }]}
         contentFit="cover"
@@ -95,7 +98,8 @@ export function HomeHighlights({ featured, items, onPressItem, title = "Recomand
   const { width } = useWindowDimensions();
   const stacked = width < 768;
 
-  if (!featured && items.length === 0) return null;
+  // Afisam sectiunea doar cand toate cele 4 sloturi sunt ocupate (1 featured + 3 compacte).
+  if (!featured || items.length < 3) return null;
 
   return (
     <WebContainer style={{ marginVertical: Spacing.xl3 }}>
@@ -112,21 +116,19 @@ export function HomeHighlights({ featured, items, onPressItem, title = "Recomand
             {items.map((item) => (
               <CompactCard key={item.id} item={item} onPress={() => onPressItem(item)} />
             ))}
-            {featured ? <FeaturedCard item={featured} onPress={() => onPressItem(featured)} /> : null}
+            <FeaturedCard item={featured} onPress={() => onPressItem(featured)} />
           </View>
         ) : (
-          // Ecran lat: doua coloane (3 carduri compacte stanga + card mare dreapta).
+          // Doua coloane (3 carduri compacte stanga + card mare dreapta)
           <View style={styles.row}>
             <View style={styles.listCol}>
               {items.map((item) => (
                 <CompactCard key={item.id} item={item} onPress={() => onPressItem(item)} />
               ))}
             </View>
-            {featured ? (
-              <View style={styles.featuredCol}>
-                <FeaturedCard item={featured} onPress={() => onPressItem(featured)} />
-              </View>
-            ) : null}
+            <View style={styles.featuredCol}>
+              <FeaturedCard item={featured} onPress={() => onPressItem(featured)} />
+            </View>
           </View>
         )}
       </View>

@@ -112,7 +112,8 @@
     "profileTitle": "आपकी प्रोफ़ाइल",
     "profileLoggedIn": "आप पहले से लॉग इन हैं। क्या आप लॉग आउट करना चाहते हैं?",
     "cancel": "रद्द करें",
-    "logout": "लॉग आउट"
+    "logout": "लॉग आउट",
+    "guideFallback": "गाइड"
   },
   "settings": {
     "title": "सेटिंग्स",
@@ -122,7 +123,13 @@
     "currentLang": "वर्तमान भाषा:",
     "supportInfo": "सहायता और जानकारी",
     "visitWebsite": "UGAL वेबसाइट देखें",
-    "appSlogan": "Galați के «Dunărea de Jos» विश्वविद्यालय के छात्रों के लिए बनाया गया"
+    "appSlogan": "Galați के «Dunărea de Jos» विश्वविद्यालय के छात्रों के लिए बनाया गया",
+    "clearCacheButton": "कैश साफ़ करें",
+    "clearCacheTitle": "कैश साफ़ करें",
+    "clearCacheMessage": "ऑनबोर्डिंग रीसेट हो जाएगी। अगली बार खोलने पर आपको फिर से अनुमति अनुरोध दिखेगा।",
+    "clearCacheConfirm": "साफ़ करें",
+    "clearCacheDoneTitle": "हो गया",
+    "clearCacheDoneMessage": "कैश साफ़ हो गया। ऐप को पुनरारंभ करें।"
   },
   "theme": {
     "title": "ऐप थीम",

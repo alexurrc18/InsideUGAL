@@ -123,7 +123,8 @@ export default function HomeScreen() {
         const response = await api.get("/faculties/", {
           params: {
             page: 1,
-            size: 50
+            size: 50,
+            lang: i18n.language,
           }
         });
         if (response.data && response.data.items) {
@@ -163,7 +164,8 @@ export default function HomeScreen() {
         const response = await api.get("/facilities/", {
           params: {
             page: 1,
-            size: 50
+            size: 50,
+            lang: i18n.language,
           }
         });
         if (response.data && response.data.items) {

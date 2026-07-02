@@ -112,7 +112,8 @@
     "profileTitle": "Tu perfil",
     "profileLoggedIn": "Ya has iniciado sesión. ¿Deseas cerrar sesión?",
     "cancel": "Cancelar",
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesión",
+    "guideFallback": "Guía"
   },
   "settings": {
     "title": "Ajustes",
@@ -122,7 +123,13 @@
     "currentLang": "Idioma actual:",
     "supportInfo": "Ayuda e Info",
     "visitWebsite": "Visitar sitio web UGAL",
-    "appSlogan": "Creado para los estudiantes de la Universidad \"Dunărea de Jos\" de Galați"
+    "appSlogan": "Creado para los estudiantes de la Universidad \"Dunărea de Jos\" de Galați",
+    "clearCacheButton": "Borrar caché",
+    "clearCacheTitle": "Borrar caché",
+    "clearCacheMessage": "Se restablecerá la incorporación. Al reiniciar verás de nuevo la solicitud de permisos.",
+    "clearCacheConfirm": "Borrar",
+    "clearCacheDoneTitle": "Listo",
+    "clearCacheDoneMessage": "Caché borrada. Reinicia la aplicación."
   },
   "theme": {
     "title": "Tema de la app",

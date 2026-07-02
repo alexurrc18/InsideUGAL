@@ -58,6 +58,7 @@ function VizualizareScreen() {
     const [retryKey, setRetryKey] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
     const refreshStartRef = useRef(0);
+    const [imgErr, setImgErr] = useState(false);
 
     const initialItem = {
         title: (params.title as string) || "",
@@ -138,7 +139,7 @@ function VizualizareScreen() {
                                 };
                             }
                         } else if (initialTipPagina === "Facultate") {
-                            const res = await api.get(`/faculties/${numericId}`);
+                            const res = await api.get(`/faculties/${numericId}`, { params: { lang: i18n.language } });
                             if (res.data) {
                                 const item = res.data;
                                 fetchedItem = {
@@ -153,7 +154,7 @@ function VizualizareScreen() {
                                 };
                             }
                         } else if (initialTipPagina === "Facilitate") {
-                            const res = await api.get(`/facilities/${numericId}`);
+                            const res = await api.get(`/facilities/${numericId}`, { params: { lang: i18n.language } });
                             if (res.data) {
                                 const item = res.data;
                                 fetchedItem = {
@@ -345,7 +346,8 @@ function VizualizareScreen() {
             >
                 <View style={{ width: "100%", height: 320 }}>
                     <Image
-                        source={image ? { uri: image as string } : require("@/assets/images/campus-stiintei.png")}
+                        source={image && !imgErr ? { uri: image as string } : require("@/assets/images/campus-stiintei.png")}
+                        onError={() => setImgErr(true)}
                         style={{ width: "100%", height: "100%", position: "absolute" }}
                         contentFit="cover"
                     />

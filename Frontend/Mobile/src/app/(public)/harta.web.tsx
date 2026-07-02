@@ -39,7 +39,7 @@ export default function HartaScreen() {
   const themeName = (useColorScheme() ?? "light") as keyof typeof Colors;
   const theme = Colors[themeName];
   const contentTop = useWebContentTop();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [hasError, setHasError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(lastKnownUserLocation);
@@ -103,8 +103,8 @@ export default function HartaScreen() {
 
         // Fetch fresh data from API
         const [facsRes, locsRes] = await Promise.all([
-          api.get('/faculties/', { params: { page: 1, size: 50 } }),
-          api.get('/locations/', { params: { page: 1, size: 50 } })
+          api.get('/faculties/', { params: { page: 1, size: 50, lang: i18n.language } }),
+          api.get('/locations/', { params: { page: 1, size: 50, lang: i18n.language } })
         ]);
 
         if (active) {
@@ -122,7 +122,7 @@ export default function HartaScreen() {
     }
     loadData();
     return () => { active = false; };
-  }, [retryKey]);
+  }, [retryKey, i18n.language]);
 
   const facultyFilters = useMemo(() => {
     return [

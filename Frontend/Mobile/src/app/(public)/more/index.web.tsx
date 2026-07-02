@@ -25,11 +25,11 @@ export default function MoreScreen() {
   const insets = useSafeAreaInsets();
   const contentTop = useWebContentTop();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
-    api.get('/city-guide/categories')
+    api.get('/city-guide/categories', { params: { lang: i18n.language } })
       .then(res => {
         const data = res.data;
         if (data && Array.isArray(data)) {

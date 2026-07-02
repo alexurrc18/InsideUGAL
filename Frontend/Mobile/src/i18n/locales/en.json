@@ -112,7 +112,8 @@
     "profileTitle": "Your Profile",
     "profileLoggedIn": "You're already signed in. Do you want to sign out?",
     "cancel": "Cancel",
-    "logout": "Sign Out"
+    "logout": "Sign Out",
+    "guideFallback": "Guide"
   },
   "settings": {
     "title": "Settings",
@@ -122,7 +123,13 @@
     "currentLang": "Current language:",
     "supportInfo": "Help & Info",
     "visitWebsite": "Visit UGAL Website",
-    "appSlogan": "Created for students of the \"Dunărea de Jos\" University of Galați"
+    "appSlogan": "Created for students of the \"Dunărea de Jos\" University of Galați",
+    "clearCacheButton": "Clear cache",
+    "clearCacheTitle": "Clear cache",
+    "clearCacheMessage": "This will reset onboarding. You'll see the permissions prompt again on next launch.",
+    "clearCacheConfirm": "Clear",
+    "clearCacheDoneTitle": "Done",
+    "clearCacheDoneMessage": "Cache cleared. Restart the app."
   },
   "theme": {
     "title": "App Theme",
