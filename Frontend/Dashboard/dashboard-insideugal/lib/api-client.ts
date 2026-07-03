@@ -1,17 +1,21 @@
 import { z } from "zod";
 
 import {
-  announcementSchema,
-  announcementsSchema,
-  coursesSchema,
-  facultiesSchema,
-  facultySchema,
-  notificationSchema,
-  notificationsSchema,
-  profileSchema,
-  userSchema,
+    announcementSchema,
+    announcementsSchema,
+    coursesSchema,
+    facultiesSchema,
+    facilitySchema,
+    facilitiesSchema,
+    notificationSchema,
+    notificationsSchema,
+    profileSchema,
+    userSchema,
 } from "./api-schemas";
 import type { Announcement, ApiErrorBody, ApiRequestOptions } from "./api-types";
+
+import { FacilityItem } from "../types/facility"; // Ajustează calea dacă e nevoie
+import { facultySchema } from "./api-schemas";
 
 // 👉 REPARAT: Forțăm http în mod explicit pe local pentru a preveni ERR_SSL_PROTOCOL_ERROR
 // Chiar dacă în .env ai din greșeală "https", codul de mai jos se va asigura că rămâne "http" pe localhost.
@@ -380,9 +384,32 @@ export const apiClient = {
     apiRequest(`/announcements/${id}`, z.unknown(), {
       method: "DELETE",
     }),
-  getCourses: () => apiRequest("/courses", coursesSchema),
-  getFaculties: () => apiRequest("/faculties", facultiesSchema),
+
+    getFaculties: () => apiRequest("/faculties", facultiesSchema),
   getFaculty: (id: number) => apiRequest(`/faculties/${id}`, facultySchema),
+  
+  getFacilities: () =>
+    apiRequest("/facilities", facilitiesSchema),
+
+createFacility: (data: Partial<FacilityItem>) =>
+    apiRequest("/facilities/", facilitySchema, {
+        method: "POST",
+        body: data,
+    }),
+
+updateFacility: (id: number, data: Partial<FacilityItem>) =>
+    apiRequest(`/facilities/${id}`, facilitySchema, {
+        method: "PATCH",
+        body: data,
+    }),
+
+deleteFacility: (id: number) =>
+    apiRequest(`/facilities/${id}`, z.unknown(), {
+        method: "DELETE",
+    }),
+
+  // Restul metodelor (getCourses, getNotifications etc.) rămân mai jos...
+  getCourses: () => apiRequest("/courses", coursesSchema),
   getCurrentUser: () => apiRequest("/users/me", userSchema),
   getCurrentProfile: () => apiRequest("/profiles/me", profileSchema),
   getNotifications: (params?: { faculty_id?: number; page?: number; size?: number }) => {

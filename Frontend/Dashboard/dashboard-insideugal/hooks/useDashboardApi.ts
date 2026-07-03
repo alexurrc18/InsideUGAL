@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod"; // Adăugat pentru validarea schemei generice
-
+import { apiClient } from "@/lib/api-client";
 import { useApiMutation } from "@/hooks/useApiMutation";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { announcementsService } from "@/lib/announcements-service";
@@ -87,5 +87,38 @@ export function useComplaints() {
     path: "/complaints", // Schimbă cu '/sesizari' dacă ruta de backend diferă
     queryKey: ["complaints"],
     schema: complaintsGenericSchema, // Schema pasată obligatoriu pentru a rezolva eroarea TS2345
+  });
+}
+
+import type { FacilityItem } from "@/types/facility";
+
+export function useFacilities() {
+  return useQuery({
+    queryKey: ["facilities"],
+    queryFn: () => apiClient.getFacilities(),
+  });
+}
+
+export function useCreateFacility() {
+  return useApiMutation<FacilityItem, Partial<FacilityItem>>({
+    mutationFn: (data) => apiClient.createFacility(data),
+    invalidateKeys: [["facilities"]],
+  });
+}
+
+export function useUpdateFacility() {
+  return useApiMutation<
+    FacilityItem,
+    { id: number; data: Partial<FacilityItem> }
+  >({
+    mutationFn: ({ id, data }) => apiClient.updateFacility(id, data),
+    invalidateKeys: [["facilities"]],
+  });
+}
+
+export function useDeleteFacility() {
+  return useApiMutation<unknown, number>({
+    mutationFn: (id) => apiClient.deleteFacility(id),
+    invalidateKeys: [["facilities"]],
   });
 }
