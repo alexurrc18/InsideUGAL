@@ -11,11 +11,8 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from fastapi import Depends
 
 from app.api.auth_deps import oauth2_scheme, verify_supabase_token
-
-from app.api.auth_deps import get_current_profile
 from app.db.database import get_db
 from app.models.models import Profile, QuestionsHistory
 from app.rate_limit import limiter, LLM_RATE_LIMIT
