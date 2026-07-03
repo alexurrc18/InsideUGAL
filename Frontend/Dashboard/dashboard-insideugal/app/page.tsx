@@ -139,7 +139,7 @@ export default function Page() {
           onClick={() => router.push("/noutati")}
         >
           <CardHeader className="pb-2">
-            <CardTitle>Anunțuri Noi</CardTitle>
+            <CardTitle>Număr Noutăți</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold tracking-tight text-foreground">
@@ -149,7 +149,7 @@ export default function Page() {
                 stats.anunturi
               )}
             </div>
-            <p className="mt-1 text-xs text-muted">Noutăți și anunțuri publicate</p>
+            <p className="mt-1 text-xs text-muted">Noutăți publicate</p>
           </CardContent>
         </Card>
       </section>

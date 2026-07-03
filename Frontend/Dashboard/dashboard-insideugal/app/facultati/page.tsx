@@ -256,11 +256,11 @@ export default function Page() {
     },
     { header: "Nume facultate", key: "name", render: (item) => <span className="font-semibold text-foreground">{item.name}</span> },
     { header: "Descriere", key: "description", render: (item) => <span className="block max-w-xs truncate text-muted">{item.description || "-"}</span> },
-    { header: "Adresa", key: "address", render: (item) => <span className="text-muted">{item.address || "-"}</span> },
+    { header: "Adresă", key: "address", render: (item) => <span className="text-muted">{item.address || "-"}</span> },
     { header: "Telefon", key: "phone", render: (item) => <span className="text-muted whitespace-nowrap">{item.phone || "-"}</span> },
     { header: "Website", key: "website", render: (item) => item.website ? <a href={item.website} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">{item.website}</a> : <span className="text-muted">-</span> },
     {
-      header: "Actiuni",
+      header: "Acțiuni",
       key: "actions",
       render: (item) => (
         <div className="flex space-x-3 text-xs" onClick={(event) => event.stopPropagation()}>
@@ -280,7 +280,7 @@ export default function Page() {
     { header: "Nume cladire", key: "name", render: (item) => <span className="font-semibold text-foreground">{item.name}</span> },
     { header: "Locatie", key: "location", render: (item) => <span className="text-muted">{item.location}</span> },
     {
-      header: "Facultati",
+      header: "Facultăți",
       key: "faculties",
       render: (item) => (
         <div className="flex flex-wrap gap-1">
@@ -291,7 +291,7 @@ export default function Page() {
       ),
     },
     {
-      header: "Actiuni",
+      header: "Acțiuni",
       key: "actions",
       render: (item) => (
         <div className="flex space-x-3 text-xs" onClick={(event) => event.stopPropagation()}>
@@ -313,10 +313,10 @@ export default function Page() {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <div className="flex bg-background p-1 rounded-xl border border-border/60 w-fit">
-          <button type="button" onClick={() => setActiveTab("facultati")} className={`px-4 py-2 text-xs font-bold rounded-lg cursor-pointer transition-all ${activeTab === "facultati" ? "bg-card text-foreground shadow-xs" : "text-muted hover:text-foreground"}`}>Facultati</button>
-          <button type="button" onClick={() => setActiveTab("cladiri")} className={`px-4 py-2 text-xs font-bold rounded-lg cursor-pointer transition-all ${activeTab === "cladiri" ? "bg-card text-foreground shadow-xs" : "text-muted hover:text-foreground"}`}>Cladiri</button>
+          <button type="button" onClick={() => setActiveTab("facultati")} className={`px-4 py-2 text-xs font-bold rounded-lg cursor-pointer transition-all ${activeTab === "facultati" ? "bg-card text-foreground shadow-xs" : "text-muted hover:text-foreground"}`}>Facultăți</button>
+          <button type="button" onClick={() => setActiveTab("cladiri")} className={`px-4 py-2 text-xs font-bold rounded-lg cursor-pointer transition-all ${activeTab === "cladiri" ? "bg-card text-foreground shadow-xs" : "text-muted hover:text-foreground"}`}>Clădiri</button>
         </div>
-        <button type="button" onClick={handleOpenAddModal} className="bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-bold cursor-pointer hover:opacity-90 transition-all shadow-md self-end md:self-auto">Adauga</button>
+        <button type="button" onClick={handleOpenAddModal} className="bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-bold cursor-pointer hover:opacity-90 transition-all shadow-md self-end md:self-auto">Adaugă</button>
       </div>
 
       {errorMessage && (
@@ -339,8 +339,8 @@ export default function Page() {
         <form onSubmit={handleSave} className="space-y-4 text-sm">
           {activeModal === "add" && (
             <select value={targetType} onChange={(event) => setTargetType(event.target.value as "facultati" | "cladiri")} className="w-full border border-border p-2 rounded-lg bg-background">
-              <option value="facultati">Facultati</option>
-              <option value="cladiri">Cladiri</option>
+              <option value="facultati">Facultăți</option>
+              <option value="cladiri">Clădiri</option>
             </select>
           )}
 
@@ -348,8 +348,8 @@ export default function Page() {
             <>
               <input value={facultyForm.name || ""} onChange={(event) => setFacultyForm({ ...facultyForm, name: event.target.value })} placeholder="Nume facultate" className="w-full border border-border p-2 rounded-lg bg-background" required />
               <input value={facultyForm.abbreviation || ""} onChange={(event) => setFacultyForm({ ...facultyForm, abbreviation: event.target.value })} placeholder="Abreviere" className="w-full border border-border p-2 rounded-lg bg-background" />
-              <textarea value={facultyForm.description || ""} onChange={(event) => setFacultyForm({ ...facultyForm, description: event.target.value })} placeholder="Descriere scurta" className="w-full border border-border p-2 rounded-lg bg-background h-20" />
-              <input value={facultyForm.address || ""} onChange={(event) => setFacultyForm({ ...facultyForm, address: event.target.value })} placeholder="Adresa" className="w-full border border-border p-2 rounded-lg bg-background" />
+              <textarea value={facultyForm.description || ""} onChange={(event) => setFacultyForm({ ...facultyForm, description: event.target.value })} placeholder="Descriere" className="w-full border border-border p-2 rounded-lg bg-background h-20" />
+              <input value={facultyForm.address || ""} onChange={(event) => setFacultyForm({ ...facultyForm, address: event.target.value })} placeholder="Adresă" className="w-full border border-border p-2 rounded-lg bg-background" />
               <input value={facultyForm.phone || ""} onChange={(event) => setFacultyForm({ ...facultyForm, phone: event.target.value })} placeholder="Telefon" className="w-full border border-border p-2 rounded-lg bg-background" />
               <input type="url" value={facultyForm.website || ""} onChange={(event) => setFacultyForm({ ...facultyForm, website: event.target.value })} placeholder="Website" className="w-full border border-border p-2 rounded-lg bg-background" />
               <input type="url" value={facultyForm.logoUrl || ""} onChange={(event) => setFacultyForm({ ...facultyForm, logoUrl: event.target.value })} placeholder="URL logo" className="w-full border border-border p-2 rounded-lg bg-background" />
@@ -369,8 +369,8 @@ export default function Page() {
           )}
 
           <div className="flex justify-end space-x-2 pt-4 border-t border-border">
-            <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-border rounded-lg text-muted text-xs">Anuleaza</button>
-            <button type="submit" className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold">Salveaza</button>
+            <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-border rounded-lg text-muted text-xs">Anulează</button>
+            <button type="submit" className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold">Salvează</button>
           </div>
         </form>
       </Modal>

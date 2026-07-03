@@ -307,7 +307,7 @@ export default function Page() {
           }}
           className="bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:opacity-90 shadow-sm transition-all"
         >
-          + Adaugă
+          Adaugă
         </button>
       </div>
 
