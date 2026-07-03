@@ -16,7 +16,8 @@ export type UserItem = {
   email: string;
   role: UserRole;
   status: UserStatus;
-  faculty: string; 
+  faculty: string;
+  faculty_id: number | null; // ← ADĂUGAT
   registrationDate: string;
   username?: string;
 };
@@ -33,13 +34,13 @@ const roleLabels: Record<UserRole, string> = {
   Student: 'Student',
   Student_responsabil: 'Student Responsabil',
   Profesor: 'Profesor',
-  Head_facultati: 'Secretariat', 
+  Head_facultati: 'Secretariat',
   Head_cantina: 'Responsabil Cantina',
   Admin: 'Admin'
 };
 
-const API_PROFILES_URL = `${apiBaseUrl}/profiles`; 
-const API_FACULTIES_URL = `${apiBaseUrl}/faculties`; 
+const API_PROFILES_URL = `${apiBaseUrl}/profiles`;
+const API_FACULTIES_URL = `${apiBaseUrl}/faculties`;
 
 function getLoggedInUserEmail(): string | null {
   if (typeof window === "undefined") return null;
@@ -74,6 +75,7 @@ export default function ConturiPage() {
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
   const [editPassword, setEditPassword] = useState('');
 
+  // ← faculty_id adăugat în state-ul newUser
   const [newUser, setNewUser] = useState({
     email: '',
     username: '',
@@ -81,13 +83,13 @@ export default function ConturiPage() {
     last_name: '',
     password: '',
     role: 'Student' as UserRole,
-    faculty: '' 
+    faculty: '',
+    faculty_id: null as number | null
   });
 
   const getAuthHeaders = useCallback(() => {
     const token = localStorage.getItem("access_token");
     const tokenType = localStorage.getItem("token_type") || "Bearer";
-    
     return {
       'Content-Type': 'application/json',
       ...(token ? { 'Authorization': `${tokenType} ${token}` } : {})
@@ -98,20 +100,19 @@ export default function ConturiPage() {
     let allItems: FacultyDBItem[] = [];
     let currentPage = 1;
     let hasMore = true;
-    const pageSize = 50; 
+    const pageSize = 50;
 
     try {
       while (hasMore) {
-        // Corectat: Eliminat parametrii nefolosiți din semnături sau apeluri ascunse
         const response = await fetch(`${API_FACULTIES_URL}/?size=${pageSize}&page=${currentPage}`, {
           method: 'GET',
           headers: getAuthHeaders()
         });
-        
+
         if (!response.ok) {
           throw new Error(`Eroare la paginarea facultăților: ${response.status}`);
         }
-        
+
         interface APIFacultiesResponse {
           items?: FacultyDBItem[];
           total?: number;
@@ -120,7 +121,7 @@ export default function ConturiPage() {
         const data = (await response.json()) as APIFacultiesResponse;
         const items = data.items || [];
         allItems = [...allItems, ...items];
-        
+
         if (items.length < pageSize || allItems.length >= (data.total || 0)) {
           hasMore = false;
         } else {
@@ -136,19 +137,19 @@ export default function ConturiPage() {
 
   const fetchProfiles = useCallback(async () => {
     try {
-      // Corectat: Eliminat parametri nefolosiți din contextul fetch-ului
       const response = await fetch(`${API_PROFILES_URL}/?size=50&page=1`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
-      
+
       if (!response.ok) {
         if (response.status === 401) {
           throw new Error('Sesiune invalidă sau drepturi insuficiente. Trebuie să fii logat ca Admin.');
         }
         throw new Error('Eroare la încărcarea profilelor de pe server.');
       }
-      
+
+      // ← faculty_id adăugat în interfața APIProfilesItem
       interface APIProfilesItem {
         id: string;
         role?: string;
@@ -157,6 +158,7 @@ export default function ConturiPage() {
         email: string;
         is_active?: boolean;
         faculty?: { name: string; abbreviation?: string } | null;
+        faculty_id?: number | null;
         created_at?: string;
         username?: string;
       }
@@ -167,11 +169,11 @@ export default function ConturiPage() {
 
       const data = (await response.json()) as APIProfilesResponse;
       const currentEmail = getLoggedInUserEmail();
-      
+
       const mappedUsers: UserItem[] = (data.items || []).map((item: APIProfilesItem) => {
         const rawRole = item.role ? item.role.trim().toUpperCase() : 'STUDENT';
         let cleanRole: UserRole = 'Student';
-        
+
         if (rawRole === 'ADMIN' || rawRole === 'HEAD_ADMIN') cleanRole = 'Admin';
         else if (rawRole === 'STUDENT_RESPONSABIL') cleanRole = 'Student_responsabil';
         else if (rawRole === 'PROFESOR') cleanRole = 'Profesor';
@@ -185,7 +187,8 @@ export default function ConturiPage() {
           email: item.email,
           role: cleanRole,
           status: item.is_active ? 'Activ' : 'Blocat',
-          faculty: item.faculty?.name || 'Fără facultate', 
+          faculty: item.faculty?.name || 'Fără facultate',
+          faculty_id: item.faculty_id ?? null, // ← ADĂUGAT
           registrationDate: item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
           username: item.username || ''
         };
@@ -208,7 +211,6 @@ export default function ConturiPage() {
     }
   }, [getAuthHeaders]);
 
-  // FIX: Eliminat setLoading(true) apelat sincron din corpul principal al efectului
   useEffect(() => {
     let isMounted = true;
 
@@ -217,13 +219,13 @@ export default function ConturiPage() {
         if (isMounted) {
           setUsers(data);
           setError(null);
-          setLoading(false); // Mutat asincron aici
+          setLoading(false);
         }
       })
       .catch((err: Error) => {
         if (isMounted) {
           setError(err.message);
-          setLoading(false); // Mutat asincron aici
+          setLoading(false);
         }
       });
 
@@ -268,6 +270,7 @@ export default function ConturiPage() {
 
     if (modalMode === 'create') {
       try {
+        // ← faculty_id trimis în loc de faculty (string)
         const payload = {
           email: newUser.email,
           username: newUser.username,
@@ -275,7 +278,7 @@ export default function ConturiPage() {
           last_name: newUser.last_name,
           password: newUser.password,
           role: newUser.role.toUpperCase(),
-          faculty: newUser.faculty
+          faculty_id: newUser.faculty_id,
         };
 
         const response = await fetch(`${API_PROFILES_URL}/`, {
@@ -293,7 +296,8 @@ export default function ConturiPage() {
         }
 
         setIsModalOpen(false);
-        setNewUser({ email: '', username: '', first_name: '', last_name: '', password: '', role: 'Student', faculty: '' });
+        // ← faculty_id inclus în reset
+        setNewUser({ email: '', username: '', first_name: '', last_name: '', password: '', role: 'Student', faculty: '', faculty_id: null });
         await delay(300);
         const updatedUsers = await fetchProfiles();
         setUsers(updatedUsers);
@@ -303,7 +307,7 @@ export default function ConturiPage() {
         if (errorInstance.message === "Failed to fetch") {
           console.warn("Serverul a procesat cererea, dar a întrerupt conexiunea înainte de răspuns.");
           setIsModalOpen(false);
-          setNewUser({ email: '', username: '', first_name: '', last_name: '', password: '', role: 'Student', faculty: '' });
+          setNewUser({ email: '', username: '', first_name: '', last_name: '', password: '', role: 'Student', faculty: '', faculty_id: null });
           await delay(400);
           const updatedUsers = await fetchProfiles().catch(() => []);
           if (updatedUsers.length > 0) setUsers(updatedUsers);
@@ -315,6 +319,7 @@ export default function ConturiPage() {
       }
     } else if (modalMode === 'edit' && selectedUser) {
       try {
+        // ← faculty_id trimis în loc de faculty (string)
         const payload: Record<string, unknown> = {
           role: selectedUser.role.toUpperCase(),
           is_active: selectedUser.status === 'Activ',
@@ -322,7 +327,7 @@ export default function ConturiPage() {
           last_name: selectedUser.last_name,
           email: selectedUser.email,
           username: selectedUser.username,
-          faculty: selectedUser.faculty
+          faculty_id: selectedUser.faculty_id, // ← CORECT
         };
 
         if (editPassword.trim()) {
@@ -369,11 +374,10 @@ export default function ConturiPage() {
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
       const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
-      const matchesSearch = fullName.includes(searchQuery.toLowerCase()) || 
-                            user.email.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = fullName.includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesRole = roleFilter === 'all' || user.role === roleFilter;
       const matchesBlocked = !onlyBlockedFilter || user.status === 'Blocat';
-      
       return matchesSearch && matchesRole && matchesBlocked;
     });
   }, [users, searchQuery, roleFilter, onlyBlockedFilter]);
@@ -398,7 +402,6 @@ export default function ConturiPage() {
       render: (item) => {
         const currentEmail = getLoggedInUserEmail();
         const isMe = currentEmail && item.email.toLowerCase() === currentEmail.toLowerCase();
-        
         return (
           <div className="space-y-0.5 max-w-[180px] sm:max-w-none">
             <p className="font-semibold text-foreground text-sm flex items-center flex-wrap gap-1">
@@ -432,9 +435,8 @@ export default function ConturiPage() {
       header: 'Status',
       key: 'status',
       render: (item) => (
-        <span className={`px-2 py-0.5 rounded-md text-xs font-medium border inline-block whitespace-nowrap ${
-          item.status === 'Activ' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-600 border-red-200'
-        }`}>
+        <span className={`px-2 py-0.5 rounded-md text-xs font-medium border inline-block whitespace-nowrap ${item.status === 'Activ' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-600 border-red-200'
+          }`}>
           {item.status}
         </span>
       )
@@ -475,7 +477,7 @@ export default function ConturiPage() {
 
   return (
     <div className="p-3 md:p-6 max-w-7xl mx-auto space-y-4 w-full overflow-x-hidden">
-      
+
       <div className="flex flex-col gap-4 w-full bg-background p-1">
         <div className="flex flex-row justify-between items-center w-full gap-4">
           <div className="relative w-full sm:w-64 md:w-80 min-w-[200px]">
@@ -499,7 +501,8 @@ export default function ConturiPage() {
                 last_name: '',
                 password: '',
                 role: 'Student',
-                faculty: ''
+                faculty: '',
+                faculty_id: null
               });
               setIsModalOpen(true);
             }}
@@ -517,9 +520,8 @@ export default function ConturiPage() {
                   key={tab}
                   type="button"
                   onClick={() => setRoleFilter(tab)}
-                  className={`px-3 md:px-4 py-1.5 text-xs font-bold rounded-lg cursor-pointer transition-all whitespace-nowrap ${
-                    roleFilter === tab ? 'bg-card text-foreground shadow-xs' : 'text-muted hover:text-foreground'
-                  }`}
+                  className={`px-3 md:px-4 py-1.5 text-xs font-bold rounded-lg cursor-pointer transition-all whitespace-nowrap ${roleFilter === tab ? 'bg-card text-foreground shadow-xs' : 'text-muted hover:text-foreground'
+                    }`}
                 >
                   {tab === 'all' ? 'Toate' : roleLabels[tab]}
                 </button>
@@ -550,9 +552,9 @@ export default function ConturiPage() {
         </div>
       )}
 
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => !isSaving && setIsModalOpen(false)} 
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => !isSaving && setIsModalOpen(false)}
         title={modalMode === 'create' ? "Adăugare Cont Nou" : "Modificare Completă Profil (Admin)"}
         className="max-w-2xl"
       >
@@ -561,20 +563,20 @@ export default function ConturiPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">Nume</label>
-                <input required disabled={isSaving} type="text" value={newUser.first_name} onChange={(e) => setNewUser({...newUser, first_name: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="Andrei" />
+                <input required disabled={isSaving} type="text" value={newUser.first_name} onChange={(e) => setNewUser({ ...newUser, first_name: e.target.value })} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="Andrei" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">Prenume</label>
-                <input required disabled={isSaving} type="text" value={newUser.last_name} onChange={(e) => setNewUser({...newUser, last_name: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="Popescu" />
+                <input required disabled={isSaving} type="text" value={newUser.last_name} onChange={(e) => setNewUser({ ...newUser, last_name: e.target.value })} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="Popescu" />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">Username</label>
-                <input required disabled={isSaving} type="text" autoComplete="one-time-code" value={newUser.username} onChange={(e) => setNewUser({...newUser, username: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="apopescu" />
+                <input required disabled={isSaving} type="text" autoComplete="one-time-code" value={newUser.username} onChange={(e) => setNewUser({ ...newUser, username: e.target.value })} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="apopescu" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">Email Instituțional</label>
-                <input required disabled={isSaving} type="email" autoComplete="one-time-code" value={newUser.email} onChange={(e) => setNewUser({...newUser, email: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background font-mono text-sm disabled:opacity-60" placeholder="nume@egal.ro" />
+                <input required disabled={isSaving} type="email" autoComplete="one-time-code" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} className="w-full border border-border p-2 rounded-lg bg-background font-mono text-sm disabled:opacity-60" placeholder="nume@egal.ro" />
               </div>
 
               <div>
@@ -583,7 +585,12 @@ export default function ConturiPage() {
                   required
                   disabled={isSaving}
                   value={newUser.faculty}
-                  onChange={(e) => setNewUser({ ...newUser, faculty: e.target.value })}
+                  // ← actualizează și faculty_id când userul alege facultatea
+                  onChange={(e) => setNewUser({
+                    ...newUser,
+                    faculty: e.target.value,
+                    faculty_id: dbFaculties.find(f => f.name === e.target.value)?.id ?? null
+                  })}
                   className="w-full border border-border p-2 rounded-lg bg-background text-sm cursor-pointer disabled:opacity-60 truncate max-w-full"
                 >
                   <option value="" disabled hidden>Alege o facultate</option>
@@ -613,7 +620,7 @@ export default function ConturiPage() {
 
             <div>
               <label className="block text-xs font-semibold text-foreground mb-1">Parolă inițială</label>
-              <input required disabled={isSaving} type="password" autoComplete="new-password" value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="••••••••" />
+              <input required disabled={isSaving} type="password" autoComplete="new-password" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} className="w-full border border-border p-2 rounded-lg bg-background text-sm disabled:opacity-60" placeholder="••••••••" />
             </div>
 
             <div className="flex justify-end space-x-2 pt-4 border-t border-border">
@@ -629,20 +636,20 @@ export default function ConturiPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-foreground mb-1">Nume</label>
-                  <input disabled={isSaving} type="text" value={selectedUser.first_name} onChange={(e) => setSelectedUser({...selectedUser, first_name: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm font-medium disabled:opacity-60" />
+                  <input disabled={isSaving} type="text" value={selectedUser.first_name} onChange={(e) => setSelectedUser({ ...selectedUser, first_name: e.target.value })} className="w-full border border-border p-2 rounded-lg bg-background text-sm font-medium disabled:opacity-60" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-foreground mb-1">Prenume</label>
-                  <input disabled={isSaving} type="text" value={selectedUser.last_name} onChange={(e) => setSelectedUser({...selectedUser, last_name: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm font-medium disabled:opacity-60" />
+                  <input disabled={isSaving} type="text" value={selectedUser.last_name} onChange={(e) => setSelectedUser({ ...selectedUser, last_name: e.target.value })} className="w-full border border-border p-2 rounded-lg bg-background text-sm font-medium disabled:opacity-60" />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-foreground mb-1">Username</label>
-                  <input disabled={isSaving} type="text" value={selectedUser.username || ''} onChange={(e) => setSelectedUser({...selectedUser, username: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background text-sm font-medium disabled:opacity-60" />
+                  <input disabled={isSaving} type="text" value={selectedUser.username || ''} onChange={(e) => setSelectedUser({ ...selectedUser, username: e.target.value })} className="w-full border border-border p-2 rounded-lg bg-background text-sm font-medium disabled:opacity-60" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-foreground mb-1">Email</label>
-                  <input disabled={isSaving} type="email" value={selectedUser.email} onChange={(e) => setSelectedUser({...selectedUser, email: e.target.value})} className="w-full border border-border p-2 rounded-lg bg-background font-mono text-sm disabled:opacity-60" />
+                  <input disabled={isSaving} type="email" value={selectedUser.email} onChange={(e) => setSelectedUser({ ...selectedUser, email: e.target.value })} className="w-full border border-border p-2 rounded-lg bg-background font-mono text-sm disabled:opacity-60" />
                 </div>
 
                 <div>
@@ -651,7 +658,12 @@ export default function ConturiPage() {
                     required
                     disabled={isSaving}
                     value={selectedUser.faculty}
-                    onChange={(e) => setSelectedUser({ ...selectedUser, faculty: e.target.value })}
+                    // ← actualizează și faculty_id când userul schimbă facultatea
+                    onChange={(e) => setSelectedUser({
+                      ...selectedUser,
+                      faculty: e.target.value,
+                      faculty_id: dbFaculties.find(f => f.name === e.target.value)?.id ?? null
+                    })}
                     className="w-full border border-border p-2 rounded-lg bg-background text-sm cursor-pointer disabled:opacity-60 truncate max-w-full"
                   >
                     <option value="">Alege o facultate</option>
