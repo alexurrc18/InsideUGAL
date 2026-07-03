@@ -454,21 +454,9 @@ def campus_chat(request: CampusChatRequest):
 def campus_chat_stream(request: CampusChatRequest):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Câmpul 'question' nu poate fi gol.")
-
-    # 1. Verificare Semantic Cache (rapid, fără cost API)
-    try:
-        cached_answer = llm_optimizer_service.get_cached_answer(request.question)
-    except Exception as cache_exc:
-        logger.warning("Semantic cache error (ignorat): %s", cache_exc)
-        cached_answer = None
-    if cached_answer:
-        return CampusChatResponse(
-            answer=cached_answer,
-            sources=["Memorie Cache (Răspuns stocat semantic)"],
-            suggestions=[]
-        )
-
-    # 2. Filtru de Securitate Guardrails (doar pentru non-cached)
+    # Delegăm toată logica stream-ului către modulul dedicat `campus_chat_service`.
+    # Acesta gestionează atât cache-ul semantic, cât și fallback-urile.
+    # Validăm rapid filtrul de securitate înainte de a porni stream-ul.
     if not llm_optimizer_service.check_prompt_safety(request.question):
         raise HTTPException(status_code=403, detail="Întrebarea a fost respinsă de filtrul de securitate.")
 
