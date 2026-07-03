@@ -292,7 +292,7 @@ export default function HartiPage() {
   <button type="button" onClick={() => setTab("harta")} className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${tab === "harta" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>Hartă</button>
 </div>
         
-        <button type="button" onClick={() => { setAddForm(emptyForm); setShowAddModal(true); }} className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-medium hover:opacity-90">Adaugă clădire</button>
+        <button type="button" onClick={() => { setAddForm(emptyForm); setShowAddModal(true); }} className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-medium hover:opacity-90">Adaugă Clădire</button>
       </div>
 
       {errorMessage && (
@@ -319,11 +319,11 @@ export default function HartiPage() {
         </div>
       )}
 
-      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Adaugă clădire" className="max-w-lg">
+      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Adaugă Clădire" className="max-w-lg">
         <CladireForm formState={addForm} setFormState={setAddForm} onSave={() => void handleAdd()} onCancel={() => setShowAddModal(false)} />
       </Modal>
 
-      <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Editare clădire" className="max-w-lg">
+      <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Editare Clădire" className="max-w-lg">
         <CladireForm formState={editForm} setFormState={setEditForm} onSave={() => void handleEditSave()} onCancel={() => setShowEditModal(false)} />
       </Modal>
     </div>
