@@ -240,21 +240,23 @@ async def _real_stream_response(
     yield "data: [DONE]\n\n"
 
 
+class DummyProfile:
+    id: str
+    is_active: bool
+
+
 @router.post("/ask/stream")
 @limiter.limit(LLM_RATE_LIMIT)
 async def ask_chatbot_stream(
     body: StreamRequest,
     request: Request,
-    current_profile: Profile | None = Depends(get_current_profile_optional),
+    current_profile: Profile | DummyProfile | None = Depends(get_current_profile_optional),
     session: AsyncSession = Depends(get_db),
 ):
     try:
         # If current_profile is not provided (tests / anonymous), create a lightweight dummy profile
         if current_profile is None:
-            class _Dummy:
-                pass
-
-            dummy = _Dummy()
+            dummy = DummyProfile()
             dummy.id = "anonymous"
             dummy.is_active = True
             current_profile = dummy
