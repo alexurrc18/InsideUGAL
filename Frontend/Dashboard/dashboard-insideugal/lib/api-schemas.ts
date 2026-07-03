@@ -69,6 +69,8 @@ export const announcementSchema = z.object({
   image_url: z.string().nullable().optional(),
   faculty_id: z.number().int().nullable().optional(),
   location_name: z.string().nullable().optional(),
+  faculties: z.array(facultySchema).optional().default([]), 
+  event_link: z.string().nullable().optional(),             
 });
 
 export const paginatedAnnouncementsSchema = z.object({
